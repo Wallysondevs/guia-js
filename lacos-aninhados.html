@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Laços Aninhados — um laço dentro de outro | Guia JavaScript</title>
+<meta name="description" content="Laços aninhados no JavaScript para quem nunca programou: um for dentro de outro, várias tabuadas, as cadeiras do cinema, quantas vezes o corpo roda, desenhar um triângulo de estrelas, combinar roupas, sair dos dois laços com rótulo (break busca) e os erros reais do Node.js 24 (Undefined label, passo do laço errado, var no contador).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Laços Aninhados</span></h1>
+
+<p class="intro">O corpo de um laço pode ter qualquer instrução, inclusive <strong>outro laço</strong>. Quando um laço fica dentro de outro, dizemos que eles estão <strong>aninhados</strong> (como ovos num ninho, um dentro do outro). É assim que se percorre tudo o que tem "linhas e colunas": as fileiras e cadeiras do cinema, as tabuadas de vários números, uma tabela de notas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como um <code>for</code> dentro de outro funciona: o de dentro dá <strong>todas</strong> as voltas dele a cada volta do de fora.</li>
+  <li>Quantas vezes o corpo de dentro roda (a multiplicação).</li>
+  <li>Como montar uma linha de texto no laço de dentro e mostrá-la no de fora: cadeiras do cinema, triângulo de estrelas.</li>
+  <li>Como sair dos dois laços de uma vez, com um <strong>rótulo</strong> (<code>break busca</code>).</li>
+  <li>Os erros mais comuns: o passo do laço errado, o rótulo que não existe e o <code>var</code> que mistura os contadores.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Antes, convém conhecer bem o <a href="for.html">for</a> e o <a href="break-continue.html">break e continue</a>.</p>
+
+<hr>
+
+<h2>A ideia: o relógio</h2>
+<p>Olhe um relógio de ponteiros. O ponteiro dos minutos dá uma <strong>volta inteira</strong> (60 minutos) para o ponteiro das horas andar <strong>um passo só</strong>. Depois, os minutos dão outra volta inteira, e a hora anda mais um passo. Laços aninhados funcionam assim:</p>
+<ul>
+  <li>o laço <strong>de fora</strong> é o ponteiro das horas: anda devagar;</li>
+  <li>o laço <strong>de dentro</strong> é o dos minutos: a cada passo do de fora, ele recomeça do zero e vai até o fim.</li>
+</ul>
+
+<hr>
+
+<h2>1. Um <code>for</code> dentro de outro: várias tabuadas</h2>
+
+<pre class="file" data-file="tabuadas.js">for (let numero = 1; numero &lt;= 3; numero++) {
+  console.log(`Tabuada do ${numero}:`);
+  for (let i = 1; i &lt;= 4; i++) {
+    console.log(`  ${numero} x ${i} = ${numero * i}`);
+  }
+}
+console.log("Fim!");
+</pre>
+
+<pre class="term">$ node tabuadas.js
+Tabuada do 1:
+  1 x 1 = 1
+  1 x 2 = 2
+  1 x 3 = 3
+  1 x 4 = 4
+Tabuada do 2:
+  2 x 1 = 2
+  2 x 2 = 4
+  2 x 3 = 6
+  2 x 4 = 8
+Tabuada do 3:
+  3 x 1 = 3
+  3 x 2 = 6
+  3 x 3 = 9
+  3 x 4 = 12
+Fim!
+</pre>
+
+<dl class="anatomy">
+  <dt>for (let numero = 1; numero &lt;= 3; numero++)</dt><dd>O laço <strong>de fora</strong>: <code>numero</code> vale 1, depois 2, depois 3.</dd>
+  <dt>console.log(`Tabuada do ${numero}:`)</dt><dd>Está no corpo do laço de fora, <strong>antes</strong> do laço de dentro: roda uma vez por número, como um título.</dd>
+  <dt>for (let i = 1; i &lt;= 4; i++)</dt><dd>O laço <strong>de dentro</strong>. A cada volta do de fora, ele é criado de novo: <code>i</code> recomeça em 1 e vai até 4.</dd>
+  <dt>${numero} x ${i}</dt><dd>Lá dentro, as <strong>duas</strong> variáveis existem: o <code>numero</code> da volta atual do de fora e o <code>i</code> da volta atual do de dentro.</dd>
+  <dt>a indentação</dt><dd>Cada laço empurra o seu corpo 2 espaços para a direita. Em laços aninhados, isso é o que deixa ver de longe quem está dentro de quem.</dd>
+</dl>
+
+<h3>Quantas vezes o corpo de dentro roda?</h3>
+<p>O de fora deu 3 voltas; em cada uma, o de dentro deu 4. Total: <strong>3 × 4 = 12</strong> linhas de conta. Confira contando com uma variável:</p>
+
+<pre class="file" data-file="voltas.js">let voltas = 0;
+for (let fora = 1; fora &lt;= 3; fora++) {
+  for (let dentro = 1; dentro &lt;= 4; dentro++) {
+    voltas++;
+  }
+}
+console.log(`O corpo de dentro rodou ${voltas} vezes`);
+</pre>
+
+<pre class="term">$ node voltas.js
+O corpo de dentro rodou 12 vezes
+</pre>
+
+<p>É uma multiplicação, e ela cresce rápido: dois laços de 1000 voltas cada fazem o corpo de dentro rodar 1 milhão de vezes. Laços aninhados são ótimos, mas vale lembrar disso quando o programa ficar lento.</p>
+
+<div class="tryjs" data-goal="out:5 x 10 = 50;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> mude o programa para mostrar as tabuadas do <strong>1 ao 5</strong>, cada uma indo <strong>até 10</strong>. Quantas linhas de conta saem agora?</p>
+<pre class="script" data-file="main.js">for (let numero = 1; numero &lt;= 3; numero++) {
+  console.log(`Tabuada do ${numero}:`);
+  for (let i = 1; i &lt;= 4; i++) {
+    console.log(`  ${numero} x ${i} = ${numero * i}`);
+  }
+}
+console.log("Fim!");
+</pre>
+<pre class="solucao" data-file="main.js">for (let numero = 1; numero &lt;= 5; numero++) {
+  console.log(`Tabuada do ${numero}:`);
+  for (let i = 1; i &lt;= 10; i++) {
+    console.log(`  ${numero} x ${i} = ${numero * i}`);
+  }
+}
+console.log("Fim!");
+</pre>
+</div>
+
+<hr>
+
+<h2 id="linha">2. Montar uma linha no laço de dentro</h2>
+<p>O <code>console.log</code> sempre pula de linha. Para mostrar várias coisas <strong>na mesma linha</strong>, o laço de dentro vai juntando os pedaços num texto, e o de fora mostra o texto pronto. As cadeiras do cinema do bairro:</p>
+
+<pre class="file" data-file="cinema.js">const filas = ["A", "B", "C"];
+for (let f = 0; f &lt; filas.length; f++) {
+  let linha = "";
+  for (let cadeira = 1; cadeira &lt;= 5; cadeira++) {
+    linha += `${filas[f]}${cadeira} `;
+  }
+  console.log(linha);
+}
+</pre>
+
+<pre class="term">$ node cinema.js
+A1 A2 A3 A4 A5
+B1 B2 B3 B4 B5
+C1 C2 C3 C4 C5
+</pre>
+
+<dl class="anatomy">
+  <dt>let linha = ""</dt><dd>Um texto vazio, criado <strong>dentro</strong> do laço de fora: cada fila começa com a sua própria linha em branco.</dd>
+  <dt>linha += `${filas[f]}${cadeira} `</dt><dd>A cada cadeira, gruda no fim do texto a letra da fila, o número e um espaço (o <code>+=</code> em textos junta; veja <a href="atribuicao.html">Atribuição</a>).</dd>
+  <dt>console.log(linha)</dt><dd>Fica <strong>depois</strong> do laço de dentro e <strong>dentro</strong> do de fora: roda uma vez por fila, quando a linha já está completa.</dd>
+</dl>
+
+<p>Se o <code>let linha = ""</code> ficasse antes do laço de fora, as filas iam se acumulando: a segunda linha teria A1 até B5, e a terceira, tudo. Se o <code>console.log</code> ficasse dentro do laço de dentro, sairiam 15 linhas, uma por cadeira, cada uma maior que a anterior.</p>
+
+<h3>O laço de dentro pode depender do de fora</h3>
+<p>O número de voltas do laço de dentro não precisa ser fixo: ele pode usar o contador do de fora. Aqui, a linha 1 tem 1 estrela, a linha 2 tem 2…</p>
+
+<pre class="file" data-file="triangulo.js">for (let linha = 1; linha &lt;= 5; linha++) {
+  let estrelas = "";
+  for (let i = 1; i &lt;= linha; i++) {
+    estrelas += "*";
+  }
+  console.log(estrelas);
+}
+</pre>
+
+<pre class="term">$ node triangulo.js
+*
+**
+***
+****
+*****
+</pre>
+
+<p>O segredo está em <code>i &lt;= linha</code>: na volta em que <code>linha</code> vale 3, o laço de dentro dá 3 voltas.</p>
+
+<div class="tryjs" data-goal="outre:^(?:(?:# ){6}\n){4}$;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> este programa desenha um retângulo de 3 linhas com 4 <code>#</code> cada. Mude para <strong>4 linhas</strong> com <strong>6</strong> <code>#</code> cada.</p>
+<pre class="script" data-file="main.js">for (let linha = 1; linha &lt;= 3; linha++) {
+  let texto = "";
+  for (let coluna = 1; coluna &lt;= 4; coluna++) {
+    texto += "# ";
+  }
+  console.log(texto);
+}
+</pre>
+<pre class="solucao" data-file="main.js">for (let linha = 1; linha &lt;= 4; linha++) {
+  let texto = "";
+  for (let coluna = 1; coluna &lt;= 6; coluna++) {
+    texto += "# ";
+  }
+  console.log(texto);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Todas as combinações</h2>
+<p>A Ana tem 2 camisetas e 3 calças. Quantos jeitos de se vestir existem? O laço de fora passa pelas camisetas; para cada uma, o de dentro passa por todas as calças:</p>
+
+<pre class="file" data-file="roupas.js">const camisetas = ["branca", "preta"];
+const calcas = ["jeans", "bege", "cinza"];
+for (let c = 0; c &lt; camisetas.length; c++) {
+  for (let k = 0; k &lt; calcas.length; k++) {
+    console.log(`camiseta ${camisetas[c]} + calça ${calcas[k]}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node roupas.js
+camiseta branca + calça jeans
+camiseta branca + calça bege
+camiseta branca + calça cinza
+camiseta preta + calça jeans
+camiseta preta + calça bege
+camiseta preta + calça cinza
+</pre>
+
+<p>2 × 3 = 6 combinações. Repare que cada laço tem o <strong>seu</strong> contador, com nome diferente (<code>c</code> e <code>k</code>): é assim que um não atrapalha o outro.</p>
+
+<hr>
+
+<h2 id="rotulo">4. Sair dos dois laços de uma vez: o rótulo</h2>
+<p>Na aula <a href="break-continue.html">break e continue</a>, você viu que o <code>break</code> sai só do laço mais de dentro. Veja o problema: a Ana procura <strong>o primeiro</strong> par de números de 1 a 9 cuja multiplicação dá 24.</p>
+
+<pre class="file" data-file="par_sem_rotulo.js">for (let a = 1; a &lt;= 9; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 24) {
+      console.log(`${a} x ${b} = 24`);
+      break;
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ node par_sem_rotulo.js
+3 x 8 = 24
+4 x 6 = 24
+6 x 4 = 24
+8 x 3 = 24
+</pre>
+
+<p>Ela queria só o <code>3 x 8</code>. O <code>break</code> parou o laço do <code>b</code>, mas o do <code>a</code> seguiu para o 4, o 5, o 6… Para sair dos <strong>dois</strong>, dê um nome ao laço de fora, um <strong>rótulo</strong> (em inglês, <em>label</em>), e diga ao <code>break</code> qual laço quebrar:</p>
+
+<pre class="file" data-file="par_rotulo.js">busca: for (let a = 1; a &lt;= 9; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 24) {
+      console.log(`${a} x ${b} = 24`);
+      break busca;
+    }
+  }
+}
+console.log("Fim da busca.");
+</pre>
+
+<pre class="term">$ node par_rotulo.js
+3 x 8 = 24
+Fim da busca.
+</pre>
+
+<dl class="anatomy">
+  <dt>busca:</dt><dd>O rótulo: um nome qualquer (as mesmas regras de nome de variável) seguido de dois-pontos, logo antes do laço. Ele não muda nada no laço; só dá um nome a ele.</dd>
+  <dt>break busca;</dt><dd>"Quebre o laço chamado <code>busca</code>". O JavaScript sai do laço de dentro <strong>e</strong> do de fora, e vai para a primeira linha depois do laço <code>busca</code>.</dd>
+</dl>
+
+<p>O <code>continue</code> também aceita rótulo: <code>continue busca;</code> pula o resto da volta do laço de dentro <strong>e</strong> vai direto para a próxima volta do laço <code>busca</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Rótulos funcionam, mas aparecem pouco no código do dia a dia: muita gente nem sabe que existem. Duas outras formas de sair dos dois laços:</p>
+
+<p><strong>Com uma variável "achou"</strong> na condição do laço de fora (e um <code>break</code> comum no de dentro):</p>
+
+<pre class="file" data-file="par_flag.js">let achou = false;
+for (let a = 1; a &lt;= 9 &amp;&amp; !achou; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 24) {
+      console.log(`${a} x ${b} = 24`);
+      achou = true;
+      break;
+    }
+  }
+}
+console.log("Fim da busca.");
+</pre>
+
+<pre class="term">$ node par_flag.js
+3 x 8 = 24
+Fim da busca.
+</pre>
+
+<p><strong>Com uma função e <code>return</code></strong>: pondo os dois laços dentro de uma função, o <code>return</code> sai da função inteira, com laços e tudo. É a forma mais usada na prática; você vai vê-la em <a href="funcoes.html">Funções</a> e <a href="return.html">Retornando Valores</a>.</p>
+
+<p>E para repetir um texto, em vez de um laço de dentro, existe o método <code>repeat</code> ("repetir") das strings (veja <a href="strings-metodos.html">Métodos de String</a>). O triângulo fica assim, com um laço só:</p>
+
+<pre class="file" data-file="triangulo_repeat.js">for (let linha = 1; linha &lt;= 5; linha++) {
+  console.log("*".repeat(linha));
+}
+</pre>
+
+<pre class="term">$ node triangulo_repeat.js
+*
+**
+***
+****
+*****
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Percorrer linhas × colunas, combinações, várias tabuadas</td><td>Um <code>for</code> dentro de outro</td></tr>
+<tr><td>Parar tudo quando achar, num programa curto</td><td>Rótulo: <code>busca: for …</code> e <code>break busca;</code></td></tr>
+<tr><td>Parar tudo quando achar, de um jeito que todo mundo reconhece</td><td>Uma função com <code>return</code> (aula <a href="return.html">return</a>)</td></tr>
+<tr><td>O laço de dentro só repete o mesmo texto</td><td><code>"*".repeat(n)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O passo do laço errado: laço infinito</strong>
+<pre class="file" data-file="passo_errado.js">for (let i = 1; i &lt;= 3; i++) {
+  for (let j = 1; j &lt;= 3; i++) {
+    console.log(`${i}-${j}`);
+  }
+}
+</pre>
+<pre class="term">$ timeout 1 node passo_errado.js | head -4
+1-1
+2-1
+3-1
+4-1
+</pre>
+<p>Copiando a linha do laço de fora, a Ana trocou o <code>i</code> por <code>j</code> no início e na condição, mas esqueceu o passo: o laço de dentro faz <code>i++</code>. O <code>j</code> fica em 1 para sempre, então <code>j &lt;= 3</code> nunca fica falso, e o <code>i</code> cresce sem parar (4, 5, 6…, bem além do 3). O JavaScript não acusa nada. <strong>Como consertar:</strong> confira as <strong>três</strong> partes de cada laço: o laço do <code>j</code> testa e anda com <code>j</code> (<code>j++</code>). (Para parar um programa assim no terminal: <kbd>Ctrl</kbd>+<kbd>C</kbd>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Rótulo que não existe</strong>
+<pre class="file" data-file="rotulo_errado.js">busca: for (let a = 1; a &lt;= 9; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 24) {
+      break procura;
+    }
+  }
+}
+</pre>
+<pre class="term">$ node rotulo_errado.js
+/home/ana/rotulo_errado.js:4
+      break procura;
+            ^^^^^^^
+
+SyntaxError: Undefined label 'procura'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o arquivo e a linha 4; a linha do código, com <code>^^^^^^^</code> embaixo da palavra <code>procura</code>; e <code>SyntaxError: Undefined label 'procura'</code>, "erro de sintaxe: rótulo <code>procura</code> não definido". O laço se chama <code>busca</code>, e o <code>break</code> pediu um laço chamado <code>procura</code>. Por ser erro de sintaxe, nada rodou. <strong>Como consertar:</strong> use no <code>break</code> o mesmo nome do rótulo: <code>break busca;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>var</code> nos dois contadores (código antigo)</strong>
+<p>Em código antigo você vai achar laços com <code>var</code> (veja <a href="var.html">var: o Jeito Antigo</a>). Com <code>var</code>, usar o mesmo nome nos dois laços faz os dois dividirem <strong>a mesma variável</strong>:</p>
+<pre class="file" data-file="var_i.js">for (var i = 1; i &lt;= 3; i++) {
+  for (var i = 1; i &lt;= 2; i++) {
+    console.log(`dentro: ${i}`);
+  }
+  console.log(`fora: ${i}`);
+}
+</pre>
+<pre class="term">$ node var_i.js
+dentro: 1
+dentro: 2
+fora: 3
+</pre>
+<p>Era para o laço de fora dar 3 voltas, e ele deu uma só. O laço de dentro deixou o <code>i</code> valendo 3; o de fora fez <code>i++</code> (4), testou <code>4 &lt;= 3</code> e parou. Com <code>let</code>, cada laço tem o seu próprio <code>i</code> e o programa dá as 3 voltas (no lab, saíram 9 linhas, de <code>dentro: 1</code> até <code>fora: 3</code>). <strong>Como consertar:</strong> use <code>let</code> e, de preferência, nomes diferentes para cada contador (<code>linha</code> e <code>coluna</code>, <code>i</code> e <code>j</code>): o código fica mais fácil de ler.</p>
+</div>
+
+<div class="cenario">
+<strong>A linha saiu toda grudada, ou picada demais</strong>
+<p>Não é erro do JavaScript: é a posição do <code>let linha = ""</code> e do <code>console.log(linha)</code> (veja a <a href="#linha">seção 2</a> e o parágrafo logo depois das cadeiras do cinema). O texto se cria no começo do corpo do laço de <strong>fora</strong> e se mostra no fim dele, depois do laço de dentro.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (…) { for (…) { … } }</code></td><td>Para cada volta do de fora, o de dentro dá todas as voltas dele</td></tr>
+<tr><td>Voltas de fora × voltas de dentro</td><td>Quantas vezes o corpo de dentro roda</td></tr>
+<tr><td><code>let linha = "";</code> … <code>linha += …;</code> … <code>console.log(linha);</code></td><td>Montar uma linha no laço de dentro e mostrar no de fora</td></tr>
+<tr><td><code>for (let i = 1; i &lt;= linha; i++)</code></td><td>Laço de dentro que depende do contador do de fora</td></tr>
+<tr><td><code>nome: for (…)</code></td><td>Dá um rótulo ao laço</td></tr>
+<tr><td><code>break nome;</code> / <code>continue nome;</code></td><td>Sai do laço rotulado / vai para a próxima volta dele</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Não termina nunca</td><td>O laço de dentro anda com o contador do de fora (<code>i++</code> no lugar de <code>j++</code>)</td></tr>
+<tr><td><code>SyntaxError: Undefined label '…'</code></td><td>O nome no <code>break</code>/<code>continue</code> não é o do rótulo</td></tr>
+<tr><td>O laço de fora deu menos voltas</td><td>Os dois laços usam a mesma variável com <code>var</code></td></tr>
+<tr><td>O laço de fora continuou depois do <code>break</code></td><td>O <code>break</code> sem rótulo sai só do de dentro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quantas vezes?</h3>
+<p>Quantas vezes o <code>console.log</code> roda?</p>
+<pre class="file" data-file="ex1.js">for (let a = 1; a &lt;= 4; a++) {
+  for (let b = 1; b &lt;= 5; b++) {
+    console.log(a, b);
+  }
+}
+</pre>
+<div class="ex-code">Roda <input data-answer="20" aria-label="número de vezes"> vezes.</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o rótulo</h3>
+<p>Complete para o <code>break</code> sair dos dois laços:</p>
+<div class="ex-code"><input data-answer="fora" aria-label="rótulo">: for (let a = 1; a &lt;= 9; a++) {<br>&nbsp;&nbsp;for (let b = 1; b &lt;= 9; b++) {<br>&nbsp;&nbsp;&nbsp;&nbsp;if (a + b === 10) {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break <input data-answer="fora" aria-label="nome no break">;<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. No programa das tabuadas, por que o <code>Tabuada do 2:</code> aparece uma vez só, e não 4 vezes?</p>
+<label><input type="radio" name="q3"> Porque o <code>console.log</code> só funciona uma vez por número</label>
+<label><input type="radio" name="q3"> Porque ele está no corpo do laço de fora, antes do laço de dentro</label>
+<label><input type="radio" name="q3"> Porque o laço de dentro pula a primeira volta</label>
+<label><input type="radio" name="q3"> Porque está depois do <code>Fim!</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Em <code>for (let linha = 1; linha &lt;= 3; linha++) { for (let i = 1; i &lt;= linha; i++) { … } }</code>, quantas vezes o corpo de dentro roda no total?</p>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> 9</label>
+<label><input type="radio" name="q4"> 6 (1 + 2 + 3)</label>
+<label><input type="radio" name="q4"> Infinitas</label>
+</div>
+
+<h3>Missão final: o primeiro par que dá 36</h3>
+
+<div class="tryjs" data-goal="outre:^4 x 9 = 36\nFim da busca\.\n?$">
+<p class="try-task"><strong>Missão:</strong> o programa procura pares de 1 a 9 cuja multiplicação dá 36, mas mostra todos. Faça ele parar no <strong>primeiro</strong> par, saindo dos dois laços (com um rótulo ou com uma variável <code>achou</code>). A saída deve ser só <code>4 x 9 = 36</code> e <code>Fim da busca.</code></p>
+<pre class="script" data-file="main.js">for (let a = 1; a &lt;= 9; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 36) {
+      console.log(`${a} x ${b} = 36`);
+      break;
+    }
+  }
+}
+console.log("Fim da busca.");
+</pre>
+<pre class="solucao" data-file="main.js">busca: for (let a = 1; a &lt;= 9; a++) {
+  for (let b = 1; b &lt;= 9; b++) {
+    if (a * b === 36) {
+      console.log(`${a} x ${b} = 36`);
+      break busca;
+    }
+  }
+}
+console.log("Fim da busca.");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um laço pode ficar dentro de outro: a cada volta do de fora, o de dentro recomeça e dá <strong>todas</strong> as voltas dele.</li>
+  <li>O corpo de dentro roda (voltas de fora) × (voltas de dentro) vezes.</li>
+  <li>Para escrever na mesma linha, monte um texto no laço de dentro e mostre no de fora.</li>
+  <li>O laço de dentro pode usar o contador do de fora (<code>i &lt;= linha</code>).</li>
+  <li>Cada laço com o seu contador, com <code>let</code> e nomes diferentes; confira as três partes de cada um.</li>
+  <li><code>break</code> sai só do laço de dentro; para sair dos dois, use um rótulo (<code>break busca;</code>), uma variável <code>achou</code> ou uma função com <code>return</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
