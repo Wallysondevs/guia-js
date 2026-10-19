@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Expressões Regulares — padrões de texto com /regex/ | Guia JavaScript</title>
+<meta name="description" content="Expressões regulares (regex) em JavaScript para quem nunca programou: o que é um padrão, /…/ e test(), classes [abc] e [0-9], \d \w \s e o ponto, quantificadores + * ? {n,m}, âncoras ^ e $, a flag i, grupos e alternativas (sim|s), escapar caracteres especiais, new RegExp, validar CEP, placa, e-mail e celular, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Expressões Regulares</span></h1>
+
+<p class="intro">Com o <a href="strings-buscar.html">includes</a> você pergunta se um texto contém <strong>uma palavra exata</strong>: "tem <code>pão</code> na lista?". Mas e se a pergunta for "tem <strong>algum número</strong> nesse texto?", "isso tem cara de CEP?", "a pessoa respondeu <code>sim</code>, <code>s</code> ou <code>Sim</code>?"? Para perguntas assim, sobre o <strong>formato</strong> de um texto, existem as <strong>expressões regulares</strong> (em inglês, <em>regular expressions</em>, ou <strong>regex</strong>, como todo mundo fala). Uma regex é um <strong>padrão</strong>: uma descrição curta de como um texto deve ser. Parece um idioma estranho no começo (<code>/^\d{5}-?\d{3}$/</code>), mas ele tem poucas peças, e esta aula apresenta uma por vez.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma regex, como se escreve (<code>/padrão/</code>) e como testar com <code>.test()</code>.</li>
+  <li>As <strong>classes</strong>: <code>[abc]</code>, <code>[0-9]</code>, <code>[^0-9]</code> e os atalhos <code>\d</code>, <code>\w</code>, <code>\s</code> e o ponto <code>.</code>.</li>
+  <li>Os <strong>quantificadores</strong>: <code>+</code>, <code>*</code>, <code>?</code> e <code>{n,m}</code>, para dizer "quantas vezes".</li>
+  <li>As <strong>âncoras</strong> <code>^</code> e <code>$</code>, que fazem o padrão valer para o texto inteiro.</li>
+  <li>A flag <code>i</code> (ignorar maiúsculas), os grupos <code>( )</code> e as alternativas <code>|</code>.</li>
+  <li>Como escapar os caracteres especiais (<code>\.</code>, <code>\$</code>) e criar uma regex a partir de um texto com <code>new RegExp</code>.</li>
+  <li>Como validar CEP, placa de carro, e-mail e celular, e os erros reais do Node 24.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. As regex são da linguagem: funcionam igual no navegador. Esta aula usa quase só o <code>.test()</code>, que responde <code>true</code> ou <code>false</code>; buscar, extrair e substituir com regex é o assunto da próxima aula, <a href="regex-metodos.html">Regex na Prática</a>.</p>
+
+<hr>
+
+<h2>A ideia: o molde de um documento</h2>
+<p>Quando a Ana preenche um formulário, a moça do caixa olha o CEP e já sabe se está certo, sem conhecer a rua: "cinco números, um tracinho, três números". Ela não está procurando um CEP específico; está conferindo o <strong>formato</strong>. Uma regex é esse molde, escrito com símbolos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Em português</th><th>Em regex</th></tr>
+<tr><td>um número qualquer</td><td><code>\d</code></td></tr>
+<tr><td>cinco números</td><td><code>\d{5}</code></td></tr>
+<tr><td>um tracinho</td><td><code>-</code></td></tr>
+<tr><td>três números</td><td><code>\d{3}</code></td></tr>
+<tr><td>e nada mais antes nem depois</td><td><code>^</code> no começo, <code>$</code> no fim</td></tr>
+<tr><td><strong>Tudo junto</strong></td><td><code>/^\d{5}-\d{3}$/</code></td></tr>
+</table>
+</div>
+
+<p>Até o fim da aula, você vai saber ler e escrever essa linha.</p>
+
+<hr>
+
+<h2>1. A primeira regex: <code>/pão/</code> e o <code>test</code></h2>
+
+<pre class="file" data-file="primeira.js">const temPao = /pão/;
+
+console.log(temPao.test("Comprar pão e leite"));
+console.log(temPao.test("Comprar leite"));
+console.log(temPao.test("PÃO de queijo"));
+console.log(typeof temPao);
+</pre>
+
+<pre class="term">$ node primeira.js
+true
+false
+false
+object
+</pre>
+
+<dl class="anatomy">
+  <dt>/pão/</dt><dd>Uma regex se escreve entre <strong>duas barras</strong>, sem aspas. As letras comuns valem por elas mesmas: este padrão quer dizer "as letras <code>p</code>, <code>ã</code>, <code>o</code>, nessa ordem, em qualquer lugar do texto".</dd>
+  <dt>temPao.test(texto)</dt><dd><em>test</em> = "testar". Pergunta: "o padrão aparece neste texto?". A resposta é um <a href="booleanos.html">booleano</a>: <code>true</code> ou <code>false</code>.</dd>
+  <dt>"PÃO de queijo" → false</dt><dd>As regex diferenciam <strong>maiúsculas de minúsculas</strong>: <code>PÃO</code> não é <code>pão</code>. A seção 5 mostra como ignorar isso.</dd>
+  <dt>typeof → object</dt><dd>Uma regex é um objeto do tipo <code>RegExp</code> (de <em>regular expression</em>), como as datas são objetos <code>Date</code>.</dd>
+</dl>
+
+<p>Até aqui, nada que o <code>includes</code> não fizesse. A graça começa quando o padrão tem símbolos especiais. Para testar rapidinho, o <a href="repl.html">modo interativo</a> é ótimo:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; /\d+/.test("tem 3 gatos")
+true
+&gt; /^\d+$/.test("tem 3 gatos")
+false
+&gt; /[A-Z]/.test("ana")
+false
+&gt; /[A-Z]/i.test("ana")
+true
+&gt; .exit
+</pre>
+
+<p>Cada uma dessas linhas usa uma peça nova: o <code>\d</code>, o <code>+</code>, o <code>^</code> e o <code>$</code>, os colchetes e o <code>i</code>. Vamos a elas.</p>
+
+<hr>
+
+<h2>2. Classes: "um destes caracteres"</h2>
+<p>Colchetes <code>[ ]</code> querem dizer "<strong>um</strong> caractere, qualquer um destes". Com um tracinho dentro, vira uma faixa: <code>[0-9]</code> é qualquer dígito, <code>[a-z]</code> qualquer letra minúscula sem acento. E um <code>^</code> logo depois do <code>[</code> inverte: <code>[^0-9]</code> é "qualquer caractere que <strong>não</strong> seja dígito".</p>
+
+<pre class="file" data-file="classes.js">const vogal = /[aeiou]/;
+const digito = /[0-9]/;
+const naoDigito = /[^0-9]/;
+
+console.log(vogal.test("psiu"));
+console.log(vogal.test("psst"));
+console.log(digito.test("Apartamento 42"));
+console.log(digito.test("sem número"));
+console.log(naoDigito.test("12345"));
+console.log(naoDigito.test("123a5"));
+</pre>
+
+<pre class="term">$ node classes.js
+true
+false
+true
+false
+false
+true
+</pre>
+
+<p>A última linha é útil: "esse texto tem algum caractere que não é número?". Para <code>"123a5"</code>, tem (o <code>a</code>).</p>
+
+<h3>Os atalhos: <code>\d</code>, <code>\w</code>, <code>\s</code> e o ponto</h3>
+<p>Algumas classes são tão usadas que ganharam atalhos, sempre com uma barra invertida (<code>\</code>) na frente de uma letra:</p>
+
+<pre class="file" data-file="atalhos.js">console.log(/\d/.test("Mesa 7"));
+console.log(/\w/.test("!!!"));
+console.log(/\s/.test("Ana Maria"));
+console.log(/\s/.test("AnaMaria"));
+console.log(/c.sa/.test("casa"), /c.sa/.test("cosa"), /c.sa/.test("csa"));
+</pre>
+
+<pre class="term">$ node atalhos.js
+true
+false
+true
+false
+true true false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atalho</th><th>Vem de</th><th>Quer dizer</th><th>Igual a</th></tr>
+<tr><td><code>\d</code></td><td><em>digit</em> (dígito)</td><td>Um dígito</td><td><code>[0-9]</code></td></tr>
+<tr><td><code>\w</code></td><td><em>word</em> (palavra)</td><td>Uma letra sem acento, um dígito ou o <code>_</code></td><td><code>[A-Za-z0-9_]</code></td></tr>
+<tr><td><code>\s</code></td><td><em>space</em> (espaço)</td><td>Um espaço, tab ou quebra de linha</td><td>—</td></tr>
+<tr><td><code>\D</code>, <code>\W</code>, <code>\S</code></td><td>Maiúsculas = o contrário</td><td>Um caractere que <strong>não</strong> é dígito / letra / espaço</td><td><code>[^0-9]</code>…</td></tr>
+<tr><td><code>.</code></td><td>(o ponto)</td><td><strong>Qualquer</strong> caractere (menos a quebra de linha)</td><td>—</td></tr>
+</table>
+</div>
+
+<p>O ponto em <code>/c.sa/</code> aceita <code>casa</code> e <code>cosa</code>, mas não <code>csa</code>: ele vale <strong>exatamente um</strong> caractere, que precisa existir.</p>
+
+<div class="warning">
+<strong>O <code>\w</code> não conhece acentos</strong>
+<pre class="file" data-file="acento.js">console.log(/^\w+$/.test("pao"));
+console.log(/^\w+$/.test("pão"));
+console.log(/^[a-zà-ú]+$/i.test("pão"));
+console.log(/^\p{L}+$/u.test("pão"));
+</pre>
+<pre class="term">$ node acento.js
+true
+false
+true
+true
+</pre>
+<p>O <code>\w</code> só aceita as letras do inglês: <code>pão</code> falhou por causa do <code>ã</code>. Em português, use uma faixa com os acentos (<code>[a-zà-ú]</code>, terceira linha) ou o <code>\p{L}</code> ("qualquer letra, de qualquer língua"), que exige a flag <code>u</code> (de Unicode) no fim.</p>
+</div>
+
+<hr>
+
+<h2>3. Quantificadores: "quantas vezes"</h2>
+<p>Um quantificador vem <strong>depois</strong> de uma peça e diz quantas vezes ela pode se repetir. Para ver o que cada padrão encontrou, a Ana fez uma função <code>mostrar</code>, que usa o <code>match</code> ("casar"), um método que você vai conhecer direito na <a href="regex-metodos.html">próxima aula</a>. Por enquanto, basta saber que ele devolve o pedaço do texto que casou com o padrão:</p>
+
+<pre class="file" data-file="mostrar.js">function mostrar(regex, texto) {
+  const achado = texto.match(regex);
+  console.log(`${regex} em "${texto}" → ${achado ? `"${achado[0]}"` : "nada"}`);
+}
+
+mostrar(/\d+/, "Mesa 127, fila B");
+mostrar(/\d*/, "Mesa 127");
+mostrar(/\d{2}/, "Mesa 127");
+mostrar(/\d{2,4}/, "Ano 2026");
+mostrar(/colou?r/, "a color e a colour");
+mostrar(/bo+m/, "booooom!");
+mostrar(/bo+m/, "bm");
+</pre>
+
+<pre class="term">$ node mostrar.js
+/\d+/ em "Mesa 127, fila B" → "127"
+/\d*/ em "Mesa 127" → ""
+/\d{2}/ em "Mesa 127" → "12"
+/\d{2,4}/ em "Ano 2026" → "2026"
+/colou?r/ em "a color e a colour" → "color"
+/bo+m/ em "booooom!" → "booooom"
+/bo+m/ em "bm" → nada
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quantificador</th><th>Quer dizer</th><th>Exemplo do lab</th></tr>
+<tr><td><code>+</code></td><td><strong>Uma ou mais</strong> vezes</td><td><code>\d+</code> pegou <code>127</code> inteiro; <code>bo+m</code> não aceitou <code>bm</code> (zero <code>o</code>)</td></tr>
+<tr><td><code>*</code></td><td><strong>Zero ou mais</strong> vezes</td><td><code>\d*</code> casou com <code>""</code> (vazio) logo no começo de "Mesa", antes de chegar ao 127: zero dígitos também vale!</td></tr>
+<tr><td><code>?</code></td><td><strong>Zero ou uma</strong> vez (opcional)</td><td><code>colou?r</code>: o <code>u</code> é opcional, aceita <code>color</code> e <code>colour</code></td></tr>
+<tr><td><code>{n}</code></td><td><strong>Exatamente</strong> n vezes</td><td><code>\d{2}</code> pegou <code>12</code></td></tr>
+<tr><td><code>{n,m}</code></td><td>De n até m vezes (o máximo que der)</td><td><code>\d{2,4}</code> pegou os 4 dígitos de <code>2026</code></td></tr>
+<tr><td><code>{n,}</code></td><td>n vezes <strong>ou mais</strong></td><td><code>\d{8,}</code>: 8 dígitos ou mais</td></tr>
+</table>
+</div>
+
+<p>O quantificador vale só para a peça <strong>imediatamente antes</strong> dele: em <code>bo+m</code>, o <code>+</code> repete só o <code>o</code>. Para repetir mais de um caractere, use um grupo (seção 6).</p>
+
+<hr>
+
+<h2>4. Âncoras: <code>^</code> e <code>$</code>, "o texto inteiro"</h2>
+<p>Sem âncoras, o <code>test</code> procura o padrão <strong>em qualquer lugar</strong> do texto. Para <strong>validar</strong> (conferir se o texto inteiro tem o formato), isso é um problema:</p>
+
+<pre class="file" data-file="ancoras.js">const cep = /\d{5}-\d{3}/;
+const cepInteiro = /^\d{5}-\d{3}$/;
+
+console.log(cep.test("01310-100"));
+console.log(cep.test("CEP: 01310-100, São Paulo"));
+console.log(cepInteiro.test("01310-100"));
+console.log(cepInteiro.test("CEP: 01310-100, São Paulo"));
+console.log(cepInteiro.test("01310-1000"));
+</pre>
+
+<pre class="term">$ node ancoras.js
+true
+true
+true
+false
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>^ (no começo do padrão)</dt><dd>"Aqui é o <strong>começo</strong> do texto". Nada pode vir antes.</dd>
+  <dt>$ (no fim do padrão)</dt><dd>"Aqui é o <strong>fim</strong> do texto". Nada pode vir depois.</dd>
+  <dt>01310-1000 → false</dt><dd>Sem o <code>$</code>, esse CEP com um dígito a mais passaria: os 8 primeiros caracteres têm o formato certo. Com o <code>$</code>, depois dos 3 dígitos o texto tem de acabar.</dd>
+</dl>
+
+<p>Regra prática: <strong>para validar um campo, use <code>^</code> e <code>$</code></strong>. Para procurar algo dentro de um texto maior, não use. (Cuidado para não confundir: o <code>^</code> <strong>dentro</strong> dos colchetes, <code>[^0-9]</code>, quer dizer "não"; fora deles, quer dizer "começo".)</p>
+
+<hr>
+
+<h2>5. Flags: a letra depois da barra</h2>
+<p>Depois da segunda barra podem vir letras que mudam o jeito de a regex funcionar: as <strong>flags</strong> ("bandeirinhas"). A mais simples é o <code>i</code>, de <em>ignore case</em> ("ignorar maiúsculas e minúsculas"):</p>
+
+<pre class="file" data-file="flags.js">console.log(/pão/.test("PÃO de queijo"));
+console.log(/pão/i.test("PÃO de queijo"));
+console.log(/^sim$/i.test("SIM"));
+console.log(/^sim$/i.test("Sim"));
+</pre>
+
+<pre class="term">$ node flags.js
+false
+true
+true
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Flag</th><th>Vem de</th><th>O que faz</th></tr>
+<tr><td><code>i</code></td><td><em>ignore case</em></td><td>Maiúsculas e minúsculas valem igual</td></tr>
+<tr><td><code>g</code></td><td><em>global</em></td><td>Procura <strong>todas</strong> as ocorrências, não só a primeira (aula <a href="regex-metodos.html">Regex na Prática</a>)</td></tr>
+<tr><td><code>m</code></td><td><em>multiline</em></td><td><code>^</code> e <code>$</code> valem para o começo e o fim de <strong>cada linha</strong></td></tr>
+<tr><td><code>u</code></td><td><em>unicode</em></td><td>Entende os caracteres de todas as línguas (e permite o <code>\p{L}</code>)</td></tr>
+</table>
+</div>
+
+<p>Dá para juntar várias: <code>/pão/gi</code>.</p>
+
+<hr>
+
+<h2>6. Grupos e alternativas: <code>( )</code> e <code>|</code></h2>
+<p>A barra vertical <code>|</code> quer dizer "<strong>ou</strong>". Os parênteses agrupam um pedaço do padrão, para o <code>|</code> ou um quantificador valerem para o pedaço inteiro. O programa da Ana aceita várias formas de dizer "sim":</p>
+
+<pre class="file" data-file="grupos.js">const resposta = /^(sim|s|claro)$/i;
+
+for (const texto of ["sim", "S", "Claro", "não", "simmm"]) {
+  console.log(`${texto}: ${resposta.test(texto)}`);
+}
+console.log(/^(ha)+!$/.test("hahaha!"));
+</pre>
+
+<pre class="term">$ node grupos.js
+sim: true
+S: true
+Claro: true
+não: false
+simmm: false
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>(sim|s|claro)</dt><dd>"<code>sim</code> ou <code>s</code> ou <code>claro</code>". Os parênteses delimitam as alternativas: sem eles, <code>^sim|s|claro$</code> seria "começa com <code>sim</code>, ou tem um <code>s</code> em qualquer lugar, ou termina com <code>claro</code>", algo bem diferente.</dd>
+  <dt>^ … $ e o i</dt><dd>O texto inteiro tem de ser uma das alternativas (<code>simmm</code> não passa), sem ligar para maiúsculas.</dd>
+  <dt>(ha)+</dt><dd>O <code>+</code> depois do grupo repete o grupo inteiro: <code>ha</code>, <code>haha</code>, <code>hahaha</code>…</dd>
+</dl>
+
+<p>Os grupos também servem para <strong>capturar</strong> pedaços do texto (separar o DDD do número, o dia do mês…). Isso fica para a <a href="regex-metodos.html">próxima aula</a>.</p>
+
+<hr>
+
+<h2>7. Escapando os caracteres especiais</h2>
+<p>Você já viu que <code>.</code>, <code>+</code>, <code>*</code>, <code>?</code>, <code>(</code>, <code>)</code>, <code>[</code>, <code>]</code>, <code>{</code>, <code>}</code>, <code>^</code>, <code>$</code>, <code>|</code>, <code>\</code> e <code>/</code> têm significados especiais. E quando você quer o caractere <strong>de verdade</strong>, como o ponto de <code>3.14</code> ou o cifrão de <code>R$</code>? Ponha uma barra invertida antes: isso se chama <strong>escapar</strong> o caractere.</p>
+
+<pre class="file" data-file="escapar.js">console.log(/3.14/.test("3x14"));
+console.log(/3\.14/.test("3x14"));
+console.log(/3\.14/.test("3.14"));
+console.log(/R\$ \d+/.test("Preço: R$ 20"));
+</pre>
+
+<pre class="term">$ node escapar.js
+true
+false
+true
+true
+</pre>
+
+<p>A primeira linha é um erro silencioso clássico: sem a barra, o ponto quer dizer "qualquer caractere", e <code>3x14</code> passou. <code>\.</code> é "um ponto mesmo"; <code>\$</code> é "um cifrão mesmo"; <code>\(</code> é "um parêntese mesmo".</p>
+
+<h3>Uma regex feita de um texto: <code>new RegExp</code></h3>
+<p>Quando o padrão vem de uma variável (o que a pessoa digitou na busca, por exemplo), use <code>new RegExp(texto, flags)</code>:</p>
+
+<pre class="file" data-file="regexp.js">const palavra = "pão";
+const busca = new RegExp(palavra, "i");
+
+console.log(busca);
+console.log(busca.test("Pão de queijo"));
+
+const errado = new RegExp("^\d{3}$");
+const certo = new RegExp("^\\d{3}$");
+console.log(errado, errado.test("123"));
+console.log(certo, certo.test("123"));
+</pre>
+
+<pre class="term">$ node regexp.js
+/pão/i
+true
+/^d{3}$/ false
+/^\d{3}$/ true
+</pre>
+
+<p>Cuidado com a barra invertida: dentro de <strong>aspas</strong>, <code>"\d"</code> já é um caractere especial de texto (veja <a href="strings-escape.html">Caracteres Especiais</a>), e a barra some antes de a regex nascer. O resultado, <code>/^d{3}$/</code>, procura três letras <code>d</code>! Dentro de aspas, escreva a barra dobrada: <code>"\\d"</code>. Por isso, quando o padrão é fixo, prefira as barras <code>/…/</code>.</p>
+
+<hr>
+
+<h2>8. Validando formatos do dia a dia</h2>
+
+<h3>CEP, com ou sem tracinho</h3>
+<pre class="file" data-file="cep.js">const cep = /^\d{5}-?\d{3}$/;
+
+const testes = ["01310-100", "01310100", "1310-100", "01310-10a", " 01310-100"];
+for (const texto of testes) {
+  console.log(`"${texto}": ${cep.test(texto) ? "válido" : "inválido"}`);
+}
+</pre>
+<pre class="term">$ node cep.js
+"01310-100": válido
+"01310100": válido
+"1310-100": inválido
+"01310-10a": inválido
+" 01310-100": inválido
+</pre>
+<p>O <code>-?</code> deixa o tracinho opcional. O último falhou por causa do espaço no começo: textos digitados por pessoas costumam ter espaços sobrando, então passe um <code>.trim()</code> antes de testar (veja <a href="strings-metodos.html">Métodos de String</a>).</p>
+
+<div class="tryjs" data-goal="out:01310100: válido;;out:1310-100: inválido;;semerro">
+<p class="try-task"><strong>Missão:</strong> esta regex só aceita o CEP com tracinho. Mude o padrão para o tracinho ser <strong>opcional</strong>: <code>01310100</code> deve ficar válido, e <code>1310-100</code> (com 4 dígitos no começo) deve continuar inválido.</p>
+<pre class="script" data-file="main.js">const cep = /^\d{5}-\d{3}$/;
+
+for (const texto of ["01310-100", "01310100", "1310-100"]) {
+  console.log(`${texto}: ${cep.test(texto) ? "válido" : "inválido"}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const cep = /^\d{5}-?\d{3}$/;
+
+for (const texto of ["01310-100", "01310100", "1310-100"]) {
+  console.log(`${texto}: ${cep.test(texto) ? "válido" : "inválido"}`);
+}
+</pre>
+</div>
+
+<h3>Placa de carro (a antiga e a do Mercosul)</h3>
+<pre class="file" data-file="placa.js">const placa = /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/;
+
+for (const texto of ["ABC1D23", "ABC-1234", "ABC1234", "abc1d23", "AB1C234"]) {
+  console.log(`${texto}: ${placa.test(texto)}`);
+}
+</pre>
+<pre class="term">$ node placa.js
+ABC1D23: true
+ABC-1234: true
+ABC1234: true
+abc1d23: false
+AB1C234: false
+</pre>
+<p>Leia peça por peça: três letras maiúsculas (<code>[A-Z]{3}</code>), um tracinho opcional, um dígito, <strong>uma letra ou um dígito</strong> (<code>[A-Z0-9]</code>: é aqui que a placa do Mercosul tem letra e a antiga tem número), e mais dois dígitos. As minúsculas falharam porque não há flag <code>i</code>.</p>
+
+<h3>E-mail (o básico)</h3>
+<pre class="file" data-file="email.js">const email = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/;
+
+for (const texto of ["ana@exemplo.com", "ana.souza@escola.edu.br", "ana@", "ana exemplo.com", "@exemplo.com"]) {
+  console.log(`${texto}: ${email.test(texto)}`);
+}
+</pre>
+<pre class="term">$ node email.js
+ana@exemplo.com: true
+ana.souza@escola.edu.br: true
+ana@: false
+ana exemplo.com: false
+@exemplo.com: false
+</pre>
+<p>Antes do <code>@</code>: um ou mais caracteres entre letras, dígitos, <code>_</code>, ponto, <code>+</code> e <code>-</code> (dentro dos colchetes, o ponto não precisa de escape, e o <code>-</code> no fim vale como tracinho). Depois: um nome, e um ou mais grupos "ponto + nome" (<code>.com</code>, <code>.edu.br</code>). Uma regex nunca garante que o e-mail <strong>existe</strong>; ela só confere se tem cara de e-mail.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pergunta</th><th>Sem regex</th><th>Com regex</th><th>Qual usar</th></tr>
+<tr><td>Contém a palavra "pão"?</td><td><code>texto.includes("pão")</code></td><td><code>/pão/.test(texto)</code></td><td><code>includes</code>: mais simples para um texto exato</td></tr>
+<tr><td>Contém "pão" em maiúsculas ou minúsculas?</td><td><code>texto.toLowerCase().includes("pão")</code></td><td><code>/pão/i.test(texto)</code></td><td>Os dois são bons</td></tr>
+<tr><td>Começa com "Dr."?</td><td><code>texto.startsWith("Dr.")</code></td><td><code>/^Dr\./.test(texto)</code></td><td><code>startsWith</code></td></tr>
+<tr><td>Tem algum dígito?</td><td>Um laço testando cada caractere</td><td><code>/\d/.test(texto)</code></td><td>Regex</td></tr>
+<tr><td>Tem o formato de CEP, placa, telefone?</td><td>Muitos <code>if</code>s</td><td><code>/^\d{5}-?\d{3}$/.test(texto)</code></td><td>Regex</td></tr>
+<tr><td>O padrão vem de uma variável</td><td>—</td><td><code>new RegExp(texto, "i")</code></td><td><code>new RegExp</code>, com a barra dobrada nas aspas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Abriu um parêntese e não fechou</strong>
+<pre class="file" data-file="erro-grupo.js">const telefone = /^(\d{2} \d{4,5}-\d{4}$/;
+console.log(telefone.test("11 91234-5678"));
+</pre>
+<pre class="term">$ node erro-grupo.js
+/home/ana/erro-grupo.js:1
+const telefone = /^(\d{2} \d{4,5}-\d{4}$/;
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+SyntaxError: Invalid regular expression: /^(\d{2} \d{4,5}-\d{4}$/: Unterminated group
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at Module._compile (node:internal/modules/cjs/loader:1903:20)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/erro-grupo.js:1</dt><dd>O arquivo e a linha: a 1.</dd>
+  <dt>A linha do código e os ^^^^</dt><dd>Desta vez, uma fileira de <code>^</code> sublinha a regex inteira: o problema é ela toda, não um ponto.</dd>
+  <dt>SyntaxError</dt><dd>"Erro de sintaxe": o código está escrito de um jeito que o JavaScript não entende. Por isso o programa <strong>nem começou</strong>: o <code>console.log</code> da linha 2 não rodou.</dd>
+  <dt>Invalid regular expression: /…/: Unterminated group</dt><dd>"Expressão regular inválida: … grupo não terminado". O <code>(</code> do começo não tem o seu <code>)</code>.</dd>
+  <dt>at wrapSafe (node:internal/…) e as outras linhas at</dt><dd>São todas do Node, lendo o arquivo (o erro aconteceu na leitura, antes de rodar). Pode ignorá-las.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> feche o grupo (<code>/^(\d{2}) \d{4,5}-\d{4}$/</code>) ou, se você queria um parêntese de verdade no texto, escape: <code>\(</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um quantificador sem nada antes</strong>
+<pre class="file" data-file="erro-nada2.js">const regex = /+55/;
+console.log(regex.test("+55 11 91234-5678"));
+</pre>
+<pre class="term">$ node erro-nada2.js
+/home/ana/erro-nada2.js:1
+const regex = /+55/;
+              ^^^^^
+
+SyntaxError: Invalid regular expression: /+55/: Nothing to repeat
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Nada para repetir": o <code>+</code> é um quantificador e precisa de uma peça antes dele. A Ana queria o sinal de mais do <code>+55</code> (o código do Brasil). <strong>Como consertar:</strong> <code>/\+55/</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Começou a regex com <code>*</code>: virou um comentário</strong>
+<pre class="file" data-file="erro-nada.js">const qualquer = /*abc/;
+console.log(qualquer.test("abc"));
+</pre>
+<pre class="term">$ node erro-nada.js
+/home/ana/erro-nada.js:1
+const qualquer = /*abc/;
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Aqui a mensagem nem fala de regex, e não há <code>^</code>. Motivo: <code>/*</code> é o começo de um <a href="comentarios.html">comentário</a> de várias linhas! O JavaScript achou que tudo dali em diante era comentário, e o comentário nunca fecha. <strong>Como consertar:</strong> o <code>*</code> precisa de algo antes (<code>/.*abc/</code>) ou de escape (<code>/\*abc/</code>, um asterisco de verdade).</p>
+</div>
+
+<div class="cenario">
+<strong>Flag que não existe</strong>
+<pre class="term">$ node erro-flag.js
+/home/ana/erro-flag.js:1
+const regex = /pão/x;
+              ^
+
+SyntaxError: Invalid regular expression flags
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Flags inválidas". O <code>x</code> existe em regex de outras linguagens, mas não no JavaScript. As flags válidas mais comuns são <code>i</code>, <code>g</code>, <code>m</code>, <code>u</code> (há também <code>s</code>, <code>y</code>, <code>d</code> e <code>v</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Texto do usuário dentro do <code>new RegExp</code></strong>
+<pre class="file" data-file="erro-regexp.js">const texto = "(11)";
+const busca = new RegExp(texto + "(");
+console.log(busca);
+</pre>
+<pre class="term">$ node erro-regexp.js
+/home/ana/erro-regexp.js:2
+const busca = new RegExp(texto + "(");
+              ^
+
+SyntaxError: Invalid regular expression: /(11)(/: Unterminated group
+    at new RegExp (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-regexp.js:2:15)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Diferente dos anteriores, este erro acontece <strong>com o programa rodando</strong> (veja o <code>at new RegExp</code> e a linha 2 do seu programa), porque a regex só nasce quando a linha 2 roda. Se o texto vier de uma pessoa, qualquer parêntese ou ponto que ela digitar vira símbolo especial. <strong>Como consertar:</strong> quando você quer procurar o texto exatamente como veio, use <code>includes</code> em vez de regex.</p>
+</div>
+
+<div class="cenario">
+<strong>Erros que não dão mensagem</strong>
+<ul>
+  <li><strong>Esqueceu <code>^</code> e <code>$</code></strong> numa validação: <code>/\d{5}-\d{3}/</code> aceitou <code>"CEP: 01310-100, São Paulo"</code> e aceitaria <code>01310-1000</code> (seção 4).</li>
+  <li><strong>Ponto sem escape</strong>: <code>/3.14/</code> aceitou <code>3x14</code> (seção 7).</li>
+  <li><strong><code>\w</code> com acentos</strong>: <code>/^\w+$/</code> recusou <code>pão</code> (seção 2).</li>
+  <li><strong><code>"\d"</code> entre aspas</strong> no <code>new RegExp</code>: virou <code>d</code> (seção 7).</li>
+</ul>
+<p>Por isso, sempre teste a regex com exemplos que devem passar <strong>e</strong> com exemplos que devem falhar, como os programas desta aula fazem.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>Quer dizer</th></tr>
+<tr><td><code>/abc/</code></td><td>As letras a, b, c, nessa ordem</td></tr>
+<tr><td><code>regex.test(texto)</code></td><td><code>true</code> se o padrão aparece no texto</td></tr>
+<tr><td><code>[abc]</code> / <code>[a-z]</code> / <code>[^0-9]</code></td><td>Um destes / uma faixa / qualquer um, menos estes</td></tr>
+<tr><td><code>\d</code> <code>\w</code> <code>\s</code></td><td>Dígito / letra sem acento, dígito ou _ / espaço (maiúsculas: o contrário)</td></tr>
+<tr><td><code>.</code></td><td>Qualquer caractere (menos a quebra de linha)</td></tr>
+<tr><td><code>+</code> <code>*</code> <code>?</code></td><td>Uma ou mais / zero ou mais / zero ou uma vez</td></tr>
+<tr><td><code>{3}</code> <code>{2,4}</code> <code>{2,}</code></td><td>Exatamente 3 / de 2 a 4 / 2 ou mais</td></tr>
+<tr><td><code>^</code> <code>$</code></td><td>Começo / fim do texto</td></tr>
+<tr><td><code>(…)</code> e <code>a|b</code></td><td>Grupo / "a ou b"</td></tr>
+<tr><td><code>\.</code> <code>\$</code> <code>\(</code> <code>\+</code></td><td>O caractere de verdade (escapado)</td></tr>
+<tr><td><code>/…/i</code> <code>/…/g</code> <code>/…/u</code></td><td>Ignorar maiúsculas / todas as ocorrências / Unicode</td></tr>
+<tr><td><code>new RegExp("^\\d+$", "i")</code></td><td>Regex a partir de um texto (barra dobrada)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a regex</h3>
+<p>Complete para aceitar só textos que sejam <strong>exatamente 3 dígitos</strong> (como <code>042</code>):</p>
+<div class="ex-code">/<input data-answer="^" aria-label="âncora do começo">\d<input data-answer="{3}" aria-label="quantificador">$/</div>
+</div>
+
+<div class="exercise">
+<h3>2. true ou false?</h3>
+<p>O que mostra <code>console.log(/^c.sa$/.test("coisa"))</code>?</p>
+<div class="ex-code">Mostra <input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual regex aceita <code>Sim</code>, <code>SIM</code> e <code>sim</code>, e nada mais?</p>
+<label><input type="radio" name="q3"> <code>/sim/</code></label>
+<label><input type="radio" name="q3"> <code>/^sim$/i</code></label>
+<label><input type="radio" name="q3"> <code>/[sim]/i</code></label>
+<label><input type="radio" name="q3"> <code>/^Sim$/</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que quer dizer o <code>?</code> em <code>/^\d{5}-?\d{3}$/</code>?</p>
+<label><input type="radio" name="q4"> Qualquer caractere</label>
+<label><input type="radio" name="q4"> Uma pergunta: o JavaScript avisa se não achar</label>
+<label><input type="radio" name="q4"> O tracinho pode se repetir várias vezes</label>
+<label><input type="radio" name="q4"> O tracinho é opcional (zero ou uma vez)</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para procurar o texto <code>R$</code> de verdade, como se escreve a regex?</p>
+<label><input type="radio" name="q5"> <code>/R\$/</code></label>
+<label><input type="radio" name="q5"> <code>/R$/</code></label>
+<label><input type="radio" name="q5"> <code>/"R$"/</code></label>
+<label><input type="radio" name="q5"> <code>/R.$/</code></label>
+</div>
+
+<h3>Missão final: o celular com DDD</h3>
+
+<div class="tryjs" data-goal="out:(11) 91234-5678: true;;out:(21) 98765-4321: true;;out:11912345678: false;;out:(11) 1234-5678: false;;out:(11) 91234-56789: false">
+<p class="try-task"><strong>Missão:</strong> escreva a regex do celular no formato <code>(11) 91234-5678</code>: um parêntese, 2 dígitos, outro parêntese, um espaço, o dígito <code>9</code>, mais 4 dígitos, um tracinho e 4 dígitos. Os dois primeiros testes devem dar <code>true</code>, e os outros três, <code>false</code>. (Lembre: parêntese de verdade se escreve <code>\(</code>, e não esqueça o <code>^</code> e o <code>$</code>.)</p>
+<pre class="script" data-file="main.js">const celular = /troque-por-sua-regex/;
+
+const testes = ["(11) 91234-5678", "(21) 98765-4321", "11912345678", "(11) 1234-5678", "(11) 91234-56789"];
+for (const texto of testes) {
+  console.log(`${texto}: ${celular.test(texto)}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const celular = /^\(\d{2}\) 9\d{4}-\d{4}$/;
+
+const testes = ["(11) 91234-5678", "(21) 98765-4321", "11912345678", "(11) 1234-5678", "(11) 91234-56789"];
+for (const texto of testes) {
+  console.log(`${texto}: ${celular.test(texto)}`);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ node celular.js
+(11) 91234-5678: true
+(21) 98765-4321: true
+11912345678: false
+(11) 1234-5678: false
+(11) 91234-56789: false
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma regex é um <strong>padrão</strong> de texto, escrito entre barras: <code>/padrão/flags</code>. <code>regex.test(texto)</code> responde se o padrão aparece no texto.</li>
+  <li><strong>Classes</strong> dizem "qual caractere": <code>[abc]</code>, <code>[0-9]</code>, <code>[^0-9]</code>, <code>\d</code>, <code>\w</code> (sem acentos!), <code>\s</code> e o ponto (qualquer um).</li>
+  <li><strong>Quantificadores</strong> dizem "quantas vezes" a peça anterior aparece: <code>+</code>, <code>*</code>, <code>?</code>, <code>{n}</code>, <code>{n,m}</code>.</li>
+  <li><strong>Âncoras</strong> <code>^</code> e <code>$</code> fazem o padrão valer para o texto inteiro: use sempre para validar.</li>
+  <li><code>( )</code> agrupa, <code>|</code> é "ou", a flag <code>i</code> ignora maiúsculas. Caracteres especiais de verdade se escapam com <code>\</code>.</li>
+  <li><code>new RegExp(texto, flags)</code> cria uma regex de um texto: dobre as barras invertidas. Teste sempre com exemplos que devem passar e que devem falhar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
