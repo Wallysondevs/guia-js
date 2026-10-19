@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Escopo — onde a variável existe | Guia JavaScript</title>
+<meta name="description" content="Escopo no JavaScript para quem está começando: escopo global, de função e de bloco, let e const presos às chaves, funções dentro de funções enxergando para fora, a variável com o mesmo nome (sombra), o var que escapa do bloco, a variável global sem querer e os erros reais do Node.js 24 (is not defined, Cannot access before initialization, already been declared).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Escopo</span> (Onde a Variável Existe)</h1>
+
+<p class="intro">Uma variável não existe no programa inteiro: ela existe só num pedaço dele. Esse pedaço se chama <strong>escopo</strong> (em inglês, <em>scope</em>, "alcance"). Saber onde cada variável existe explica um dos erros mais comuns de quem começa, o <code>ReferenceError: total is not defined</code> logo depois de você ter criado o <code>total</code>, e é a base para entender a aula seguinte, <a href="closures.html">Closures</a>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os três escopos: <strong>global</strong> (o arquivo todo), <strong>de função</strong> e <strong>de bloco</strong> (as chaves <code>{ }</code> de um <code>if</code>, de um <code>for</code>…).</li>
+  <li>A regra de ouro: de dentro se enxerga para fora; de fora não se enxerga para dentro.</li>
+  <li>O que acontece quando duas variáveis têm o mesmo nome (a de dentro faz "sombra").</li>
+  <li>Por que o <code>var</code> escapa do bloco e o <code>let</code> não.</li>
+  <li>A variável global criada sem querer, e como o modo estrito evita isso.</li>
+  <li>Os erros reais: <code>is not defined</code>, <code>Cannot access … before initialization</code> e <code>has already been declared</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: os cômodos de uma casa com janelas espelhadas</h2>
+<p>Imagine a casa da Ana com uma regra estranha: de <strong>dentro</strong> de cada cômodo dá para ver tudo o que está nos cômodos de <strong>fora</strong> (as janelas são de vidro espelhado, que só deixa ver de dentro para fora).</p>
+<ul>
+  <li>O <strong>quintal</strong> é o escopo <strong>global</strong>: o que está nele, qualquer cômodo vê.</li>
+  <li>A <strong>casa</strong> é uma <strong>função</strong>: de dentro dela se vê o quintal, mas quem está no quintal não vê o que está dentro da casa.</li>
+  <li>O <strong>armário</strong> dentro da casa é um <strong>bloco</strong> (as chaves de um <code>if</code> ou <code>for</code>): de dentro dele se vê a casa e o quintal; de fora, ninguém vê o que tem no armário.</li>
+</ul>
+<p>Quando o JavaScript procura uma variável, ele olha primeiro no cômodo onde está; se não achar, olha no de fora, e no de fora desse, até o quintal. Se não achar em lugar nenhum, dá erro.</p>
+
+<hr>
+
+<h2>1. Escopo global: o arquivo todo</h2>
+<p>Uma variável criada fora de qualquer função ou bloco é <strong>global</strong> para aquele arquivo: todo mundo ali enxerga.</p>
+
+<pre class="file" data-file="global.js">const loja = "Padaria da Ana";
+
+function mostrarLoja() {
+  console.log("Dentro da função:", loja);
+}
+
+mostrarLoja();
+console.log("Fora da função:", loja);
+</pre>
+
+<pre class="term">$ node global.js
+Dentro da função: Padaria da Ana
+Fora da função: Padaria da Ana
+</pre>
+
+<p>A função não tem nenhuma variável <code>loja</code>; ela "olhou pela janela" e achou a do escopo global.</p>
+
+<hr>
+
+<h2>2. Escopo de função: o que nasce na função fica na função</h2>
+
+<pre class="file" data-file="funcao.js">function calcularTotal() {
+  const total = 3 * 1.5;
+  console.log("Dentro:", total);
+}
+
+calcularTotal();
+console.log("Fora:", total);
+</pre>
+
+<pre class="term">$ node funcao.js
+Dentro: 4.5
+/home/ana/funcao.js:7
+console.log("Fora:", total);
+                     ^
+
+ReferenceError: total is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/funcao.js:7:22)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>Dentro: 4.5</dt><dd>Dentro da função, <code>total</code> existe e funciona.</dd>
+  <dt>/home/ana/funcao.js:7 e o ^</dt><dd>A linha 7, com o <code>^</code> embaixo do <code>total</code>, o nome que não foi encontrado.</dd>
+  <dt>ReferenceError: total is not defined</dt><dd>"Erro de referência: <code>total</code> não está definido". Na linha 7, fora da função, não existe nenhuma variável com esse nome. O <code>total</code> nasceu quando a função começou a rodar e <strong>sumiu</strong> quando ela terminou.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/funcao.js:7:22)</dt><dd>Linha 7, coluna 22. O resto é interno do Node.</dd>
+</dl>
+
+<p>Para levar um valor de dentro da função para fora, a função <strong>devolve</strong> o valor com <a href="return.html">return</a>, e quem chamou o guarda numa variável própria: <code>const total = calcularTotal();</code>. Esse é o jeito certo de "tirar coisas de dentro" de uma função.</p>
+
+<p>Cada chamada da função ganha variáveis <strong>novas</strong>, e os <a href="parametros.html">parâmetros</a> também moram no escopo da função: são variáveis locais que já chegam com valor.</p>
+
+<hr>
+
+<h2>3. Escopo de bloco: <code>let</code> e <code>const</code> ficam presos às chaves</h2>
+<p>Qualquer par de chaves <code>{ }</code> de um <code>if</code>, <code>else</code>, <code>for</code>, <code>while</code>… forma um <strong>bloco</strong>. Uma variável criada com <code>let</code> ou <code>const</code> lá dentro só existe até o <code>}</code>:</p>
+
+<pre class="file" data-file="bloco.js">const idade = 20;
+if (idade &gt;= 18) {
+  const mensagem = "Pode votar.";
+  console.log(mensagem);
+}
+console.log(mensagem);
+</pre>
+
+<pre class="term">$ node bloco.js
+Pode votar.
+/home/ana/bloco.js:6
+console.log(mensagem);
+            ^
+
+ReferenceError: mensagem is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/bloco.js:6:13)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>O mesmo vale para a variável do <code>for</code>: o <code>i</code> de <code>for (let i = 1; …)</code> só existe dentro do laço. Depois dele, <code>console.log(i)</code> deu <code>ReferenceError: i is not defined</code> no lab.</p>
+
+<h3>Como usar o valor depois do bloco</h3>
+<p>Crie a variável <strong>antes</strong> do bloco, do lado de fora, e só dê o valor lá dentro:</p>
+
+<pre class="file" data-file="fora.js">let resultado;
+const idade = 20;
+if (idade &gt;= 18) {
+  resultado = "Pode votar.";
+}
+console.log(resultado);
+</pre>
+
+<pre class="term">$ node fora.js
+Pode votar.
+</pre>
+
+<p>Repare: dentro do <code>if</code> não há <code>let</code> nem <code>const</code>. Sem eles, a linha não cria variável nova; ela procura a <code>resultado</code> que já existe (lá fora) e muda o valor dela.</p>
+
+<div class="tryjs" data-goal="out:Situação: aprovada;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa quebra na última linha com <code>situacao is not defined</code>. Crie a variável <strong>antes</strong> do <code>if</code> (<code>let situacao;</code>) e, dentro do <code>if</code> e do <code>else</code>, só dê o valor (tire o <code>const</code>).</p>
+<pre class="script" data-file="main.js">const nota = 8;
+if (nota &gt;= 7) {
+  const situacao = "aprovada";
+} else {
+  const situacao = "em recuperação";
+}
+console.log(`Situação: ${situacao}`);
+</pre>
+<pre class="solucao" data-file="main.js">const nota = 8;
+let situacao;
+if (nota &gt;= 7) {
+  situacao = "aprovada";
+} else {
+  situacao = "em recuperação";
+}
+console.log(`Situação: ${situacao}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Funções dentro de funções: olhando para fora, nível por nível</h2>
+
+<pre class="file" data-file="aninhado.js">const cidade = "Recife";
+
+function padaria() {
+  const nome = "Doce Pão";
+
+  function balcao() {
+    const atendente = "Bia";
+    console.log(`${atendente} atende na ${nome}, em ${cidade}.`);
+  }
+
+  balcao();
+  console.log(typeof atendente);
+}
+
+padaria();
+</pre>
+
+<pre class="term">$ node aninhado.js
+Bia atende na Doce Pão, em Recife.
+undefined
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escopo</th><th>Cria</th><th>Enxerga</th></tr>
+<tr><td>global</td><td><code>cidade</code></td><td><code>cidade</code></td></tr>
+<tr><td><code>padaria</code></td><td><code>nome</code></td><td><code>nome</code>, <code>cidade</code></td></tr>
+<tr><td><code>balcao</code> (dentro de <code>padaria</code>)</td><td><code>atendente</code></td><td><code>atendente</code>, <code>nome</code>, <code>cidade</code></td></tr>
+</table>
+</div>
+
+<p>Para achar <code>nome</code>, o <code>balcao</code> não achou em si mesmo e subiu um nível (a <code>padaria</code>); para achar <code>cidade</code>, subiu dois. Já a <code>padaria</code> não vê o <code>atendente</code>: o <code>typeof</code> respondeu <code>undefined</code> (o <code>typeof</code> é o único jeito de perguntar por um nome que não existe sem dar erro; veja <a href="typeof.html">typeof</a>). Essa "escada" de escopos, que o JavaScript sobe procurando o nome, se chama <strong>cadeia de escopos</strong>.</p>
+
+<hr>
+
+<h2>5. O mesmo nome dentro e fora: a sombra</h2>
+<p>Se você cria, lá dentro, uma variável com o mesmo nome de uma de fora, são <strong>duas variáveis diferentes</strong>. A de dentro "faz sombra" na de fora (em inglês, <em>shadowing</em>): enquanto você estiver dentro, só vê a de dentro.</p>
+
+<pre class="file" data-file="sombra.js">const nome = "Ana";
+
+function saudar() {
+  const nome = "Bia";
+  console.log("Dentro:", nome);
+}
+
+saudar();
+console.log("Fora:", nome);
+</pre>
+
+<pre class="term">$ node sombra.js
+Dentro: Bia
+Fora: Ana
+</pre>
+
+<p>A <code>nome</code> de fora nunca mudou. O mesmo acontece com blocos: <code>let total = 0;</code> fora e <code>let total = 10;</code> dentro de um <code>if</code> deram, no lab, <code>Dentro: 10</code> e <code>Fora: 0</code>. Funciona, mas confunde quem lê; prefira nomes diferentes.</p>
+
+<h3>Mudar × criar</h3>
+<p>Compare com uma função que <strong>muda</strong> a variável de fora, sem criar outra (sem <code>let</code>/<code>const</code>):</p>
+
+<pre class="file" data-file="mudar.js">let vendas = 0;
+
+function vender() {
+  vendas = vendas + 1;
+}
+
+vender();
+vender();
+vender();
+console.log("Vendas:", vendas);
+</pre>
+
+<pre class="term">$ node mudar.js
+Vendas: 3
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Dentro da função/bloco</th><th>O que acontece</th></tr>
+<tr><td><code>let vendas = 1;</code> / <code>const vendas = 1;</code></td><td>Cria uma variável <strong>nova</strong>, só de lá de dentro (sombra, se o nome já existir fora)</td></tr>
+<tr><td><code>vendas = 1;</code></td><td>Procura <code>vendas</code> subindo os escopos e <strong>muda</strong> a que achar</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Variáveis globais que mudam: com cuidado</strong>
+<p>Funções que mudam variáveis globais funcionam, mas, num programa grande, fica difícil saber <strong>quem</strong> mudou o valor. Prefira receber por parâmetro e devolver com <code>return</code>. Na aula <a href="closures.html">Closures</a> você vai ver um jeito de ter uma variável que só certas funções conseguem mudar.</p>
+</div>
+
+<hr>
+
+<h2>6. O <code>var</code> escapa do bloco</h2>
+<p>O <code>var</code>, o jeito antigo de criar variáveis (veja <a href="var.html">var: o Jeito Antigo</a>), não respeita blocos: só respeita funções.</p>
+
+<pre class="file" data-file="var.js">if (true) {
+  var antigo = "eu escapo do bloco";
+  let novo = "eu fico no bloco";
+}
+console.log(antigo);
+console.log(typeof novo);
+</pre>
+
+<pre class="term">$ node var.js
+eu escapo do bloco     « o var "vazou" do if
+undefined              « o let ficou preso nas chaves
+</pre>
+
+<p>Esse vazamento causava muitos defeitos (uma variável de um <code>for</code> aparecendo no resto da função, por exemplo). Foi um dos motivos para o <code>let</code> e o <code>const</code> serem criados. Por isso o guia usa só os dois.</p>
+
+<hr>
+
+<h2>7. A variável global criada sem querer</h2>
+<p>Se você atribui a um nome que <strong>não existe em nenhum escopo</strong>, sem <code>let</code>/<code>const</code>, um arquivo comum do Node não reclama: ele cria uma variável global, em silêncio.</p>
+
+<pre class="file" data-file="semdeclarar.js">function contar() {
+  contador = 10;
+}
+
+contar();
+console.log(contador);
+</pre>
+
+<pre class="term">$ node semdeclarar.js
+10
+</pre>
+
+<p>Parece prático, mas um erro de digitação (<code>contdor = 10</code>) vira uma variável nova em vez de um aviso. No <strong>modo estrito</strong> (o arquivo começa com <code>"use strict";</code>) e nos <a href="modulos.html">módulos</a>, isso vira erro, como deveria:</p>
+
+<pre class="file" data-file="estrito.js">"use strict";
+
+function contar() {
+  contador = 10;
+}
+
+contar();
+console.log(contador);
+</pre>
+
+<pre class="term">$ node estrito.js
+/home/ana/estrito.js:4
+  contador = 10;
+           ^
+
+ReferenceError: contador is not defined
+    at contar (/home/ana/estrito.js:4:12)
+    at Object.&lt;anonymous&gt; (/home/ana/estrito.js:7:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>As duas linhas <code>at</code> de cima contam o caminho: a linha 7 chamou <code>contar</code>, e o erro aconteceu dentro dela, na linha 4. <strong>Regra:</strong> sempre crie as variáveis com <code>const</code> ou <code>let</code>.</p>
+
+<hr>
+
+<h2 id="formas">Boas práticas: qual escopo usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Faça</th></tr>
+<tr><td>Valor usado só dentro de um <code>if</code>/<code>for</code></td><td>Crie dentro do bloco</td></tr>
+<tr><td>Valor calculado no bloco e usado depois</td><td><code>let</code> antes do bloco, atribuição dentro</td></tr>
+<tr><td>Valor calculado numa função e usado fora</td><td><code>return</code> na função, <code>const x = f();</code> fora</td></tr>
+<tr><td>Valor que a função precisa receber</td><td>Parâmetro, em vez de ler uma global</td></tr>
+<tr><td>Constantes do programa todo (nome da loja, taxa)</td><td><code>const</code> global, no topo do arquivo</td></tr>
+</table>
+</div>
+<p>A regra geral: <strong>crie cada variável no menor escopo possível</strong>. Quanto menos lugares a enxergam, menos lugares podem estragá-la, e mais fácil é entender o programa.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou fora uma variável criada dentro</strong>
+<p>É o <code>ReferenceError: … is not defined</code> das seções 2 e 3: a variável existe, mas em outro escopo. <strong>Como consertar:</strong> crie-a no escopo de fora (seção 3) ou devolva o valor com <code>return</code> (seção 2). Se o nome não existe em lugar nenhum, confira a grafia: o JavaScript diferencia maiúsculas (<code>Total</code> ≠ <code>total</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou a variável antes da linha que a cria</strong>
+<pre class="file" data-file="tdz.js">const preco = 10;
+
+function aplicarDesconto() {
+  console.log(preco);
+  const preco = 8;
+}
+
+aplicarDesconto();
+</pre>
+<pre class="term">$ node tdz.js
+/home/ana/tdz.js:4
+  console.log(preco);
+              ^
+
+ReferenceError: Cannot access 'preco' before initialization
+    at aplicarDesconto (/home/ana/tdz.js:4:15)
+    at Object.&lt;anonymous&gt; (/home/ana/tdz.js:8:1)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível acessar <code>preco</code> antes da inicialização". Surpresa: a Ana esperava ver o <code>10</code> de fora. Mas a função tem a <strong>sua própria</strong> <code>preco</code> (linha 5), e ela faz sombra na função <strong>inteira</strong>, desde a primeira linha. Só que ela só ganha valor na linha 5; antes disso, usá-la é proibido. (Esse trecho proibido tem até nome, "zona morta temporal", e é assunto da aula <a href="hoisting.html">Hoisting</a>.) <strong>Como consertar:</strong> use nomes diferentes (<code>const precoComDesconto = 8;</code>) ou mova a criação para antes do uso.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou duas vezes a mesma variável no mesmo escopo</strong>
+<pre class="file" data-file="duplicada.js">let total = 0;
+let total = 10;
+</pre>
+<pre class="term">$ node duplicada.js
+/home/ana/duplicada.js:2
+let total = 10;
+    ^
+
+SyntaxError: Identifier 'total' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O identificador (nome) <code>total</code> já foi declarado". No mesmo escopo, cada nome só pode ser criado uma vez. Por ser erro de sintaxe, o programa nem começa. (Em escopos <strong>diferentes</strong> pode, como na seção 5.) <strong>Como consertar:</strong> na segunda vez, só atribua: <code>total = 10;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escopo</th><th>Criado por</th><th>A variável existe…</th></tr>
+<tr><td>Global</td><td><code>const</code>/<code>let</code> fora de tudo</td><td>No arquivo todo</td></tr>
+<tr><td>De função</td><td><code>const</code>/<code>let</code>/<code>var</code> e parâmetros dentro de uma função</td><td>Só durante aquela chamada, dentro da função</td></tr>
+<tr><td>De bloco</td><td><code>const</code>/<code>let</code> dentro de <code>{ }</code> (if, for, while…)</td><td>Só até o <code>}</code></td></tr>
+<tr><td>—</td><td><code>var</code> dentro de um bloco</td><td>Escapa do bloco (vale a função inteira)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>O nome não existe neste escopo nem nos de fora (criado dentro de outro bloco/função, ou digitado errado)</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'x' before initialization</code></td><td>Usou antes da linha do <code>let</code>/<code>const</code> (às vezes por causa de uma sombra)</td></tr>
+<tr><td><code>SyntaxError: Identifier 'x' has already been declared</code></td><td>Dois <code>let</code>/<code>const</code> com o mesmo nome no mesmo escopo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<pre class="file" data-file="ex1.js">const cor = "azul";
+function pintar() {
+  const cor = "verde";
+}
+pintar();
+console.log(cor);
+</pre>
+<div class="ex-code">Aparece <input data-answer="azul" aria-label="valor mostrado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E agora?</h3>
+<pre class="file" data-file="ex2.js">let pontos = 0;
+function marcar() {
+  pontos = pontos + 5;
+}
+marcar();
+marcar();
+console.log(pontos);
+</pre>
+<div class="ex-code">Aparece <input data-answer="10" aria-label="valor mostrado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Qual o tipo de erro?</h3>
+<p>Usar fora de um <code>if</code> uma variável criada com <code>const</code> dentro dele dá um erro do tipo:</p>
+<div class="ex-code"><input data-answer="ReferenceError" aria-label="tipo do erro"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Uma função criada dentro de outra função…</p>
+<label><input type="radio" name="q4"> …não enxerga as variáveis da função de fora</label>
+<label><input type="radio" name="q4"> …enxerga as suas variáveis, as da função de fora e as globais</label>
+<label><input type="radio" name="q4"> …só enxerga as variáveis globais</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas variáveis continua existindo depois do <code>}</code> do <code>if</code> onde foi criada?</p>
+<label><input type="radio" name="q5"> <code>let x = 1;</code></label>
+<label><input type="radio" name="q5"> <code>const x = 1;</code></label>
+<label><input type="radio" name="q5"> <code>var x = 1;</code></label>
+<label><input type="radio" name="q5"> Nenhuma</label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="tryjs" data-goal="out:Total do dia: R$ 16;;semerro;;src:return">
+<p class="try-task"><strong>Missão:</strong> a função <code>fecharCaixa</code> soma as vendas, mas o <code>console.log</code> lá fora não enxerga o <code>total</code>. Faça a função <strong>devolver</strong> o total com <code>return</code>, guarde o resultado numa variável fora dela e mostre <code>Total do dia: R$ 16</code>.</p>
+<pre class="script" data-file="main.js">const vendas = [4.5, 3, 8.5];
+
+function fecharCaixa(lista) {
+  let total = 0;
+  for (const valor of lista) {
+    total = total + valor;
+  }
+}
+
+fecharCaixa(vendas);
+console.log(`Total do dia: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const vendas = [4.5, 3, 8.5];
+
+function fecharCaixa(lista) {
+  let total = 0;
+  for (const valor of lista) {
+    total = total + valor;
+  }
+  return total;
+}
+
+const total = fecharCaixa(vendas);
+console.log(`Total do dia: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Escopo</strong> é o pedaço do programa onde uma variável existe.</li>
+  <li>Global (fora de tudo), de função (dentro de uma função) e de bloco (<code>let</code>/<code>const</code> dentro de <code>{ }</code>).</li>
+  <li>De dentro se enxerga para fora; de fora não se enxerga para dentro. O JavaScript sobe a cadeia de escopos procurando o nome.</li>
+  <li><code>let</code>/<code>const</code> dentro cria uma variável nova (sombra, se o nome existir fora); sem eles, a linha muda a variável que já existe.</li>
+  <li>O <code>var</code> escapa dos blocos; atribuir a um nome que não existe cria uma global sem querer (erro no modo estrito).</li>
+  <li>Crie cada variável no menor escopo possível; para tirar um valor de uma função, use <code>return</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
