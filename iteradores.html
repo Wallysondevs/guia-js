@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Iteradores — Symbol.iterator, next() e o for … of por dentro | Guia JavaScript</title>
+<meta name="description" content="Iteradores no JavaScript para quem nunca programou: o que o for … of faz por dentro, next() e o objeto { value, done }, quem é iterável (array, string, Map, Set) e quem não é (objeto comum: is not iterable), como criar o seu próprio iterável com Symbol.iterator, o iterador que só serve uma vez, os ajudantes do ES2025 (map, filter, take, toArray) e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Iteradores</span></h1>
+
+<p class="intro">Você já percorreu arrays, textos, <code>Map</code>s e <code>Set</code>s com o mesmo <a href="for-of.html">for … of</a>, e espalhou todos eles com <code>...</code>. Como é que um único laço sabe andar por coisas tão diferentes? Todas elas falam a mesma "língua": a dos <strong>iteradores</strong>. Nesta aula você vai ver essa língua por dentro e, no fim, ensinar um objeto seu a falar com o <code>for … of</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <strong>iterador</strong>: o objeto com o método <code>next()</code>, que entrega um item por vez como <code>{ value, done }</code>.</li>
+  <li>O que é um <strong>iterável</strong>: quem sabe fabricar um iterador (o <code>Symbol.iterator</code>).</li>
+  <li>Quem é iterável (array, string, <code>Map</code>, <code>Set</code>) e quem <strong>não</strong> é (o objeto comum).</li>
+  <li>Como criar o seu próprio iterável, que funciona no <code>for … of</code> e no <code>...</code>.</li>
+  <li>Que um iterador só serve <strong>uma vez</strong>, e os ajudantes novos <code>map</code>, <code>filter</code>, <code>take</code> e <code>toArray</code> <span class="versao">ES2025</span>.</li>
+  <li>Os erros reais: <code>is not iterable</code>, <code>is not a function</code> e <code>Iterator result undefined is not an object</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Este é um assunto do <strong>Nível 3</strong>: ajuda já conhecer <a href="for-of.html">for … of</a>, <a href="objetos-metodos.html">Métodos e this</a> e <a href="colecao-map.html">Map</a>.</p>
+
+<hr>
+
+<h2>A ideia: a máquina de senhas do açougue</h2>
+<p>No açougue do mercado tem uma máquina de senhas na parede. Cada vez que alguém puxa o papelzinho, sai <strong>uma</strong> senha: 1, depois 2, depois 3. Quando o rolo acaba, a máquina avisa: "acabou". Repare em três coisas:</p>
+<ul>
+  <li>Ninguém precisa saber <strong>como</strong> a máquina funciona por dentro. Só precisa saber <strong>puxar</strong>.</li>
+  <li>Cada puxada entrega <strong>duas</strong> informações: a senha e se ainda tem rolo.</li>
+  <li>A máquina lembra <strong>onde parou</strong>. Uma senha puxada não volta.</li>
+</ul>
+<p>No JavaScript, a máquina é o <strong>iterador</strong>, e "puxar" é chamar o método <code>next()</code> ("próximo"). O açougue, que <strong>tem</strong> a máquina na parede, é o <strong>iterável</strong>. O <code>for … of</code> é o freguês que fica puxando até a máquina dizer "acabou".</p>
+
+<hr>
+
+<h2>1. Puxando os itens na mão: <code>next()</code></h2>
+<p>Um array é iterável. Para pegar a "máquina de senhas" dele, chame o método que tem o nome especial <code>Symbol.iterator</code>:</p>
+
+<pre class="file" data-file="fila.js">const fila = ["Ana", "Bia", "Caio"];
+const senha = fila[Symbol.iterator]();
+
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+</pre>
+
+<pre class="term">$ node fila.js
+{ value: 'Ana', done: false }
+{ value: 'Bia', done: false }
+{ value: 'Caio', done: false }
+{ value: undefined, done: true }
+{ value: undefined, done: true }
+</pre>
+
+<dl class="anatomy">
+  <dt>fila[Symbol.iterator]</dt><dd>Um método do array com um nome diferente: não é um texto como <code>"push"</code>, e sim um <strong>símbolo</strong>, <code>Symbol.iterator</code> (os símbolos são o assunto da aula <a href="symbol.html">Symbol</a>). Por isso ele vai entre colchetes, e não depois de um ponto.</dd>
+  <dt>()</dt><dd>Chama o método. O resultado é o <strong>iterador</strong>: a máquina de senhas, novinha, apontando para o começo da fila.</dd>
+  <dt>senha.next()</dt><dd>Puxa o próximo item. Devolve sempre um objeto com duas propriedades.</dd>
+  <dt>value</dt><dd>"Valor": o item da vez (<code>'Ana'</code>, <code>'Bia'</code>…).</dd>
+  <dt>done</dt><dd>"Feito", "terminou?": <code>false</code> enquanto houver itens; <code>true</code> quando acabou. Aí o <code>value</code> é <code>undefined</code>.</dd>
+</dl>
+
+<p>Depois do último nome, o iterador responde <code>done: true</code>, e continua respondendo a mesma coisa para sempre: a máquina não volta para o começo.</p>
+
+<h3>O <code>for … of</code> por dentro</h3>
+<p>É exatamente isso que o <code>for … of</code> faz, sem você ver. Estes dois programas mostram a mesma coisa:</p>
+
+<pre class="file" data-file="com-for-of.js">const fila = ["Ana", "Bia", "Caio"];
+
+for (const nome of fila) {
+  console.log(`Atendendo ${nome}`);
+}
+</pre>
+
+<pre class="file" data-file="na-mao.js">const fila = ["Ana", "Bia", "Caio"];
+
+const senha = fila[Symbol.iterator]();
+let resultado = senha.next();
+while (!resultado.done) {
+  const nome = resultado.value;
+  console.log(`Atendendo ${nome}`);
+  resultado = senha.next();
+}
+</pre>
+
+<pre class="term">$ node com-for-of.js
+Atendendo Ana
+Atendendo Bia
+Atendendo Caio
+$ node na-mao.js
+Atendendo Ana
+Atendendo Bia
+Atendendo Caio
+</pre>
+
+<p>O <code>for … of</code> pede o iterador, chama <code>next()</code>, olha o <code>done</code>, entrega o <code>value</code> para a sua variável e repete. Ninguém escreve a versão "na mão" no dia a dia; ela serve para entender o que o laço faz.</p>
+
+<div class="tryjs" data-goal="out:done: true">
+<p class="try-task"><strong>Missão:</strong> a fila do açougue tem três fregueses, e o programa puxa três senhas. Acrescente mais um <code>console.log(senha.next());</code> para ver a máquina avisar que acabou (<code>done: true</code>).</p>
+<pre class="script" data-file="main.js">const fila = ["Ana", "Bia", "Caio"];
+const senha = fila[Symbol.iterator]();
+
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+</pre>
+<pre class="solucao" data-file="main.js">const fila = ["Ana", "Bia", "Caio"];
+const senha = fila[Symbol.iterator]();
+
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+console.log(senha.next());
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Quem é iterável (e quem não é)</h2>
+<p><strong>Iterável</strong> é todo valor que tem o método <code>Symbol.iterator</code>. Os principais já vêm prontos:</p>
+
+<pre class="file" data-file="iteraveis.js">for (const letra of "Pão") {
+  console.log(letra);
+}
+const precos = new Map([["pão", 0.75], ["leite", 5.49]]);
+for (const [produto, preco] of precos) {
+  console.log(`${produto}: R$ ${preco}`);
+}
+const cores = new Set(["azul", "verde", "azul"]);
+for (const cor of cores) {
+  console.log(cor);
+}
+console.log([..."olá"]);
+console.log(Array.from(precos.keys()));
+const [primeiro, segundo] = new Set(["x", "y", "z"]);
+console.log(primeiro, segundo);
+console.log(typeof [][Symbol.iterator], typeof "abc"[Symbol.iterator], typeof {}[Symbol.iterator]);
+</pre>
+
+<pre class="term">$ node iteraveis.js
+P
+ã
+o
+pão: R$ 0.75
+leite: R$ 5.49
+azul
+verde
+[ 'o', 'l', 'á' ]
+[ 'pão', 'leite' ]
+x y
+function function undefined
+</pre>
+
+<ul>
+  <li>A <strong>string</strong> entrega uma letra por vez.</li>
+  <li>O <strong>Map</strong> entrega pares <code>[chave, valor]</code> (por isso a <a href="desestruturacao.html">desestruturação</a> <code>[produto, preco]</code>).</li>
+  <li>O <strong>Set</strong> entrega cada valor uma vez (o segundo "azul" nem entrou no conjunto).</li>
+  <li>O <strong>espalhar</strong> (<code>[..."olá"]</code>), o <code>Array.from</code> e a desestruturação de array (<code>const [primeiro, segundo] = …</code>) também usam o iterador por dentro. Por isso funcionam com qualquer iterável, até com um <code>Set</code>.</li>
+  <li>A última linha é a prova: array e string têm um <code>Symbol.iterator</code> do tipo <code>function</code>; o objeto comum <code>{}</code>, não: <code>undefined</code>.</li>
+</ul>
+
+<p>Também são iteráveis: o <code>arguments</code> das funções antigas, a lista do <code>document.querySelectorAll</code> no navegador, e os resultados de <code>map.keys()</code>, <code>map.values()</code>, <code>map.entries()</code>.</p>
+
+<h3>O objeto comum não é iterável</h3>
+<p>A Ana tentou percorrer o estoque da lojinha, que é um objeto, com <code>for … of</code>:</p>
+
+<pre class="file" data-file="objeto.js">const estoque = { pao: 30, leite: 12 };
+for (const item of estoque) {
+  console.log(item);
+}
+</pre>
+
+<pre class="term">$ node objeto.js
+/home/ana/objeto.js:2
+for (const item of estoque) {
+                   ^
+
+TypeError: estoque is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/objeto.js:2:20)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>/home/ana/objeto.js:2</dt><dd>O arquivo e a linha do erro: a 2, a do <code>for</code>.</dd>
+  <dt>for (const item of estoque) { e o ^</dt><dd>A linha, copiada, com o <code>^</code> embaixo do <code>estoque</code>: o culpado.</dd>
+  <dt>TypeError: estoque is not iterable</dt><dd>"Erro de tipo: <code>estoque</code> não é iterável". O <code>for … of</code> procurou o <code>Symbol.iterator</code> do objeto e não achou.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/objeto.js:2:20)</dt><dd>O caminho até o erro: no código principal do arquivo, linha 2, coluna 20. As linhas <code>at node:internal/…</code> que vinham depois são do próprio Node (foram cortadas aqui).</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+
+<p>Um objeto comum guarda pares "nome → valor", mas o JavaScript não decide sozinho o que "percorrer" significa para ele: só os nomes? só os valores? os dois? Por isso <strong>você escolhe</strong>, com <code>Object.keys</code>, <code>Object.values</code> ou <code>Object.entries</code>, que devolvem arrays (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>): <code>for (const [item, qtd] of Object.entries(estoque))</code>. Ou, como na seção 3, ensinando o objeto a ser iterável.</p>
+
+<hr>
+
+<h2>3. Criando o seu próprio iterável</h2>
+<p>Para um objeto seu funcionar no <code>for … of</code>, dê a ele um método <code>[Symbol.iterator]</code> que devolva um iterador, isto é, um objeto com <code>next()</code>. A Ana quer um "intervalo" de números, do 1 ao 5:</p>
+
+<pre class="file" data-file="intervalo.js">const intervalo = {
+  de: 1,
+  ate: 5,
+  [Symbol.iterator]() {
+    let atual = this.de;
+    const fim = this.ate;
+    return {
+      next() {
+        if (atual &lt;= fim) {
+          return { value: atual++, done: false };
+        }
+        return { value: undefined, done: true };
+      },
+    };
+  },
+};
+
+for (const n of intervalo) {
+  console.log(n);
+}
+console.log([...intervalo]);
+console.log(Math.max(...intervalo));
+</pre>
+
+<pre class="term">$ node intervalo.js
+1
+2
+3
+4
+5
+[ 1, 2, 3, 4, 5 ]
+5
+</pre>
+
+<dl class="anatomy">
+  <dt>[Symbol.iterator]() { … }</dt><dd>Um método cujo nome é o símbolo (os colchetes dizem "o nome é o valor desta expressão"). É o que o <code>for … of</code> procura. Ele é chamado <strong>uma vez</strong>, no começo de cada laço.</dd>
+  <dt>let atual = this.de</dt><dd>O "onde parei" da máquina, começando no <code>de</code> do objeto (o <code>this</code> é o próprio <code>intervalo</code>; veja <a href="objetos-metodos.html">Métodos e this</a>). Fica guardado dentro do método, e o <code>next</code> continua enxergando ele (um <a href="closures.html">closure</a>).</dd>
+  <dt>return { next() { … } }</dt><dd>O iterador: um objeto com o método <code>next</code>.</dd>
+  <dt>return { value: atual++, done: false }</dt><dd>Enquanto não passou do fim: entrega o número atual e anda um (o <code>atual++</code> devolve o valor de antes e depois soma 1; veja <a href="incremento.html">Incremento</a>).</dd>
+  <dt>return { value: undefined, done: true }</dt><dd>Passou do fim: avisa que acabou.</dd>
+</dl>
+
+<p>Com isso, o <code>intervalo</code> funciona em <strong>tudo</strong> que aceita iteráveis: no <code>for … of</code>, no espalhar <code>[...intervalo]</code>, e até no <code>Math.max(...intervalo)</code>, que recebeu 1, 2, 3, 4, 5 como argumentos. Como cada laço chama o <code>[Symbol.iterator]()</code> de novo, cada um ganha uma máquina nova, começando do 1.</p>
+
+<div class="tip">
+<strong>Existe um jeito mais curto</strong>
+<p>Escrever o <code>next()</code> na mão, com o <code>{ value, done }</code>, é trabalhoso. A próxima aula, <a href="geradores.html">Geradores</a>, mostra a <code>function*</code>, que monta o iterador sozinha: o mesmo intervalo cabe em 3 linhas. Vale entender a versão longa primeiro, porque é ela que acontece por baixo.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:5\n4\n3\n2\n1\nJá!;;src:Symbol\.iterator;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete o <code>next()</code> da contagem regressiva. Enquanto <code>atual</code> for maior que 0, devolva <code>{ value: atual--, done: false }</code>; senão, devolva <code>{ value: undefined, done: true }</code>. A saída tem de ser 5, 4, 3, 2, 1 e <code>Já!</code>.</p>
+<pre class="script" data-file="main.js">const regressiva = {
+  [Symbol.iterator]() {
+    let atual = 5;
+    return {
+      next() {
+        // complete aqui
+        return { value: undefined, done: true };
+      },
+    };
+  },
+};
+
+for (const n of regressiva) {
+  console.log(n);
+}
+console.log("Já!");
+</pre>
+<pre class="solucao" data-file="main.js">const regressiva = {
+  [Symbol.iterator]() {
+    let atual = 5;
+    return {
+      next() {
+        if (atual &gt; 0) {
+          return { value: atual--, done: false };
+        }
+        return { value: undefined, done: true };
+      },
+    };
+  },
+};
+
+for (const n of regressiva) {
+  console.log(n);
+}
+console.log("Já!");
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Um iterador só serve uma vez</h2>
+<p>O <strong>iterável</strong> (o açougue) pode fabricar quantas máquinas quiser. Mas cada <strong>iterador</strong> (a máquina) anda só para a frente. Os métodos <code>keys()</code>, <code>values()</code> e <code>entries()</code> do <code>Map</code> devolvem um <strong>iterador</strong>, e isso pega muita gente:</p>
+
+<pre class="file" data-file="uma-vez.js">const precos = new Map([["pão", 0.75], ["leite", 5.49], ["café", 18.9]]);
+const nomes = precos.keys();
+console.log(nomes);
+console.log([...nomes]);
+console.log([...nomes]);
+console.log([...precos.keys()]);
+</pre>
+
+<pre class="term">$ node uma-vez.js
+[Map Iterator] { 'pão', 'leite', 'café' }
+[ 'pão', 'leite', 'café' ]
+[]
+[ 'pão', 'leite', 'café' ]
+</pre>
+
+<p>O Node mostra o iterador como <code>[Map Iterator]</code>. O primeiro <code>[...nomes]</code> esvaziou a máquina; o segundo achou ela já no fim e devolveu um array vazio, <strong>sem erro nenhum</strong>. A última linha pediu um iterador <strong>novo</strong> ao Map (<code>precos.keys()</code> de novo) e funcionou. Regra prática: se vai percorrer mais de uma vez, guarde num array (<code>const nomes = [...precos.keys()]</code>) ou peça um iterador novo a cada vez.</p>
+
+<hr>
+
+<h2>5. Os ajudantes de iterador <span class="versao">ES2025</span></h2>
+<p>Desde o ECMAScript 2025, os iteradores ganharam métodos parecidos com os dos arrays: <code>map</code>, <code>filter</code>, <code>take</code> ("pegar os primeiros N"), <code>drop</code> ("pular os primeiros N"), <code>toArray</code> ("virar array") e outros. Eles funcionam direto no iterador, sem criar um array no meio do caminho:</p>
+
+<pre class="file" data-file="ajudantes.js">const precos = new Map([["pão", 0.75], ["leite", 5.49], ["café", 18.9], ["queijo", 42]]);
+
+const caros = precos.entries()
+  .filter(([produto, preco]) =&gt; preco &gt; 5)
+  .map(([produto]) =&gt; produto.toUpperCase())
+  .toArray();
+console.log(caros);
+
+const primeiros = precos.keys().take(2).toArray();
+console.log(primeiros);
+</pre>
+
+<pre class="term">$ node ajudantes.js
+[ 'LEITE', 'CAFÉ', 'QUEIJO' ]
+[ 'pão', 'leite' ]
+</pre>
+
+<p>O <code>entries()</code> do Map é um iterador de pares; o <code>filter</code> deixa passar os produtos acima de R$ 5; o <code>map</code> transforma cada par no nome em maiúsculas; o <code>toArray</code> junta o resultado num array. Funcionam no Node.js 24 e nos navegadores atualizados. Antes deles, o jeito era transformar em array primeiro: <code>[...precos.entries()].filter(…).map(…)</code>, que ainda funciona e você vai ver muito.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para percorrer um iterável, do mais comum ao mais raro:</p>
+
+<pre class="file" data-file="formas.js">const fila = ["Ana", "Bia", "Caio"];
+
+for (const nome of fila) console.log(nome);   // 1. for … of
+const copia = [...fila];                      // 2. espalhar num array
+const outra = Array.from(fila);               // 3. Array.from
+const [primeira] = fila;                      // 4. desestruturação (só o começo)
+const it = fila[Symbol.iterator]();           // 5. o iterador na mão
+console.log(it.next().value);
+</pre>
+
+<p>E para criar um iterável seu: escrever o <code>next()</code> na mão (esta aula), usar um gerador <code>function*</code> (<a href="geradores.html">próxima aula</a>), ou devolver o iterador de um array que você já tem: <code>[Symbol.iterator]() { return this.itens[Symbol.iterator](); }</code> (é a missão final).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Percorrer um array, string, Map ou Set</td><td><code>for … of</code></td></tr>
+<tr><td>Precisa dos itens num array (para <code>sort</code>, <code>length</code>, percorrer de novo)</td><td><code>[...iteravel]</code> ou <code>Array.from(iteravel)</code></td></tr>
+<tr><td>Percorrer um objeto comum</td><td><code>Object.entries(obj)</code> (ou <code>keys</code>/<code>values</code>)</td></tr>
+<tr><td>Seu objeto guarda uma lista e deve funcionar no <code>for … of</code></td><td><code>[Symbol.iterator]</code> devolvendo o iterador da lista</td></tr>
+<tr><td>Uma sequência calculada (intervalo, contagem)</td><td>Um gerador <code>function*</code> (aula <a href="geradores.html">Geradores</a>)</td></tr>
+<tr><td>Filtrar/transformar sem criar arrays no meio</td><td>Os ajudantes <code>filter</code>, <code>map</code>, <code>take</code>, <code>toArray</code> <span class="versao">ES2025</span></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Espalhou um objeto comum num array</strong>
+<pre class="file" data-file="espalhar.js">const estoque = { pao: 30, leite: 12 };
+const lista = [...estoque];
+</pre>
+<pre class="term">$ node espalhar.js
+/home/ana/espalhar.js:2
+const lista = [...estoque];
+                  ^
+
+TypeError: estoque is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/espalhar.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A mesma mensagem do <code>for … of</code> da seção 2: o <code>...</code> dentro de <code>[ ]</code> também precisa de um iterável. (Dentro de <code>{ }</code> é outra história: <code>{ ...estoque }</code> copia as propriedades e funciona; veja <a href="spread-rest.html">Spread e Rest</a>.) <strong>Como consertar:</strong> <code>Object.entries(estoque)</code>, <code>Object.keys</code> ou <code>Object.values</code>, conforme o que você quer na lista.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses do <code>[Symbol.iterator]</code></strong>
+<pre class="file" data-file="sem-call.js">const lista = ["a", "b"];
+const it = lista[Symbol.iterator];
+console.log(it.next());
+</pre>
+<pre class="term">$ node sem-call.js
+/home/ana/sem-call.js:3
+console.log(it.next());
+               ^
+
+TypeError: it.next is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/sem-call.js:3:16)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"<code>it.next</code> não é uma função". Sem os <code>()</code>, o <code>it</code> é o <strong>método</strong> que fabrica a máquina, e não a máquina. <strong>Como consertar:</strong> <code>lista[Symbol.iterator]()</code>, com parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>[Symbol.iterator]</code> devolveu um objeto sem <code>next</code></strong>
+<pre class="file" data-file="sem-next.js">const errado = {
+  [Symbol.iterator]() {
+    return {};
+  },
+};
+for (const x of errado) {
+  console.log(x);
+}
+</pre>
+<pre class="term">$ node sem-next.js
+/home/ana/sem-next.js:6
+for (const x of errado) {
+           ^
+
+TypeError: undefined is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/sem-next.js:6:12)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"<code>undefined</code> não é uma função". A mensagem é vaga: o <code>for … of</code> procurou o <code>next</code> do objeto devolvido, achou <code>undefined</code> e tentou chamá-lo. <strong>Como consertar:</strong> o objeto devolvido pelo <code>[Symbol.iterator]()</code> tem de ter um método <code>next</code> (confira também se o nome não está <code>Next</code> ou <code>proximo</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>next()</code> esqueceu o <code>return</code></strong>
+<pre class="file" data-file="sem-return.js">const errado = {
+  [Symbol.iterator]() {
+    return {
+      next() {
+        ({ value: 1, done: false });
+      },
+    };
+  },
+};
+for (const x of errado) {
+  console.log(x);
+}
+</pre>
+<pre class="term">$ node sem-return.js
+/home/ana/sem-return.js:10
+for (const x of errado) {
+           ^
+
+TypeError: Iterator result undefined is not an object
+    at Object.&lt;anonymous&gt; (/home/ana/sem-return.js:10:12)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"O resultado do iterador, <code>undefined</code>, não é um objeto". O <code>next()</code> montou o objeto mas não o <strong>devolveu</strong>; sem <code>return</code>, a função devolve <code>undefined</code> (veja <a href="return.html">return</a>), e o laço não tem onde ler o <code>value</code> e o <code>done</code>. <strong>Como consertar:</strong> <code>return { value: …, done: … };</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um laço que nunca termina</strong>
+<p>Se o <code>next()</code> nunca devolver <code>done: true</code> (por exemplo, esqueceu o <code>atual++</code>, e o <code>atual</code> nunca passa do fim), o <code>for … of</code> fica rodando para sempre, como um <a href="while.html">while</a> sem saída. No terminal, pare com <kbd>Ctrl</kbd>+<kbd>C</kbd>. Pior ainda com <code>[...iteravel]</code>: ele tenta guardar infinitos itens num array, e o programa trava até a memória acabar. <strong>Como consertar:</strong> confira se o "onde parei" anda a cada <code>next()</code> e se existe o caminho do <code>done: true</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>iteravel[Symbol.iterator]()</code></td><td>Pede um iterador novo ao iterável</td></tr>
+<tr><td><code>it.next()</code></td><td>Devolve <code>{ value: item, done: false }</code>, ou <code>{ value: undefined, done: true }</code> no fim</td></tr>
+<tr><td><code>for (const x of iteravel)</code></td><td>Chama <code>next()</code> até <code>done</code> ser <code>true</code></td></tr>
+<tr><td><code>[...iteravel]</code>, <code>Array.from(iteravel)</code></td><td>Junta todos os itens num array</td></tr>
+<tr><td><code>const [a, b] = iteravel</code></td><td>Pega os primeiros itens</td></tr>
+<tr><td><code>obj = { [Symbol.iterator]() { return { next() { … } }; } }</code></td><td>Torna um objeto seu iterável</td></tr>
+<tr><td><code>map.keys()</code>, <code>map.values()</code>, <code>map.entries()</code></td><td>Iteradores do Map (só servem uma vez)</td></tr>
+<tr><td><code>it.filter(f)</code>, <code>it.map(f)</code>, <code>it.take(n)</code>, <code>it.drop(n)</code>, <code>it.toArray()</code></td><td>Ajudantes de iterador <span class="versao">ES2025</span></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: x is not iterable</code></td><td><code>for … of</code> ou <code>[...x]</code> com um objeto comum (ou <code>null</code>/<code>undefined</code>)</td></tr>
+<tr><td><code>it.next is not a function</code></td><td>Faltou o <code>()</code> em <code>[Symbol.iterator]()</code></td></tr>
+<tr><td><code>undefined is not a function</code> no <code>for … of</code></td><td>O objeto devolvido pelo <code>[Symbol.iterator]()</code> não tem <code>next</code></td></tr>
+<tr><td><code>Iterator result undefined is not an object</code></td><td>O <code>next()</code> não devolveu (<code>return</code>) o objeto</td></tr>
+<tr><td>A segunda volta vem vazia</td><td>Reaproveitou um iterador já usado</td></tr>
+<tr><td>O laço não termina</td><td>O <code>next()</code> nunca chega ao <code>done: true</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o que o <code>next()</code> devolve</h3>
+<p>Depois do último item, o <code>next()</code> devolve:</p>
+<div class="ex-code">{ value: <input data-answer="undefined" aria-label="valor">, done: <input data-answer="true" aria-label="done"> }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O nome especial</h3>
+<p>Complete o nome do método que torna um objeto iterável:</p>
+<div class="ex-code">[Symbol.<input data-answer="iterator" aria-label="nome do símbolo">]()</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destes <strong>não</strong> é iterável?</p>
+<label><input type="radio" name="q3"> <code>"banana"</code></label>
+<label><input type="radio" name="q3"> <code>new Set([1, 2])</code></label>
+<label><input type="radio" name="q3"> <code>{ a: 1, b: 2 }</code></label>
+<label><input type="radio" name="q3"> <code>[1, 2, 3]</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>const k = mapa.keys();</code> e depois <code>console.log([...k]); console.log([...k]);</code>, com um Map de 3 itens. O que aparece na segunda linha?</p>
+<label><input type="radio" name="q4"> As 3 chaves de novo</label>
+<label><input type="radio" name="q4"> <code>[]</code>: o iterador já tinha chegado ao fim</label>
+<label><input type="radio" name="q4"> <code>TypeError: k is not iterable</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que o <code>for … of</code> faz por dentro?</p>
+<label><input type="radio" name="q5"> Pede um iterador com <code>[Symbol.iterator]()</code> e chama <code>next()</code> até <code>done</code> ser <code>true</code></label>
+<label><input type="radio" name="q5"> Conta de 0 até <code>length - 1</code></label>
+<label><input type="radio" name="q5"> Chama <code>Object.keys</code> no valor</label>
+<label><input type="radio" name="q5"> Transforma o valor em string</label>
+</div>
+
+<h3>Missão final: a turma no <code>for … of</code></h3>
+
+<div class="tryjs" data-goal="outre:Ana\nBia\nCaio;;src:Symbol\.iterator;;semerro">
+<p class="try-task"><strong>Missão:</strong> a professora da Ana guarda a turma num objeto, e o <code>for … of turma</code> dá <code>TypeError: turma is not iterable</code>. Dê à <code>turma</code> um método <code>[Symbol.iterator]()</code> que devolva o iterador do array <code>alunos</code> (dica: <code>return this.alunos[Symbol.iterator]();</code>), para o laço mostrar Ana, Bia e Caio.</p>
+<pre class="script" data-file="main.js">const turma = {
+  nome: "5º ano B",
+  alunos: ["Ana", "Bia", "Caio"],
+};
+
+for (const aluno of turma) {
+  console.log(aluno);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const turma = {
+  nome: "5º ano B",
+  alunos: ["Ana", "Bia", "Caio"],
+  [Symbol.iterator]() {
+    return this.alunos[Symbol.iterator]();
+  },
+};
+
+for (const aluno of turma) {
+  console.log(aluno);
+}
+</pre>
+</div>
+
+<p>Com isso, <code>[...turma]</code> e <code>const [primeiro] = turma</code> também passam a funcionar. É o jeito mais curto de tornar iterável um objeto que já guarda uma lista: ele "empresta" a máquina de senhas do array.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>iterador</strong> é um objeto com <code>next()</code>, que devolve um item por vez como <code>{ value, done }</code>; <code>done: true</code> quer dizer "acabou".</li>
+  <li>Um <strong>iterável</strong> tem o método <code>[Symbol.iterator]()</code>, que fabrica um iterador novo. Arrays, strings, <code>Map</code> e <code>Set</code> são iteráveis; o objeto comum não é (<code>is not iterable</code>).</li>
+  <li><code>for … of</code>, <code>[...x]</code>, <code>Array.from</code> e a desestruturação <code>[a, b] = x</code> usam o iterador por dentro.</li>
+  <li>Para um objeto seu funcionar no <code>for … of</code>, escreva o <code>[Symbol.iterator]()</code>, ou devolva o iterador de um array que ele já tem.</li>
+  <li>Um iterador anda só para a frente e serve uma vez; o iterável pode fabricar outros.</li>
+  <li>Os ajudantes <code>map</code>, <code>filter</code>, <code>take</code>, <code>drop</code> e <code>toArray</code> funcionam direto nos iteradores <span class="versao">ES2025</span>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
