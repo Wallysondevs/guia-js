@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Caracteres Especiais — \n, \t, \" e a barra invertida | Guia JavaScript</title>
+<meta name="description" content="Caracteres especiais (sequências de escape) nas strings do JavaScript para quem nunca programou: a barra invertida, \&quot; e \' para aspas dentro do texto, \n para pular linha, \t para alinhar em colunas, \\ para a própria barra, \u para caracteres Unicode, o que o modo interativo mostra, String.raw, e os erros reais do Node.js 24 (a barra no fim do texto, o caminho C:\novos que vira duas linhas, \u inválido, /n no lugar de \n).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Caracteres Especiais</span></h1>
+
+<p class="intro">Como escrever um texto que tem aspas dentro, se as aspas marcam o fim do texto? Como pular linha numa string de aspas comuns? Como alinhar uma tabelinha de preços? A resposta para as três perguntas é a mesma: a <strong>barra invertida</strong> <code>\</code>. Dentro de uma string, ela avisa o JavaScript: "o próximo caractere é especial". Essas combinações se chamam <strong>sequências de escape</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que a barra invertida <code>\</code> faz dentro de um texto.</li>
+  <li><code>\"</code> e <code>\'</code>: aspas dentro de aspas.</li>
+  <li><code>\n</code>: pular linha; <code>\t</code>: a tabulação, para alinhar colunas.</li>
+  <li><code>\\</code>: a própria barra invertida (caminhos do Windows).</li>
+  <li><code>\u</code>: qualquer caractere pelo código Unicode (acentos, símbolos, emojis).</li>
+  <li>Por que o modo interativo mostra <code>'a\nb'</code> e o <code>console.log</code> mostra duas linhas.</li>
+  <li>Os erros reais: a barra no fim do texto, o caminho que vira duas linhas, o <code>\u</code> incompleto e o <code>/n</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o aviso "isto não é o que parece"</h2>
+<p>Num ditado na escola, a professora fala "vírgula" e você escreve <code>,</code>, não a palavra "vírgula". Se ela quiser que você escreva a <strong>palavra</strong>, ela avisa antes: "agora, escreva por extenso: vírgula".</p>
+<p>A barra invertida é esse aviso. Dentro das aspas, o JavaScript lê cada caractere ao pé da letra, menos quando encontra uma <code>\</code>. Aí ele olha o caractere seguinte e o trata de um jeito especial:</p>
+<ul>
+  <li><code>\"</code> = "esta aspa é só uma letra, não fecha o texto";</li>
+  <li><code>\n</code> = "aqui, pule uma linha" (o <code>n</code> é de <em>new line</em>, "linha nova");</li>
+  <li><code>\t</code> = "aqui, uma tabulação" (o <code>t</code> é de <em>tab</em>, a tecla <kbd>Tab</kbd>).</li>
+</ul>
+<p>A barra e o caractere seguinte, juntos, viram <strong>um único caractere</strong> no texto final.</p>
+
+<hr>
+
+<h2>1. Aspas dentro do texto: <code>\"</code> e <code>\'</code></h2>
+
+<pre class="file" data-file="aspas.js">const fala = "Ana disse: \"Bom dia!\"";
+const apelido = 'O pão d\'água acabou';
+
+console.log(fala);
+console.log(apelido);
+console.log(fala.length);
+</pre>
+
+<dl class="anatomy">
+  <dt>"Ana disse: \"Bom dia!\""</dt><dd>A primeira e a última aspa (sem barra) abrem e fecham o texto. As duas <code>\"</code> do meio são <strong>letras</strong>: aparecem na tela como <code>"</code>.</dd>
+  <dt>'O pão d\'água acabou'</dt><dd>O mesmo com aspas simples: o apóstrofo de <em>d'água</em> precisa da barra para não fechar o texto.</dd>
+  <dt>fala.length</dt><dd>O tamanho conta cada <code>\"</code> como <strong>um</strong> caractere: a barra não fica no texto.</dd>
+</dl>
+
+<pre class="term">$ node aspas.js
+Ana disse: "Bom dia!"
+O pão d'água acabou
+21
+</pre>
+
+<p>Na aula <a href="strings.html">Strings</a> você viu outra saída: trocar o tipo de aspa de fora (<code>'Ana disse: "Bom dia!"'</code>), ou usar crase. A barra é útil quando o texto tem <strong>os dois</strong> tipos de aspa, ou quando o projeto pede sempre aspas duplas.</p>
+
+<hr>
+
+<h2>2. Pular linha: <code>\n</code></h2>
+
+<pre class="file" data-file="linhas.js">console.log("Lista de compras:\n- pão\n- leite\n- café");
+console.log("Linha 1\n\nLinha 3");
+console.log("a\nb".length);
+</pre>
+
+<pre class="term">$ node linhas.js
+Lista de compras:
+- pão
+- leite
+- café
+Linha 1
+
+Linha 3
+3
+</pre>
+
+<p>Um único <code>console.log</code> mostrou quatro linhas: cada <code>\n</code> virou uma quebra de linha. Dois <code>\n</code> seguidos deixam uma linha em branco. E o tamanho de <code>"a\nb"</code> é <strong>3</strong>: <code>a</code>, a quebra de linha (um caractere só, mesmo escrito com dois) e <code>b</code>.</p>
+
+<h3>O que o modo interativo mostra</h3>
+<p>No <a href="repl.html">modo interativo</a>, o Node mostra o <strong>valor</strong> da string do jeito que se escreveria no código, com as sequências de escape. O <code>console.log</code> mostra o texto <strong>pronto</strong>:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Lista:\n- pão"
+'Lista:\n- pão'
+&gt; console.log("Lista:\n- pão")
+Lista:
+- pão
+undefined
+&gt; "Ana disse: \"oi\""
+'Ana disse: "oi"'
+&gt; .exit
+</pre>
+
+<p>É a mesma string nos dois casos. O <code>'Lista:\n- pão'</code> do modo interativo é o "código" do texto; o <code>console.log</code> mostra o resultado, como apareceria num papel. Repare também no <code>'Ana disse: "oi"'</code>: para mostrar o valor, o Node escolheu aspas simples por fora, e assim não precisou de barra nenhuma.</p>
+
+<hr>
+
+<h2>3. Alinhar em colunas: <code>\t</code></h2>
+<p>A <strong>tabulação</strong> (o <kbd>Tab</kbd>) pula para a próxima "parada" da linha. No terminal, as paradas ficam a cada 8 colunas, o que ajuda a alinhar textos curtos em colunas:</p>
+
+<pre class="file" data-file="tabela.js">console.log("Produto\tPreço");
+console.log("Pão\tR$ 0.75");
+console.log("Leite\tR$ 6");
+console.log("Café\tR$ 18");
+</pre>
+
+<pre class="term">$ node tabela.js
+Produto	Preço
+Pão	R$ 0.75
+Leite	R$ 6
+Café	R$ 18
+</pre>
+
+<p>A segunda coluna começou sempre na mesma posição (a coluna 9), mesmo com nomes de tamanhos diferentes. Se um texto da primeira coluna passar de 7 letras (como <code>Pão de queijo</code>), ele empurra a tabulação para a parada seguinte e a coluna desalinha. Para tabelas de verdade, o Node tem o <code>console.table</code> (aula <a href="console-outros.html">console.error, warn e table</a>) e o <code>padEnd</code> (aula <a href="strings-metodos.html">Métodos de String</a>).</p>
+
+<div class="tryjs" data-goal="outre:^Pão\t2\nBolo\t1\n?$;;src:\\t">
+<p class="try-task"><strong>Missão:</strong> o caderno de encomendas da padaria deveria mostrar uma encomenda por linha, com o produto e a quantidade separados por tabulação. Hoje está tudo numa linha só, separado por espaços. Use <code>\n</code> e <code>\t</code> numa string só para sair assim:<br><code>Pão</code>(Tab)<code>2</code><br><code>Bolo</code>(Tab)<code>1</code></p>
+<pre class="script" data-file="main.js">console.log("Pão 2 Bolo 1");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Pão\t2\nBolo\t1");
+</pre>
+</div>
+
+<hr>
+
+<h2>4. A própria barra: <code>\\</code></h2>
+<p>Se a barra invertida é o "aviso", como escrever uma barra invertida <strong>de verdade</strong>? Com duas: <code>\\</code>. Isso aparece nos caminhos de pasta do Windows:</p>
+
+<pre class="file" data-file="barra.js">const pasta = "C:\\Users\\ana\\Documentos";
+console.log(pasta);
+console.log("Barra invertida: \\");
+console.log("\\".length);
+</pre>
+
+<pre class="term">$ node barra.js
+C:\Users\ana\Documentos
+Barra invertida: \
+1
+</pre>
+
+<p>Cada <code>\\</code> no código vira <strong>uma</strong> barra no texto (e o tamanho de <code>"\\"</code> é 1). No Linux e no macOS, os caminhos usam a barra normal <code>/</code> (<code>/home/ana/Documentos</code>), que não precisa de nada disso.</p>
+
+<hr>
+
+<h2>5. Qualquer caractere pelo código: <code>\u</code></h2>
+<p>Todo caractere do mundo (letras, acentos, símbolos, emojis) tem um número no padrão <strong>Unicode</strong>. Com <code>\u</code> e o número em hexadecimal (base 16), você escreve o caractere sem precisar dele no teclado:</p>
+
+<pre class="file" data-file="unicode.js">console.log("Caf\u00e9");
+console.log("Temperatura: 30\u00b0C");
+console.log("Copyright \u00a9 2026");
+console.log("Bolo de anivers\u00e1rio \u{1F382}");
+</pre>
+
+<pre class="term">$ node unicode.js
+Café
+Temperatura: 30°C
+Copyright © 2026
+Bolo de aniversário 🎂
+</pre>
+
+<dl class="anatomy">
+  <dt>\u00e9</dt><dd><code>\u</code> seguido de <strong>exatamente 4</strong> dígitos hexadecimais: <code>00e9</code> é o <code>é</code>.</dd>
+  <dt>\u00b0 e \u00a9</dt><dd>O símbolo de grau <code>°</code> e o de direitos autorais <code>©</code>.</dd>
+  <dt>\u{1F382}</dt><dd>Para números com mais de 4 dígitos (como os emojis), ponha o número entre <strong>chaves</strong>. <code>1F382</code> é o bolo de aniversário.</dd>
+</dl>
+
+<p>Você não precisa decorar códigos: hoje dá para digitar <code>é</code> e <code>°</code> direto no texto, e o Node lê sem problemas. O <code>\u</code> é útil para caracteres que não estão no teclado, ou que são invisíveis (como o espaço que não quebra linha, <code>\u00a0</code>).</p>
+
+<hr>
+
+<h2>6. Na crase, as mesmas sequências valem</h2>
+<p>Num <a href="template-strings.html">template string</a> (crase), <code>\n</code>, <code>\t</code> e <code>\\</code> funcionam igual. E surgem duas novas, para os caracteres que são especiais <strong>só</strong> na crase:</p>
+
+<pre class="file" data-file="crase.js">const nome = "Ana";
+console.log(`Olá, ${nome}!\tTudo bem?`);
+console.log(`Use \`crase\` para templates`);
+console.log(`Escreva \${nome} para encaixar o nome`);
+</pre>
+
+<pre class="term">$ node crase.js
+Olá, Ana!	Tudo bem?
+Use `crase` para templates
+Escreva ${nome} para encaixar o nome
+</pre>
+
+<p><code>\`</code> é uma crase que não fecha o template, e <code>\${</code> é um <code>${</code> que não abre lacuna: sai ao pé da letra.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<pre class="file" data-file="formas.js">// Aspas dentro do texto
+console.log("Ela disse \"oi\"");
+console.log('Ela disse "oi"');
+console.log(`Ela disse "oi"`);
+
+// Duas linhas
+console.log("Linha 1\nLinha 2");
+console.log(`Linha 1
+Linha 2`);
+
+// Caminho do Windows
+console.log("C:\\Users\\ana");
+console.log(String.raw`C:\Users\ana`);
+</pre>
+
+<pre class="term">$ node formas.js
+Ela disse "oi"
+Ela disse "oi"
+Ela disse "oi"
+Linha 1
+Linha 2
+Linha 1
+Linha 2
+C:\Users\ana
+C:\Users\ana
+</pre>
+
+<p>A última linha usa o <code>String.raw</code> (do inglês <em>raw</em>, "cru"), colado antes de uma crase: ele desliga as sequências de escape e mantém cada barra como ela está. É prático para caminhos do Windows e para as <a href="regex.html">expressões regulares</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto com aspas duplas dentro</td><td><code>'…"…"…'</code> ou <code>`…"…"…`</code> (mais legível); <code>"…\"…\"…"</code> se o projeto exige aspas duplas</td></tr>
+<tr><td>Texto com aspas duplas <strong>e</strong> simples dentro</td><td>Crase, ou <code>\"</code>/<code>\'</code></td></tr>
+<tr><td>Texto curto com uma ou duas quebras</td><td><code>\n</code></td></tr>
+<tr><td>Bloco de várias linhas (uma nota, um poema)</td><td>Crase com <kbd>Enter</kbd> de verdade</td></tr>
+<tr><td>Alinhar colunas curtas no terminal</td><td><code>\t</code> (para tabelas maiores, <code>console.table</code> ou <code>padEnd</code>)</td></tr>
+<tr><td>Caminho do Windows, texto cheio de barras</td><td><code>\\</code> ou <code>String.raw`…`</code></td></tr>
+<tr><td>Caractere que não está no teclado</td><td><code>\u00e9</code>, <code>\u{1F382}</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O caminho que virou duas linhas: <code>"C:\novos\tabela"</code></strong>
+<pre class="file" data-file="caminho.js">const arquivo = "C:\novos\tabela.txt";
+console.log(arquivo);
+</pre>
+<pre class="term">$ node caminho.js
+C:
+ovos	abela.txt
+</pre>
+<p>Nenhuma mensagem de erro, e o texto saiu quebrado. A Ana copiou um caminho do Windows, mas o <code>\n</code> de <code>\novos</code> virou uma quebra de linha e o <code>\t</code> de <code>\tabela</code> virou uma tabulação. <strong>Como consertar:</strong> dobre as barras (<code>"C:\\novos\\tabela.txt"</code>) ou use <code>String.raw`C:\novos\tabela.txt`</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A barra no fim do texto engoliu a aspa</strong>
+<pre class="file" data-file="fim.js">const pasta = "C:\Users\";
+console.log(pasta);
+</pre>
+<pre class="term">$ node fim.js
+/home/ana/fim.js:1
+const pasta = "C:\Users\";
+              ^^^^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/fim.js:1</dt><dd>O arquivo e a linha do problema.</dd>
+  <dt>^^^^^^^^^^^^</dt><dd>As setinhas vão da aspa que abriu até o fim da linha: para o Node, o texto nunca terminou.</dd>
+  <dt>SyntaxError: Invalid or unexpected token</dt><dd>"Erro de sintaxe: símbolo inválido ou inesperado." É a mesma mensagem das aspas sem fechar (aula <a href="strings.html">Strings</a>), e o motivo é o mesmo: a última <code>\"</code> é uma <strong>aspa escapada</strong>, uma letra, e não o fecho do texto. O <code>;</code> e o resto da linha entraram no texto, que chegou ao fim da linha aberto.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Caminho por dentro do Node; pode ignorar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> uma barra no fim precisa ser dobrada: <code>"C:\\Users\\"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>\u</code> sem o código certo</strong>
+<pre class="file" data-file="unicode-errado.js">const pasta = "C:\usuarios\ana";
+console.log(pasta);
+</pre>
+<pre class="term">$ node unicode-errado.js
+/home/ana/unicode-errado.js:1
+const pasta = "C:\usuarios\ana";
+                 ^^^^^^
+
+SyntaxError: Invalid Unicode escape sequence
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: sequência de escape Unicode inválida". As setinhas apontam o <code>\usuar</code>: depois de <code>\u</code>, o JavaScript esperava 4 dígitos hexadecimais (de <code>0</code> a <code>9</code> e de <code>a</code> a <code>f</code>), mas encontrou <code>suar</code>. Ao contrário do <code>\n</code> escondido do exemplo anterior, este o Node não deixa passar: o programa nem começa. <strong>Como consertar:</strong> dobre as barras: <code>"C:\\usuarios\\ana"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Barra normal no lugar da invertida: <code>/n</code></strong>
+<pre class="file" data-file="barra-normal.js">console.log("Linha 1/nLinha 2");
+console.log("Linha 1\nLinha 2");
+</pre>
+<pre class="term">$ node barra-normal.js
+Linha 1/nLinha 2
+Linha 1
+Linha 2
+</pre>
+<p>A barra normal <code>/</code> é só uma letra comum: <code>/n</code> são dois caracteres, e aparecem na tela. A sequência de escape usa sempre a barra <strong>invertida</strong> <code>\</code> (no teclado ABNT, a tecla à esquerda do <kbd>Z</kbd>). <strong>Como consertar:</strong> <code>\n</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Arquivo salvo em C:\novos\tabela.txt;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa devia mostrar <code>Arquivo salvo em C:\novos\tabela.txt</code>, numa linha só, mas o caminho sai quebrado. Conserte a string (dobrando as barras ou com <code>String.raw</code>).</p>
+<pre class="script" data-file="main.js">const caminho = "C:\novos\tabela.txt";
+console.log("Arquivo salvo em " + caminho);
+</pre>
+<pre class="solucao" data-file="main.js">const caminho = "C:\\novos\\tabela.txt";
+console.log("Arquivo salvo em " + caminho);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sequência</th><th>Vira</th><th>Exemplo → na tela</th></tr>
+<tr><td><code>\"</code></td><td>aspa dupla</td><td><code>"Ela disse \"oi\""</code> → <code>Ela disse "oi"</code></td></tr>
+<tr><td><code>\'</code></td><td>aspa simples (apóstrofo)</td><td><code>'d\'água'</code> → <code>d'água</code></td></tr>
+<tr><td><code>\`</code></td><td>crase (dentro de template)</td><td><code>`a \` b`</code> → <code>a ` b</code></td></tr>
+<tr><td><code>\${</code></td><td><code>${</code> sem lacuna (dentro de template)</td><td><code>`\${x}`</code> → <code>${x}</code></td></tr>
+<tr><td><code>\n</code></td><td>quebra de linha</td><td><code>"a\nb"</code> → duas linhas</td></tr>
+<tr><td><code>\t</code></td><td>tabulação</td><td><code>"Pão\tR$ 1"</code> → <code>Pão     R$ 1</code></td></tr>
+<tr><td><code>\\</code></td><td>barra invertida</td><td><code>"C:\\Users"</code> → <code>C:\Users</code></td></tr>
+<tr><td><code>\u00e9</code></td><td>caractere Unicode (4 dígitos)</td><td><code>é</code></td></tr>
+<tr><td><code>\u{1F382}</code></td><td>caractere Unicode (qualquer tamanho)</td><td><code>🎂</code></td></tr>
+<tr><td><code>String.raw`…`</code></td><td>desliga as sequências</td><td><code>String.raw`C:\novos`</code> → <code>C:\novos</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O caminho saiu quebrado em linhas, ou com espaços estranhos</td><td><code>\n</code>, <code>\t</code> sem querer: dobre as barras</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code> com uma <code>\</code> antes da última aspa</td><td>A barra "escapou" a aspa de fechar</td></tr>
+<tr><td><code>SyntaxError: Invalid Unicode escape sequence</code></td><td><code>\u</code> sem 4 dígitos hexadecimais (ex.: <code>\usuarios</code>)</td></tr>
+<tr><td><code>/n</code> aparece na tela</td><td>Barra normal no lugar da invertida</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quantas linhas?</h3>
+<p>Quantas linhas aparecem na tela com <code>console.log("um\ndois\ntrês")</code>?</p>
+<div class="ex-code">Linhas: <input data-answer="3" aria-label="número de linhas"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o escape</h3>
+<p>Complete para o programa mostrar <code>Ele gritou "gol!"</code>:</p>
+<div class="ex-code">console.log("Ele gritou <input data-answer="\&quot;" aria-label="escape 1">gol!<input data-answer="\&quot;" aria-label="escape 2">");</div>
+</div>
+
+<div class="exercise">
+<h3>3. O tamanho</h3>
+<p>Quanto vale <code>"a\tb".length</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="tamanho"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como escrever o caminho <code>C:\Fotos</code> numa string de aspas duplas?</p>
+<label><input type="radio" name="q4"> <code>"C:\Fotos"</code></label>
+<label><input type="radio" name="q4"> <code>"C:\\Fotos"</code></label>
+<label><input type="radio" name="q4"> <code>"C:/\Fotos"</code></label>
+<label><input type="radio" name="q4"> <code>"C:\nFotos"</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. No modo interativo, você digita <code>"a\nb"</code>. O que o Node mostra?</p>
+<label><input type="radio" name="q5"> <code>a</code> e <code>b</code> em duas linhas</label>
+<label><input type="radio" name="q5"> <code>ab</code></label>
+<label><input type="radio" name="q5"> <code>'a\nb'</code>, o valor escrito como no código</label>
+<label><input type="radio" name="q5"> Um erro</label>
+</div>
+
+<h3>Missão final: o bilhete na geladeira</h3>
+
+<p>O bilhete, como saiu no terminal da Ana:</p>
+<pre class="term">$ node bilhete.js
+Recado da Ana:
+	"Comprar pão d'água"
+	Volto às 18h
+</pre>
+
+<div class="tryjs" data-goal="outre:^Recado da Ana:\n\t&quot;Comprar pão d'água&quot;\n\tVolto às 18h\n?$;;src:\\n">
+<p class="try-task"><strong>Missão:</strong> com <strong>um único</strong> <code>console.log</code> e uma string de aspas duplas, mostre o bilhete acima. A primeira linha sem recuo; as outras duas começam com uma tabulação (<code>\t</code>), e a fala vem entre aspas duplas.</p>
+<pre class="script" data-file="main.js">console.log("Recado da Ana:");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Recado da Ana:\n\t\"Comprar pão d'água\"\n\tVolto às 18h");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Dentro de uma string, a <strong>barra invertida</strong> <code>\</code> avisa que o próximo caractere é especial. A dupla vira <strong>um</strong> caractere só.</li>
+  <li><code>\"</code> e <code>\'</code> põem aspas dentro do texto; <code>\n</code> pula linha; <code>\t</code> é a tabulação; <code>\\</code> é a própria barra.</li>
+  <li><code>\u00e9</code> (4 dígitos) e <code>\u{1F382}</code> (entre chaves) escrevem qualquer caractere Unicode.</li>
+  <li>Na crase, valem as mesmas, mais <code>\`</code> e <code>\${</code>. <code>String.raw`…`</code> desliga todas.</li>
+  <li>O modo interativo mostra o valor com as sequências (<code>'a\nb'</code>); o <code>console.log</code> mostra o texto pronto.</li>
+  <li>Cuidado com caminhos do Windows: <code>"C:\novos"</code> tem um <code>\n</code> escondido; <code>"C:\Users\"</code> não fecha; <code>"C:\usuarios"</code> é um <code>\u</code> inválido.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
