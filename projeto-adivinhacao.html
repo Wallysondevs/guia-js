@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto: Jogo de Adivinhação em JavaScript (Node.js) | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo em JavaScript com Node.js 24: um jogo de adivinhação no terminal. O computador sorteia um número de 1 a 100 com Math.random, a pessoa dá palpites com readline, recebe dicas de maior e menor, palpites inválidos são recusados e há um limite de 7 tentativas. Inclui o modo de teste com process.argv e os erros reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Jogo de Adivinhação</span></h1>
+
+<p class="intro">Hora de juntar tudo num programa de verdade: um jogo. O computador pensa num número de 1 a 100, e você tenta adivinhar. A cada palpite errado, ele dá uma dica: "é maior" ou "é menor". Parece simples, e é justamente por isso que é o primeiro projeto de tanta gente: ele usa números aleatórios, leitura do teclado, laço, decisões e validação, tudo junto. Vamos construir o jogo em <strong>quatro versões</strong>, cada uma um pouco melhor que a anterior, do jeito que os programadores trabalham de verdade.</p>
+
+<div class="note">
+<strong>Você vai usar</strong>
+<ul>
+  <li><a href="math-random.html">Math.random</a> para sortear o número secreto.</li>
+  <li><a href="entrada-teclado.html">readline</a> (<code>await rl.question</code>) para ler os palpites, e <a href="conversao.html">Number</a> para convertê-los.</li>
+  <li><a href="while.html">while</a>, <a href="break-continue.html">break e continue</a> para repetir até acertar.</li>
+  <li><a href="if-else.html">if/else</a> e o <a href="ternario.html">ternário</a> para as dicas.</li>
+  <li><a href="process-argv.html">process.argv</a> para um "modo de teste" com o número escolhido por você.</li>
+</ul>
+</div>
+
+<p>Todas as versões rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), num terminal de verdade, com a Ana digitando os palpites, numa pasta chamada <code>jogo</code>. Nas caixas "Experimente", quem digita é você, no terminal da própria caixa.</p>
+
+<hr>
+
+<h2>O plano</h2>
+<p>Antes de escrever código, a Ana escreveu as regras do jogo em português, como uma receita:</p>
+<ol class="passo">
+  <li>O computador sorteia um número inteiro de 1 a 100 e guarda segredo.</li>
+  <li>Pergunta: "Seu palpite:".</li>
+  <li>Se o palpite for o número, mostra "Acertou!" e quantas tentativas foram.</li>
+  <li>Se não for, diz se o número secreto é maior ou menor, e volta ao passo 2.</li>
+  <li>Palpites que não são números de 1 a 100 não valem (e não contam).</li>
+  <li>Depois de 7 tentativas sem acertar, o jogo acaba e revela o número.</li>
+</ol>
+<p>Ninguém escreve tudo isso de uma vez. O caminho é fazer a menor versão que roda, testar, e acrescentar uma regra por vez:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>O que acrescenta</th><th>Regras do plano</th></tr>
+<tr><td>1</td><td>Sorteia e aceita um palpite só</td><td>1, 2, 3</td></tr>
+<tr><td>2</td><td>Repete até acertar, com dicas e contagem; modo de teste</td><td>4</td></tr>
+<tr><td>3</td><td>Recusa palpites inválidos</td><td>5</td></tr>
+<tr><td>4</td><td>Limite de 7 tentativas</td><td>6</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Versão 1: sortear e um palpite</h2>
+
+<pre class="file" data-file="adivinha1.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+const resposta = await rl.question("Seu palpite: ");
+const palpite = Number(resposta);
+
+if (palpite === segredo) {
+  console.log("Acertou de primeira!");
+} else {
+  console.log(`Errou! O número era ${segredo}.`);
+}
+
+rl.close();
+</pre>
+
+<dl class="anatomy">
+  <dt>import { createInterface } … e const rl = …</dt><dd>As duas linhas de sempre para ler o teclado (veja <a href="entrada-teclado.html">Lendo o Teclado no Node</a>).</dd>
+  <dt>Math.floor(Math.random() * 100) + 1</dt><dd>A receita do sorteio (veja <a href="math-random.html">Números Aleatórios</a>): <code>Math.random()</code> dá um número de 0 a quase 1; vezes 100 dá de 0 a quase 100; o <code>Math.floor</code> corta as casas decimais (0 a 99); e o <code>+ 1</code> empurra para 1 a 100.</dd>
+  <dt>await rl.question("Seu palpite: ")</dt><dd>Mostra a pergunta e espera a pessoa digitar e apertar <kbd>Enter</kbd>. A resposta chega como <strong>texto</strong>.</dd>
+  <dt>Number(resposta)</dt><dd>Converte o texto <code>"50"</code> no número <code>50</code>, para poder comparar com o segredo.</dd>
+  <dt>palpite === segredo</dt><dd>Acertou? Com <code>===</code>, os dois têm de ser número e iguais.</dd>
+  <dt>rl.close()</dt><dd>Fecha o leitor, para o programa terminar.</dd>
+</dl>
+
+<pre class="term">$ node adivinha1.js
+Pensei num número de 1 a 100.
+Seu palpite: 50
+Errou! O número era 62.
+</pre>
+
+<p>Funciona, mas não é bem um jogo: uma chance só, e acertar de primeira tem 1 chance em 100. Rodando de novo, o número secreto é outro (o 62 foi o desta rodada).</p>
+
+<div class="tryjs" data-digitar="50">
+<p class="try-task"><strong>Experimente:</strong> rode e digite um palpite no terminal da caixa. Rode várias vezes: o número secreto muda a cada vez. Se quiser trapacear para conferir que o "Acertou" funciona, troque o sorteio por um número fixo (<code>const segredo = 7;</code>) e chute 7.</p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+const resposta = await rl.question("Seu palpite: ");
+const palpite = Number(resposta);
+
+if (palpite === segredo) {
+  console.log("Acertou de primeira!");
+} else {
+  console.log(`Errou! O número era ${segredo}.`);
+}
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 2: repetir até acertar, com dicas</h2>
+<p>Agora o jogo de verdade: um <code>while</code> que repete enquanto o palpite for diferente do segredo, dizendo a cada volta se o número é maior ou menor, e contando as tentativas. E um truque que vai ajudar muito a testar: o <strong>modo de teste</strong>. Se você escrever um número depois do nome do programa (<code>node adivinha2.js 42</code>), ele usa esse número em vez de sortear. Assim dá para conferir o jogo sabendo a resposta.</p>
+
+<pre class="file" data-file="adivinha2.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+// modo de teste: "node adivinha2.js 42" usa o 42 em vez de sortear
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+let tentativas = 0;
+let palpite = 0;
+
+while (palpite !== segredo) {
+  palpite = Number(await rl.question("Seu palpite: "));
+  tentativas++;
+
+  if (palpite &lt; segredo) {
+    console.log("É maior!");
+  } else if (palpite &gt; segredo) {
+    console.log("É menor!");
+  }
+}
+
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} tentativas.`);
+rl.close();
+</pre>
+
+<dl class="anatomy">
+  <dt>process.argv[2] ? Number(process.argv[2]) : …</dt><dd>O <a href="ternario.html">ternário</a> do modo de teste: se veio um argumento na linha de comando (o <code>process.argv[2]</code>, veja <a href="process-argv.html">process.argv</a>), o segredo é ele, convertido para número; se não veio (<code>undefined</code>, que é <a href="truthy-falsy.html">falsy</a>), sorteia.</dd>
+  <dt>let tentativas = 0; e let palpite = 0;</dt><dd>Duas variáveis que mudam, criadas <strong>antes</strong> do laço. O palpite começa em 0, um valor que nunca é o segredo, para o laço rodar pelo menos uma vez.</dd>
+  <dt>while (palpite !== segredo)</dt><dd>"Enquanto o palpite for diferente do segredo, repita."</dd>
+  <dt>palpite = Number(await rl.question(…))</dt><dd>Pergunta e converte numa linha só.</dd>
+  <dt>tentativas++</dt><dd>Mais uma tentativa (veja <a href="incremento.html">Incremento</a>).</dd>
+  <dt>if (palpite &lt; segredo) … else if (palpite &gt; segredo)</dt><dd>As dicas. Se não for nem menor nem maior, é igual: nenhuma dica, e o <code>while</code> termina na próxima conferência.</dd>
+  <dt>console.log(`Acertou! …`)</dt><dd>Depois do laço: só chega aqui quem acertou.</dd>
+</dl>
+
+<p>A Ana jogou no modo de teste, com o 42:</p>
+
+<pre class="term">$ node adivinha2.js 42
+Pensei num número de 1 a 100.
+Seu palpite: 50
+É menor!
+Seu palpite: 25
+É maior!
+Seu palpite: 37
+É maior!
+Seu palpite: 43
+É menor!
+Seu palpite: 40
+É maior!
+Seu palpite: 42
+Acertou! Era 42. Você precisou de 6 tentativas.
+</pre>
+
+<p>Sem o 42 na linha de comando (<code>node adivinha2.js</code>), o número é sorteado, como no jogo de verdade.</p>
+
+<div class="tryjs" data-args="42" data-digitar="50\n25\n42" data-goal="out:Acertou! Era 42. Você precisou de 3 tentativas.;;src:\bwhile\b">
+<p class="try-task"><strong>Missão:</strong> esta é a versão 1, já com o modo de teste (a caixa roda <code>node main.js 42</code>). Transforme-a na versão 2: um <code>while</code> que pergunta até acertar, com as dicas "É maior!"/"É menor!" e a contagem de tentativas. Para conferir, digite <code>50</code>, <code>25</code> e <code>42</code>: o jogo tem de terminar com <code>Acertou! Era 42. Você precisou de 3 tentativas.</code></p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+// modo de teste: "node main.js 42" usa o 42 em vez de sortear
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+const resposta = await rl.question("Seu palpite: ");
+const palpite = Number(resposta);
+
+if (palpite === segredo) {
+  console.log("Acertou de primeira!");
+} else {
+  console.log(`Errou! O número era ${segredo}.`);
+}
+
+rl.close();
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+// modo de teste: "node main.js 42" usa o 42 em vez de sortear
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+let tentativas = 0;
+let palpite = 0;
+
+while (palpite !== segredo) {
+  palpite = Number(await rl.question("Seu palpite: "));
+  tentativas++;
+
+  if (palpite &lt; segredo) {
+    console.log("É maior!");
+  } else if (palpite &gt; segredo) {
+    console.log("É menor!");
+  }
+}
+
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} tentativas.`);
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 3: recusar palpites inválidos</h2>
+<p>O que acontece na versão 2 se a pessoa digitar <code>cinquenta</code>? O <code>Number("cinquenta")</code> dá <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN</a>): nenhuma dica aparece (<code>NaN</code> não é maior nem menor que nada) e a tentativa é contada assim mesmo. A versão 3 confere o palpite antes de usar:</p>
+
+<pre class="file" data-file="adivinha3.js">import { createInterface } from "node:readline/promises";
+
+const MIN = 1;
+const MAX = 100;
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * MAX) + MIN;
+console.log(`Pensei num número de ${MIN} a ${MAX}.`);
+
+let tentativas = 0;
+
+while (true) {
+  const resposta = await rl.question("Seu palpite: ");
+  const palpite = Number(resposta);
+
+  if (!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX) {
+    console.log(`"${resposta}" não vale: digite um número inteiro de ${MIN} a ${MAX}.`);
+    continue;
+  }
+
+  tentativas++;
+  if (palpite === segredo) {
+    break;
+  }
+  console.log(palpite &lt; segredo ? "É maior!" : "É menor!");
+}
+
+const palavra = tentativas === 1 ? "tentativa" : "tentativas";
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} ${palavra}.`);
+rl.close();
+</pre>
+
+<dl class="anatomy">
+  <dt>const MIN = 1; const MAX = 100;</dt><dd>Os limites viraram <a href="estilo.html">constantes com nome</a>: para mudar o jogo para 1 a 1000, basta trocar um número.</dd>
+  <dt>while (true)</dt><dd>Um laço "infinito" de propósito: as saídas ficam no meio dele, com <code>break</code> e <code>continue</code> (veja <a href="break-continue.html">break e continue</a>).</dd>
+  <dt>!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX</dt><dd>"Não é inteiro, <strong>ou</strong> é menor que 1, <strong>ou</strong> é maior que 100". O <code>Number.isInteger</code> dá <code>false</code> para <code>NaN</code> e para <code>7.5</code>, então pega texto e decimais de uma vez.</dd>
+  <dt>continue</dt><dd>"Pule para a próxima volta": volta a perguntar <strong>sem</strong> contar a tentativa.</dd>
+  <dt>if (palpite === segredo) { break; }</dt><dd>Acertou: sai do laço.</dd>
+  <dt>palpite &lt; segredo ? "É maior!" : "É menor!"</dt><dd>As duas dicas num ternário.</dd>
+  <dt>tentativas === 1 ? "tentativa" : "tentativas"</dt><dd>Um capricho: "1 tentativa", no singular.</dd>
+</dl>
+
+<pre class="term">$ node adivinha3.js 42
+Pensei num número de 1 a 100.
+Seu palpite: cinquenta
+"cinquenta" não vale: digite um número inteiro de 1 a 100.
+Seu palpite: 500
+"500" não vale: digite um número inteiro de 1 a 100.
+Seu palpite: 7.5
+"7.5" não vale: digite um número inteiro de 1 a 100.
+Seu palpite:
+"" não vale: digite um número inteiro de 1 a 100.
+Seu palpite: 50
+É menor!
+Seu palpite: 42
+Acertou! Era 42. Você precisou de 2 tentativas.
+</pre>
+
+<p>Texto, número fora da faixa, decimal e até um <kbd>Enter</kbd> sem nada (a resposta vazia <code>""</code>, que o <code>Number</code> transforma em 0) foram recusados, e só os dois palpites válidos contaram.</p>
+
+<div class="tryjs" data-args="42" data-digitar="abc\n150\n42" data-goal="out:&quot;abc&quot; não vale;;out:Você precisou de 1 tentativa.">
+<p class="try-task"><strong>Missão:</strong> esta é a versão 2. Acrescente a validação da versão 3: se o palpite não for um inteiro de 1 a 100, mostre <code>"abc" não vale: digite um número inteiro de 1 a 100.</code> (com o que foi digitado entre aspas) e pergunte de novo <strong>sem contar</strong> a tentativa. E use "tentativa" no singular quando for 1. Para conferir, digite <code>abc</code>, <code>150</code> e <code>42</code>: tem de terminar com <code>Você precisou de 1 tentativa.</code></p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+// modo de teste: "node main.js 42" usa o 42 em vez de sortear
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * 100) + 1;
+console.log("Pensei num número de 1 a 100.");
+
+let tentativas = 0;
+let palpite = 0;
+
+while (palpite !== segredo) {
+  palpite = Number(await rl.question("Seu palpite: "));
+  tentativas++;
+
+  if (palpite &lt; segredo) {
+    console.log("É maior!");
+  } else if (palpite &gt; segredo) {
+    console.log("É menor!");
+  }
+}
+
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} tentativas.`);
+rl.close();
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const MIN = 1;
+const MAX = 100;
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * MAX) + MIN;
+console.log(`Pensei num número de ${MIN} a ${MAX}.`);
+
+let tentativas = 0;
+
+while (true) {
+  const resposta = await rl.question("Seu palpite: ");
+  const palpite = Number(resposta);
+
+  if (!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX) {
+    console.log(`"${resposta}" não vale: digite um número inteiro de ${MIN} a ${MAX}.`);
+    continue;
+  }
+
+  tentativas++;
+  if (palpite === segredo) {
+    break;
+  }
+  console.log(palpite &lt; segredo ? "É maior!" : "É menor!");
+}
+
+const palavra = tentativas === 1 ? "tentativa" : "tentativas";
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} ${palavra}.`);
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 4: no máximo 7 tentativas</h2>
+<p>Sem limite, qualquer um acaba acertando chutando 1, 2, 3… A última regra do plano: 7 tentativas. Por que 7? Porque, com a estratégia certa (veja a dica abaixo), 7 palpites <strong>sempre</strong> bastam para achar um número de 1 a 100. Quem perde, perdeu por estratégia, não por azar.</p>
+
+<pre class="file" data-file="adivinha4.js">import { createInterface } from "node:readline/promises";
+
+const MIN = 1;
+const MAX = 100;
+const MAX_TENTATIVAS = 7;
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * MAX) + MIN;
+console.log(`Pensei num número de ${MIN} a ${MAX}. Você tem ${MAX_TENTATIVAS} tentativas.`);
+
+let tentativas = 0;
+let acertou = false;
+
+while (tentativas &lt; MAX_TENTATIVAS) {
+  const resposta = await rl.question("Seu palpite: ");
+  const palpite = Number(resposta);
+
+  if (!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX) {
+    console.log(`"${resposta}" não vale: digite um número inteiro de ${MIN} a ${MAX}.`);
+    continue;
+  }
+
+  tentativas++;
+  if (palpite === segredo) {
+    acertou = true;
+    break;
+  }
+  const dica = palpite &lt; segredo ? "É maior!" : "É menor!";
+  console.log(`${dica} Restam ${MAX_TENTATIVAS - tentativas}.`);
+}
+
+if (acertou) {
+  const palavra = tentativas === 1 ? "tentativa" : "tentativas";
+  console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} ${palavra}.`);
+} else {
+  console.log(`Suas tentativas acabaram! O número era ${segredo}.`);
+}
+rl.close();
+</pre>
+
+<dl class="anatomy">
+  <dt>const MAX_TENTATIVAS = 7;</dt><dd>O limite, com nome.</dd>
+  <dt>let acertou = false;</dt><dd>Uma "bandeira" (em inglês, <em>flag</em>): começa <code>false</code> e vira <code>true</code> se a pessoa acertar. Depois do laço, é ela que diz qual mensagem mostrar.</dd>
+  <dt>while (tentativas &lt; MAX_TENTATIVAS)</dt><dd>Agora o laço tem duas saídas: o <code>break</code> (acertou) ou a condição ficar falsa (acabaram as tentativas).</dd>
+  <dt>Restam ${MAX_TENTATIVAS - tentativas}</dt><dd>Quantas sobram, junto com a dica.</dd>
+  <dt>if (acertou) … else …</dt><dd>A mensagem final certa para cada uma das duas saídas.</dd>
+</dl>
+
+<p>Primeiro, uma partida perdida (a Ana não usou a estratégia):</p>
+
+<pre class="term">$ node adivinha4.js 42
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Seu palpite: 50
+É menor! Restam 6.
+Seu palpite: 10
+É maior! Restam 5.
+Seu palpite: 20
+É maior! Restam 4.
+Seu palpite: 30
+É maior! Restam 3.
+Seu palpite: trinta e cinco
+"trinta e cinco" não vale: digite um número inteiro de 1 a 100.
+Seu palpite: 35
+É maior! Restam 2.
+Seu palpite: 38
+É maior! Restam 1.
+Seu palpite: 41
+É maior! Restam 0.
+Suas tentativas acabaram! O número era 42.
+</pre>
+
+<p>Repare que o "trinta e cinco" não gastou tentativa. E uma partida ganha, com o 73 e a estratégia de sempre chutar o meio:</p>
+
+<pre class="term">$ node adivinha4.js 73
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Seu palpite: 50
+É maior! Restam 6.
+Seu palpite: 75
+É menor! Restam 5.
+Seu palpite: 62
+É maior! Restam 4.
+Seu palpite: 68
+É maior! Restam 3.
+Seu palpite: 71
+É maior! Restam 2.
+Seu palpite: 73
+Acertou! Era 73. Você precisou de 6 tentativas.
+</pre>
+
+<div class="tip">
+<strong>A estratégia: chute sempre o meio</strong>
+<p>Comece com 50. Se for "maior", o número está entre 51 e 100: chute o meio, 75. Cada palpite corta pela metade os números que sobram: 100 → 50 → 25 → 13 → 7 → 4 → 2 → 1. Em 7 palpites sobra um número só, o certo. Os programadores chamam isso de <strong>busca binária</strong>, e ela é usada de verdade para procurar em listas ordenadas enormes: num milhão de itens, bastam 20 passos.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>Number</code>: o jogo nunca termina</strong>
+<p>A Ana tirou o <code>Number(…)</code> da versão 2 (<code>palpite = await rl.question("Seu palpite: ");</code>) e jogou com o 42:</p>
+<pre class="term">$ node semnumber.js 42
+Pensei num número de 1 a 100.
+Seu palpite: 42
+Seu palpite: 42
+Seu palpite: node:internal/readline/interface:1347
+            this[kQuestionReject]?.(new AbortError('Aborted with Ctrl+C'));
+                                    ^
+
+AbortError: Aborted with Ctrl+C
+    at [_ttyWrite] (node:internal/readline/interface:1347:37)
+    at ReadStream.onkeypress (node:internal/readline/interface:289:20)  « linhas internas do Node cortadas
+    …
+  code: 'ABORT_ERR'
+}
+
+Node.js v24.22.0
+</pre>
+<p>Ela digitou 42, o número certo, duas vezes, e o jogo continuou perguntando, sem dica nenhuma. O motivo: o <code>rl.question</code> devolve o <strong>texto</strong> <code>"42"</code>, e <code>"42" !== 42</code> é <code>true</code> (com <code>===</code>/<code>!==</code>, texto nunca é igual a número). O laço não termina nunca. A Ana apertou <kbd>Ctrl</kbd>+<kbd>C</kbd> no terceiro "Seu palpite:", e o Node encerrou com o <code>AbortError</code> ("abortado com Ctrl+C") que você já viu em <a href="entrada-teclado.html">Lendo o Teclado</a>. <strong>Como consertar:</strong> <code>Number(await rl.question(…))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O sorteio nunca acerta (ou o 100 nunca sai)</strong>
+<p>Sem o <code>Math.floor</code>, o segredo tem casas decimais (como 41.83…), e nenhum palpite inteiro acerta. Sem o <code>+ 1</code>, o sorteio vai de 0 a 99, e o 100 nunca sai. Com <code>Math.round</code> no lugar do <code>Math.floor</code>, o 1 e o 100 saem com metade da chance dos outros (veja <a href="math-random.html">Números Aleatórios</a>). <strong>Como conferir:</strong> rode no modo de teste para testar o jogo, e confira o sorteio separado, com um <code>console.log(segredo)</code> provisório.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa não termina depois do "Acertou!"</strong>
+<p>Faltou o <code>rl.close()</code> no fim: o leitor continua esperando o teclado, e o <code>$</code> não volta (veja <a href="entrada-teclado.html">Lendo o Teclado no Node</a>). <strong>Como consertar:</strong> <code>rl.close();</code> como última linha.</p>
+</div>
+
+<div class="cenario">
+<strong>A tentativa inválida contou</strong>
+<p>O <code>tentativas++</code> ficou <strong>antes</strong> da validação. A ordem importa: primeiro confira, e só depois que o palpite for válido conte a tentativa (na versão 3, o <code>continue</code> vem antes do <code>tentativas++</code>).</p>
+</div>
+
+<hr>
+
+<h2>Ideias para continuar</h2>
+<ul>
+  <li><strong>Níveis de dificuldade:</strong> pergunte no começo "fácil (1 a 10), médio (1 a 100) ou difícil (1 a 1000)?" e ajuste o <code>MAX</code> e o <code>MAX_TENTATIVAS</code>.</li>
+  <li><strong>Jogar de novo:</strong> no fim, pergunte "Jogar de novo? (s/n)" e envolva o jogo inteiro num laço.</li>
+  <li><strong>Recorde:</strong> guarde o menor número de tentativas num arquivo com <a href="fs-escrever.html">fs</a> e avise quando alguém bater o recorde.</li>
+  <li><strong>Versão para a página:</strong> troque o <code>readline</code> pelo <a href="prompt.html">prompt()</a>, ou por um campo de texto e um botão (veja <a href="formularios.html">Formulários</a>).</li>
+  <li><strong>Testes:</strong> separe a parte das dicas numa função (<code>dica(palpite, segredo)</code>) e escreva testes para ela (veja <a href="testes.html">Testes</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça do jogo</th><th>Código</th></tr>
+<tr><td>Sortear de 1 a 100</td><td><code>Math.floor(Math.random() * 100) + 1</code></td></tr>
+<tr><td>Modo de teste</td><td><code>process.argv[2] ? Number(process.argv[2]) : sorteio</code></td></tr>
+<tr><td>Ler um palpite</td><td><code>Number(await rl.question("Seu palpite: "))</code></td></tr>
+<tr><td>Palpite válido?</td><td><code>Number.isInteger(p) &amp;&amp; p &gt;= 1 &amp;&amp; p &lt;= 100</code></td></tr>
+<tr><td>Dica</td><td><code>p &lt; segredo ? "É maior!" : "É menor!"</code></td></tr>
+<tr><td>Repetir até acertar</td><td><code>while (true) { … break; … }</code> ou <code>while (palpite !== segredo)</code></td></tr>
+<tr><td>Limite de tentativas</td><td><code>while (tentativas &lt; MAX_TENTATIVAS)</code> + bandeira <code>acertou</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O sorteio de um dado</h3>
+<p>Complete para sortear de 1 a 6:</p>
+<div class="ex-code">Math.<input data-answer="floor" aria-label="método que corta as casas decimais">(Math.random() * <input data-answer="6" aria-label="quantidade de lados">) + 1</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos palpites?</h3>
+<p>Com a estratégia de sempre chutar o meio, quantos palpites bastam, no máximo, para achar um número de 1 a 1000? (Dica: 2 multiplicado por ele mesmo quantas vezes passa de 1000?)</p>
+<div class="ex-code"><input data-answer="10" aria-label="número de palpites"> palpites</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Por que o jogo sem o <code>Number</code> nunca termina, mesmo com o palpite certo?</p>
+<label><input type="radio" name="q3"> Porque o <code>Math.random</code> muda o segredo a cada palpite</label>
+<label><input type="radio" name="q3"> Porque o <code>rl.question</code> devolve texto, e <code>"42" !== 42</code></label>
+<label><input type="radio" name="q3"> Porque falta o <code>rl.close()</code></label>
+<label><input type="radio" name="q3"> Porque o <code>while</code> não aceita textos</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Na versão 3, o que o <code>continue</code> faz quando o palpite é inválido?</p>
+<label><input type="radio" name="q4"> Termina o jogo</label>
+<label><input type="radio" name="q4"> Conta a tentativa e dá uma dica</label>
+<label><input type="radio" name="q4"> Sorteia um número novo</label>
+<label><input type="radio" name="q4"> Volta para o começo do laço, sem contar a tentativa</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para que serve o "modo de teste" (<code>node adivinha2.js 42</code>)?</p>
+<label><input type="radio" name="q5"> Para conferir o jogo sabendo a resposta, já que o sorteio muda a cada vez</label>
+<label><input type="radio" name="q5"> Para o jogo rodar mais rápido</label>
+<label><input type="radio" name="q5"> Para dar 42 tentativas</label>
+<label><input type="radio" name="q5"> Para trapacear no jogo de verdade</label>
+</div>
+
+<h3>Missão final: o limite de tentativas</h3>
+
+<div class="tryjs" data-args="42" data-digitar="50\n10\n20\n30\n35\n38\n41" data-goal="out:Restam 0.;;out:Suas tentativas acabaram! O número era 42.">
+<p class="try-task"><strong>Missão:</strong> esta é a versão 3. Transforme-a na versão 4: no máximo 7 tentativas válidas (<code>const MAX_TENTATIVAS = 7;</code>), a dica com <code>Restam N.</code> e, se acabarem as tentativas, <code>Suas tentativas acabaram! O número era 42.</code> (o segredo no lugar do 42). Para conferir, digite sete palpites errados: <code>50</code>, <code>10</code>, <code>20</code>, <code>30</code>, <code>35</code>, <code>38</code>, <code>41</code>.</p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const MIN = 1;
+const MAX = 100;
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * MAX) + MIN;
+console.log(`Pensei num número de ${MIN} a ${MAX}.`);
+
+let tentativas = 0;
+
+while (true) {
+  const resposta = await rl.question("Seu palpite: ");
+  const palpite = Number(resposta);
+
+  if (!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX) {
+    console.log(`"${resposta}" não vale: digite um número inteiro de ${MIN} a ${MAX}.`);
+    continue;
+  }
+
+  tentativas++;
+  if (palpite === segredo) {
+    break;
+  }
+  console.log(palpite &lt; segredo ? "É maior!" : "É menor!");
+}
+
+const palavra = tentativas === 1 ? "tentativa" : "tentativas";
+console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} ${palavra}.`);
+rl.close();
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const MIN = 1;
+const MAX = 100;
+const MAX_TENTATIVAS = 7;
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const segredo = process.argv[2]
+  ? Number(process.argv[2])
+  : Math.floor(Math.random() * MAX) + MIN;
+console.log(`Pensei num número de ${MIN} a ${MAX}. Você tem ${MAX_TENTATIVAS} tentativas.`);
+
+let tentativas = 0;
+let acertou = false;
+
+while (tentativas &lt; MAX_TENTATIVAS) {
+  const resposta = await rl.question("Seu palpite: ");
+  const palpite = Number(resposta);
+
+  if (!Number.isInteger(palpite) || palpite &lt; MIN || palpite &gt; MAX) {
+    console.log(`"${resposta}" não vale: digite um número inteiro de ${MIN} a ${MAX}.`);
+    continue;
+  }
+
+  tentativas++;
+  if (palpite === segredo) {
+    acertou = true;
+    break;
+  }
+  const dica = palpite &lt; segredo ? "É maior!" : "É menor!";
+  console.log(`${dica} Restam ${MAX_TENTATIVAS - tentativas}.`);
+}
+
+if (acertou) {
+  const palavra = tentativas === 1 ? "tentativa" : "tentativas";
+  console.log(`Acertou! Era ${segredo}. Você precisou de ${tentativas} ${palavra}.`);
+} else {
+  console.log(`Suas tentativas acabaram! O número era ${segredo}.`);
+}
+rl.close();
+</pre>
+</div>
+
+<p>No lab, a solução mostrou as dicas até <code>É maior! Restam 0.</code> e, por fim, <code>Suas tentativas acabaram! O número era 42.</code>. Depois, rode sem o modo de teste e jogue de verdade, usando a estratégia do meio.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um projeto se constrói em <strong>versões</strong>: a menor que roda, e depois uma regra nova por vez, testando a cada passo.</li>
+  <li>Sorteio de 1 a 100: <code>Math.floor(Math.random() * 100) + 1</code>. Palpite: <code>Number(await rl.question(…))</code>, porque o teclado entrega texto.</li>
+  <li>O laço do jogo: <code>while</code> até acertar, com dicas por <code>if</code>/ternário; <code>continue</code> para recusar palpite inválido sem contar, <code>break</code> para sair quando acerta.</li>
+  <li>Validação com <code>Number.isInteger</code> e os limites; uma bandeira (<code>acertou</code>) para saber por qual saída o laço terminou.</li>
+  <li>O <strong>modo de teste</strong> com <code>process.argv</code> fixa o número secreto, para testar um programa que depende do acaso.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
