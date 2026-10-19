@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript path — caminhos de arquivo no Node.js (join, basename, __dirname) | Guia JavaScript</title>
+<meta name="description" content="O módulo path do Node.js para quem nunca programou: caminho absoluto e relativo, path.join, path.resolve, basename, extname, dirname, parse, normalize, relative, __dirname e __filename, import.meta.dirname, process.cwd(), barras do Linux e do Windows (path.win32) e os erros reais (dadoscompras.txt, ERR_INVALID_ARG_TYPE, __dirname is not defined in ES module scope).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">path</span>: Caminhos de Arquivo</h1>
+
+<p class="intro">Nas aulas de <a href="fs-ler.html">leitura</a> e <a href="fs-escrever.html">escrita</a> de arquivos, um programa que funcionava numa pasta deu <code>ENOENT</code> quando foi rodado de outra. O problema não era o arquivo: era o <strong>caminho</strong> até ele. Um caminho é o "endereço" de um arquivo, como <code>/home/ana/caminhos/dados/compras.txt</code>. O módulo <code>node:path</code> monta, desmonta e conserta esses endereços sem que você precise lidar com barras à mão. Ele vem com o Node e é <strong>só do Node</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um caminho <strong>absoluto</strong> e um <strong>relativo</strong>, e de onde o relativo parte.</li>
+  <li>Como desmontar um caminho: <code>basename</code>, <code>extname</code>, <code>dirname</code> e <code>parse</code>.</li>
+  <li>Como montar um caminho com <code>path.join</code> e transformá-lo em absoluto com <code>path.resolve</code>.</li>
+  <li>A diferença entre <code>process.cwd()</code> (a pasta do terminal) e <code>__dirname</code> (a pasta do programa).</li>
+  <li>Como achar um arquivo "ao lado do programa", de qualquer pasta, com <code>path.join(__dirname, …)</code> ou <code>import.meta.dirname</code>.</li>
+  <li>As barras do Linux (<code>/</code>) e do Windows (<code>\</code>), e os erros reais.</li>
+</ul>
+</div>
+
+<p>Tudo rodou no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), num projeto em <code>/home/ana/caminhos</code>, que tem uma subpasta <code>dados</code> com o arquivo <code>compras.txt</code>.</p>
+
+<hr>
+
+<h2>A ideia: endereço completo × "na rua de trás"</h2>
+<p>Há dois jeitos de explicar onde fica a padaria:</p>
+<ul>
+  <li>O endereço <strong>completo</strong>: "Rua das Flores, 120, Centro, São Paulo". Serve para qualquer pessoa, de qualquer lugar.</li>
+  <li>Um endereço <strong>a partir de onde você está</strong>: "na rua de trás, segunda porta". Só funciona se a pessoa estiver no lugar certo; dito em outro bairro, leva a outra porta.</li>
+</ul>
+<p>Os caminhos de arquivo são iguais:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Exemplo</th><th>Parte de…</th></tr>
+<tr><td><strong>Absoluto</strong></td><td><code>/home/ana/caminhos/dados/compras.txt</code></td><td>A raiz do disco, a <code>/</code> do começo. Vale de qualquer lugar.</td></tr>
+<tr><td><strong>Relativo</strong></td><td><code>dados/compras.txt</code></td><td>A <strong>pasta atual</strong> do terminal. Muda conforme onde você está.</td></tr>
+</table>
+</div>
+<p>Dentro de um caminho, cada pasta é separada por uma barra (<code>/</code> no Linux e no macOS). Dois nomes especiais: <code>.</code> é "esta pasta" e <code>..</code> é "a pasta de cima".</p>
+
+<hr>
+
+<h2>1. Desmontando um caminho</h2>
+
+<pre class="file" data-file="partes.js">const path = require("node:path");
+
+const arquivo = "/home/ana/caminhos/dados/compras.txt";
+console.log(path.basename(arquivo));
+console.log(path.basename(arquivo, ".txt"));
+console.log(path.extname(arquivo));
+console.log(path.dirname(arquivo));
+console.log(path.parse(arquivo));
+</pre>
+
+<pre class="term">$ node partes.js
+compras.txt
+compras
+.txt
+/home/ana/caminhos/dados
+{
+  root: '/',
+  dir: '/home/ana/caminhos/dados',
+  base: 'compras.txt',
+  ext: '.txt',
+  name: 'compras'
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>const path = require("node:path");</dt><dd>Carrega o módulo (com <code>import</code>: <code>import path from "node:path";</code>).</dd>
+  <dt>path.basename(arquivo)</dt><dd>"Nome base": a última parte, o nome do arquivo com a extensão.</dd>
+  <dt>path.basename(arquivo, ".txt")</dt><dd>O mesmo, sem a extensão que você passou.</dd>
+  <dt>path.extname(arquivo)</dt><dd>"Nome da extensão": do último ponto em diante, <strong>com</strong> o ponto.</dd>
+  <dt>path.dirname(arquivo)</dt><dd>"Nome da pasta": tudo menos a última parte.</dd>
+  <dt>path.parse(arquivo)</dt><dd>Tudo de uma vez, num objeto: a raiz (<code>root</code>), a pasta (<code>dir</code>), o nome completo (<code>base</code>), a extensão (<code>ext</code>) e o nome sem extensão (<code>name</code>).</dd>
+</dl>
+
+<p>Essas funções só <strong>olham o texto</strong>: não conferem se o arquivo existe. <code>path.extname("qualquer/coisa.xyz")</code> dá <code>".xyz"</code> mesmo que não haja nada no disco.</p>
+
+<h3>A extensão em casos diferentes</h3>
+
+<pre class="file" data-file="ext.js">const path = require("node:path");
+
+const fotos = ["bolo.JPG", "pao.png", "recibo.pdf", "LEIA-ME", "foto.antiga.jpeg"];
+for (const f of fotos) {
+  console.log(f, "→", JSON.stringify(path.extname(f)));
+}
+</pre>
+
+<pre class="term">$ node ext.js
+bolo.JPG → ".JPG"
+pao.png → ".png"
+recibo.pdf → ".pdf"
+LEIA-ME → ""
+foto.antiga.jpeg → ".jpeg"
+</pre>
+
+<p>(O <code>JSON.stringify</code> só serve para mostrar as aspas, e assim enxergar a string vazia.) Três detalhes: a extensão mantém maiúsculas (<code>.JPG</code>); sem ponto, ela é <code>""</code>; com vários pontos, vale só o último.</p>
+
+<div class="tryjs" data-goal="out:/home/ana/fotos/bolo-pequeno.jpg">
+<p class="try-task"><strong>Missão:</strong> a Ana vai fazer uma versão pequena de cada foto, na mesma pasta, com <code>-pequeno</code> antes da extensão. Use o <code>path.parse</code> para separar a pasta, o nome e a extensão, e o <code>path.join</code> (seção 2) para montar <code>/home/ana/fotos/bolo-pequeno.jpg</code>.</p>
+<pre class="script" data-file="main.js">const path = require("node:path");
+
+const foto = "/home/ana/fotos/bolo.jpg";
+const partes = path.parse(foto);
+console.log(partes);
+</pre>
+<pre class="solucao" data-file="main.js">const path = require("node:path");
+
+const foto = "/home/ana/fotos/bolo.jpg";
+const { dir, name, ext } = path.parse(foto);
+console.log(path.join(dir, `${name}-pequeno${ext}`));
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Montando um caminho: <code>path.join</code></h2>
+<p>Juntar pedaços de caminho com <code>+</code> é pedir para errar uma barra. O <code>path.join</code> ("juntar") põe as barras certas, tira as repetidas e resolve os <code>..</code>:</p>
+
+<pre class="file" data-file="juntar.js">const path = require("node:path");
+
+console.log(path.join("dados", "compras.txt"));
+console.log(path.join("dados/", "/compras.txt"));
+console.log(path.join("dados", "..", "fotos", "bolo.jpg"));
+console.log(path.join("/home/ana", "caminhos", "dados"));
+console.log("dados" + "compras.txt");
+</pre>
+
+<pre class="term">$ node juntar.js
+dados/compras.txt
+dados/compras.txt
+fotos/bolo.jpg
+/home/ana/caminhos/dados
+dadoscompras.txt
+</pre>
+
+<dl class="anatomy">
+  <dt>path.join("dados", "compras.txt")</dt><dd>Pôs a barra no meio.</dd>
+  <dt>path.join("dados/", "/compras.txt")</dt><dd>Barras sobrando: o resultado é o mesmo, com uma só.</dd>
+  <dt>path.join("dados", "..", "fotos", "bolo.jpg")</dt><dd>Entrou em <code>dados</code>, subiu (<code>..</code>) e entrou em <code>fotos</code>: sobrou <code>fotos/bolo.jpg</code>.</dd>
+  <dt>"dados" + "compras.txt"</dt><dd>Com <code>+</code>, a barra faltou, e o resultado aponta para um arquivo que não existe, <code>dadoscompras.txt</code> (o erro está em <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<p>O <code>path.join</code> devolve um caminho relativo se o primeiro pedaço for relativo, e absoluto se ele começar com <code>/</code>.</p>
+
+<hr>
+
+<h2>3. De relativo para absoluto: <code>path.resolve</code> e <code>process.cwd()</code></h2>
+
+<pre class="file" data-file="resolver.js">const path = require("node:path");
+
+console.log(process.cwd());
+console.log(path.resolve("dados/compras.txt"));
+console.log(path.resolve("/tmp", "relatorio.txt"));
+console.log(path.isAbsolute("dados/compras.txt"), path.isAbsolute("/home/ana"));
+console.log(path.relative("/home/ana/caminhos", "/home/ana/caminhos/dados/compras.txt"));
+console.log(path.normalize("/home/ana/caminhos/./dados/../dados//compras.txt"));
+</pre>
+
+<pre class="term">$ node resolver.js
+/home/ana/caminhos
+/home/ana/caminhos/dados/compras.txt
+/tmp/relatorio.txt
+false true
+dados/compras.txt
+/home/ana/caminhos/dados/compras.txt
+</pre>
+
+<dl class="anatomy">
+  <dt>process.cwd()</dt><dd>"<em>Current working directory</em>", a pasta atual do terminal: a mesma que o <code>pwd</code> mostra. É dela que partem os caminhos relativos.</dd>
+  <dt>path.resolve("dados/compras.txt")</dt><dd>"Resolver": transforma em caminho <strong>absoluto</strong>, colando a pasta atual na frente.</dd>
+  <dt>path.resolve("/tmp", "relatorio.txt")</dt><dd>Se algum pedaço já é absoluto, ele vira o ponto de partida.</dd>
+  <dt>path.isAbsolute(…)</dt><dd><code>true</code> se o caminho começa da raiz.</dd>
+  <dt>path.relative(de, para)</dt><dd>O caminho relativo que leva de uma pasta a outra.</dd>
+  <dt>path.normalize(…)</dt><dd>Arruma um caminho bagunçado: tira o <code>.</code>, resolve o <code>..</code> e as barras dobradas.</dd>
+</dl>
+
+<p>Agora o ponto que importa. A Ana entra na subpasta <code>dados</code> e roda o <strong>mesmo</strong> programa:</p>
+
+<pre class="term">$ cd dados
+$ node ../resolver.js
+/home/ana/caminhos/dados
+/home/ana/caminhos/dados/dados/compras.txt
+/tmp/relatorio.txt
+false true
+dados/compras.txt
+/home/ana/caminhos/dados/compras.txt
+</pre>
+
+<p>A pasta atual mudou, e o <code>path.resolve("dados/compras.txt")</code> mudou junto: virou <code>…/dados/dados/compras.txt</code>, que não existe. É exatamente por isso que um <code>readFileSync("dados/compras.txt")</code> funciona numa pasta e dá <code>ENOENT</code> em outra.</p>
+
+<hr>
+
+<h2>4. A pasta do programa: <code>__dirname</code></h2>
+<p>Para achar um arquivo que mora <strong>ao lado do programa</strong>, o ponto de partida não pode ser a pasta do terminal: tem de ser a pasta onde o <code>.js</code> está. Em arquivos CommonJS (com <code>require</code>), o Node oferece duas variáveis prontas:</p>
+
+<pre class="file" data-file="onde.js">console.log("__filename:", __filename);
+console.log("__dirname: ", __dirname);
+console.log("cwd:       ", process.cwd());
+</pre>
+
+<pre class="term">$ node onde.js
+__filename: /home/ana/caminhos/onde.js
+__dirname:  /home/ana/caminhos
+cwd:        /home/ana/caminhos
+$ cd /home/ana
+$ node caminhos/onde.js
+__filename: /home/ana/caminhos/onde.js
+__dirname:  /home/ana/caminhos
+cwd:        /home/ana
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>O que é</th><th>Muda quando você roda de outra pasta?</th></tr>
+<tr><td><code>__filename</code></td><td>O caminho absoluto do próprio arquivo <code>.js</code></td><td>Não</td></tr>
+<tr><td><code>__dirname</code></td><td>A pasta onde o <code>.js</code> está</td><td>Não</td></tr>
+<tr><td><code>process.cwd()</code></td><td>A pasta atual do terminal</td><td><strong>Sim</strong></td></tr>
+</table>
+</div>
+
+<p>(São dois sublinhados no começo: <code>__dirname</code>.) Juntando com o <code>path.join</code>, o programa acha o arquivo de qualquer lugar:</p>
+
+<pre class="file" data-file="ler.js">const fs = require("node:fs");
+const path = require("node:path");
+
+const arquivo = path.join(__dirname, "dados", "compras.txt");
+const itens = fs.readFileSync(arquivo, "utf8").trim().split("\n");
+console.log(`Li ${itens.length} itens de ${arquivo}`);
+</pre>
+
+<pre class="term">$ node ler.js
+Li 3 itens de /home/ana/caminhos/dados/compras.txt
+$ cd /
+$ node /home/ana/caminhos/ler.js
+Li 3 itens de /home/ana/caminhos/dados/compras.txt
+</pre>
+
+<p>Da pasta do projeto ou da raiz do disco (<code>cd /</code>), o resultado foi o mesmo. Esse é o conserto do <code>ENOENT</code> da aula <a href="fs-ler.html">Lendo Arquivos</a>. Repare também no <code>path.join(__dirname, "dados", "compras.txt")</code>: cada pasta é um pedaço separado, e o <code>join</code> cuida das barras.</p>
+
+<h3>Em módulos ES: <code>import.meta.dirname</code></h3>
+<p>Em arquivos com <code>import</code> (<code>.mjs</code> ou <code>"type": "module"</code>; veja <a href="modulos.html">Módulos</a>), <code>__dirname</code> e <code>__filename</code> não existem. O equivalente fica em <code>import.meta</code>:</p>
+
+<pre class="file" data-file="onde.mjs">import path from "node:path";
+
+console.log(import.meta.filename);
+console.log(import.meta.dirname);
+console.log(path.join(import.meta.dirname, "dados", "compras.txt"));
+</pre>
+
+<pre class="term">$ node onde.mjs
+/home/ana/caminhos/onde.mjs
+/home/ana/caminhos
+/home/ana/caminhos/dados/compras.txt
+</pre>
+
+<p><code>import.meta.dirname</code> e <code>import.meta.filename</code> chegaram no Node 20.11. Em código mais antigo, você vai ver uma receita mais comprida para o mesmo fim: <code>path.dirname(fileURLToPath(import.meta.url))</code>.</p>
+
+<hr>
+
+<h2>5. Linux × Windows: as barras</h2>
+<p>No Linux e no macOS, as pastas se separam com <code>/</code>; no Windows, com <code>\</code> (e o caminho começa com a letra do disco: <code>C:\</code>). O <code>path</code> usa automaticamente o jeito do sistema em que o programa roda: num Windows, <code>path.join("dados", "compras.txt")</code> dá <code>dados\compras.txt</code>. É mais um motivo para nunca montar caminhos com <code>+</code> e <code>"/"</code>. Para ver ou tratar caminhos do outro sistema, há <code>path.win32</code> e <code>path.posix</code>:</p>
+
+<pre class="file" data-file="windows.js">const path = require("node:path");
+
+console.log(path.sep);
+console.log(path.win32.sep);
+console.log(path.win32.join("C:\\Users\\Ana", "Documentos", "compras.txt"));
+console.log(path.win32.basename("C:\\Users\\Ana\\Documentos\\compras.txt"));
+console.log(path.posix.join("dados", "compras.txt"));
+</pre>
+
+<pre class="term">$ node windows.js
+/
+\
+C:\Users\Ana\Documentos\compras.txt
+compras.txt
+dados/compras.txt
+</pre>
+
+<p><code>path.sep</code> ("separador") é a barra do sistema atual: no Linux da Ana, <code>/</code>. Repare no <code>"C:\\Users\\Ana"</code>: dentro de uma string do JavaScript, a barra invertida se escreve dobrada (veja <a href="strings-escape.html">Caracteres Especiais</a>).</p>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Use</th><th>Evite</th></tr>
+<tr><td>Juntar pasta e arquivo</td><td><code>path.join(pasta, "x.txt")</code></td><td><code>pasta + "/x.txt"</code></td></tr>
+<tr><td>Um arquivo ao lado do programa</td><td><code>path.join(__dirname, "x.txt")</code> (ou <code>import.meta.dirname</code>)</td><td><code>"x.txt"</code> sozinho, que depende da pasta do terminal</td></tr>
+<tr><td>Um arquivo que a pessoa indicou no terminal</td><td><code>path.resolve(process.argv[2])</code></td><td><code>__dirname</code>: a pessoa pensa a partir de onde ela está</td></tr>
+<tr><td>A extensão</td><td><code>path.extname(nome).toLowerCase()</code></td><td><code>nome.split(".")[1]</code>, que erra com vários pontos</td></tr>
+<tr><td>O nome sem extensão</td><td><code>path.parse(nome).name</code></td><td>Cortar com <code>slice</code> e contar letras</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>ENOENT</code> com o nome grudado: <code>dadoscompras.txt</code></h3>
+<pre class="file" data-file="grudado.js">const fs = require("node:fs");
+const pasta = "dados";
+const texto = fs.readFileSync(pasta + "compras.txt", "utf8");
+</pre>
+<pre class="term">$ node grudado.js
+node:fs:483
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open 'dadoscompras.txt'
+    at Object.readFileSync (node:fs:483:20)
+    at Object.&lt;anonymous&gt; (/home/ana/caminhos/grudado.js:3:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'dadoscompras.txt'
+}
+
+Node.js v24.22.0
+</pre>
+<p>A pista está no fim da mensagem: <code>open 'dadoscompras.txt'</code>. O <code>+</code> juntou os textos sem barra. Sempre que vier um <code>ENOENT</code>, <strong>leia o caminho que o Node tentou abrir</strong>: ele mostra exatamente o que o seu programa montou. <strong>Conserto:</strong> <code>path.join(pasta, "compras.txt")</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>ERR_INVALID_ARG_TYPE</code>: um pedaço era <code>undefined</code></h3>
+<pre class="file" data-file="indefinido.js">const path = require("node:path");
+const nome = process.argv[2];
+console.log(path.join(__dirname, "dados", nome));
+</pre>
+<pre class="term">$ node indefinido.js compras.txt
+/home/ana/caminhos/dados/compras.txt
+$ node indefinido.js
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.join (node:path:1336:7)
+    at Object.&lt;anonymous&gt; (/home/ana/caminhos/indefinido.js:3:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>TypeError [ERR_INVALID_ARG_TYPE]</dt><dd>"Erro de tipo: tipo de argumento inválido".</dd>
+  <dt>The "path" argument must be of type string. Received undefined</dt><dd>"O argumento <code>path</code> tem de ser uma string. Recebi <code>undefined</code>". Sem argumento no terminal, <code>nome</code> ficou <code>undefined</code> (veja <a href="process-argv.html">process.argv</a>).</dd>
+  <dt>at Object.join (node:path:1336:7)</dt><dd>Quem reclamou foi o <code>path.join</code>…</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/caminhos/indefinido.js:3:18)</dt><dd>… chamado na sua linha 3.</dd>
+</dl>
+<p><strong>Conserto:</strong> confira o argumento antes (valor padrão com <code>??</code>, ou mensagem de uso e <code>process.exit(1)</code>).</p>
+</div>
+
+<div class="cenario">
+<h3>3. <code>__dirname is not defined in ES module scope</code></h3>
+<pre class="file" data-file="errado.mjs">import path from "node:path";
+console.log(path.join(__dirname, "dados"));
+</pre>
+<pre class="term">$ node errado.mjs
+file:///home/ana/caminhos/errado.mjs:2
+console.log(path.join(__dirname, "dados"));
+                      ^
+
+ReferenceError: __dirname is not defined in ES module scope
+    at file:///home/ana/caminhos/errado.mjs:2:23
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>__dirname</code> não existe num módulo ES". O <code>^</code> aponta para ele, na linha 2. <strong>Conserto:</strong> <code>import.meta.dirname</code> (seção 4).</p>
+</div>
+
+<div class="cenario">
+<h3>4. O caminho do Windows no código</h3>
+<p>Um caminho como <code>"C:\Users\Ana\novo.txt"</code> escrito assim, com barras simples, se estraga dentro da string:</p>
+<pre class="file" data-file="win.js">console.log(JSON.stringify("C:\Users\Ana\novo.txt"));
+</pre>
+<pre class="term">$ node win.js
+"C:UsersAna\novo.txt"
+</pre>
+<p>O <code>\U</code> e o <code>\A</code> perderam a barra, e o <code>\n</code> virou uma quebra de linha (o <code>JSON.stringify</code> a mostra como <code>\n</code>; veja <a href="strings-escape.html">Caracteres Especiais</a>). <strong>Conserto:</strong> dobre as barras (<code>"C:\\Users\\Ana\\novo.txt"</code>) ou, melhor, monte com <code>path.join</code> e deixe o Node escolher a barra.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Exemplo → resultado (Linux)</th></tr>
+<tr><td><code>path.join(a, b, …)</code></td><td><code>("dados", "x.txt")</code> → <code>dados/x.txt</code></td></tr>
+<tr><td><code>path.resolve(…)</code></td><td><code>("x.txt")</code> → <code>/pasta/atual/x.txt</code></td></tr>
+<tr><td><code>path.basename(p)</code></td><td><code>/a/b/x.txt</code> → <code>x.txt</code></td></tr>
+<tr><td><code>path.basename(p, ext)</code></td><td><code>(/a/b/x.txt, ".txt")</code> → <code>x</code></td></tr>
+<tr><td><code>path.extname(p)</code></td><td><code>x.txt</code> → <code>.txt</code>; <code>LEIA-ME</code> → <code>""</code></td></tr>
+<tr><td><code>path.dirname(p)</code></td><td><code>/a/b/x.txt</code> → <code>/a/b</code></td></tr>
+<tr><td><code>path.parse(p)</code></td><td><code>{ root, dir, base, ext, name }</code></td></tr>
+<tr><td><code>path.normalize(p)</code></td><td><code>/a/./b/../c</code> → <code>/a/c</code></td></tr>
+<tr><td><code>path.relative(de, para)</code></td><td><code>(/a, /a/b/x.txt)</code> → <code>b/x.txt</code></td></tr>
+<tr><td><code>path.isAbsolute(p)</code></td><td><code>/a</code> → <code>true</code>; <code>a</code> → <code>false</code></td></tr>
+<tr><td><code>path.sep</code></td><td><code>/</code> (Windows: <code>\</code>)</td></tr>
+<tr><td><code>__dirname</code> / <code>__filename</code></td><td>Pasta / caminho do <code>.js</code> (CommonJS)</td></tr>
+<tr><td><code>import.meta.dirname</code> / <code>.filename</code></td><td>O mesmo, em módulos ES</td></tr>
+<tr><td><code>process.cwd()</code></td><td>A pasta atual do terminal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual função?</h3>
+<p>Complete para pegar só o nome <code>relatorio.pdf</code> de <code>/home/ana/docs/relatorio.pdf</code>:</p>
+<div class="ex-code">path.<input data-answer="basename" aria-label="função">("/home/ana/docs/relatorio.pdf")</div>
+</div>
+
+<div class="exercise">
+<h3>2. O resultado do join</h3>
+<p>O que <code>path.join("fotos", "..", "receitas", "bolo.txt")</code> devolve no Linux?</p>
+<div class="ex-code"><input data-answer="receitas/bolo.txt" aria-label="caminho"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O programa <code>/home/ana/app/main.js</code> é rodado com <code>node app/main.js</code> de dentro de <code>/home/ana</code>. Quanto vale <code>__dirname</code>?</p>
+<label><input type="radio" name="q3"> <code>/home/ana</code></label>
+<label><input type="radio" name="q3"> <code>app</code></label>
+<label><input type="radio" name="q3"> <code>/home/ana/app</code></label>
+<label><input type="radio" name="q3"> <code>/home/ana/app/main.js</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. E <code>process.cwd()</code>, no mesmo caso?</p>
+<label><input type="radio" name="q4"> <code>/home/ana</code></label>
+<label><input type="radio" name="q4"> <code>/home/ana/app</code></label>
+<label><input type="radio" name="q4"> <code>/</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Quanto vale <code>path.extname("foto.antiga.JPG")</code>?</p>
+<label><input type="radio" name="q5"> <code>".antiga.JPG"</code></label>
+<label><input type="radio" name="q5"> <code>".jpg"</code></label>
+<label><input type="radio" name="q5"> <code>"antiga"</code></label>
+<label><input type="radio" name="q5"> <code>".JPG"</code></label>
+</div>
+
+<h3>Missão final: separando as fotos</h3>
+
+<div class="tryjs" data-goal="outre:^bolo\.JPG\nsonho\.jpg\n?$">
+<p class="try-task"><strong>Missão:</strong> da lista de arquivos, mostre só as fotos <strong>.jpg</strong>, uma por linha, aceitando também <code>.JPG</code> em maiúsculas. Use <code>path.extname</code> e <code>toLowerCase()</code>. Devem aparecer <code>bolo.JPG</code> e <code>sonho.jpg</code>, nessa ordem, e mais nada.</p>
+<pre class="script" data-file="main.js">const path = require("node:path");
+
+const arquivos = ["bolo.JPG", "pao.png", "recibo.pdf", "LEIA-ME", "sonho.jpg", "jpg.txt"];
+
+// mostre só os .jpg
+
+</pre>
+<pre class="solucao" data-file="main.js">const path = require("node:path");
+
+const arquivos = ["bolo.JPG", "pao.png", "recibo.pdf", "LEIA-ME", "sonho.jpg", "jpg.txt"];
+
+for (const nome of arquivos) {
+  if (path.extname(nome).toLowerCase() === ".jpg") {
+    console.log(nome);
+  }
+}
+</pre>
+</div>
+
+<p>Repare na pegadinha <code>jpg.txt</code>: quem procura <code>"jpg"</code> com <code>includes</code> o leva junto; o <code>extname</code> não se engana, porque olha só a extensão de verdade. No lab, a solução mostrou <code>bolo.JPG</code> e <code>sonho.jpg</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Caminho <strong>absoluto</strong> começa na raiz (<code>/home/ana/…</code>) e vale de qualquer lugar; <strong>relativo</strong> (<code>dados/x.txt</code>) parte da pasta atual do terminal, <code>process.cwd()</code>.</li>
+  <li><code>basename</code>, <code>extname</code>, <code>dirname</code> e <code>parse</code> desmontam um caminho; <code>join</code> monta (com as barras certas) e <code>resolve</code> transforma em absoluto. Elas só mexem no texto, sem olhar o disco.</li>
+  <li><code>__dirname</code> (CommonJS) e <code>import.meta.dirname</code> (módulos ES) são a pasta do próprio programa: <code>path.join(__dirname, "dados", "x.txt")</code> acha o arquivo de qualquer pasta.</li>
+  <li>O <code>path</code> usa a barra do sistema (<code>/</code> no Linux e no macOS, <code>\</code> no Windows): nunca monte caminhos com <code>+</code>.</li>
+  <li>Num <code>ENOENT</code>, leia o caminho que o Node tentou abrir: ele mostra o que o programa montou.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
