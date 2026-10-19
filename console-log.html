@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript console.log() — mostrando valores na tela | Guia JavaScript</title>
+<meta name="description" content="O console.log() do JavaScript para quem nunca programou: textos, números, true/false, null e undefined, arrays e objetos como o Node.js mostra, vários valores separados por vírgula, os marcadores %s e %d, template strings, quebra de linha, process.stdout.write, e os erros reais do Node.js 24 ([object Object], console.Log, sem parênteses) explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">console.log()</span></h1>
+
+<p class="intro">Você já usou o <code>console.log</code> em todas as aulas até aqui, para mostrar textos e contas. Ele é, de longe, a função mais usada por quem programa em JavaScript: é com ele que você <strong>enxerga</strong> o que o programa está fazendo. Esta aula mostra tudo o que ele sabe fazer: como ele mostra cada tipo de valor, como mostrar vários de uma vez, como montar frases com valores no meio, e os erros mais comuns.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>console.log</code> mostra cada tipo de valor: textos, números, <code>true</code>/<code>false</code>, <code>null</code>, <code>undefined</code>, listas e objetos.</li>
+  <li>A mostrar vários valores de uma vez, separados por vírgula (e o espaço que ele põe entre eles).</li>
+  <li>Os marcadores <code>%s</code>, <code>%d</code>, <code>%i</code>, <code>%f</code> e <code>%o</code>.</li>
+  <li>Três jeitos de montar uma frase com valores, e qual usar.</li>
+  <li>Quebras de linha com <code>\n</code>, e o <code>process.stdout.write</code>, que não pula linha.</li>
+  <li>Os erros reais: <code>[object Object]</code>, <code>console.Log is not a function</code>, <code>Unexpected string</code>.</li>
+</ul>
+</div>
+
+<p>Todas as saídas são do <strong>Node.js 24 LTS</strong>, rodado na máquina fictícia da Ana, na pasta <code>/home/ana/js</code>. No navegador, o <code>console.log</code> escreve no Console do <kbd>F12</kbd>, e algumas coisas aparecem de outro jeito (veja <a href="console-navegador.html">O Console do Navegador</a>); esta aula segue o Node.js.</p>
+
+<hr>
+
+<h2>A ideia: o alto-falante da padaria</h2>
+<p>Na padaria há um alto-falante: "Senha 42, seu pão está pronto!". Quem está no balcão escreve o recado e o alto-falante <strong>anuncia</strong> para todo mundo, em voz alta. O <code>console.log</code> é o alto-falante do seu programa: você entrega um ou mais valores, e ele os anuncia no terminal, numa linha, e passa para a linha de baixo.</p>
+
+<p>O nome vem do inglês: <strong>console</strong> é o "painel" onde aparecem as mensagens, e <strong>log</strong> é "registrar, anotar". <code>console.log</code> = "anote no painel".</p>
+
+<hr>
+
+<h2>1. Um valor de cada tipo</h2>
+<p>O <code>console.log</code> mostra qualquer valor do JavaScript. Veja como sai cada tipo:</p>
+
+<pre class="file" data-file="valores.js">console.log("Ana");
+console.log(30);
+console.log(1.75);
+console.log(true);
+console.log(null);
+console.log(undefined);
+console.log([1, 2, 3]);
+console.log(["pão", "leite", "café"]);
+console.log({ nome: "Ana", idade: 30 });
+</pre>
+
+<pre class="term">$ node valores.js
+Ana
+30
+1.75
+true
+null
+undefined
+[ 1, 2, 3 ]
+[ 'pão', 'leite', 'café' ]
+{ nome: 'Ana', idade: 30 }
+</pre>
+
+<dl class="anatomy">
+  <dt>"Ana" → Ana</dt><dd>Um texto (<strong>string</strong>) sai <strong>sem aspas</strong>: o <code>console.log</code> mostra o conteúdo.</dd>
+  <dt>30 e 1.75</dt><dd>Números saem como estão; decimal com ponto (aula <a href="numeros.html">Números</a>).</dd>
+  <dt>true</dt><dd>Um <strong>booleano</strong>: <code>true</code> ("verdadeiro") ou <code>false</code> ("falso") (aula <a href="booleanos.html">Booleanos</a>).</dd>
+  <dt>null e undefined</dt><dd>Os dois jeitos do JavaScript de dizer "nada": <code>null</code> é um "vazio" posto de propósito; <code>undefined</code>, "ainda não tem valor" (aula <a href="null-undefined.html">null e undefined</a>).</dd>
+  <dt>[ 1, 2, 3 ]</dt><dd>Um <strong>array</strong> (lista) aparece entre colchetes, com espaço depois do <code>[</code> e antes do <code>]</code> (aula <a href="arrays.html">Arrays</a>).</dd>
+  <dt>[ 'pão', 'leite', 'café' ]</dt><dd>Repare: <strong>dentro</strong> de uma lista, os textos aparecem <strong>com aspas simples</strong>. É para você ver onde cada texto começa e termina (e diferenciar o texto <code>'30'</code> do número <code>30</code>). As aspas simples aparecem mesmo que você tenha escrito com duplas.</dd>
+  <dt>{ nome: 'Ana', idade: 30 }</dt><dd>Um <strong>objeto</strong> (uma ficha com campos) aparece entre chaves, cada campo com o seu valor (aula <a href="objetos.html">Objetos</a>).</dd>
+</dl>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode e compare com a saída acima. Depois troque os valores e acrescente outros (um <code>false</code>, uma lista com números e textos misturados…).</p>
+<pre class="script" data-file="main.js">console.log("Ana");
+console.log(30);
+console.log(true);
+console.log(null);
+console.log(["pão", "leite", "café"]);
+console.log({ nome: "Ana", idade: 30 });
+</pre>
+</div>
+
+<h3>Textos com aspas dentro</h3>
+<p>Se um texto dentro de uma lista ou de um objeto tem um apóstrofo, o Node.js troca para aspas <strong>duplas</strong> na hora de mostrar, para não confundir:</p>
+
+<pre class="file" data-file="aspas-dentro.js">console.log("Padaria D'Ouro");
+console.log(["Padaria D'Ouro", "Pão"]);
+console.log({ loja: "Padaria D'Ouro" });
+</pre>
+
+<pre class="term">$ node aspas-dentro.js
+Padaria D'Ouro
+[ "Padaria D'Ouro", 'Pão' ]
+{ loja: "Padaria D'Ouro" }
+</pre>
+
+<h3>Objetos grandes</h3>
+<p>Quando o objeto não cabe numa linha, o Node.js o quebra em várias, com indentação. E, a partir do terceiro nível de "objeto dentro de objeto", ele resume com <code>[Object]</code>, para a tela não virar uma bagunça:</p>
+
+<pre class="file" data-file="grande.js">const pedido = {
+  cliente: { nome: "Ana", endereco: { rua: "Rua das Flores", numero: 123, bairro: { nome: "Centro" } } },
+  itens: ["pão", "leite", "café", "manteiga", "queijo", "presunto", "bolo de fubá", "sonho"],
+};
+console.log(pedido);
+</pre>
+
+<pre class="term">$ node grande.js
+{
+  cliente: {
+    nome: 'Ana',
+    endereco: { rua: 'Rua das Flores', numero: 123, bairro: [Object] }
+  },
+  itens: [
+    'pão',
+    'leite',
+    'café',
+    'manteiga',
+    'queijo',
+    'presunto',
+    'bolo de fubá',
+    'sonho'
+  ]
+}
+</pre>
+
+<p>O <code>bairro</code> virou <code>[Object]</code>: ele existe, mas está fundo demais para ser mostrado. A aula <a href="console-outros.html">console.error, warn e table</a> mostra outras formas de ver objetos.</p>
+
+<hr>
+
+<h2>2. Vários valores de uma vez</h2>
+<p>Dentro dos parênteses cabem quantos valores você quiser, separados por <strong>vírgula</strong>. O <code>console.log</code> mostra todos na mesma linha, com <strong>um espaço</strong> entre eles, posto por ele mesmo:</p>
+
+<pre class="file" data-file="varios.js">console.log("Ana", 30, true);
+console.log("Pães:", 12, "unidades");
+console.log("Lista:", ["pão", "leite"]);
+console.log("Cliente:", { nome: "Ana" });
+console.log("a", "b", "c");
+</pre>
+
+<pre class="term">$ node varios.js
+Ana 30 true
+Pães: 12 unidades
+Lista: [ 'pão', 'leite' ]
+Cliente: { nome: 'Ana' }
+a b c
+</pre>
+
+<dl class="anatomy">
+  <dt>"Pães:", 12, "unidades"</dt><dd>Três valores. A vírgula <strong>não</strong> aparece na tela; no lugar dela, um espaço. Por isso <code>"Pães:"</code> não precisa terminar com espaço.</dd>
+  <dt>"Lista:", [...]</dt><dd>Dá para misturar qualquer tipo: texto, número, lista, objeto. Cada um aparece do seu jeito.</dd>
+</dl>
+
+<p>Esse é o jeito mais prático de <strong>investigar</strong> um programa: "o que tem nessa variável agora?" → <code>console.log("total:", total);</code>. O texto na frente ajuda a saber qual linha é qual quando há muitas.</p>
+
+<div class="tryjs" data-goal="out:Pães: 12 unidades;;src:,\s*12\s*,;;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente um terceiro valor, o texto <code>"unidades"</code>, para a saída ficar <code>Pães: 12 unidades</code>. Mantenha o <code>12</code> como número, entre vírgulas.</p>
+<pre class="script" data-file="main.js">console.log("Pães:", 12);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Pães:", 12, "unidades");
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os marcadores: <code>%s</code>, <code>%d</code> e companhia</h2>
+<p>Se o primeiro valor for um texto com <strong>marcadores</strong> (um <code>%</code> seguido de uma letra), o <code>console.log</code> encaixa os valores seguintes no lugar deles, na ordem:</p>
+
+<pre class="file" data-file="formato.js">console.log("%s tem %d anos", "Ana", 30);
+console.log("Preço: %f", 7.5);
+console.log("Inteiro: %i", 7.9);
+console.log("Objeto: %o", { nome: "Ana" });
+console.log("100% de farinha");
+console.log("%s e %s", "pão");
+</pre>
+
+<pre class="term">$ node formato.js
+Ana tem 30 anos
+Preço: 7.5
+Inteiro: 7
+Objeto: { nome: 'Ana' }
+100% de farinha
+pão e %s
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Marcador</th><th>Encaixa</th><th>Exemplo da saída</th></tr>
+<tr><td><code>%s</code></td><td>Um valor como texto (<em>string</em>)</td><td><code>Ana</code></td></tr>
+<tr><td><code>%d</code> / <code>%i</code></td><td>Um número inteiro (o <code>%i</code> corta as casas decimais: <code>7.9</code> → <code>7</code>)</td><td><code>30</code>, <code>7</code></td></tr>
+<tr><td><code>%f</code></td><td>Um número com casas decimais (<em>float</em>)</td><td><code>7.5</code></td></tr>
+<tr><td><code>%o</code> / <code>%O</code></td><td>Um objeto, do jeito do Node.js</td><td><code>{ nome: 'Ana' }</code></td></tr>
+<tr><td><code>%%</code></td><td>Um <code>%</code> de verdade, quando há marcadores na frase</td><td><code>%</code></td></tr>
+</table>
+</div>
+
+<p>Duas observações da saída: <code>"100% de farinha"</code> saiu inteiro: quando não há outros valores para encaixar, o texto sai como está (na máquina da Ana, até <code>console.log("100%d sozinho")</code> mostrou <code>100%d sozinho</code>). E em <code>"%s e %s"</code> com um valor só, o segundo marcador ficou sem par e apareceu como está: <code>pão e %s</code>.</p>
+
+<p>Os marcadores vêm de linguagens mais antigas (como o C) e você vai encontrá-los em código dos outros. No JavaScript de hoje, o jeito mais usado de encaixar valores numa frase é a <strong>template string</strong> (seção 4).</p>
+
+<div class="tryjs" data-goal="out:Bia tem 25 anos;;src:%s;;semerro">
+<p class="try-task"><strong>Missão:</strong> sem mexer no texto com os marcadores, troque os valores para sair <code>Bia tem 25 anos</code>.</p>
+<pre class="script" data-file="main.js">console.log("%s tem %d anos", "Ana", 30);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("%s tem %d anos", "Bia", 25);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Três jeitos de montar uma frase</h2>
+<p>Com os valores guardados em variáveis (aula <a href="variaveis.html">Variáveis</a>), as quatro linhas abaixo mostram a mesma frase:</p>
+
+<pre class="file" data-file="template.js">const nome = "Ana";
+const idade = 30;
+console.log(nome + " tem " + idade + " anos");
+console.log(nome, "tem", idade, "anos");
+console.log(`${nome} tem ${idade} anos`);
+console.log("%s tem %d anos", nome, idade);
+</pre>
+
+<pre class="term">$ node template.js
+Ana tem 30 anos
+Ana tem 30 anos
+Ana tem 30 anos
+Ana tem 30 anos
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Vantagem</th><th>Cuidado</th></tr>
+<tr><td><code>nome + " tem " + idade</code> (juntar com <code>+</code>)</td><td>Funciona em qualquer lugar onde se precisa de um texto</td><td>Os espaços são escritos à mão; com contas, cuidado (o <code>"Total: " + 8 + 7</code> dá <code>Total: 87</code>, aula <a href="primeiro-programa.html#errado">Seu Primeiro Programa</a>)</td></tr>
+<tr><td><code>nome, "tem", idade</code> (vírgulas)</td><td>O mais rápido para investigar; mostra listas e objetos direitinho</td><td>Sempre um espaço entre os valores; só serve dentro do <code>console.log</code></td></tr>
+<tr><td><code>`${nome} tem ${idade}`</code> (template string)</td><td><strong>O recomendado</strong> para frases: lê-se como a frase final</td><td>Usa crase, não aspas (aula <a href="template-strings.html">Template Strings</a>)</td></tr>
+<tr><td><code>"%s tem %d", nome, idade</code> (marcadores)</td><td>Familiar para quem vem de C</td><td>Fácil errar a ordem ou a quantidade de valores</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Quebrando linhas e ficando na mesma linha</h2>
+<p>Cada <code>console.log</code> termina pulando para a linha de baixo. Para quebrar a linha <strong>no meio</strong> de um texto, use <code>\n</code> (barra invertida e n, de <em>new line</em>, "linha nova"); para um TAB, <code>\t</code>:</p>
+
+<pre class="file" data-file="quebra.js">console.log("Lista de compras:\n- pão\n- leite");
+console.log("Nome:\tAna");
+</pre>
+
+<pre class="term">$ node quebra.js
+Lista de compras:
+- pão
+- leite
+Nome:	Ana
+</pre>
+
+<p>Um <code>console.log</code>, três linhas na tela. Esses "caracteres especiais" têm aula própria: <a href="strings-escape.html">Caracteres Especiais</a>.</p>
+
+<h3>Sem pular linha: <code>process.stdout.write</code> (só no Node)</h3>
+<p>O <code>console.log</code> sempre pula a linha no fim. Para escrever <strong>sem</strong> pular, o Node.js tem o <code>process.stdout.write</code>, que escreve exatamente o texto que receber, nem mais, nem menos:</p>
+
+<pre class="file" data-file="escreve.js">process.stdout.write("Carregando");
+process.stdout.write("...");
+process.stdout.write(" pronto!\n");
+</pre>
+
+<pre class="term">$ node escreve.js
+Carregando... pronto!
+</pre>
+
+<p>Três escritas, uma linha só; o <code>\n</code> do fim pulou a linha. O <code>process.stdout.write</code> só aceita texto e é <strong>só do Node.js</strong> (o <code>stdout</code>, "saída padrão", é o nome técnico do lugar para onde vai a saída do programa: normalmente, a tela). Para o dia a dia, fique com o <code>console.log</code>.</p>
+
+<h3>A saída pode ir para um arquivo</h3>
+<p>No terminal, o sinal <code>&gt;</code> manda a saída de um programa para um arquivo, em vez da tela:</p>
+
+<pre class="term">$ node varios.js &gt; saida.txt
+$ cat saida.txt
+Ana 30 true
+Pães: 12 unidades
+Lista: [ 'pão', 'leite' ]
+Cliente: { nome: 'Ana' }
+a b c
+</pre>
+
+<p>Nada apareceu na tela durante o <code>node</code>: tudo o que o <code>console.log</code> escreveu foi para o <code>saida.txt</code>. Isso vai importar na próxima aula, porque o <code>console.error</code> <strong>não</strong> vai para o mesmo lugar (aula <a href="console-outros.html">console.error, warn e table</a>).</p>
+
+<hr>
+
+<h2>6. O <code>console.log</code> não devolve nada</h2>
+<p>No <a href="repl.html">modo interativo</a>, você já viu o <code>undefined</code> que aparece depois de um <code>console.log</code>. É que o <code>console.log</code> <strong>escreve</strong> na tela, mas não <strong>devolve</strong> valor nenhum. Guardar o "resultado" dele numa variável dá <code>undefined</code>:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; console.log("Bom dia")
+Bom dia
+undefined
+&gt; const x = console.log("oi")
+oi
+undefined
+&gt; x
+undefined
+&gt; .exit
+</pre>
+
+<p>O <code>oi</code> foi escrito; o <code>x</code> ficou <code>undefined</code>. Para guardar uma frase, monte o texto numa variável primeiro e depois mostre: <code>const frase = `Bom dia, ${nome}`; console.log(frase);</code>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Juntar um objeto com <code>+</code>: <code>[object Object]</code></strong>
+<pre class="file" data-file="e5.js">console.log("Total:" + [1, 2, 3]);
+console.log("Cliente: " + { nome: "Ana" });
+console.log("Cliente:", { nome: "Ana" });
+</pre>
+<pre class="term">$ node e5.js
+Total:1,2,3
+Cliente: [object Object]
+Cliente: { nome: 'Ana' }
+</pre>
+<p>Nenhuma mensagem de erro, mas a saída não ajuda. Com <code>+</code>, a lista e o objeto são <strong>transformados em texto</strong> antes de juntar: a lista vira <code>1,2,3</code> (sem colchetes nem espaços) e o objeto vira <code>[object Object]</code>, que só diz "aqui tem um objeto". <strong>Como consertar:</strong> use a <strong>vírgula</strong>, que entrega o objeto inteiro ao <code>console.log</code>, e ele o mostra direitinho (terceira linha).</p>
+</div>
+
+<div class="cenario">
+<strong><code>console.Log</code> com L maiúsculo</strong>
+<pre class="file" data-file="e2.js">console.Log("Olá, Ana!");
+</pre>
+<pre class="term">$ node e2.js
+/home/ana/js/e2.js:1
+console.Log("Olá, Ana!");
+        ^
+
+TypeError: console.Log is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/js/e2.js:1:9)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Desta vez não é <code>ReferenceError</code>: o <code>console</code> existe (está certo, minúsculo). O problema é a parte depois do ponto: dentro do <code>console</code> não existe nada chamado <code>Log</code>, com L maiúsculo; o que existe é <code>log</code>. O JavaScript achou <code>undefined</code> ali e não dá para "chamar" isso: <code>TypeError</code> ("erro de tipo"), "<code>console.Log</code> não é uma função". O <code>^</code> aponta o <code>L</code> (coluna 9). <strong>Como consertar:</strong> <code>console.log</code>, tudo minúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong>Sem os parênteses</strong>
+<pre class="file" data-file="e1.js">console.log "Olá, Ana!";
+</pre>
+<pre class="term">$ node e1.js
+/home/ana/js/e1.js:1
+console.log "Olá, Ana!";
+            ^^^^^^^^^^^
+
+SyntaxError: Unexpected string
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Texto (<em>string</em>) inesperado". Em algumas linguagens (como Lua ou Ruby) dá para chamar uma função sem parênteses; no JavaScript, nunca. Depois de <code>console.log</code>, o JavaScript esperava um <code>(</code> ou o fim da instrução e encontrou um texto solto. <strong>Como consertar:</strong> <code>console.log("Olá, Ana!");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu a vírgula entre os valores</strong>
+<pre class="file" data-file="e3.js">console.log("Olá" "Ana");
+</pre>
+<pre class="term">$ node e3.js
+/home/ana/js/e3.js:1
+console.log("Olá" "Ana");
+            ^^^^^
+
+SyntaxError: missing ) after argument list
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Dois textos colados, sem vírgula nem <code>+</code>. Depois do primeiro valor, o JavaScript esperava uma vírgula (mais um valor) ou o <code>)</code>. <strong>Como consertar:</strong> <code>console.log("Olá", "Ana");</code> (dois valores) ou <code>console.log("Olá " + "Ana");</code> (um texto só).</p>
+</div>
+
+<div class="cenario">
+<strong>Sem os parênteses e sem nada: não mostra nada</strong>
+<pre class="file" data-file="e4.js">console.log;
+console.log("fim");
+</pre>
+<pre class="term">$ node e4.js
+fim
+</pre>
+<p>A linha 1 não dá erro, mas também não faz nada: sem os parênteses, você só <strong>citou</strong> a função, não a <strong>chamou</strong> (como dizer "o alto-falante" sem apertar o botão). <strong>Como consertar:</strong> <code>console.log();</code> para uma linha em branco, ou com o valor dentro.</p>
+</div>
+
+<h3>Missão final: o cliente por inteiro</h3>
+<div class="tryjs" data-goal="out:Cliente: { nome: 'Ana', idade: 30 };;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Cliente: [object Object]</code>. Faça ele mostrar o objeto inteiro: <code>Cliente: { nome: 'Ana', idade: 30 }</code>.</p>
+<pre class="script" data-file="main.js">const cliente = { nome: "Ana", idade: 30 };
+console.log("Cliente: " + cliente);
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = { nome: "Ana", idade: 30 };
+console.log("Cliente:", cliente);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Saída no Node.js</th></tr>
+<tr><td><code>console.log("Ana");</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>console.log(30, true, null);</code></td><td><code>30 true null</code></td></tr>
+<tr><td><code>console.log([1, 2, 3]);</code></td><td><code>[ 1, 2, 3 ]</code></td></tr>
+<tr><td><code>console.log(["pão"]);</code></td><td><code>[ 'pão' ]</code> (textos com aspas simples dentro de listas e objetos)</td></tr>
+<tr><td><code>console.log({ nome: "Ana" });</code></td><td><code>{ nome: 'Ana' }</code></td></tr>
+<tr><td><code>console.log("Pães:", 12);</code></td><td><code>Pães: 12</code> (um espaço entre os valores)</td></tr>
+<tr><td><code>console.log("%s tem %d", "Ana", 30);</code></td><td><code>Ana tem 30</code></td></tr>
+<tr><td><code>console.log(`${nome} tem ${idade}`);</code></td><td>A frase com os valores encaixados</td></tr>
+<tr><td><code>console.log("a\nb");</code></td><td><code>a</code> e <code>b</code> em duas linhas</td></tr>
+<tr><td><code>console.log();</code></td><td>Uma linha em branco</td></tr>
+<tr><td><code>process.stdout.write("x");</code></td><td><code>x</code>, sem pular linha (só Node.js)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem ou sintoma</th><th>Causa provável</th></tr>
+<tr><td>Saiu <code>[object Object]</code></td><td>Objeto juntado com <code>+</code>: use vírgula</td></tr>
+<tr><td>Saiu <code>1,2,3</code> sem colchetes</td><td>Lista juntada com <code>+</code>: use vírgula</td></tr>
+<tr><td><code>TypeError: console.Log is not a function</code></td><td>Maiúscula depois do ponto: é <code>log</code></td></tr>
+<tr><td><code>ReferenceError: Console is not defined</code></td><td>Maiúscula no <code>console</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected string</code></td><td>Faltaram os parênteses: <code>console.log "x"</code></td></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td>Faltou vírgula entre valores, ou o <code>)</code></td></tr>
+<tr><td>Não apareceu nada, sem erro</td><td><code>console.log;</code> sem parênteses</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Vários valores</h3>
+<p>O que aparece com <code>console.log("Bolo:", 3, "fatias");</code>?</p>
+<div class="ex-code">Saída: <input data-answer="Bolo: 3 fatias" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Uma lista</h3>
+<p>Como o Node.js mostra <code>console.log([4, 5]);</code>?</p>
+<div class="ex-code">Saída: <input data-answer="[ 4, 5 ]" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O marcador</h3>
+<p>Complete para sair <code>Ana tem 30 anos</code>:</p>
+<div class="ex-code">console.log("%s tem <input data-answer="%d|%i" aria-label="marcador"> anos", "Ana", 30);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como o Node.js mostra <code>console.log(["pão", "leite"]);</code>?</p>
+<label><input type="radio" name="q4"> <code>pão leite</code></label>
+<label><input type="radio" name="q4"> <code>[ 'pão', 'leite' ]</code></label>
+<label><input type="radio" name="q4"> <code>["pão", "leite"]</code></label>
+<label><input type="radio" name="q4"> <code>pão,leite</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que mostra <code>console.log("Cliente: " + { nome: "Ana" });</code>?</p>
+<label><input type="radio" name="q5"> <code>Cliente: { nome: 'Ana' }</code></label>
+<label><input type="radio" name="q5"> <code>Cliente: Ana</code></label>
+<label><input type="radio" name="q5"> Um erro</label>
+<label><input type="radio" name="q5"> <code>Cliente: [object Object]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual destas mostra <code>Carregando...</code> e continua na <strong>mesma linha</strong> depois?</p>
+<label><input type="radio" name="q6"> <code>process.stdout.write("Carregando...");</code></label>
+<label><input type="radio" name="q6"> <code>console.log("Carregando...");</code></label>
+<label><input type="radio" name="q6"> <code>console.log("Carregando...\n");</code></label>
+<label><input type="radio" name="q6"> <code>console.log("Carregando", "...");</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. Qual é o jeito recomendado para montar a frase "Ana tem 30 anos" com as variáveis <code>nome</code> e <code>idade</code>?</p>
+<label><input type="radio" name="q7"> <code>console.log(nome idade);</code></label>
+<label><input type="radio" name="q7"> <code>console.log("nome tem idade anos");</code></label>
+<label><input type="radio" name="q7"> <code>console.log(`${nome} tem ${idade} anos`);</code></label>
+<label><input type="radio" name="q7"> <code>console.Log(nome, idade);</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>console.log(valor)</code> mostra o valor no terminal (no navegador, no Console) e pula a linha.</li>
+  <li>Textos saem sem aspas; dentro de listas e objetos, com aspas simples. Listas: <code>[ 1, 2, 3 ]</code>; objetos: <code>{ nome: 'Ana' }</code>; objetos muito fundos viram <code>[Object]</code>.</li>
+  <li>Vários valores separados por vírgula saem na mesma linha, com um espaço entre eles: o melhor jeito de investigar um programa.</li>
+  <li>Marcadores: <code>%s</code> texto, <code>%d</code>/<code>%i</code> inteiro, <code>%f</code> decimal, <code>%o</code> objeto. Para frases, prefira a template string: <code>`${nome} tem ${idade} anos`</code>.</li>
+  <li><code>\n</code> quebra a linha dentro do texto; <code>process.stdout.write</code> (só Node) escreve sem pular linha.</li>
+  <li>O <code>console.log</code> não devolve nada (<code>undefined</code>).</li>
+  <li>Erros: objeto com <code>+</code> → <code>[object Object]</code>; <code>console.Log</code> → <code>is not a function</code>; sem parênteses → <code>Unexpected string</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
