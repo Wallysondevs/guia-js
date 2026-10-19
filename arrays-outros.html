@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript some, every, join, flat e outros métodos de array | Guia JavaScript</title>
+<meta name="description" content="Mais métodos de array do JavaScript para quem nunca programou: some e every (pelo menos um? todos?), join, concat, flat e flatMap, fill, Array.from, Array.isArray e with, com saídas reais do Node.js 24 e os erros mais comuns (fill com [], with fora do array, string que não tem some).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">some, every, join, flat</span> e Outros</h1>
+
+<p class="intro">Você já conhece os métodos de array mais usados: <a href="map.html">map</a>, <a href="filter.html">filter</a>, <a href="reduce.html">reduce</a> e <a href="sort.html">sort</a>. Esta aula é uma "caixa de ferramentas" com os outros que aparecem todo dia: perguntar se <strong>algum</strong> item ou <strong>todos</strong> os itens passam num teste, juntar itens num texto, juntar arrays, "achatar" arrays de dentro de arrays, criar um array já preenchido e trocar um item sem mexer no original. Cada um é pequeno; o segredo é saber que ele existe.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>some</code> ("algum") e <code>every</code> ("todos"): perguntas de sim ou não sobre o array inteiro.</li>
+  <li><code>join</code>: juntar os itens num texto, com o separador que você quiser.</li>
+  <li><code>concat</code>: juntar dois ou mais arrays num novo.</li>
+  <li><code>flat</code> e <code>flatMap</code>: transformar "arrays dentro de arrays" num array só.</li>
+  <li><code>fill</code>, <code>Array.from</code> e <code>Array.of</code>: criar arrays já preenchidos.</li>
+  <li><code>Array.isArray</code>: descobrir se um valor é mesmo um array.</li>
+  <li><code>with</code> <span class="versao">ES2023</span>: uma cópia com um item trocado.</li>
+  <li>Os erros reais: <code>fill([])</code> que repete o mesmo array, <code>with</code> fora do tamanho, texto que não tem <code>some</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>1. <code>some</code>: pelo menos um passa no teste?</h2>
+<p>A Ana confere o estoque da lojinha no fim do dia. A pergunta é: "<strong>algum</strong> produto acabou?". Ela não quer saber qual nem quantos, só <strong>sim ou não</strong>. É o trabalho do <code>some</code> (em inglês, "algum"):</p>
+
+<pre class="file" data-file="some.js">const estoque = [12, 5, 0, 8];
+const faltaAlgum = estoque.some((quantidade) =&gt; quantidade === 0);
+console.log("Tem produto em falta?", faltaAlgum);
+const temMuito = estoque.some((quantidade) =&gt; quantidade &gt; 100);
+console.log("Tem mais de 100 de algum?", temMuito);
+</pre>
+
+<pre class="term">$ node some.js
+Tem produto em falta? true
+Tem mais de 100 de algum? false
+</pre>
+
+<dl class="anatomy">
+  <dt>estoque.some(…)</dt><dd>Passa pelos itens chamando a função. Devolve <code>true</code> se <strong>pelo menos um</strong> item fizer a função devolver <code>true</code>; senão, <code>false</code>.</dd>
+  <dt>(quantidade) =&gt; quantidade === 0</dt><dd>O <strong>teste</strong>, igual ao do <a href="filter.html">filter</a>: recebe um item e responde verdadeiro ou falso.</dd>
+  <dt>true / false</dt><dd>O resultado é sempre um <a href="booleanos.html">booleano</a>, pronto para usar num <code>if</code>: <code>if (estoque.some(…)) { … }</code>.</dd>
+</dl>
+
+<p>O <code>some</code> é preguiçoso, no bom sentido: assim que acha um item que passa, ele <strong>para</strong> e responde <code>true</code>, sem olhar o resto. Com uma lista enorme, isso economiza trabalho.</p>
+
+<hr>
+
+<h2>2. <code>every</code>: todos passam no teste?</h2>
+<p>O contrário: "<strong>todos</strong> os alunos passaram?". O <code>every</code> (em inglês, "todo", "cada") só responde <code>true</code> se <strong>todos</strong> os itens passarem:</p>
+
+<pre class="file" data-file="every.js">const notas = [7, 8.5, 6, 9];
+const todosPassaram = notas.every((nota) =&gt; nota &gt;= 7);
+console.log("Todos passaram?", todosPassaram);
+const todosAcimaDe5 = notas.every((nota) =&gt; nota &gt; 5);
+console.log("Todos acima de 5?", todosAcimaDe5);
+</pre>
+
+<pre class="term">$ node every.js
+Todos passaram? false
+Todos acima de 5? true
+</pre>
+
+<p>Basta o 6 para a primeira resposta ser <code>false</code>. E o <code>every</code> também para cedo: no primeiro item que <strong>não</strong> passa, a resposta já é <code>false</code>. Dá para ver isso com um <code>console.log</code> dentro do teste:</p>
+
+<pre class="file" data-file="para-cedo.js">const notas = [7, 4, 9, 8];
+const todos = notas.every((nota) =&gt; {
+  console.log("olhando", nota);
+  return nota &gt;= 7;
+});
+console.log("Resultado:", todos);
+</pre>
+
+<pre class="term">$ node para-cedo.js
+olhando 7
+olhando 4
+Resultado: false
+</pre>
+
+<p>O 9 e o 8 nem foram olhados: depois do 4, não havia como "todos" ser verdade.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pergunta</th><th>Método</th><th>Para quando…</th></tr>
+<tr><td>"Pelo menos um passa?"</td><td><code>some</code></td><td>…achar o primeiro que passa (responde <code>true</code>)</td></tr>
+<tr><td>"Todos passam?"</td><td><code>every</code></td><td>…achar o primeiro que <strong>não</strong> passa (responde <code>false</code>)</td></tr>
+<tr><td>"Nenhum passa?"</td><td><code>!lista.some(…)</code></td><td>O <code>!</code> inverte a resposta (aula <a href="operadores-logicos.html">Operadores Lógicos</a>)</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Tem produto em falta: true;;src:\.some\(">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo responde sempre <code>false</code>, porque a variável foi escrita "na mão". Troque o <code>false</code> por um <code>some</code> que pergunte se alguma quantidade é <code>0</code>, para aparecer <code>Tem produto em falta: true</code>. Depois, mude o <code>0</code> do estoque para <code>3</code> e veja a resposta mudar.</p>
+<pre class="script" data-file="main.js">const estoque = [12, 5, 0, 8];
+const faltaAlgum = false;
+console.log("Tem produto em falta:", faltaAlgum);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = [12, 5, 0, 8];
+const faltaAlgum = estoque.some((q) =&gt; q === 0);
+console.log("Tem produto em falta:", faltaAlgum);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>join</code>: juntando os itens num texto</h2>
+<p>O <code>join</code> ("juntar") já apareceu na aula <a href="strings-split.html">split e join</a>. Ele cola todos os itens num texto só, com um <strong>separador</strong> entre eles:</p>
+
+<pre class="file" data-file="join.js">const compras = ["pão", "leite", "café"];
+console.log(compras.join());
+console.log(compras.join(", "));
+console.log(compras.join(" - "));
+console.log(compras.join(""));
+console.log(compras.join("\n"));
+console.log(String(compras));
+</pre>
+
+<pre class="term">$ node join.js
+pão,leite,café
+pão, leite, café
+pão - leite - café
+pãoleitecafé
+pão
+leite
+café
+pão,leite,café
+</pre>
+
+<dl class="anatomy">
+  <dt>join()</dt><dd>Sem separador, usa a vírgula <strong>sem espaço</strong>.</dd>
+  <dt>join(", ") / join(" - ")</dt><dd>O separador que você quiser. Ele vai só <strong>entre</strong> os itens, nunca no fim.</dd>
+  <dt>join("")</dt><dd>Separador vazio: os itens ficam grudados.</dd>
+  <dt>join("\n")</dt><dd>A quebra de linha como separador: um item por linha (aula <a href="strings-escape.html">Caracteres Especiais</a>).</dd>
+  <dt>String(compras)</dt><dd>Transformar o array em texto dá o mesmo que <code>join()</code>: itens separados por vírgula.</dd>
+</dl>
+
+<hr>
+
+<h2>4. <code>concat</code>: juntando arrays</h2>
+<p>A Ana fez a lista de compras da manhã e a da tarde. Para ter a lista do dia, o <code>concat</code> ("concatenar", emendar) cria um array <strong>novo</strong> com os itens de um seguidos dos itens do outro:</p>
+
+<pre class="file" data-file="concat.js">const manha = ["pão", "leite"];
+const tarde = ["café", "bolo"];
+const dia = manha.concat(tarde);
+console.log(dia);
+console.log(manha);
+console.log(manha.concat(tarde, ["queijo"], "suco"));
+console.log([...manha, ...tarde]);
+</pre>
+
+<pre class="term">$ node concat.js
+[ 'pão', 'leite', 'café', 'bolo' ]
+[ 'pão', 'leite' ]
+[ 'pão', 'leite', 'café', 'bolo', 'queijo', 'suco' ]
+[ 'pão', 'leite', 'café', 'bolo' ]
+</pre>
+
+<ul>
+  <li>O <code>manha</code> continuou com dois itens: o <code>concat</code> <strong>não muda</strong> o original (ao contrário do <code>push</code>, aula <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>).</li>
+  <li>Ele aceita vários arrays de uma vez, e até itens soltos (<code>"suco"</code>).</li>
+  <li>A última linha faz o mesmo com o <strong>spread</strong> (<code>...</code>), que "espalha" os itens de cada array dentro de um array novo. Em código moderno, o spread é o mais comum (aulas <a href="arrays-copiar.html">Copiando Arrays</a> e <a href="spread-rest.html">Spread e Rest</a>).</li>
+</ul>
+
+<hr>
+
+<h2>5. <code>flat</code>: achatando arrays de arrays <span class="versao">ES2019</span></h2>
+<p>Um array pode ter outros arrays como itens. A escola da Ana tem três turmas, e cada turma é um array de nomes. Para ter a lista de <strong>todos</strong> os alunos, o <code>flat</code> ("achatado", "plano") tira os itens de dentro dos arrays internos e põe tudo num nível só:</p>
+
+<pre class="file" data-file="flat.js">const turmas = [["Ana", "Bia"], ["Caio"], ["Davi", "Edu"]];
+console.log(turmas.flat());
+const fundo = [1, [2, [3, [4]]]];
+console.log(fundo.flat());
+console.log(fundo.flat(2));
+console.log(fundo.flat(Infinity));
+</pre>
+
+<pre class="term">$ node flat.js
+[ 'Ana', 'Bia', 'Caio', 'Davi', 'Edu' ]
+[ 1, 2, [ 3, [ 4 ] ] ]
+[ 1, 2, 3, [ 4 ] ]
+[ 1, 2, 3, 4 ]
+</pre>
+
+<dl class="anatomy">
+  <dt>turmas.flat()</dt><dd>Sem número, achata <strong>um nível</strong>: os arrays de dentro somem, os itens deles ficam. Devolve um array novo.</dd>
+  <dt>fundo.flat()</dt><dd>Com arrays dentro de arrays dentro de arrays, um nível só não basta: sobra o <code>[ 3, [ 4 ] ]</code>.</dd>
+  <dt>flat(2)</dt><dd>O número diz <strong>quantos níveis</strong> achatar.</dd>
+  <dt>flat(Infinity)</dt><dd><code>Infinity</code> (infinito): achata todos os níveis, quantos houver.</dd>
+</dl>
+
+<p>Arrays dentro de arrays têm aula própria: <a href="arrays-matriz.html">Arrays de Arrays (Matrizes)</a>.</p>
+
+<h3><code>flatMap</code>: map e flat de uma vez</h3>
+<p>Às vezes o <code>map</code> produz um array para cada item, e você queria tudo numa lista só. A Ana quer todas as palavras de várias frases:</p>
+
+<pre class="file" data-file="flatmap.js">const frases = ["bom dia", "boa tarde Ana"];
+console.log(frases.map((frase) =&gt; frase.split(" ")));
+console.log(frases.flatMap((frase) =&gt; frase.split(" ")));
+</pre>
+
+<pre class="term">$ node flatmap.js
+[ [ 'bom', 'dia' ], [ 'boa', 'tarde', 'Ana' ] ]
+[ 'bom', 'dia', 'boa', 'tarde', 'Ana' ]
+</pre>
+
+<p>O <code>map</code> sozinho deu um array de arrays (cada <code>split</code> devolve um array). O <code>flatMap</code> faz o <code>map</code> e, em seguida, um <code>flat()</code> de um nível. É o mesmo que <code>frases.map(…).flat()</code>, numa chamada só.</p>
+
+<hr>
+
+<h2>6. Criando arrays já preenchidos</h2>
+
+<h3><code>fill</code>: preencher com um valor</h3>
+<pre class="file" data-file="fill.js">const placar = new Array(5).fill(0);
+console.log(placar);
+const cadeiras = ["Ana", "Bia", "Caio", "Davi"];
+cadeiras.fill("vaga", 2);
+console.log(cadeiras);
+</pre>
+
+<pre class="term">$ node fill.js
+[ 0, 0, 0, 0, 0 ]
+[ 'Ana', 'Bia', 'vaga', 'vaga' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>new Array(5)</dt><dd>Cria um array com 5 lugares <strong>vazios</strong>.</dd>
+  <dt>.fill(0)</dt><dd>"Preencher": põe o valor <code>0</code> em todos os lugares. Bom para um placar zerado.</dd>
+  <dt>fill("vaga", 2)</dt><dd>O segundo número diz <strong>a partir de qual índice</strong> preencher. Atenção: o <code>fill</code> <strong>muda</strong> o array (o Caio e o Davi perderam as cadeiras).</dd>
+</dl>
+
+<h3><code>Array.from</code>: criar a partir de outra coisa</h3>
+<pre class="file" data-file="from.js">console.log(Array.from("Ana"));
+console.log(Array.from({ length: 5 }, (_, i) =&gt; i + 1));
+console.log(Array.from({ length: 3 }, () =&gt; "?"));
+console.log(Array.of(7));
+console.log(new Array(7));
+</pre>
+
+<pre class="term">$ node from.js
+[ 'A', 'n', 'a' ]
+[ 1, 2, 3, 4, 5 ]
+[ '?', '?', '?' ]
+[ 7 ]
+[ &lt;7 empty items&gt; ]
+</pre>
+
+<dl class="anatomy">
+  <dt>Array.from("Ana")</dt><dd>"Array a partir de": transforma um texto num array de letras.</dd>
+  <dt>Array.from({ length: 5 }, (_, i) =&gt; i + 1)</dt><dd>O jeito clássico de criar <code>[1, 2, 3, 4, 5]</code>. O <code>{ length: 5 }</code> diz "quero 5 lugares"; a função é chamada para cada lugar e o que ela devolve vira o item. O primeiro parâmetro não interessa (é <code>undefined</code>), por isso o nome <code>_</code> (sublinhado), um costume para dizer "este eu não uso"; o segundo, <code>i</code>, é o índice: 0, 1, 2, 3, 4.</dd>
+  <dt>Array.of(7)</dt><dd>Cria um array com o item <code>7</code>.</dd>
+  <dt>new Array(7)</dt><dd>Cuidado: com <strong>um número só</strong>, o <code>new Array</code> não cria <code>[7]</code>, e sim 7 lugares vazios (<code>&lt;7 empty items&gt;</code>, "7 itens vazios"). É por isso que o <code>Array.of</code> existe. No dia a dia, prefira os colchetes: <code>[7]</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>7. <code>Array.isArray</code>: isto é um array?</h2>
+<p>O <a href="typeof.html">typeof</a> não ajuda com arrays: para ele, array é <code>"object"</code>. Para perguntar "é array?", use <code>Array.isArray</code>:</p>
+
+<pre class="file" data-file="isarray.js">const compras = ["pão", "leite"];
+console.log(typeof compras);
+console.log(Array.isArray(compras));
+console.log(Array.isArray("pão"));
+console.log(Array.isArray({ nome: "Ana" }));
+</pre>
+
+<pre class="term">$ node isarray.js
+object
+true
+false
+false
+</pre>
+
+<p>Útil quando um valor pode chegar como um item só ou como uma lista: <code>if (Array.isArray(valor)) { … }</code>.</p>
+
+<hr>
+
+<h2>8. <code>with</code>: uma cópia com um item trocado <span class="versao">ES2023</span></h2>
+<p>Para trocar um item, você já sabe usar <code>lista[1] = "pizza"</code> (aula <a href="arrays-acessar.html">Acessando e Alterando Itens</a>), mas isso muda o original. O <code>with</code> ("com") devolve uma <strong>cópia</strong> com o item trocado:</p>
+
+<pre class="file" data-file="with.js">const cardapio = ["sopa", "lasanha", "salada"];
+const novo = cardapio.with(1, "pizza");
+console.log(novo);
+console.log(cardapio);
+console.log(cardapio.with(-1, "fruta"));
+</pre>
+
+<pre class="term">$ node with.js
+[ 'sopa', 'pizza', 'salada' ]
+[ 'sopa', 'lasanha', 'salada' ]
+[ 'sopa', 'lasanha', 'fruta' ]
+</pre>
+
+<p>Lê-se: "o cardápio, <strong>com</strong> o item 1 trocado por pizza". O original não mudou. Índice negativo conta do fim, como no <code>at</code>: <code>-1</code> é o último. O <code>with</code> faz parte da mesma família do <code>toSorted</code> e do <code>toReversed</code> (aula <a href="sort.html">Ordenando</a>): métodos que <strong>não estragam o original</strong>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Jeito mais claro</th><th>Também funciona</th></tr>
+<tr><td>Saber se algum item passa</td><td><code>lista.some(teste)</code></td><td><code>lista.find(teste) !== undefined</code>, <code>lista.filter(teste).length &gt; 0</code> (olha todos, mais lento)</td></tr>
+<tr><td>Saber se todos passam</td><td><code>lista.every(teste)</code></td><td><code>!lista.some(item =&gt; !teste(item))</code> (difícil de ler)</td></tr>
+<tr><td>Saber se um valor exato está na lista</td><td><code>lista.includes(valor)</code> (aula <a href="arrays-buscar.html">Procurando</a>)</td><td><code>lista.some(x =&gt; x === valor)</code></td></tr>
+<tr><td>Juntar arrays</td><td><code>[...a, ...b]</code></td><td><code>a.concat(b)</code></td></tr>
+<tr><td>Achatar um nível</td><td><code>lista.flat()</code></td><td><code>[].concat(...lista)</code> (código antigo)</td></tr>
+<tr><td>Criar <code>[1, 2, …, n]</code></td><td><code>Array.from({ length: n }, (_, i) =&gt; i + 1)</code></td><td>Um <code>for</code> com <code>push</code></td></tr>
+<tr><td>Array de n zeros</td><td><code>new Array(n).fill(0)</code></td><td><code>Array.from({ length: n }, () =&gt; 0)</code></td></tr>
+<tr><td>Trocar um item sem mudar o original</td><td><code>lista.with(i, valor)</code></td><td>Copiar e depois <code>copia[i] = valor</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>fill([])</code>: o mesmo array em todos os lugares</strong>
+<p>A Ana quis três turmas vazias e colocou a Ana na primeira:</p>
+<pre class="file" data-file="fill-erro.js">const turmas = new Array(3).fill([]);
+turmas[0].push("Ana");
+console.log(turmas);
+const certo = Array.from({ length: 3 }, () =&gt; []);
+certo[0].push("Ana");
+console.log(certo);
+</pre>
+<pre class="term">$ node fill-erro.js
+[ [ 'Ana' ], [ 'Ana' ], [ 'Ana' ] ]
+[ [ 'Ana' ], [], [] ]
+</pre>
+<p>A Ana apareceu nas <strong>três</strong> turmas! O <code>fill([])</code> cria <strong>um</strong> array vazio e põe esse <strong>mesmo</strong> array nos três lugares: são três etiquetas para a mesma caixa (aula <a href="objetos-referencia.html">Objetos são Referências</a>). <strong>Como consertar:</strong> use <code>Array.from</code> com uma função, que roda uma vez por lugar e cria um array novo a cada vez. Com números e textos o <code>fill</code> não tem esse problema.</p>
+</div>
+
+<div class="cenario">
+<strong><code>some</code> num texto</strong>
+<p>A lista de compras chegou como um texto só, e não como um array:</p>
+<pre class="file" data-file="string-some.js">const compras = "pão, leite, café";
+console.log(compras.some((item) =&gt; item === "café"));
+</pre>
+<pre class="term">$ node string-some.js
+/home/ana/string-some.js:2
+console.log(compras.some((item) =&gt; item === "café"));
+                    ^
+
+TypeError: compras.some is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/string-some.js:2:21)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/string-some.js:2</dt><dd>Arquivo e linha do erro.</dd>
+  <dt>console.log(…) e o <code>^</code></dt><dd>A linha do código; o <code>^</code> aponta para o <code>some</code>.</dd>
+  <dt>TypeError: compras.some is not a function</dt><dd>"<code>compras.some</code> não é uma função". Textos não têm o método <code>some</code>; só arrays têm. Sempre que aparecer "<code>X.metodo is not a function</code>", desconfie que o <code>X</code> não é do tipo que você achava.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/string-some.js:2:21)</dt><dd>O seu programa, linha 2, coluna 21. O resto da pilha é do Node e foi cortado.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou.</dd>
+</dl>
+<p><strong>Como consertar:</strong> transforme o texto em array antes, com <code>compras.split(", ")</code>, ou pergunte direto ao texto: <code>compras.includes("café")</code>. Na dúvida, <code>Array.isArray(compras)</code> diz se é array.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um valor em vez de uma função</strong>
+<pre class="file" data-file="some-erro.js">const estoque = [12, 5, 0, 8];
+const faltaAlgum = estoque.some(0);
+console.log(faltaAlgum);
+</pre>
+<pre class="term">$ node some-erro.js
+/home/ana/some-erro.js:2
+const faltaAlgum = estoque.some(0);
+                           ^
+
+TypeError: number 0 is not a function
+    at Array.some (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/some-erro.js:2:28)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"O número 0 não é uma função". O <code>some</code> e o <code>every</code> precisam de um <strong>teste</strong> (uma função), e não do valor procurado. <strong>Como consertar:</strong> <code>estoque.some((q) =&gt; q === 0)</code>, ou, para um valor exato, <code>estoque.includes(0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>with</code> com um índice que não existe</strong>
+<pre class="file" data-file="with-erro.js">const cardapio = ["sopa", "lasanha", "salada"];
+const novo = cardapio.with(3, "pizza");
+console.log(novo);
+</pre>
+<pre class="term">$ node with-erro.js
+/home/ana/with-erro.js:2
+const novo = cardapio.with(3, "pizza");
+                          ^
+
+RangeError: Invalid index : 3
+    at Array.with (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/with-erro.js:2:27)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de faixa: índice inválido: 3". O cardápio tem 3 itens, índices 0, 1 e 2. O <code>with</code> só troca itens que existem; ele não acrescenta. (Com <code>cardapio[3] = "pizza"</code>, ao contrário, o JavaScript acrescentaria um item sem reclamar.) <strong>Como consertar:</strong> use um índice de 0 a <code>length - 1</code>; para acrescentar numa cópia, <code>[...cardapio, "pizza"]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>every</code> de um array vazio é <code>true</code></strong>
+<pre class="file" data-file="vazio.js">const nenhumaNota = [];
+console.log("some:", nenhumaNota.some((nota) =&gt; nota &gt;= 7));
+console.log("every:", nenhumaNota.every((nota) =&gt; nota &gt;= 7));
+</pre>
+<pre class="term">$ node vazio.js
+some: false
+every: true
+</pre>
+<p>Não é erro do Node, é lógica: num array vazio não existe nenhum item que <strong>reprove</strong>, então "todos passaram" é verdade. Se o programa disser "Parabéns, todos passaram!" para uma turma sem nenhuma nota, o defeito é seu. <strong>Como consertar:</strong> confira também se há itens: <code>notas.length &gt; 0 &amp;&amp; notas.every(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>join</code> com <code>null</code> e <code>undefined</code></strong>
+<pre class="file" data-file="join-vazios.js">const valores = [1, null, 3, undefined, 5];
+console.log(valores.join("-"));
+</pre>
+<pre class="term">$ node join-vazios.js
+1--3--5
+</pre>
+<p>O <code>join</code> transforma <code>null</code> e <code>undefined</code> em texto <strong>vazio</strong>, e sobram dois separadores seguidos. Se aparecer <code>--</code> ou <code>, ,</code> no seu texto, procure um item faltando no array.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Muda o original?</th></tr>
+<tr><td><code>lista.some(teste)</code></td><td><code>true</code> se pelo menos um passa</td><td>Não</td></tr>
+<tr><td><code>lista.every(teste)</code></td><td><code>true</code> se todos passam (e para array vazio)</td><td>Não</td></tr>
+<tr><td><code>lista.join(sep)</code></td><td>Um texto com os itens e <code>sep</code> entre eles (padrão: <code>","</code>)</td><td>Não</td></tr>
+<tr><td><code>a.concat(b, …)</code></td><td>Um array novo com os itens de <code>a</code>, depois os de <code>b</code>…</td><td>Não</td></tr>
+<tr><td><code>lista.flat(n)</code></td><td>Um array novo achatado <code>n</code> níveis (padrão: 1)</td><td>Não</td></tr>
+<tr><td><code>lista.flatMap(f)</code></td><td>O mesmo que <code>lista.map(f).flat()</code></td><td>Não</td></tr>
+<tr><td><code>lista.fill(v, inicio)</code></td><td>O próprio array, preenchido com <code>v</code></td><td><strong>Sim</strong></td></tr>
+<tr><td><code>Array.from(x, f)</code></td><td>Um array novo a partir de um texto, de <code>{ length: n }</code>…</td><td>—</td></tr>
+<tr><td><code>Array.of(a, b, …)</code></td><td>Um array com esses itens</td><td>—</td></tr>
+<tr><td><code>Array.isArray(x)</code></td><td><code>true</code> se <code>x</code> é array</td><td>—</td></tr>
+<tr><td><code>lista.with(i, v)</code></td><td>Uma cópia com o item <code>i</code> trocado por <code>v</code></td><td>Não</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Algum ou todos?</h3>
+<p>Complete com <code>some</code> ou <code>every</code>:</p>
+<div class="ex-code">// "todos os preços são positivos?"<br>precos.<input data-answer="every" aria-label="método">((p) =&gt; p &gt; 0)<br>// "algum aluno tirou 10?"<br>notas.<input data-answer="some" aria-label="método">((n) =&gt; n === 10)</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o texto?</h3>
+<p>O que <code>["a", "b", "c"].join("")</code> devolve? Escreva sem aspas.</p>
+<div class="ex-code">Devolve <input data-answer="abc" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>[[1, 2], [3]].flat()</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>[ [ 1, 2 ], [ 3 ] ]</code></label>
+<label><input type="radio" name="q3"> <code>6</code></label>
+<label><input type="radio" name="q3"> <code>[ 1, 2, 3 ]</code></label>
+<label><input type="radio" name="q3"> <code>[ 1, 2 ]</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Quanto vale <code>[].every((x) =&gt; x &gt; 100)</code>?</p>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destes métodos <strong>muda</strong> o array original?</p>
+<label><input type="radio" name="q5"> <code>concat</code></label>
+<label><input type="radio" name="q5"> <code>with</code></label>
+<label><input type="radio" name="q5"> <code>flat</code></label>
+<label><input type="radio" name="q5"> <code>fill</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Como criar o array <code>[1, 2, 3, 4]</code>?</p>
+<label><input type="radio" name="q6"> <code>Array.from({ length: 4 }, (_, i) =&gt; i + 1)</code></label>
+<label><input type="radio" name="q6"> <code>new Array(4)</code></label>
+<label><input type="radio" name="q6"> <code>new Array(4).fill(1)</code></label>
+<label><input type="radio" name="q6"> <code>Array.of(4)</code></label>
+</div>
+
+<h3>Missão final: a lista de compras da família</h3>
+
+<div class="tryjs" data-goal="out:pão, leite, café, queijo, pão;;src:\.flat(Map)?\(">
+<p class="try-task"><strong>Missão:</strong> cada pessoa da casa fez a sua listinha, e elas ficaram num array de arrays. Use <code>flat</code> para juntar tudo num array só e <code>join</code> para mostrar os itens separados por vírgula e espaço: <code>pão, leite, café, queijo, pão</code>.</p>
+<pre class="script" data-file="main.js">const listas = [["pão", "leite"], ["café"], ["queijo", "pão"]];
+const tudo = listas;
+console.log(tudo.join(", "));
+</pre>
+<pre class="solucao" data-file="main.js">const listas = [["pão", "leite"], ["café"], ["queijo", "pão"]];
+const tudo = listas.flat();
+console.log(tudo.join(", "));
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>pão, leite, café, queijo, pão</code>. Repare que o código inicial mostra <code>pão,leite, café, queijo,pão</code>: o <code>join</code> transforma cada array de dentro em texto com vírgula sem espaço. O <code>pão</code> aparece duas vezes; para tirar repetidos, existe o <a href="set.html">Set</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>some</code>: "pelo menos um passa?"; <code>every</code>: "todos passam?". Os dois devolvem <code>true</code>/<code>false</code> e param assim que sabem a resposta. Num array vazio, <code>some</code> dá <code>false</code> e <code>every</code> dá <code>true</code>.</li>
+  <li><code>join(sep)</code> cola os itens num texto; o separador vai só entre os itens.</li>
+  <li><code>concat</code> e o spread <code>[...a, ...b]</code> juntam arrays num novo.</li>
+  <li><code>flat(n)</code> achata arrays de arrays; <code>flatMap</code> é um <code>map</code> seguido de <code>flat()</code>.</li>
+  <li><code>new Array(n).fill(v)</code> e <code>Array.from({ length: n }, f)</code> criam arrays preenchidos. Para preencher com arrays ou objetos, use <code>Array.from</code> com função, nunca <code>fill([])</code>.</li>
+  <li><code>Array.isArray(x)</code> responde se <code>x</code> é array (o <code>typeof</code> diz só <code>"object"</code>).</li>
+  <li><code>with(i, v)</code> devolve uma cópia com um item trocado, sem mexer no original.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
