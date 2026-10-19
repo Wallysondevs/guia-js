@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Rodando um Programa — node arquivo.js | Guia JavaScript</title>
+<meta name="description" content="Como rodar um programa JavaScript no terminal com node arquivo.js, para quem nunca programou: criar a pasta e o arquivo, salvar, rodar, a pasta atual e os caminhos, a ordem de execução, erro de sintaxe × erro durante a execução, o código de saída, node --check, o shebang, node -e e node -p, e os erros reais do Node.js 24 explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Rodando um Programa (node arquivo.js)</span></h1>
+
+<p class="intro">Com o Node.js instalado (aula <a href="instalar.html">Instalar o Node.js</a>), chegou a hora de rodar o seu primeiro arquivo. O caminho é sempre o mesmo: <strong>escrever</strong> o programa num arquivo <code>.js</code>, <strong>salvar</strong> e, no terminal, digitar <code>node</code> seguido do nome do arquivo. Esta aula mostra cada passo, o que acontece por dentro quando o Node.js roda o arquivo, e o que fazer quando ele não acha o arquivo ou para no meio.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A criar uma pasta para os seus programas e um arquivo <code>.js</code> dentro dela.</li>
+  <li>A rodar com <code>node arquivo.js</code>, e por que a <strong>pasta atual</strong> importa.</li>
+  <li>Que o Node.js primeiro <strong>confere</strong> a escrita do arquivo inteiro e só depois executa, de cima para baixo.</li>
+  <li>A diferença entre um erro de escrita (nada roda) e um erro durante a execução (roda até a linha do erro).</li>
+  <li>O <strong>código de saída</strong> (<code>echo $?</code>) e o <code>node --check</code>.</li>
+  <li>Outras formas de rodar: o arquivo como comando (<code>#!/usr/bin/env node</code>), <code>node -e</code>, <code>node -p</code> e o "cano".</li>
+  <li>Os erros reais: <code>Cannot find module</code>, <code>comando não encontrado</code>, <code>Permissão negada</code>, e o <code>node arquivo.js</code> digitado no lugar errado.</li>
+</ul>
+</div>
+
+<p>Todas as transcrições foram feitas com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>, Ubuntu). No Windows e no macOS, os comandos <code>node</code> são os mesmos; mudam só os comandos de pasta.</p>
+
+<hr>
+
+<h2>A ideia: a receita e o cozinheiro</h2>
+<p>Você escreve a receita num papel (o <strong>arquivo</strong> <code>.js</code>), guarda o papel numa gaveta (a <strong>pasta</strong>) e chama o cozinheiro (o <strong>Node.js</strong>) dizendo qual papel ele deve seguir. Se você disser o nome de um papel que não está naquela gaveta, ele não acha. E, antes de começar a cozinhar, ele lê a receita inteira: se uma frase estiver ilegível, ele nem liga o fogão.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No terminal</th></tr>
+<tr><td>O papel com a receita</td><td>O arquivo <code>ola.js</code></td></tr>
+<tr><td>A gaveta onde o papel está</td><td>A pasta, por exemplo <code>/home/ana/js</code></td></tr>
+<tr><td>"Cozinheiro, siga a receita ola!"</td><td><code>node ola.js</code></td></tr>
+<tr><td>O prato pronto</td><td>A saída que aparece no terminal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Uma pasta para os seus programas</h2>
+<p>Para não espalhar arquivos pelo computador, a Ana criou uma pasta só para os programas do guia, chamada <code>js</code>, e entrou nela:</p>
+
+<pre class="term">$ mkdir js
+$ cd js
+$ pwd
+/home/ana/js
+</pre>
+
+<dl class="anatomy">
+  <dt>mkdir js</dt><dd><em>make directory</em>, "criar pasta": cria a pasta <code>js</code> dentro da pasta onde você está (a pasta pessoal da Ana, <code>/home/ana</code>).</dd>
+  <dt>cd js</dt><dd><em>change directory</em>, "mudar de pasta": entra na pasta <code>js</code>. A partir daqui, ela é a <strong>pasta atual</strong>.</dd>
+  <dt>pwd</dt><dd><em>print working directory</em>, "mostrar a pasta de trabalho": confirma onde você está.</dd>
+</dl>
+
+<p>No Windows (PowerShell), os comandos <code>mkdir</code> e <code>cd</code> funcionam do mesmo jeito; no lugar do <code>pwd</code>, o caminho aparece no próprio prompt. Se você não conhece o terminal, os guias de <a href="https://wallysondevs.github.io/guia-bash/">Bash</a> e de <a href="https://wallysondevs.github.io/guia-ubuntu/">Ubuntu</a> começam do zero.</p>
+
+<hr>
+
+<h2>2. Escrevendo o arquivo</h2>
+<p>Abra um editor de código (o VS Code, ou o <code>nano</code>, que já vem no Ubuntu; veja <a href="instalar.html">Instalar o Node.js</a>) e crie o arquivo <code>ola.js</code> dentro da pasta <code>js</code>. Com o <code>nano</code>, pelo terminal:</p>
+
+<pre class="file" data-file="terminal">nano ola.js
+</pre>
+
+<p>O <code>nano</code> abre uma tela de edição. Digite as duas linhas abaixo e salve: <kbd>Ctrl</kbd>+<kbd>O</kbd> (de <em>output</em>, "gravar"), <kbd>Enter</kbd> para confirmar o nome, e <kbd>Ctrl</kbd>+<kbd>X</kbd> para sair.</p>
+
+<pre class="file" data-file="ola.js">console.log("Olá, mundo!");
+console.log("Meu nome é Ana.");
+</pre>
+
+<p>De volta ao terminal, a Ana conferiu que o arquivo existe (<code>ls</code>, "listar") e o que tem dentro dele (<code>cat</code>, que mostra um arquivo de texto):</p>
+
+<pre class="term">$ ls
+ola.js
+$ cat ola.js
+console.log("Olá, mundo!");
+console.log("Meu nome é Ana.");
+</pre>
+
+<div class="tip">
+<strong>O nome do arquivo</strong>
+<p>Termine sempre com <code>.js</code>. Prefira letras minúsculas, sem espaços e sem acentos: <code>ola.js</code>, <code>lista-compras.js</code>. No Linux, <code>ola.js</code> e <code>Ola.js</code> são arquivos <strong>diferentes</strong>.</p>
+</div>
+
+<hr>
+
+<h2>3. Rodando: <code>node ola.js</code></h2>
+
+<pre class="term">$ node ola.js
+Olá, mundo!
+Meu nome é Ana.
+</pre>
+
+<dl class="anatomy">
+  <dt>node</dt><dd>O programa Node.js: "rode este JavaScript".</dd>
+  <dt>ola.js</dt><dd>O arquivo que ele deve rodar, procurado na <strong>pasta atual</strong>.</dd>
+  <dt>As linhas de baixo</dt><dd>A saída: cada <code>console.log</code> escreveu uma linha, na ordem do arquivo. Quando o programa termina, o prompt <code>$</code> volta, pronto para outro comando.</dd>
+</dl>
+
+<p>Você pode rodar o mesmo arquivo quantas vezes quiser: mude o texto no editor, <strong>salve</strong> e rode <code>node ola.js</code> de novo. (Se a saída não mudou, quase sempre você esqueceu de salvar.)</p>
+
+<p>O Node.js até aceita o nome sem o <code>.js</code>: se não acha um arquivo chamado exatamente <code>ola</code>, ele tenta <code>ola.js</code>. Mas escreva sempre o nome completo; é mais claro e é o que você vai ver em todo lugar.</p>
+
+<pre class="term">$ node ola
+Olá, mundo!
+Meu nome é Ana.
+</pre>
+
+<h3>No editor do guia é a mesma coisa</h3>
+<p>Cada caixa "Experimente" é um arquivo <code>main.js</code>; o botão <strong>Rodar</strong> faz o papel do <code>node main.js</code>, e a saída aparece embaixo, como no terminal (aula <a href="simulador.html">O Editor do Guia</a>).</p>
+
+<div class="tryjs" data-goal="out:Estou aprendendo JavaScript.;;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente uma terceira linha que mostre <code>Estou aprendendo JavaScript.</code> e clique em Rodar.</p>
+<pre class="script" data-file="main.js">console.log("Olá, mundo!");
+console.log("Meu nome é Ana.");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Olá, mundo!");
+console.log("Meu nome é Ana.");
+console.log("Estou aprendendo JavaScript.");
+</pre>
+</div>
+
+<hr>
+
+<h2>4. A pasta atual e os caminhos</h2>
+<p>O <code>node ola.js</code> procura o <code>ola.js</code> na <strong>pasta atual</strong>. Se você estiver em outra pasta, precisa dizer o <strong>caminho</strong> até o arquivo. Aqui a Ana voltou para a pasta pessoal (<code>cd ~</code>; o <code>~</code> é um atalho para <code>/home/ana</code>):</p>
+
+<pre class="term">$ cd ~
+$ node js/ola.js
+Olá, mundo!
+Meu nome é Ana.
+$ node ./js/ola.js
+Olá, mundo!
+Meu nome é Ana.
+</pre>
+
+<p><code>js/ola.js</code> quer dizer "dentro da pasta <code>js</code>, o arquivo <code>ola.js</code>". O <code>./</code> na frente significa "a partir daqui" e não muda nada, mas você vai vê-lo bastante. E se ela tivesse digitado só <code>node ola.js</code> na pasta pessoal? O Node.js não acha o arquivo; a mensagem está em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>5. Primeiro ele confere, depois executa de cima para baixo</h2>
+<p>Quando você roda <code>node arquivo.js</code>, o Node.js faz duas coisas, nesta ordem:</p>
+<ol class="passo">
+  <li><strong>Lê o arquivo inteiro e confere a escrita</strong> (a <strong>sintaxe</strong>): parênteses que abrem e fecham, aspas que fecham, palavras no lugar certo. Se algo estiver mal escrito, ele para aqui, com um <code>SyntaxError</code>, e <strong>nenhuma</strong> linha roda.</li>
+  <li><strong>Executa</strong> as instruções, <strong>de cima para baixo</strong>, uma de cada vez. Se uma delas der problema (um nome que não existe, por exemplo), ele para <strong>nessa</strong> linha: as de cima já rodaram, as de baixo não rodam mais.</li>
+</ol>
+
+<h3>Um erro durante a execução</h3>
+<p>A Ana escreveu <code>consol</code>, sem o <code>e</code>, na linha 3:</p>
+
+<pre class="file" data-file="lista.js">console.log("Lista de compras:");
+console.log("1. pão");
+consol.log("2. leite");
+console.log("3. café");
+</pre>
+
+<pre class="term">$ node lista.js
+Lista de compras:
+1. pão
+/home/ana/js/lista.js:3
+consol.log("2. leite");
+^
+
+ReferenceError: consol is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/js/lista.js:3:1)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas: são do próprio Node
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+
+<p>As linhas 1 e 2 rodaram (aparecem "Lista de compras:" e "1. pão"). Na linha 3, o Node.js procurou algo chamado <code>consol</code>, não achou e parou com um <code>ReferenceError</code> ("erro de referência": "<code>consol</code> não está definido"). A linha 4 nunca rodou. A mensagem diz exatamente onde: arquivo <code>/home/ana/js/lista.js</code>, linha <code>3</code>, coluna <code>1</code> (o <code>:3:1</code> do <code>at</code>).</p>
+
+<div class="tryjs" data-goal="out:2. leite;;out:3. café;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode e veja a lista parar no meio. Conserte a linha com erro para a lista sair inteira.</p>
+<pre class="script" data-file="main.js">console.log("Lista de compras:");
+console.log("1. pão");
+consol.log("2. leite");
+console.log("3. café");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Lista de compras:");
+console.log("1. pão");
+console.log("2. leite");
+console.log("3. café");
+</pre>
+</div>
+
+<h3>Um erro de escrita: nada roda</h3>
+<p>Agora a Ana esqueceu de fechar o parêntese, também na linha 3:</p>
+
+<pre class="file" data-file="lista2.js">console.log("Lista de compras:");
+console.log("1. pão");
+console.log("2. leite";
+console.log("3. café");
+</pre>
+
+<pre class="term">$ node lista2.js
+/home/ana/js/lista2.js:3
+console.log("2. leite";
+            ^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Repare: desta vez <strong>nem a linha 1 apareceu</strong>. O erro está na linha 3, mas foi achado na conferência, antes de qualquer coisa rodar. <code>SyntaxError: missing ) after argument list</code> é "erro de sintaxe: faltou <code>)</code> depois da lista de argumentos". Os <code>^^^^^^^^^^</code> sublinham o trecho onde o parêntese deveria ter fechado. E não há <code>at Object.&lt;anonymous&gt;</code> com o seu arquivo, porque o seu código nem começou.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de escrita (<code>SyntaxError</code>)</th><th>Erro durante a execução (<code>ReferenceError</code>, <code>TypeError</code>…)</th></tr>
+<tr><td>Quando é achado</td><td>Na conferência, antes de rodar</td><td>Quando a linha com problema é executada</td></tr>
+<tr><td>O que roda</td><td>Nada</td><td>Tudo o que vem antes da linha do erro</td></tr>
+<tr><td>Exemplo</td><td>Parêntese ou aspa sem fechar</td><td>Nome escrito errado</td></tr>
+</table>
+</div>
+
+<h3>O código de saída</h3>
+<p>Todo programa, ao terminar, entrega ao terminal um número: o <strong>código de saída</strong>. O terminal guarda o do último comando em <code>$?</code>, e o <code>echo $?</code> mostra:</p>
+
+<pre class="term">$ node ola.js
+Olá, mundo!
+Meu nome é Ana.
+$ echo $?
+0
+</pre>
+
+<p><code>0</code> quer dizer "terminou bem". Quando um erro derruba o programa, o Node.js termina com <code>1</code> (você viu acima, depois do <code>consol</code>). Isso é útil para ferramentas que rodam programas automaticamente: elas olham esse número para saber se deu certo. Mais adiante no guia, você vai aprender a escolher esse número com <code>process.exit()</code>.</p>
+
+<h3>Só conferir, sem rodar: <code>node --check</code></h3>
+<p>O <code>node --check</code> (ou <code>node -c</code>) faz só o passo 1: confere a escrita e não executa nada. Se estiver tudo certo, não mostra nada:</p>
+
+<pre class="term">$ node --check lista2.js
+/home/ana/js/lista2.js:3
+console.log("2. leite";
+            ^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at checkSyntax (node:internal/main/check_syntax:88:3)
+
+Node.js v24.22.0
+$ node --check ola.js
+$ echo $?
+0
+</pre>
+
+<p>Repare que o <code>--check</code> <strong>não</strong> pega o <code>consol</code> do <code>lista.js</code>: escrever um nome errado não é erro de escrita. Esse tipo de erro só aparece rodando.</p>
+
+<hr>
+
+<h2 id="comando">6. Rodando o arquivo como um comando</h2>
+<p>No Linux e no macOS, dá para rodar um arquivo <code>.js</code> sem digitar <code>node</code> na frente, como se fosse um comando. São duas coisas. Primeiro, a linha <code>#!/usr/bin/env node</code> no topo do arquivo:</p>
+
+<pre class="file" data-file="padaria.js">#!/usr/bin/env node
+console.log("Padaria aberta!");
+</pre>
+
+<dl class="anatomy">
+  <dt>#!</dt><dd>O <strong>shebang</strong> (de <em>hash</em> + <em>bang</em>, os nomes em inglês do <code>#</code> e do <code>!</code>): diz ao sistema qual programa deve ler este arquivo. Só vale na <strong>primeira linha</strong>.</dd>
+  <dt>/usr/bin/env node</dt><dd>"Procure o <code>node</code> onde ele estiver instalado e use-o". Assim funciona tanto com o Node.js do nvm quanto com o oficial.</dd>
+</dl>
+
+<p>Depois, dê ao arquivo a permissão de ser executado, com <code>chmod +x</code> (<em>change mode</em>, "mudar permissões"; <code>+x</code> = "pode executar"), e chame com <code>./</code> na frente:</p>
+
+<pre class="term">$ chmod +x padaria.js
+$ ./padaria.js
+Padaria aberta!
+$ node padaria.js
+Padaria aberta!
+</pre>
+
+<p>O <code>node padaria.js</code> continua funcionando: o Node.js ignora a linha do shebang. É assim que são feitas muitas ferramentas de terminal em JavaScript. No Windows, o shebang não tem efeito; lá, use sempre <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>7. Outras formas de rodar</h2>
+
+<h3><code>node -e</code>: uma linha, sem arquivo</h3>
+<p>O <code>-e</code> (de <em>eval</em>, "avaliar") roda o código que vem entre aspas, sem criar arquivo nenhum:</p>
+<pre class="term">$ node -e 'console.log("Bom dia, Ana!")'
+Bom dia, Ana!
+</pre>
+<p>Repare nas aspas: as <strong>simples</strong> de fora são para o terminal (marcam onde o código começa e termina); as <strong>duplas</strong> de dentro são do JavaScript.</p>
+
+<h3><code>node -p</code>: calcula e mostra</h3>
+<p>O <code>-p</code> (de <em>print</em>, "mostrar") faz o mesmo que o <code>-e</code> e ainda mostra o resultado, sem precisar de <code>console.log</code>. Vira uma calculadora de bolso:</p>
+<pre class="term">$ node -p '2 + 3'
+5
+$ node -p '"pão".toUpperCase()'
+PÃO
+</pre>
+
+<h3>O programa vem pelo "cano"</h3>
+<p>Se você não der nome de arquivo, o <code>node</code> lê o programa da entrada. Com a barra <code>|</code> (o "cano"), a saída de um comando vira a entrada do outro:</p>
+<pre class="term">$ echo 'console.log("veio pelo cano")' | node
+veio pelo cano
+</pre>
+<p>Cuidado: o <code>node</code> sozinho, digitado no terminal, <strong>sem</strong> cano, abre o modo interativo, com o prompt <code>&gt;</code>. Esse é o assunto da próxima aula: <a href="repl.html">O Modo Interativo do Node</a>.</p>
+
+<hr>
+
+<h2>Formas diferentes de rodar JavaScript no terminal</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Arquivo</td><td><code>node ola.js</code></td><td>Sempre que o programa tem mais de uma linha. É o jeito deste guia</td></tr>
+<tr><td>Arquivo em outra pasta</td><td><code>node js/ola.js</code></td><td>Quando você não está na pasta do arquivo</td></tr>
+<tr><td>Arquivo como comando</td><td><code>./padaria.js</code> (com shebang e <code>chmod +x</code>)</td><td>Ferramentas que você usa sempre (Linux e macOS)</td></tr>
+<tr><td>Uma linha</td><td><code>node -e 'console.log(1)'</code></td><td>Um teste rapidíssimo</td></tr>
+<tr><td>Uma conta</td><td><code>node -p '2 + 3'</code></td><td>Calculadora de bolso</td></tr>
+<tr><td>Modo interativo</td><td><code>node</code></td><td>Experimentar várias linhas, uma de cada vez (aula <a href="repl.html">O Modo Interativo</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Rodando na pasta errada: <code>Cannot find module</code></strong>
+<pre class="term">$ cd ~
+$ node ola.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module '/home/ana/ola.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    «  mais 6 linhas "at … (node:internal/…)" cortadas
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.22.0
+</pre>
+<p>A Ana voltou para a pasta pessoal e esqueceu que o <code>ola.js</code> está dentro de <code>js</code>. Vamos ler:</p>
+<dl class="anatomy">
+  <dt>node:internal/modules/cjs/loader:1568, throw err; e o ^</dt><dd>Desta vez, o arquivo e a linha do topo <strong>não são seus</strong>: são do próprio Node.js, do pedaço que carrega os arquivos. É um sinal de que o problema aconteceu antes de o seu programa começar.</dd>
+  <dt>Error: Cannot find module '/home/ana/ola.js'</dt><dd>"Não foi possível encontrar o módulo <code>/home/ana/ola.js</code>". Para o Node.js, cada arquivo <code>.js</code> é um <strong>módulo</strong>. O caminho mostra <strong>onde</strong> ele procurou: na pasta pessoal, e não em <code>/home/ana/js</code>.</dd>
+  <dt>code: 'MODULE_NOT_FOUND'</dt><dd>O código do erro, "módulo não encontrado": um nome fixo, em inglês, bom para pesquisar na internet. O <code>requireStack: []</code> pode ignorar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> entre na pasta certa (<code>cd js</code>) ou diga o caminho (<code>node js/ola.js</code>). Na dúvida, <code>pwd</code> mostra onde você está e <code>ls</code> mostra os arquivos daí.</p>
+</div>
+
+<div class="cenario">
+<strong>O nome com outra maiúscula</strong>
+<pre class="term">$ node Ola.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module '/home/ana/js/Ola.js'
+    «  7 linhas "at … (node:internal/…)" cortadas
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.22.0
+</pre>
+<p>A pasta estava certa, mas o arquivo se chama <code>ola.js</code>, com <code>o</code> minúsculo. No Linux, <code>Ola.js</code> é outro nome. <strong>Como consertar:</strong> confira o nome com <code>ls</code> e copie exatamente. Dica: digite <code>node o</code> e aperte <kbd>Tab</kbd>; o terminal completa o nome do arquivo sozinho.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo que virou <code>.js.txt</code></strong>
+<pre class="term">$ ls
+recado.js.txt
+$ node recado.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module '/home/ana/win/recado.js'
+    «  7 linhas "at … (node:internal/…)" cortadas
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.22.0
+</pre>
+<p>Acontece muito no Windows: o Bloco de Notas salva <code>recado.js</code> como <code>recado.js.txt</code>, e o Explorador de Arquivos esconde o <code>.txt</code>, então parece que está tudo certo. O <code>ls</code> (ou o <code>dir</code>, no Windows) mostra o nome verdadeiro. <strong>Como consertar:</strong> renomeie para <code>recado.js</code> (no Bloco de Notas, salve escolhendo "Todos os arquivos" no tipo) ou use um editor de código, como o VS Code.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>node</code> na frente</strong>
+<pre class="term">$ ola.js
+ola.js: comando não encontrado
+$ ./ola.js
+bash: ./ola.js: Permissão negada
+</pre>
+<p>Sem o <code>node</code>, o terminal acha que <code>ola.js</code> é o nome de um comando e não encontra nenhum. Com <code>./</code>, ele acha o arquivo, mas o arquivo não tem permissão de ser executado (e nem shebang). <strong>Como consertar:</strong> <code>node ola.js</code>. (Ou, se quiser mesmo usar como comando, a <a href="#comando">seção 6</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>node ola.js</code> digitado dentro do modo interativo</strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; node ola.js
+node ola.js
+     ^^^
+
+Uncaught SyntaxError: Unexpected identifier 'ola'
+&gt; .exit
+</pre>
+<p>A Ana digitou só <code>node</code>, apertou <kbd>Enter</kbd> e caiu no modo interativo (o <code>&gt;</code>). Ali, tudo o que se digita é <strong>JavaScript</strong>, e <code>node ola.js</code> não é JavaScript: é um comando do terminal. O Node.js leu <code>node</code> como um nome e tropeçou no <code>ola</code> ("identificador inesperado <code>ola</code>"). <strong>Como consertar:</strong> saia com <code>.exit</code> (ou <kbd>Ctrl</kbd>+<kbd>D</kbd>) e, de volta ao <code>$</code>, digite <code>node ola.js</code>. A diferença entre o <code>$</code> e o <code>&gt;</code> está em <a href="repl.html">O Modo Interativo</a>.</p>
+</div>
+
+<h3>Missão: a receita fora de ordem</h3>
+<div class="tryjs" data-goal="outre:^1\. Ligue o forno\n2\. Misture os ingredientes\n3\. Asse por 40 minutos\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o Node.js roda de cima para baixo, e a receita saiu bagunçada. Mude a <strong>ordem das linhas</strong> (sem mudar os textos) para os passos saírem 1, 2, 3.</p>
+<pre class="script" data-file="main.js">console.log("2. Misture os ingredientes");
+console.log("3. Asse por 40 minutos");
+console.log("1. Ligue o forno");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("1. Ligue o forno");
+console.log("2. Misture os ingredientes");
+console.log("3. Asse por 40 minutos");
+</pre>
+</div>
+
+<h3>Missão: o parêntese esquecido</h3>
+<div class="tryjs" data-goal="out:Lista de compras da Ana;;out:3. café;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode e repare que nem a primeira linha aparece. Leia a mensagem, ache o parêntese que falta e conserte.</p>
+<pre class="script" data-file="main.js">console.log("Lista de compras da Ana");
+console.log("1. pão");
+console.log("2. leite";
+console.log("3. café");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Lista de compras da Ana");
+console.log("1. pão");
+console.log("2. leite");
+console.log("3. café");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>mkdir js</code> / <code>cd js</code> / <code>pwd</code></td><td>Cria a pasta / entra nela / mostra onde você está</td></tr>
+<tr><td><code>ls</code> / <code>cat ola.js</code></td><td>Lista os arquivos / mostra o conteúdo de um arquivo</td></tr>
+<tr><td><code>node ola.js</code></td><td>Roda o arquivo <code>ola.js</code> da pasta atual</td></tr>
+<tr><td><code>node js/ola.js</code></td><td>Roda o arquivo que está na pasta <code>js</code></td></tr>
+<tr><td><code>echo $?</code></td><td>Mostra o código de saída do último comando (<code>0</code> = deu certo)</td></tr>
+<tr><td><code>node --check ola.js</code></td><td>Só confere a escrita, sem rodar</td></tr>
+<tr><td><code>#!/usr/bin/env node</code> + <code>chmod +x</code></td><td>Deixa rodar com <code>./arquivo.js</code> (Linux, macOS)</td></tr>
+<tr><td><code>node -e 'código'</code> / <code>node -p 'conta'</code></td><td>Roda uma linha / roda e mostra o resultado</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Error: Cannot find module '…'</code></td><td>Pasta errada, nome errado (maiúscula, letra trocada) ou arquivo salvo como <code>.js.txt</code></td></tr>
+<tr><td><code>ola.js: comando não encontrado</code></td><td>Faltou o <code>node</code> na frente</td></tr>
+<tr><td><code>bash: ./ola.js: Permissão negada</code></td><td>Faltou <code>chmod +x</code> (e o shebang); ou use <code>node ola.js</code></td></tr>
+<tr><td><code>SyntaxError: …</code> e nada roda</td><td>Erro de escrita: o arquivo foi recusado antes de rodar</td></tr>
+<tr><td><code>ReferenceError: … is not defined</code> depois de algumas linhas</td><td>Nome errado na linha indicada; as linhas de cima já rodaram</td></tr>
+<tr><td><code>Uncaught SyntaxError: Unexpected identifier</code> depois de <code>&gt; node …</code></td><td>Comando do terminal digitado dentro do modo interativo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Rodar o programa</h3>
+<p>Complete o comando que roda o arquivo <code>compras.js</code> da pasta atual:</p>
+<div class="ex-code">$ <input data-answer="node compras.js" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O shebang</h3>
+<p>Complete a primeira linha de um arquivo que vai rodar como comando:</p>
+<div class="ex-code"><input data-answer="#!/usr/bin/env node" aria-label="primeira linha"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O código de saída</h3>
+<p>Que número o <code>echo $?</code> mostra depois de um programa que terminou <strong>sem</strong> erro?</p>
+<div class="ex-code">Saída: <input data-answer="0" aria-label="código"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Um arquivo tem um <code>console.log</code> certo na linha 1 e um parêntese sem fechar na linha 5. O que aparece ao rodar?</p>
+<label><input type="radio" name="q4"> A linha 1 e depois o erro</label>
+<label><input type="radio" name="q4"> As linhas 1 a 4 e depois o erro</label>
+<label><input type="radio" name="q4"> Só o <code>SyntaxError</code>: nada roda</label>
+<label><input type="radio" name="q4"> Nada, nem mensagem de erro</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. E se, em vez do parêntese, a linha 5 tiver <code>consol.log("oi");</code>?</p>
+<label><input type="radio" name="q5"> Só o erro: nada roda</label>
+<label><input type="radio" name="q5"> As linhas 1 a 4 rodam e depois aparece o <code>ReferenceError</code></label>
+<label><input type="radio" name="q5"> Roda tudo, e a linha 5 é pulada</label>
+<label><input type="radio" name="q5"> O <code>node --check</code> acusaria o erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. A Ana está em <code>/home/ana</code> e o arquivo está em <code>/home/ana/js/ola.js</code>. Qual comando funciona?</p>
+<label><input type="radio" name="q6"> <code>node ola.js</code></label>
+<label><input type="radio" name="q6"> <code>ola.js</code></label>
+<label><input type="radio" name="q6"> <code>node Ola.js</code></label>
+<label><input type="radio" name="q6"> <code>node js/ola.js</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. O que a mensagem <code>Error: Cannot find module '/home/ana/ola.js'</code> quer dizer?</p>
+<label><input type="radio" name="q7"> O Node.js não achou esse arquivo nesse lugar</label>
+<label><input type="radio" name="q7"> O arquivo tem um erro de escrita</label>
+<label><input type="radio" name="q7"> Falta instalar um pacote com o npm</label>
+<label><input type="radio" name="q7"> O Node.js não está instalado</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O caminho de sempre: escreva o arquivo <code>.js</code>, <strong>salve</strong>, e rode com <code>node arquivo.js</code> no terminal.</li>
+  <li>O <code>node</code> procura o arquivo na <strong>pasta atual</strong>; de outra pasta, diga o caminho (<code>node js/ola.js</code>). <code>pwd</code> e <code>ls</code> ajudam a se achar.</li>
+  <li>O Node.js primeiro confere a escrita do arquivo inteiro: com um <code>SyntaxError</code>, nada roda. Depois executa de cima para baixo e, num erro como o <code>ReferenceError</code>, para na linha do erro.</li>
+  <li>O código de saída (<code>echo $?</code>) é <code>0</code> quando dá certo e <code>1</code> quando um erro derruba o programa. <code>node --check</code> só confere a escrita.</li>
+  <li>Com <code>#!/usr/bin/env node</code> na primeira linha e <code>chmod +x</code>, o arquivo roda como comando: <code>./arquivo.js</code>.</li>
+  <li><code>node -e</code> roda uma linha; <code>node -p</code> roda e mostra o resultado; <code>node</code> sozinho abre o modo interativo.</li>
+  <li><code>Cannot find module</code> = pasta ou nome errado (ou <code>.js.txt</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
