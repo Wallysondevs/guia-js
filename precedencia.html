@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Precedência — quem o JavaScript calcula primeiro | Guia JavaScript</title>
+<meta name="description" content="A precedência dos operadores do JavaScript para quem nunca programou: por que 2 + 3 * 4 dá 14, a tabela de prioridades (parênteses, !, **, * / %, + -, comparação, &amp;&amp;, ||, =), a ordem da esquerda para a direita e as exceções (** e =), a média calculada errado, o texto que vira &quot;Total: 23&quot;, o !idade &gt;= 18 e os erros reais do Node.js 24 (-2 ** 2 e ?? misturado com ||).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Precedência dos Operadores</span></h1>
+
+<p class="intro">Quanto é <code>2 + 3 * 4</code>? Se você fizer da esquerda para a direita, dá 20. O JavaScript responde <strong>14</strong>, porque faz a multiplicação primeiro, como você aprendeu na escola. Essa regra de "quem vem primeiro" se chama <strong>precedência</strong> (do latim, "ir na frente"). Nesta aula você vê a ordem completa que o JavaScript segue numa expressão com vários operadores: contas, comparações e os operadores lógicos das aulas anteriores.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é precedência e por que <code>2 + 3 * 4</code> dá 14.</li>
+  <li>A tabela de prioridades: parênteses, <code>!</code>, <code>**</code>, <code>* / %</code>, <code>+ -</code>, comparações, <code>&amp;&amp;</code>, <code>||</code> e, por último, o <code>=</code>.</li>
+  <li>O que acontece quando dois operadores têm a <strong>mesma</strong> prioridade (da esquerda para a direita, com duas exceções: <code>**</code> e <code>=</code>).</li>
+  <li>Como usar parênteses para mandar na ordem, e quando eles são obrigatórios.</li>
+  <li>As pegadinhas reais: a média calculada errado, o <code>"Total: " + 2 + 3</code>, o <code>!idade &gt;= 18</code>, o <code>-2 ** 2</code> e o <code>??</code> misturado com <code>||</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a fila do caixa preferencial</h2>
+<p>Na padaria do bairro, todo mundo entra na fila na ordem em que chegou, <strong>mas</strong> idosos e gestantes têm preferência: são atendidos antes, mesmo tendo chegado depois. Entre duas pessoas do mesmo grupo, vale a ordem de chegada.</p>
+<p>Uma expressão como <code>2 + 3 * 4</code> é uma fila de operadores, e o JavaScript é o caixa:</p>
+<ol class="passo">
+  <li>Ele olha a fila inteira e atende primeiro quem tem <strong>mais prioridade</strong>: o <code>*</code> vem antes do <code>+</code>. Então <code>3 * 4</code> vira <code>12</code>.</li>
+  <li>Sobra <code>2 + 12</code>, que vira <code>14</code>.</li>
+  <li>Entre dois operadores com a <strong>mesma</strong> prioridade (como <code>+</code> e <code>-</code>), vale a ordem de chegada: da esquerda para a direita.</li>
+  <li>Os <strong>parênteses</strong> são o "fura-fila" oficial: o que está dentro deles é sempre feito antes.</li>
+</ol>
+
+<hr>
+
+<h2>1. Contas: a ordem da escola</h2>
+
+<pre class="file" data-file="contas.js">console.log(2 + 3 * 4);
+console.log((2 + 3) * 4);
+console.log(10 - 4 - 3);
+console.log(100 / 10 / 2);
+console.log(2 * 3 ** 2);
+console.log(7 + 10 % 3);
+</pre>
+
+<pre class="term">$ node contas.js
+14
+20
+3
+5
+18
+8
+</pre>
+
+<p>Linha por linha, o que o JavaScript fez:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Passo a passo</th><th>Resultado</th></tr>
+<tr><td><code>2 + 3 * 4</code></td><td><code>*</code> primeiro: <code>2 + 12</code></td><td>14</td></tr>
+<tr><td><code>(2 + 3) * 4</code></td><td>parênteses primeiro: <code>5 * 4</code></td><td>20</td></tr>
+<tr><td><code>10 - 4 - 3</code></td><td>mesma prioridade, da esquerda: <code>6 - 3</code></td><td>3 (e não <code>10 - 1</code> = 9)</td></tr>
+<tr><td><code>100 / 10 / 2</code></td><td>da esquerda: <code>10 / 2</code></td><td>5 (e não <code>100 / 5</code> = 20)</td></tr>
+<tr><td><code>2 * 3 ** 2</code></td><td>a potência (<code>**</code>) antes da multiplicação: <code>2 * 9</code></td><td>18</td></tr>
+<tr><td><code>7 + 10 % 3</code></td><td>o resto (<code>%</code>) tem a prioridade do <code>*</code>: <code>7 + 1</code></td><td>8</td></tr>
+</table>
+</div>
+
+<p>A ordem das contas é a mesma da matemática: <strong>parênteses → potência → multiplicação, divisão e resto → soma e subtração</strong>. Os operadores estão explicados em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+
+<h3>O caso clássico: a média</h3>
+<p>A Ana tirou 7, 8 e 9. A média é a soma dividida por 3. Olhe as duas versões:</p>
+
+<pre class="file" data-file="media.js">const media1 = 7 + 8 + 9 / 3;
+const media2 = (7 + 8 + 9) / 3;
+console.log("Sem parênteses:", media1);
+console.log("Com parênteses:", media2);
+</pre>
+
+<pre class="term">$ node media.js
+Sem parênteses: 18
+Com parênteses: 8
+</pre>
+
+<p>Sem parênteses, o JavaScript dividiu <strong>só o 9</strong> por 3 (a divisão vem antes da soma) e fez <code>7 + 8 + 3</code>. Nenhuma mensagem de erro: a conta está "certa" para o JavaScript, só não é a que a Ana queria. Precedência errada quase nunca dá erro; dá <strong>resultado errado</strong>.</p>
+
+<div class="tryjs" data-goal="out:Média: 8.5;;src:\(">
+<p class="try-task"><strong>Missão:</strong> as notas do Caio foram 6, 9, 8 e 11 (com ponto extra). Este programa calcula a média errado. Ponha os parênteses no lugar certo para aparecer <code>Média: 8.5</code>.</p>
+<pre class="script" data-file="main.js">const media = 6 + 9 + 8 + 11 / 4;
+console.log("Média:", media);
+</pre>
+<pre class="solucao" data-file="main.js">const media = (6 + 9 + 8 + 11) / 4;
+console.log("Média:", media);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A tabela completa (a que importa)</h2>
+<p>As contas são só uma parte. Numa expressão como <code>preco * 2 &gt; 50 &amp;&amp; temCupom</code> há contas, comparação e lógica juntas. A tabela mostra a ordem, <strong>de cima (feito primeiro) para baixo (feito por último)</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Prioridade</th><th>Operadores</th><th>O que são</th><th>Mesma prioridade: de onde começa</th></tr>
+<tr><td>1ª (a maior)</td><td><code>( … )</code></td><td>Parênteses</td><td>—</td></tr>
+<tr><td>2ª</td><td><code>!</code> <code>-x</code> <code>+x</code> <code>typeof</code> <code>++x</code> <code>--x</code></td><td>Operadores de um valor só: NÃO, sinal de menos, <a href="typeof.html">typeof</a>, <a href="incremento.html">incremento</a></td><td>—</td></tr>
+<tr><td>3ª</td><td><code>**</code></td><td>Potência</td><td><strong>da direita</strong></td></tr>
+<tr><td>4ª</td><td><code>*</code> <code>/</code> <code>%</code></td><td>Multiplicação, divisão, resto</td><td>da esquerda</td></tr>
+<tr><td>5ª</td><td><code>+</code> <code>-</code></td><td>Soma (e junção de textos), subtração</td><td>da esquerda</td></tr>
+<tr><td>6ª</td><td><code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code></td><td>Comparação de tamanho</td><td>da esquerda</td></tr>
+<tr><td>7ª</td><td><code>===</code> <code>!==</code> <code>==</code> <code>!=</code></td><td>Igualdade</td><td>da esquerda</td></tr>
+<tr><td>8ª</td><td><code>&amp;&amp;</code></td><td>E</td><td>da esquerda</td></tr>
+<tr><td>9ª</td><td><code>||</code> <code>??</code></td><td>OU, e o "se faltar" (<a href="optional-chaining.html">??</a>)</td><td>da esquerda</td></tr>
+<tr><td>10ª</td><td><code>? :</code></td><td>O <a href="ternario.html">ternário</a></td><td>da direita</td></tr>
+<tr><td>11ª (a menor)</td><td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> …</td><td><a href="atribuicao.html">Atribuição</a></td><td><strong>da direita</strong></td></tr>
+</table>
+</div>
+
+<p>Você não precisa decorar a tabela. Repare só na lógica dela, que é a ordem natural de uma pergunta:</p>
+<ol class="passo">
+  <li><strong>Calcula</strong> os valores (contas);</li>
+  <li><strong>compara</strong> os resultados (<code>&gt;</code>, <code>===</code>), o que dá <code>true</code>/<code>false</code>;</li>
+  <li><strong>junta</strong> as respostas (<code>&amp;&amp;</code> antes do <code>||</code>);</li>
+  <li>e só no fim <strong>guarda</strong> o resultado na variável (<code>=</code>).</li>
+</ol>
+
+<p>É por isso que <code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code>, da aula <a href="operadores-logicos.html">Operadores Lógicos</a>, funciona sem parênteses: as comparações são feitas antes do <code>&amp;&amp;</code>. Veja uma expressão grande sendo resolvida:</p>
+
+<pre class="file" data-file="cupom.js">const preco = 30;
+const temCupom = true;
+const ganhaBrinde = preco * 2 &gt; 50 &amp;&amp; temCupom;
+console.log("Ganha brinde?", ganhaBrinde);
+console.log(1 + 2 === 3);
+</pre>
+
+<pre class="term">$ node cupom.js
+Ganha brinde? true
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>O que sobrou</th><th>Por quê</th></tr>
+<tr><td>início</td><td><code>preco * 2 &gt; 50 &amp;&amp; temCupom</code></td><td></td></tr>
+<tr><td>1</td><td><code>60 &gt; 50 &amp;&amp; temCupom</code></td><td><code>*</code> tem a maior prioridade da fila</td></tr>
+<tr><td>2</td><td><code>true &amp;&amp; temCupom</code></td><td>depois, a comparação</td></tr>
+<tr><td>3</td><td><code>true &amp;&amp; true</code> → <code>true</code></td><td>o <code>&amp;&amp;</code> vem por último</td></tr>
+<tr><td>4</td><td><code>ganhaBrinde</code> recebe <code>true</code></td><td>o <code>=</code> é sempre o último de todos</td></tr>
+</table>
+</div>
+
+<p>A segunda linha, <code>1 + 2 === 3</code>, segue a mesma regra: primeiro a soma (<code>3 === 3</code>), depois a comparação.</p>
+
+<hr>
+
+<h2>3. <code>&amp;&amp;</code> antes de <code>||</code></h2>
+<p>Este é o ponto da tabela que mais confunde. O <code>&amp;&amp;</code> tem prioridade maior que o <code>||</code>, do mesmo jeito que o <code>*</code> tem prioridade maior que o <code>+</code>. No parque, a montanha-russa aceita quem tem 12 anos ou mais <strong>ou</strong> quem está com um adulto, e em qualquer caso exige 1,40 m:</p>
+
+<pre class="file" data-file="parque.js">const idade = 15;
+const comAdulto = false;
+const altura = 1.2;
+
+const errado = idade &gt;= 12 || comAdulto &amp;&amp; altura &gt;= 1.4;
+const certo = (idade &gt;= 12 || comAdulto) &amp;&amp; altura &gt;= 1.4;
+console.log("Sem parênteses:", errado);
+console.log("Com parênteses:", certo);
+</pre>
+
+<pre class="term">$ node parque.js
+Sem parênteses: true
+Com parênteses: false
+</pre>
+
+<p>O menino tem 15 anos mas só 1,20 m: não pode entrar. Sem parênteses, o JavaScript leu <code>idade &gt;= 12 || (comAdulto &amp;&amp; altura &gt;= 1.4)</code>, isto é, "tem 12 anos, <strong>ou</strong> então está com adulto e tem altura". Como ele tem 15 anos, entrou, sem ninguém medir a altura. Com os parênteses, a exigência de altura vale para todo mundo.</p>
+
+<div class="tip">
+<strong>A regra prática</strong>
+<p>Misturou <code>&amp;&amp;</code> com <code>||</code> na mesma expressão? <strong>Ponha parênteses</strong>, mesmo quando a ordem natural já é a que você quer. Quem ler o código depois (inclusive você) não vai precisar lembrar da tabela.</p>
+</div>
+
+<hr>
+
+<h2>4. Mesma prioridade: esquerda ou direita?</h2>
+<p>Quase todos os operadores de mesma prioridade são feitos <strong>da esquerda para a direita</strong>, como você viu em <code>10 - 4 - 3</code>. Duas exceções importantes vão <strong>da direita para a esquerda</strong>:</p>
+
+<pre class="file" data-file="direita.js">console.log(2 ** 3 ** 2);
+console.log((2 ** 3) ** 2);
+
+let a;
+let b;
+a = b = 5;
+console.log(a, b);
+</pre>
+
+<pre class="term">$ node direita.js
+512
+64
+5 5
+</pre>
+
+<dl class="anatomy">
+  <dt>2 ** 3 ** 2</dt><dd>A potência começa pela direita: primeiro <code>3 ** 2</code> = 9, depois <code>2 ** 9</code> = 512. É a mesma convenção da matemática para "torre de expoentes". Se quiser o outro jeito, parênteses: <code>(2 ** 3) ** 2</code> = 8² = 64.</dd>
+  <dt>a = b = 5</dt><dd>A atribuição também começa pela direita: primeiro <code>b = 5</code>, e o resultado disso (o próprio 5) vai para <code>a</code>. Funciona, mas encadear atribuições deixa o código difícil de ler; prefira uma linha para cada variável.</dd>
+</dl>
+
+<hr>
+
+<h2>5. Textos: o <code>+</code> que junta</h2>
+<p>O <code>+</code> também junta textos (veja <a href="strings.html">Strings</a>), e aí a ordem da esquerda para a direita faz muita diferença:</p>
+
+<pre class="file" data-file="textos.js">console.log("Total: " + 2 + 3);
+console.log("Total: " + (2 + 3));
+console.log(2 + 3 + " pães");
+console.log("Pães: " + 2 * 3);
+</pre>
+
+<pre class="term">$ node textos.js
+Total: 23
+Total: 5
+5 pães
+Pães: 6
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>O que aconteceu</th></tr>
+<tr><td><code>"Total: " + 2 + 3</code></td><td>Da esquerda: <code>"Total: " + 2</code> vira o texto <code>"Total: 2"</code>; depois <code>"Total: 2" + 3</code> gruda o 3: <code>"Total: 23"</code></td></tr>
+<tr><td><code>"Total: " + (2 + 3)</code></td><td>Os parênteses fazem a conta primeiro: <code>"Total: " + 5</code></td></tr>
+<tr><td><code>2 + 3 + " pães"</code></td><td>Da esquerda: <code>2 + 3</code> = 5 (dois números, é conta), depois <code>5 + " pães"</code></td></tr>
+<tr><td><code>"Pães: " + 2 * 3</code></td><td>O <code>*</code> tem prioridade: <code>2 * 3</code> = 6 antes de juntar</td></tr>
+</table>
+</div>
+
+<p>Para não depender disso, a aula <a href="template-strings.html">Template Strings</a> mostra um jeito mais seguro de pôr contas dentro de textos: <code>`Total: ${2 + 3}`</code>.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> antes de clicar em Rodar, tente adivinhar cada resultado. Depois, invente as suas expressões, com e sem parênteses.</p>
+<pre class="script" data-file="main.js">console.log(10 + 2 * 5);
+console.log((10 + 2) * 5);
+console.log(20 - 5 - 5);
+console.log("Idade: " + 30 + 1);
+console.log(3 &gt; 2 &amp;&amp; 2 &gt; 1);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quando uma expressão fica comprida, há três jeitos de escrevê-la. Os três dão o mesmo resultado; mudam na facilidade de ler.</p>
+
+<pre class="file" data-file="formas.js">const preco = 12;
+const quantidade = 3;
+const frete = 10;
+
+// 1. Confiando na tabela de prioridades
+const total1 = preco * quantidade + frete;
+
+// 2. Com parênteses "de enfeite", que deixam a ordem visível
+const total2 = (preco * quantidade) + frete;
+
+// 3. Em partes, com nomes
+const subtotal = preco * quantidade;
+const total3 = subtotal + frete;
+
+console.log(total1, total2, total3);
+</pre>
+
+<pre class="term">$ node formas.js
+46 46 46
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Conta simples e conhecida da escola (<code>a * b + c</code>)</td><td>Sem parênteses: a ordem da matemática todo mundo conhece</td></tr>
+<tr><td>A ordem natural <strong>não</strong> é a que você quer (média, soma antes da multiplicação)</td><td>Parênteses obrigatórios: <code>(a + b) / 2</code></td></tr>
+<tr><td>Mistura de <code>&amp;&amp;</code> com <code>||</code>, ou de <code>??</code> com qualquer um dos dois</td><td>Parênteses sempre</td></tr>
+<tr><td>Expressão longa, com várias etapas</td><td>Divida em variáveis com nomes (<code>subtotal</code>, <code>desconto</code>…)</td></tr>
+<tr><td>Conta dentro de um texto</td><td>Template string: <code>`Total: ${a + b}`</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>!</code> pegou só a variável: <code>!idade &gt;= 18</code></strong>
+<pre class="file" data-file="nao.js">const idade = 20;
+console.log(!idade &gt;= 18);
+console.log(!(idade &gt;= 18));
+</pre>
+<pre class="term">$ node nao.js
+false
+false
+</pre>
+<p>A Ana queria perguntar "a idade <strong>não</strong> é 18 ou mais?". As duas linhas deram <code>false</code>, mas por motivos diferentes, e a primeira está errada por acaso. O <code>!</code> tem prioridade alta (2ª da tabela), então a primeira linha fez <code>!idade</code> primeiro: <code>!20</code> é <code>false</code>. Depois comparou <code>false &gt;= 18</code>; o <code>false</code> vira 0, e <code>0 &gt;= 18</code> é <code>false</code>. Com <code>idade = 10</code>, a primeira linha continuaria dando <code>false</code> (e a certa, <code>true</code>): a primeira linha dá <code>false</code> para <strong>qualquer</strong> idade diferente de zero. <strong>Como consertar:</strong> <code>!(idade &gt;= 18)</code>, ou, mais simples, <code>idade &lt; 18</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>-2 ** 2</code>: o JavaScript se recusa a adivinhar</strong>
+<pre class="file" data-file="potencia.js">const resultado = -2 ** 2;
+console.log(resultado);
+</pre>
+<pre class="term">$ node potencia.js
+/home/ana/potencia.js:1
+const resultado = -2 ** 2;
+                  ^^^^^
+
+SyntaxError: Unary operator used immediately before exponentiation expression. Parenthesis must be used to disambiguate operator precedence
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/potencia.js:1</dt><dd>O arquivo e a linha do problema: a linha 1.</dd>
+  <dt>const resultado = -2 ** 2;</dt><dd>A linha copiada.</dd>
+  <dt>^^^^^</dt><dd>As setinhas embaixo de <code>-2 **</code>: o trecho que o JavaScript não aceita.</dd>
+  <dt>SyntaxError: Unary operator used immediately before exponentiation expression. Parenthesis must be used to disambiguate operator precedence</dt><dd>"Erro de sintaxe: operador de um valor só (o <code>-</code>) usado logo antes de uma potência. É preciso usar parênteses para tirar a dúvida sobre a precedência." Em matemática, −2² costuma querer dizer −(2²) = −4; mas há quem leia (−2)² = 4. Em vez de escolher, o JavaScript <strong>obriga</strong> você a dizer.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Caminho por dentro do Node; pode ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>Como é um erro de sintaxe, nenhuma linha do programa roda. <strong>Como consertar:</strong> <code>(-2) ** 2</code> (dá <code>4</code>) ou <code>-(2 ** 2)</code> (dá <code>-4</code>), conforme a conta que você quer.</p>
+</div>
+
+<div class="cenario">
+<strong><code>??</code> misturado com <code>||</code> sem parênteses</strong>
+<pre class="file" data-file="mistura.js">const apelido = null;
+const nome = "";
+const chamar = apelido ?? nome || "visitante";
+console.log(chamar);
+</pre>
+<pre class="term">$ node mistura.js
+/home/ana/mistura.js:3
+const chamar = apelido ?? nome || "visitante";
+                               ^^
+
+SyntaxError: Unexpected token '||'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: símbolo inesperado <code>||</code>", com as setinhas embaixo dele. O <code>??</code> (o "use isto se o outro faltar", da aula <a href="optional-chaining.html">?. e ??</a>) e o <code>||</code> são parecidos demais, e os criadores da linguagem acharam melhor <strong>proibir</strong> misturá-los sem parênteses do que deixar cada um adivinhar a ordem. O mesmo vale para <code>??</code> com <code>&amp;&amp;</code>. <strong>Como consertar:</strong> diga o que vai junto: <code>(apelido ?? nome) || "visitante"</code>, que aqui mostra <code>visitante</code> (o <code>apelido</code> falta, o <code>nome</code> está vazio, então vale o padrão).</p>
+</div>
+
+<div class="cenario">
+<strong>Parêntese aberto e nunca fechado</strong>
+<pre class="file" data-file="parentese.js">const media = (7 + 8 + 9 / 3;
+console.log(media);
+</pre>
+<pre class="term">$ node parentese.js
+/home/ana/parentese.js:1
+const media = (7 + 8 + 9 / 3;
+                            ^
+
+SyntaxError: Unexpected token ';'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: símbolo inesperado <code>;</code>". O Node estava dentro de um parêntese aberto, esperando o <code>)</code>, e encontrou o ponto e vírgula do fim da instrução. A setinha aponta o <code>;</code>, mas o que falta é o <code>)</code> antes dele. <strong>Como consertar:</strong> conte os parênteses: cada <code>(</code> precisa do seu <code>)</code>. Aqui, <code>(7 + 8 + 9) / 3</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>typeof</code> pegou só o primeiro valor</strong>
+<pre class="file" data-file="tipo.js">console.log(typeof 1 + 2);
+console.log(typeof (1 + 2));
+</pre>
+<pre class="term">$ node tipo.js
+number2
+number
+</pre>
+<p>O <code>typeof</code> também é da 2ª prioridade: na primeira linha ele pegou só o <code>1</code> (<code>typeof 1</code> é o texto <code>"number"</code>), e depois o <code>+ 2</code> grudou o 2 no texto. <strong>Como consertar:</strong> parênteses em volta da expressão inteira: <code>typeof (1 + 2)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Como o JavaScript lê</th><th>Resultado</th></tr>
+<tr><td><code>2 + 3 * 4</code></td><td><code>2 + (3 * 4)</code></td><td><code>14</code></td></tr>
+<tr><td><code>10 - 4 - 3</code></td><td><code>(10 - 4) - 3</code></td><td><code>3</code></td></tr>
+<tr><td><code>2 ** 3 ** 2</code></td><td><code>2 ** (3 ** 2)</code></td><td><code>512</code></td></tr>
+<tr><td><code>"Total: " + 2 + 3</code></td><td><code>("Total: " + 2) + 3</code></td><td><code>"Total: 23"</code></td></tr>
+<tr><td><code>a &gt; 0 &amp;&amp; b &gt; 0</code></td><td><code>(a &gt; 0) &amp;&amp; (b &gt; 0)</code></td><td>—</td></tr>
+<tr><td><code>a || b &amp;&amp; c</code></td><td><code>a || (b &amp;&amp; c)</code></td><td>—</td></tr>
+<tr><td><code>!x &gt;= 18</code></td><td><code>(!x) &gt;= 18</code></td><td>quase sempre <code>false</code></td></tr>
+<tr><td><code>x = 2 + 3</code></td><td><code>x = (2 + 3)</code></td><td><code>x</code> vale <code>5</code></td></tr>
+</table>
+</div>
+
+<p>A tabela com <strong>todos</strong> os operadores do JavaScript (inclusive os que este guia mostra mais adiante) fica na página <a href="ref-operadores.html">Operadores</a>, da Referência.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto dá?</h3>
+<p>Escreva o resultado de cada linha:</p>
+<div class="ex-code">console.log(5 + 5 * 2); → <input data-answer="15" aria-label="resultado 1"><br>console.log((5 + 5) * 2); → <input data-answer="20" aria-label="resultado 2"><br>console.log(20 / 2 / 5); → <input data-answer="2" aria-label="resultado 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Texto e número</h3>
+<p>O que esta linha mostra?</p>
+<div class="ex-code">console.log("Nota: " + 4 + 5); → <input data-answer="Nota: 45" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Ponha os parênteses</h3>
+<p>Complete para a média de <code>a</code> e <code>b</code> ficar certa:</p>
+<div class="ex-code">const media = <input data-answer="(" aria-label="abre parêntese">a + b<input data-answer=")" aria-label="fecha parêntese"> / 2;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em <code>x &gt; 5 || y &gt; 5 &amp;&amp; z &gt; 5</code>, qual parte o JavaScript junta primeiro?</p>
+<label><input type="radio" name="q4"> <code>x &gt; 5 || y &gt; 5</code></label>
+<label><input type="radio" name="q4"> <code>y &gt; 5 &amp;&amp; z &gt; 5</code>, porque o <code>&amp;&amp;</code> vem antes do <code>||</code></label>
+<label><input type="radio" name="q4"> Da esquerda para a direita, sempre</label>
+<label><input type="radio" name="q4"> Dá erro: precisa de parênteses</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual é o último operador a ser feito em <code>const total = preco * 2 + frete;</code>?</p>
+<label><input type="radio" name="q5"> <code>*</code></label>
+<label><input type="radio" name="q5"> <code>+</code></label>
+<label><input type="radio" name="q5"> <code>=</code></label>
+<label><input type="radio" name="q5"> Todos ao mesmo tempo</label>
+</div>
+
+<h3>Missão final: a pizza dividida</h3>
+
+<div class="tryjs" data-goal="out:Cada um paga: R$ 29;;src:\(">
+<p class="try-task"><strong>Missão:</strong> cinco amigos pediram 3 pizzas de R$ 45 e pagaram R$ 10 de entrega. A conta toda é dividida por 5. O programa diz que cada um paga R$ 137! Ponha parênteses para a conta ficar certa: <code>Cada um paga: R$ 29</code>.</p>
+<pre class="script" data-file="main.js">const porPessoa = 3 * 45 + 10 / 5;
+console.log("Cada um paga: R$", porPessoa);
+</pre>
+<pre class="solucao" data-file="main.js">const porPessoa = (3 * 45 + 10) / 5;
+console.log("Cada um paga: R$", porPessoa);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Precedência</strong> é a ordem em que o JavaScript resolve os operadores de uma expressão. Ela segue a matemática: parênteses, potência, <code>* / %</code>, <code>+ -</code>.</li>
+  <li>Depois das contas vêm as comparações (<code>&lt; &gt;</code>, depois <code>=== !==</code>), depois o <code>&amp;&amp;</code>, depois o <code>||</code>/<code>??</code> e, por último, o <code>=</code>: calcula, compara, junta, guarda.</li>
+  <li>Mesma prioridade: da esquerda para a direita (<code>10 - 4 - 3</code> = 3), exceto <code>**</code> e <code>=</code>, que começam pela direita.</li>
+  <li>O <code>!</code> e o <code>typeof</code> pegam só o valor logo depois deles: <code>!(idade &gt;= 18)</code>, <code>typeof (1 + 2)</code>.</li>
+  <li>Com textos, <code>"Total: " + 2 + 3</code> dá <code>"Total: 23"</code>; use <code>(2 + 3)</code> ou um template string.</li>
+  <li>Na dúvida, parênteses. Misturar <code>??</code> com <code>||</code> ou <code>&amp;&amp;</code> (e pôr um <code>-</code> antes de um <code>**</code>) <strong>exige</strong> parênteses: sem eles, é <code>SyntaxError</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
