@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Comentários — // e /* */ | Guia JavaScript</title>
+<meta name="description" content="Comentários em JavaScript para quem nunca programou: o comentário de uma linha (//), no fim da linha, o de várias linhas (/* */), desligar código para testar, // dentro de aspas, o /** */ de documentação, o que é um bom comentário, e os erros reais do Node.js 24 (comentário sem fechar, aninhado, # e /) explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Comentários (// e /* */)</span></h1>
+
+<p class="intro">Nem tudo o que se escreve num programa é para o computador. Às vezes você quer deixar um recado para quem vai ler o código depois (um colega, ou você mesmo daqui a um mês): "este preço é do quilo", "falta conferir o desconto". Para isso existem os <strong>comentários</strong>: trechos que o JavaScript <strong>ignora</strong> por completo. Eles são escritos para pessoas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O comentário de uma linha, <code>//</code>, sozinho ou no fim de uma linha de código.</li>
+  <li>O comentário de várias linhas, <code>/* … */</code>.</li>
+  <li>A "desligar" uma linha ou um trecho de código para testar, sem apagar.</li>
+  <li>Que <code>//</code> e <code>/*</code> dentro de aspas são só texto.</li>
+  <li>O <code>/** … */</code> dos comentários de documentação.</li>
+  <li>O que é um bom comentário, e o que não vale a pena comentar.</li>
+  <li>Os erros reais: comentário que não fecha, comentário dentro de comentário, <code>#</code> no lugar de <code>//</code>, uma barra só.</li>
+</ul>
+</div>
+
+<p>Os programas foram rodados com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana, na pasta <code>/home/ana/js</code>.</p>
+
+<hr>
+
+<h2>A ideia: o post-it na receita</h2>
+<p>A Ana tem um caderno de receitas cheio de post-its colados: "dobrar a receita no Natal", "a vó usava manteiga, não margarina", "testar com menos açúcar". Quem faz o bolo lê os post-its, mas eles <strong>não são passos</strong> da receita: ninguém vai "dobrar a receita no Natal" numa terça-feira de março.</p>
+
+<p>Os comentários são os post-its do código. O JavaScript passa por eles sem fazer nada, como se não existissem; quem lê o arquivo, vê.</p>
+
+<hr>
+
+<h2>1. O comentário de uma linha: <code>//</code></h2>
+<p>Duas barras <code>//</code> começam um comentário que vai <strong>até o fim da linha</strong>. Ele pode ocupar a linha inteira, ou vir no fim de uma linha de código:</p>
+
+<pre class="file" data-file="recibo.js">// Recibo da Padaria do Bairro
+// Autora: Ana
+
+console.log("Padaria do Bairro");
+console.log("10 pães:", 10 * 0.8); // R$ 0,80 cada
+console.log("2 cafés:", 2 * 3.5);  // R$ 3,50 cada
+</pre>
+
+<pre class="term">$ node recibo.js
+Padaria do Bairro
+10 pães: 8
+2 cafés: 7
+</pre>
+
+<dl class="anatomy">
+  <dt>// Recibo da Padaria do Bairro</dt><dd>Um comentário de linha inteira. Aqui, um título: o que o arquivo faz.</dd>
+  <dt>// Autora: Ana</dt><dd>Outro. Cada linha de comentário precisa do seu <code>//</code>.</dd>
+  <dt>console.log(…); // R$ 0,80 cada</dt><dd>Um comentário <strong>no fim</strong> da linha: o código antes do <code>//</code> roda normalmente; do <code>//</code> em diante, é ignorado. Bom para explicar um número.</dd>
+</dl>
+
+<p>Na saída, nenhum comentário aparece: só as três linhas dos <code>console.log</code>. Repare também que, dentro do comentário, a vírgula decimal (<code>0,80</code>) e o <code>R$</code> não causam problema nenhum: ali vale qualquer coisa, porque o JavaScript nem lê.</p>
+
+<p>Por costume, coloca-se <strong>um espaço</strong> depois do <code>//</code> (<code>// Autora</code>, e não <code>//Autora</code>), e pelo menos um espaço antes de um <code>//</code> no fim da linha.</p>
+
+<h3>No modo interativo também</h3>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 2 + 3 // a soma
+5
+&gt; // só um comentário
+undefined
+&gt; 10 * 2 /* dobro */
+20
+&gt; .exit
+</pre>
+
+<p>Uma linha que só tem comentário não tem nada para calcular: o <a href="repl.html">modo interativo</a> responde <code>undefined</code>, como em qualquer linha sem valor.</p>
+
+<div class="tryjs" data-goal="src:^//\s*\S;;out:Pão de queijo: 8;;semerro">
+<p class="try-task"><strong>Missão:</strong> ponha na <strong>primeira linha</strong> um comentário com <code>//</code> dizendo o que o programa faz (por exemplo, <code>// Estoque da padaria</code>), e troque o número de pães de queijo para <code>8</code>.</p>
+<pre class="script" data-file="main.js">console.log("Pão de queijo:", 5);
+</pre>
+<pre class="solucao" data-file="main.js">// Estoque da padaria
+console.log("Pão de queijo:", 8);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Comentários de várias linhas: <code>/* … */</code></h2>
+<p>Para um recado comprido, em vez de pôr <code>//</code> em cada linha, abra o comentário com <code>/*</code> e feche com <code>*/</code>. Tudo o que estiver entre os dois é ignorado, quantas linhas forem:</p>
+
+<pre class="file" data-file="longo.js">/*
+  Programa: quadro de avisos
+  Mostra os recados do dia na padaria.
+  Última mudança: horário do pão.
+*/
+console.log("Pão saindo às 7h");
+console.log(/* número de fornadas: */ 3, "fornadas hoje");
+</pre>
+
+<pre class="term">$ node longo.js
+Pão saindo às 7h
+3 fornadas hoje
+</pre>
+
+<dl class="anatomy">
+  <dt>/*</dt><dd>Abre o comentário (barra e asterisco, nessa ordem).</dd>
+  <dt>As linhas do meio</dt><dd>O recado. A indentação de 2 espaços é só para ficar bonito.</dd>
+  <dt>*/</dt><dd>Fecha o comentário (asterisco e barra, na ordem contrária).</dd>
+  <dt>console.log(/* … */ 3, …)</dt><dd>Como tem começo e fim marcados, o <code>/* */</code> pode ficar até <strong>no meio</strong> de uma linha de código. Funciona, mas atrapalha a leitura; use raramente.</dd>
+</dl>
+
+<hr>
+
+<h2>3. "Desligando" código para testar</h2>
+<p>Um uso muito comum: você quer que uma linha <strong>não rode por enquanto</strong>, mas não quer apagá-la (vai precisar dela depois). Ponha <code>//</code> na frente e ela vira comentário. Os programadores chamam isso de <strong>comentar</strong> a linha:</p>
+
+<pre class="file" data-file="desligar.js">console.log("Padaria do Bairro");
+// console.log("Promoção: leve 2 sonhos, pague 1");
+console.log("Obrigado!");
+</pre>
+
+<pre class="term">$ node desligar.js
+Padaria do Bairro
+Obrigado!
+</pre>
+
+<p>A promoção acabou, e a linha ficou guardada para a próxima. Para "religar", é só apagar o <code>//</code>. Para várias linhas de uma vez, o <code>/* */</code>:</p>
+
+<pre class="file" data-file="desligar2.js">console.log("Padaria do Bairro");
+/*
+console.log("Promoção: leve 2 sonhos, pague 1");
+console.log("Só hoje!");
+*/
+console.log("Obrigado!");
+</pre>
+
+<pre class="term">$ node desligar2.js
+Padaria do Bairro
+Obrigado!
+</pre>
+
+<div class="tip">
+<strong>O atalho do editor</strong>
+<p>No VS Code (e na maioria dos editores de código), selecione as linhas e aperte <kbd>Ctrl</kbd>+<kbd>/</kbd> (no macOS, <kbd>Cmd</kbd>+<kbd>/</kbd>): o editor põe <code>//</code> na frente de cada uma. O mesmo atalho tira.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Promoção: leve 2 sonhos, pague 1;;out:Obrigado!;;semerro">
+<p class="try-task"><strong>Missão:</strong> a promoção voltou! "Religue" a linha da promoção (tire o comentário) e rode.</p>
+<pre class="script" data-file="main.js">console.log("Padaria do Bairro");
+// console.log("Promoção: leve 2 sonhos, pague 1");
+console.log("Obrigado!");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Padaria do Bairro");
+console.log("Promoção: leve 2 sonhos, pague 1");
+console.log("Obrigado!");
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>//</code> dentro de aspas não é comentário</h2>
+<p>Dentro de um texto entre aspas, <code>//</code> e <code>/*</code> são letras como quaisquer outras. Isso é bom: os endereços de sites têm <code>//</code>.</p>
+
+<pre class="file" data-file="aspas.js">console.log("Site: https://padaria.exemplo // não é comentário");
+console.log("/* nem isto */");
+</pre>
+
+<pre class="term">$ node aspas.js
+Site: https://padaria.exemplo // não é comentário
+/* nem isto */
+</pre>
+
+<p>O JavaScript lê da esquerda para a direita: quando encontra a aspa, sabe que está dentro de um texto até a aspa que fecha, e lá dentro nada é comentário.</p>
+
+<hr>
+
+<h2>5. O <code>/** … */</code> de documentação</h2>
+<p>Você vai encontrar, em código dos outros, comentários que começam com <strong>dois</strong> asteriscos, logo acima de uma função:</p>
+
+<pre class="file" data-file="exemplo.js">/**
+ * Calcula o preço total de uma compra.
+ * @param {number} quantidade - Quantos itens.
+ * @param {number} preco - O preço de cada item.
+ * @returns {number} O total.
+ */
+function total(quantidade, preco) {
+  return quantidade * preco;
+}
+</pre>
+
+<p>Para o JavaScript, é um <code>/* */</code> comum (o segundo <code>*</code> é só mais uma letra dentro do comentário). A diferença é para as <strong>ferramentas</strong>: esse formato, chamado <strong>JSDoc</strong>, é lido por editores como o VS Code, que mostram a explicação quando você passa o mouse sobre <code>total</code>. As linhas com <code>@param</code> descrevem os parâmetros, e <code>@returns</code>, o que a função devolve (aula <a href="funcoes.html">Funções</a>). Você não precisa escrever assim agora; só reconhecer.</p>
+
+<hr>
+
+<h2>6. O que é um bom comentário</h2>
+<p>Comentário bom explica o <strong>porquê</strong>, que o código não consegue dizer sozinho. Comentário ruim repete o <strong>quê</strong>, que o código já diz.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ruim (repete o código)</th><th>Bom (explica o porquê)</th></tr>
+<tr><td><code>console.log(10 * 0.8); // multiplica 10 por 0.8</code></td><td><code>console.log(10 * 0.8); // pão francês: R$ 0,80 a unidade</code></td></tr>
+<tr><td><code>// mostra Obrigado</code></td><td><code>// a dona pediu para sempre agradecer no fim do recibo</code></td></tr>
+<tr><td>Um comentário em cada linha</td><td>Um comentário no topo dizendo o que o programa faz, e alguns onde algo não é óbvio</td></tr>
+</table>
+</div>
+
+<p>Dois costumes que você vai ver muito:</p>
+<ul>
+  <li><code>// TODO: …</code> (em inglês, "a fazer"): algo que ainda falta. Muitos editores listam todos os <code>TODO</code> do projeto.</li>
+  <li><code>// FIXME: …</code> ("conserte-me"): algo que está errado e precisa de conserto.</li>
+</ul>
+
+<div class="warning">
+<strong>Comentário desatualizado é pior que nenhum</strong>
+<p>Se o preço mudou para R$ 0,90 e o comentário ainda diz "R$ 0,80", ele engana quem lê. Quando mudar o código, confira os comentários de perto. E não deixe código "desligado" para sempre: se não vai mais usar, apague.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de deixar um recado</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>// recado</code> numa linha só</td><td>O mais comum: títulos, explicações curtas, desligar uma linha</td></tr>
+<tr><td><code>código; // recado</code></td><td>Explicar um número ou um detalhe daquela linha</td></tr>
+<tr><td><code>/* várias linhas */</code></td><td>Recados longos, ou desligar um trecho inteiro</td></tr>
+<tr><td><code>/** … */</code> com <code>@param</code></td><td>Documentar funções (JSDoc), para o editor mostrar a explicação</td></tr>
+<tr><td><code>#!/usr/bin/env node</code></td><td><strong>Não é comentário:</strong> é o shebang, só na primeira linha (aula <a href="executar.html">Rodando um Programa</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Comentário que abre e não fecha</strong>
+<pre class="file" data-file="aberto.js">console.log("Padaria do Bairro");
+/* Comentário que esqueceu de fechar
+console.log("Obrigado!");
+</pre>
+<pre class="term">$ node aberto.js
+/home/ana/js/aberto.js:2
+/* Comentário que esqueceu de fechar
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>O <code>/*</code> da linha 2 abriu um comentário, e o JavaScript procurou o <code>*/</code> até o fim do arquivo, sem achar. "Símbolo inválido ou inesperado", na linha 2, onde o comentário começou (desta vez sem o <code>^</code>). É um <code>SyntaxError</code>, então <strong>nem a linha 1</strong> rodou. <strong>Como consertar:</strong> feche com <code>*/</code> no lugar certo. Dica: nos editores de código, o comentário aparece numa cor diferente; se o resto do arquivo inteiro ficou dessa cor, falta fechar.</p>
+</div>
+
+<div class="cenario">
+<strong>Comentário dentro de comentário</strong>
+<pre class="file" data-file="aninhado.js">/*
+console.log("Padaria do Bairro"); /* o nome */
+console.log("Obrigado!");
+*/
+console.log("Fim");
+</pre>
+<pre class="term">$ node aninhado.js
+/home/ana/js/aninhado.js:4
+*/
+^
+
+SyntaxError: Unexpected token '*'
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A Ana quis desligar um trecho com <code>/* */</code>, mas dentro dele já havia um <code>/* o nome */</code>. O <code>/* */</code> <strong>não se aninha</strong>: o primeiro <code>*/</code> que aparece (o da linha 2) fecha o comentário, não importa quantos <code>/*</code> abriram. Assim, a linha 3 voltou a ser código, e o <code>*/</code> da linha 4 ficou sobrando: "símbolo inesperado <code>*</code>". <strong>Como consertar:</strong> para desligar trechos que já têm comentários, use <code>//</code> em cada linha (o atalho <kbd>Ctrl</kbd>+<kbd>/</kbd> do editor faz isso).</p>
+</div>
+
+<div class="cenario">
+<strong>Cerquilha <code>#</code> no lugar de <code>//</code></strong>
+<pre class="file" data-file="cerquilha.js"># Recibo da padaria
+console.log("Padaria do Bairro");
+</pre>
+<pre class="term">$ node cerquilha.js
+/home/ana/js/cerquilha.js:1
+# Recibo da padaria
+^
+
+SyntaxError: Invalid or unexpected token
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Em Python, no Bash e em outras linguagens, o comentário é com <code>#</code>. No JavaScript, não: o <code>#</code> no começo da linha é um "símbolo inválido". (A única exceção é o <code>#!</code> do shebang, e só na primeira linha.) <strong>Como consertar:</strong> <code>// Recibo da padaria</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma barra só</strong>
+<pre class="file" data-file="barra.js">/ Recibo da padaria
+console.log("Padaria do Bairro");
+</pre>
+<pre class="term">$ node barra.js
+/home/ana/js/barra.js:1
+/ Recibo da padaria
+^
+
+SyntaxError: Invalid regular expression: missing /
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Faltou uma barra. A mensagem parece de outro mundo: "expressão regular inválida: falta <code>/</code>". É que, no JavaScript, um texto entre barras (<code>/assim/</code>) é uma <strong>expressão regular</strong>, um "molde" para procurar palavras (aula <a href="regex.html">Expressões Regulares</a>). Uma barra sozinha no começo da linha fez o JavaScript achar que um molde estava começando, e ele procurou a barra que fecharia. <strong>Como consertar:</strong> duas barras: <code>// Recibo da padaria</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O comentário que "não funciona"</strong>
+<p>Se você pôs <code>//</code> numa linha e ela continua aparecendo na saída, confira se você <strong>salvou</strong> o arquivo, e se o <code>//</code> não está dentro de aspas (<code>console.log("// promoção")</code> mostra <code>// promoção</code>, como na seção 4).</p>
+</div>
+
+<h3>Missão final: comente o recibo</h3>
+<div class="tryjs" data-goal="outre:^Padaria do Bairro\n10 pães: 8\nTotal: 8\n$;;src:^//;;src://\s*TODO;;semerro">
+<p class="try-task"><strong>Missão:</strong> três coisas. (1) Ponha um comentário com <code>//</code> na primeira linha, dizendo o que o programa faz. (2) Desligue a linha do café com <code>//</code>, porque o café acabou (o total já está sem ele). (3) Deixe um comentário <code>// TODO: voltar o café amanhã</code> em qualquer lugar.</p>
+<pre class="script" data-file="main.js">console.log("Padaria do Bairro");
+console.log("10 pães:", 10 * 0.8);
+console.log("2 cafés:", 2 * 3.5);
+console.log("Total:", 10 * 0.8);
+</pre>
+<pre class="solucao" data-file="main.js">// Recibo da padaria
+console.log("Padaria do Bairro");
+console.log("10 pães:", 10 * 0.8);
+// console.log("2 cafés:", 2 * 3.5);
+// TODO: voltar o café amanhã
+console.log("Total:", 10 * 0.8);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>// texto</code></td><td>Comentário até o fim da linha</td></tr>
+<tr><td><code>código; // texto</code></td><td>O código roda; do <code>//</code> em diante, é ignorado</td></tr>
+<tr><td><code>/* texto */</code></td><td>Comentário com começo e fim; pode ter várias linhas</td></tr>
+<tr><td><code>/** … */</code></td><td>Comentário de documentação (JSDoc); para o JavaScript, igual ao <code>/* */</code></td></tr>
+<tr><td><code>"https://…"</code></td><td><code>//</code> e <code>/*</code> dentro de aspas são texto</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd> no editor</td><td>Comenta / descomenta as linhas selecionadas</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code> na linha de um <code>/*</code></td><td>Comentário <code>/*</code> sem o <code>*/</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token '*'</code> num <code>*/</code></td><td>Um <code>/* */</code> dentro de outro: o primeiro <code>*/</code> já fechou</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code> num <code>#</code></td><td>Comentário com <code>#</code> (de outra linguagem); use <code>//</code></td></tr>
+<tr><td><code>SyntaxError: Invalid regular expression: missing /</code></td><td>Uma barra só no lugar de <code>//</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O sinal do comentário</h3>
+<p>Complete para transformar a linha num comentário:</p>
+<div class="ex-code"><input data-answer="//" aria-label="sinal"> Recibo da padaria</div>
+</div>
+
+<div class="exercise">
+<h3>2. Fechar o comentário longo</h3>
+<p>Complete o comentário de várias linhas:</p>
+<div class="ex-code">/* Quadro de avisos da padaria <input data-answer="*/" aria-label="fechamento"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A saída</h3>
+<p>O que aparece com <code>console.log(2 + 3); // 2 + 3 = 6</code>?</p>
+<div class="ex-code">Saída: <input data-answer="5" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que mostra <code>console.log("https://padaria.exemplo");</code>?</p>
+<label><input type="radio" name="q4"> <code>https:</code>, porque o resto é comentário</label>
+<label><input type="radio" name="q4"> Nada, a linha inteira é comentário</label>
+<label><input type="radio" name="q4"> <code>https://padaria.exemplo</code></label>
+<label><input type="radio" name="q4"> Dá erro de sintaxe</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual destes é um comentário <strong>válido</strong> em JavaScript?</p>
+<label><input type="radio" name="q5"> <code># total do dia</code></label>
+<label><input type="radio" name="q5"> <code>// total do dia</code></label>
+<label><input type="radio" name="q5"> <code>-- total do dia</code></label>
+<label><input type="radio" name="q5"> <code>/ total do dia</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Por que <code>/* a /* b */ c */</code> dá erro?</p>
+<label><input type="radio" name="q6"> Porque comentários não podem ter letras soltas</label>
+<label><input type="radio" name="q6"> Porque falta o <code>;</code></label>
+<label><input type="radio" name="q6"> Porque o <code>/*</code> só vale no começo da linha</label>
+<label><input type="radio" name="q6"> Porque o primeiro <code>*/</code> fecha o comentário, e o <code>c */</code> sobra como código</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Qual é o melhor comentário para <code>console.log(10 * 0.8);</code>?</p>
+<label><input type="radio" name="q7"> <code>// pão francês: R$ 0,80 a unidade</code></label>
+<label><input type="radio" name="q7"> <code>// multiplica 10 por 0.8</code></label>
+<label><input type="radio" name="q7"> <code>// console.log</code></label>
+<label><input type="radio" name="q7"> <code>// linha 1</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Comentários são recados para pessoas: o JavaScript os ignora.</li>
+  <li><code>//</code> comenta até o fim da linha (sozinho ou depois do código); <code>/* … */</code> comenta um trecho, de uma ou várias linhas.</li>
+  <li>Pôr <code>//</code> na frente de uma linha a "desliga" sem apagar (<kbd>Ctrl</kbd>+<kbd>/</kbd> no editor).</li>
+  <li>Dentro de aspas, <code>//</code> e <code>/*</code> são texto.</li>
+  <li><code>/** … */</code> é o formato de documentação (JSDoc), lido pelos editores.</li>
+  <li>Bom comentário explica o porquê; não repita o que o código já diz, e mantenha os comentários atualizados.</li>
+  <li>Erros: <code>/*</code> sem <code>*/</code>, <code>/* */</code> dentro de outro, <code>#</code> ou <code>/</code> no lugar de <code>//</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
