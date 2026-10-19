@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript for … of — percorrendo um array item por item | Guia JavaScript</title>
+<meta name="description" content="O laço for … of do JavaScript para quem nunca programou: passar por todos os itens de um array, somar e contar com acumulador, achar o maior, percorrer as letras de uma string, a posição com entries(), break e continue, por que mudar a variável do laço não muda o array, a diferença para o for … in e para o for clássico, e os erros reais do Node.js 24 (is not iterable, Assignment to constant variable).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">for … of</span></h1>
+
+<p class="intro">Você já sabe guardar uma lista num array e pegar um item pela posição. Mas quase sempre o programa precisa fazer alguma coisa com <strong>todos</strong> os itens: mostrar cada aluno da chamada, somar todas as notas, conferir cada produto do estoque. Escrever <code>alunos[0]</code>, <code>alunos[1]</code>, <code>alunos[2]</code>… não funciona (e se a turma tiver 40 alunos? e se amanhã chegar mais um?). O laço <code>for … of</code> (em inglês, "para cada … de") resolve isso: ele passa por <strong>cada item</strong> do array, do primeiro ao último, sem você precisar contar nada.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um <code>for … of</code> e o que é cada parte.</li>
+  <li>A somar, contar e achar o maior valor de um array com um laço.</li>
+  <li>A percorrer as letras de uma string.</li>
+  <li>A saber a posição de cada item com <code>entries()</code>.</li>
+  <li>A parar antes do fim com <code>break</code> e pular um item com <code>continue</code>.</li>
+  <li>Por que mudar a variável do laço <strong>não</strong> muda o array.</li>
+  <li>A diferença entre <code>for … of</code>, o <code>for</code> clássico e o <code>for … in</code> (que engana).</li>
+  <li>Os erros reais mais comuns: <code>is not iterable</code>, <code>Assignment to constant variable</code> e o <code>in</code> no lugar do <code>of</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a professora fazendo a chamada</h2>
+<p>A professora da Ana pega a lista da turma e lê um nome de cada vez, de cima para baixo: "Ana?" "Presente!" "Bia?" "Presente!"… Ela não precisa saber quantos alunos são, nem numerar ninguém: só vai lendo o <strong>próximo</strong> nome até a lista acabar. Para cada nome, faz a mesma coisa (chamar e esperar a resposta).</p>
+<p>O <code>for … of</code> é exatamente isso: "<strong>para cada</strong> aluno <strong>da</strong> lista, faça tal coisa". A cada volta do laço, uma variável recebe o próximo item; quando os itens acabam, o laço termina sozinho.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>for … of</code></h2>
+
+<pre class="file" data-file="chamada.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+
+for (const aluno of alunos) {
+  console.log(`${aluno}? Presente!`);
+}
+console.log("Chamada encerrada.");
+</pre>
+
+<dl class="anatomy">
+  <dt>for</dt><dd>A palavra-chave dos laços "para" (a mesma do <a href="for.html">for</a> clássico).</dd>
+  <dt>( … )</dt><dd>Os parênteses com a "receita" do laço.</dd>
+  <dt>const aluno</dt><dd>A variável que, a cada volta, recebe <strong>um</strong> item. Na 1ª volta vale <code>"Ana"</code>, na 2ª <code>"Bia"</code>, e assim por diante. O costume é usar o <strong>singular</strong> do nome do array: <code>alunos</code> → <code>aluno</code>, <code>notas</code> → <code>nota</code>. Pode ser <code>const</code>, porque a cada volta é uma variável nova (você não muda o valor dela dentro da volta).</dd>
+  <dt>of</dt><dd>"De". Separa a variável do array: "cada <code>aluno</code> de <code>alunos</code>".</dd>
+  <dt>alunos</dt><dd>O array que será percorrido.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong> do laço: o que fazer com cada item. Roda uma vez por item, 4 vezes aqui.</dd>
+  <dt>console.log("Chamada encerrada.")</dt><dd>Depois da <code>}</code>, fora do laço: roda uma vez, quando os itens acabam.</dd>
+</dl>
+
+<pre class="term">$ node chamada.js
+Ana? Presente!
+Bia? Presente!
+Caio? Presente!
+Duda? Presente!
+Chamada encerrada.
+</pre>
+
+<p>Repare que não há contador, nem <code>length</code>, nem <code>[i]</code>. O laço sabe sozinho onde começar e onde parar. Se você acrescentar um quinto aluno no array, ele aparece na chamada sem mudar mais nada.</p>
+
+<div class="tryjs" data-goal="out:- arroz;;out:- feijão;;out:- café;;out:- leite;;src:\bfor\s*\(\s*const\s+\w+\s+of\b">
+<p class="try-task"><strong>Missão:</strong> mostre cada item da lista de compras numa linha, com um tracinho na frente (<code>- arroz</code>), usando um <code>for … of</code>.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café", "leite"];
+// escreva o for … of aqui
+
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café", "leite"];
+// escreva o for … of aqui
+for (const item of compras) {
+  console.log(`- ${item}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Somar, contar, achar o maior</h2>
+<p>O laço fica poderoso quando você junta a ele uma variável que vai <strong>guardando</strong> alguma coisa de volta em volta. É a mesma ideia do acumulador do <a href="while.html">while</a>.</p>
+
+<h3>Somar: a média da turma</h3>
+
+<pre class="file" data-file="media.js">const notas = [7.5, 8, 6.5, 9, 10];
+let soma = 0;
+
+for (const nota of notas) {
+  soma += nota;
+}
+
+const media = soma / notas.length;
+console.log(`Soma: ${soma}`);
+console.log(`Média: ${media}`);
+</pre>
+
+<dl class="anatomy">
+  <dt>let soma = 0;</dt><dd>O <strong>acumulador</strong>, criado <strong>antes</strong> do laço, com <code>let</code> (porque ele muda). Começa em 0: antes de somar qualquer nota, a soma é zero.</dd>
+  <dt>soma += nota;</dt><dd>A cada volta, junta a nota da vez na soma (veja <a href="atribuicao.html">Atribuição</a>).</dd>
+  <dt>soma / notas.length</dt><dd>Depois do laço, a soma está completa; dividida pela quantidade de notas, dá a média.</dd>
+</dl>
+
+<pre class="term">$ node media.js
+Soma: 41
+Média: 8.2
+</pre>
+
+<p>Siga a variável <code>soma</code> volta por volta:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Volta</th><th><code>nota</code></th><th><code>soma</code> depois da volta</th></tr>
+<tr><td>1ª</td><td>7.5</td><td>7.5</td></tr>
+<tr><td>2ª</td><td>8</td><td>15.5</td></tr>
+<tr><td>3ª</td><td>6.5</td><td>22</td></tr>
+<tr><td>4ª</td><td>9</td><td>31</td></tr>
+<tr><td>5ª</td><td>10</td><td>41</td></tr>
+</table>
+</div>
+
+<h3>Contar: quantos passaram</h3>
+
+<pre class="file" data-file="aprovados.js">const notas = [7.5, 5, 6.5, 9, 4, 10];
+let aprovados = 0;
+
+for (const nota of notas) {
+  if (nota &gt;= 6) {
+    aprovados++;
+  }
+}
+console.log(`${aprovados} de ${notas.length} alunos passaram.`);
+</pre>
+
+<pre class="term">$ node aprovados.js
+4 de 6 alunos passaram.
+</pre>
+
+<p>Um <a href="if.html">if</a> dentro do laço decide, item por item, se aquele conta. O <code>aprovados++</code> soma 1 (veja <a href="incremento.html">Incremento</a>).</p>
+
+<h3>Achar o maior: a melhor venda</h3>
+
+<pre class="file" data-file="maior.js">const vendas = [120, 98, 143, 110, 87, 156, 132];
+let maior = vendas[0];
+
+for (const venda of vendas) {
+  if (venda &gt; maior) {
+    maior = venda;
+  }
+}
+console.log(`A melhor venda da semana foi ${maior} pães.`);
+</pre>
+
+<pre class="term">$ node maior.js
+A melhor venda da semana foi 156 pães.
+</pre>
+
+<p>O <code>maior</code> começa com o primeiro item ("até agora, o maior que eu vi é este") e, a cada volta, se aparece alguém maior, ele é trocado. No fim, sobra o maior de todos. (Para números, também existe o atalho <code>Math.max(...vendas)</code>; veja <a href="math.html">Math</a>.)</p>
+
+<div class="tryjs" data-goal="out:Total do carrinho: R$ 31.4;;src:\bfor\s*\(\s*const\s+\w+\s+of\b">
+<p class="try-task"><strong>Missão:</strong> some todos os preços do carrinho com um <code>for … of</code> e um acumulador.</p>
+<pre class="script" data-file="main.js">const precos = [4.5, 12.9, 3.25, 10.75];
+let total = 0;
+// some os preços aqui
+
+console.log(`Total do carrinho: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [4.5, 12.9, 3.25, 10.75];
+let total = 0;
+// some os preços aqui
+for (const preco of precos) {
+  total += preco;
+}
+console.log(`Total do carrinho: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Percorrendo as letras de uma string</h2>
+<p>O <code>for … of</code> não é só para arrays. Ele funciona com tudo o que o JavaScript chama de <strong>iterável</strong> (que pode ser percorrido item a item): arrays, strings, e outros que você vai conhecer depois (<a href="set.html">Set</a>, <a href="colecao-map.html">Map</a>). Numa string, cada volta recebe uma letra:</p>
+
+<pre class="file" data-file="letras.js">const palavra = "pão";
+for (const letra of palavra) {
+  console.log(letra);
+}
+
+let vogais = 0;
+for (const letra of "abacaxi") {
+  if ("aeiou".includes(letra)) {
+    vogais++;
+  }
+}
+console.log(`abacaxi tem ${vogais} vogais.`);
+</pre>
+
+<pre class="term">$ node letras.js
+p
+ã
+o
+abacaxi tem 4 vogais.
+</pre>
+
+<p>O segundo laço usa o <code>includes</code> das strings (veja <a href="strings-buscar.html">Procurando em Strings</a>) para perguntar "esta letra é uma vogal?".</p>
+
+<hr>
+
+<h2>4. E a posição? <code>entries()</code></h2>
+<p>O <code>for … of</code> entrega o item, mas não a posição. Quando você precisa dos dois (para numerar a lista, por exemplo), use o método <code>entries()</code> (em inglês, "entradas"), que entrega <strong>pares</strong> <code>[posição, item]</code>:</p>
+
+<pre class="file" data-file="entries.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+
+for (const [i, aluno] of alunos.entries()) {
+  console.log(`${i + 1}. ${aluno}`);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos.entries()</dt><dd>Entrega, um de cada vez, os pares <code>[0, "Ana"]</code>, <code>[1, "Bia"]</code>, <code>[2, "Caio"]</code>, <code>[3, "Duda"]</code>.</dd>
+  <dt>const [i, aluno]</dt><dd>Os colchetes do lado esquerdo "desmontam" o par em duas variáveis: a posição vai para <code>i</code>, o item para <code>aluno</code>. Isso se chama <strong>desestruturação</strong> e tem aula própria (<a href="desestruturacao.html">Desestruturação</a>); aqui basta copiar a forma.</dd>
+  <dt>${i + 1}</dt><dd>A posição começa em 0; para numerar para pessoas, some 1.</dd>
+</dl>
+
+<pre class="term">$ node entries.js
+1. Ana
+2. Bia
+3. Caio
+4. Duda
+</pre>
+
+<p>Outra saída é usar o <a href="for.html">for</a> clássico, com contador (veja <a href="#formas">Formas diferentes</a>). E na próxima aula, o <a href="foreach.html">forEach</a> entrega o item e a posição sem precisar do <code>entries()</code>.</p>
+
+<hr>
+
+<h2>5. Parar antes e pular: <code>break</code> e <code>continue</code></h2>
+<p>As duas palavras que você conheceu em <a href="break-continue.html">break e continue</a> funcionam igualzinho no <code>for … of</code>:</p>
+
+<pre class="file" data-file="break_continue.js">const pedidos = ["pão", "leite", "", "café", "FIM", "bolo"];
+
+for (const pedido of pedidos) {
+  if (pedido === "") {
+    continue;
+  }
+  if (pedido === "FIM") {
+    break;
+  }
+  console.log(`Separando: ${pedido}`);
+}
+console.log("Pedidos separados.");
+</pre>
+
+<pre class="term">$ node break_continue.js
+Separando: pão
+Separando: leite
+Separando: café
+Pedidos separados.
+</pre>
+
+<dl class="anatomy">
+  <dt>continue</dt><dd>"Continue com o próximo": pula o resto desta volta. O pedido vazio (<code>""</code>) não foi separado, e o laço seguiu com o café.</dd>
+  <dt>break</dt><dd>"Quebre": sai do laço na hora. Ao chegar no <code>"FIM"</code>, o laço parou, e o bolo nem foi olhado.</dd>
+</dl>
+
+<hr>
+
+<h2>6. A variável do laço é uma cópia do item</h2>
+<p>Uma surpresa comum: a Ana quer dar 1 ponto a mais em cada nota e tenta mudar a variável do laço (com <code>let</code>, para poder mudar):</p>
+
+<pre class="file" data-file="copia.js">const notas = [7, 8, 6];
+
+for (let nota of notas) {
+  nota = nota + 1;
+  console.log(`Dentro do laço: ${nota}`);
+}
+console.log(notas);
+</pre>
+
+<pre class="term">$ node copia.js
+Dentro do laço: 8
+Dentro do laço: 9
+Dentro do laço: 7
+[ 7, 8, 6 ]
+</pre>
+
+<p>Dentro do laço, a nota mudou; mas o array <code>notas</code> continua igual. A variável <code>nota</code> recebe uma <strong>cópia</strong> do valor do item, como um bilhete com o número anotado: rabiscar o bilhete não muda o boletim. Para mudar o array, você precisa escrever na posição (<code>notas[i] = …</code>, com o <code>entries()</code> ou o <code>for</code> clássico) ou, melhor ainda, criar um array novo com o <a href="map.html">map</a>, que é exatamente para isso.</p>
+
+<pre class="file" data-file="mudar.js">const notas = [7, 8, 6];
+for (const [i, nota] of notas.entries()) {
+  notas[i] = nota + 1;
+}
+console.log(notas);
+</pre>
+
+<pre class="term">$ node mudar.js
+[ 8, 9, 7 ]
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de percorrer um array</h2>
+<p>A mesma chamada pode ser escrita de quatro jeitos. Todos mostram os mesmos nomes:</p>
+
+<pre class="file" data-file="formas.js">const alunos = ["Ana", "Bia", "Caio"];
+
+// 1. for … of
+for (const aluno of alunos) {
+  console.log(aluno);
+}
+
+// 2. for clássico, com contador
+for (let i = 0; i &lt; alunos.length; i++) {
+  console.log(alunos[i]);
+}
+
+// 3. forEach (próxima aula)
+alunos.forEach((aluno) =&gt; console.log(aluno));
+
+// 4. while
+let j = 0;
+while (j &lt; alunos.length) {
+  console.log(alunos[j]);
+  j++;
+}
+</pre>
+
+<pre class="term">$ node formas.js
+Ana
+Bia
+Caio
+Ana
+Bia
+Caio
+Ana
+Bia
+Caio
+Ana
+Bia
+Caio
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Fazer algo com cada item, do começo ao fim (o caso mais comum)</td><td><code>for (const item of lista)</code></td></tr>
+<tr><td>Precisar também da posição</td><td><code>for (const [i, item] of lista.entries())</code> ou o <code>for</code> clássico</td></tr>
+<tr><td>Andar de trás para a frente, de 2 em 2, ou só por uma parte</td><td><code>for</code> clássico (<code>for (let i = lista.length - 1; i &gt;= 0; i--)</code>)</td></tr>
+<tr><td>Parar no meio com <code>break</code></td><td><code>for … of</code> ou <code>for</code> clássico (o <code>forEach</code> não para)</td></tr>
+<tr><td>Chamar uma função para cada item</td><td><code>forEach</code> (aula <a href="foreach.html">forEach</a>)</td></tr>
+<tr><td>Criar um array novo transformado ou filtrado</td><td><code>map</code> / <code>filter</code> (aulas <a href="map.html">map</a> e <a href="filter.html">filter</a>)</td></tr>
+<tr><td>Não sabe quantas voltas (até a pessoa digitar 0…)</td><td><code>while</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>in</code> no lugar de <code>of</code></strong>
+<pre class="file" data-file="for_in.js">const alunos = ["Ana", "Bia", "Caio"];
+for (const aluno in alunos) {
+  console.log(aluno);
+}
+</pre>
+<pre class="term">$ node for_in.js
+0
+1
+2
+</pre>
+<p>Sem erro, mas em vez dos nomes saíram as <strong>posições</strong>, e como textos (<code>"0"</code>, <code>"1"</code>, <code>"2"</code>). O <code>for … in</code> é outro laço, feito para percorrer as <strong>chaves</strong> de um objeto (aula <a href="objetos-percorrer.html">Percorrendo Objetos</a>); num array, as chaves são as posições. Para lembrar: <strong>of</strong> dá os itens. <strong>Como consertar:</strong> <code>for (const aluno of alunos)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou mudar uma variável <code>const</code> do laço</strong>
+<pre class="file" data-file="const_laco.js">const notas = [7, 8, 6];
+for (const nota of notas) {
+  nota = nota + 1;
+}
+</pre>
+<pre class="term">$ node const_laco.js
+/home/ana/const_laco.js:3
+  nota = nota + 1;
+       ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/const_laco.js:3:8)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/const_laco.js:3</dt><dd>O erro está na linha 3, a que tenta mudar <code>nota</code>; o <code>^</code> aponta o <code>=</code>.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Erro de tipo: atribuição a uma variável constante". A <code>nota</code> foi criada com <code>const</code> e não pode receber outro valor.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/const_laco.js:3:8)</dt><dd>O lugar, de novo: linha 3, coluna 8.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se a ideia era mudar o array, a variável do laço não serve (seção 6): use <code>notas[i] = …</code> ou o <a href="map.html">map</a>. Se você só precisa de um valor calculado, crie outra variável: <code>const nova = nota + 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Percorreu algo que não é iterável</strong>
+<pre class="file" data-file="nao_iteravel.js">const total = 10;
+for (const x of total) {
+  console.log(x);
+}
+</pre>
+<pre class="term">$ node nao_iteravel.js
+/home/ana/nao_iteravel.js:2
+for (const x of total) {
+                ^
+
+TypeError: total is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/nao_iteravel.js:2:17)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>total</code> não é iterável". Um número não tem itens para percorrer. Acontece quando você escreve a variável errada (o total em vez da lista) ou quando quer repetir "10 vezes": para isso, o laço certo é o <a href="for.html">for</a> clássico (<code>for (let i = 0; i &lt; 10; i++)</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>A lista era <code>undefined</code></strong>
+<pre class="file" data-file="lista_undefined.js">let alunos;
+for (const aluno of alunos) {
+  console.log(aluno);
+}
+</pre>
+<pre class="term">$ node lista_undefined.js
+/home/ana/lista_undefined.js:2
+for (const aluno of alunos) {
+                    ^
+
+TypeError: alunos is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/lista_undefined.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A mesma mensagem, agora com <code>alunos is not iterable</code>: a variável foi criada sem valor, vale <code>undefined</code>, e não há itens para percorrer. Acontece quando a lista deveria vir de outro lugar (uma função, um arquivo) e não veio. <strong>Como consertar:</strong> confira se a variável recebeu mesmo um array; se ela deve começar vazia, <code>let alunos = [];</code> (um array vazio dá zero voltas, sem erro).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Ana;;out:Bia;;out:Caio;;out:Total: 3 alunos;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois problemas: rode, veja a mensagem e o que saiu, e conserte para mostrar os três nomes e <code>Total: 3 alunos</code>.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const quantidade = alunos.length;
+for (const aluno in alunos) {
+  console.log(aluno);
+}
+for (const aluno of quantidade) {
+  console.log(aluno);
+}
+console.log(`Total: ${quantidade} alunos`);
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const quantidade = alunos.length;
+for (const aluno of alunos) {
+  console.log(aluno);
+}
+console.log(`Total: ${quantidade} alunos`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (const item of lista) { … }</code></td><td>Roda o bloco uma vez para cada item, na ordem</td></tr>
+<tr><td><code>for (const letra of texto) { … }</code></td><td>Uma volta por letra da string</td></tr>
+<tr><td><code>for (const [i, item] of lista.entries()) { … }</code></td><td>Item e posição em cada volta</td></tr>
+<tr><td><code>let soma = 0;</code> … <code>soma += item;</code></td><td>Acumular (somar todos)</td></tr>
+<tr><td><code>if (cond) contador++;</code> dentro do laço</td><td>Contar os que obedecem a uma condição</td></tr>
+<tr><td><code>continue</code> / <code>break</code></td><td>Pular para o próximo item / sair do laço</td></tr>
+<tr><td><code>for (const k in lista)</code></td><td>Percorre as <strong>posições</strong> como texto: não use para arrays</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Saem <code>0</code>, <code>1</code>, <code>2</code> em vez dos itens</td><td>Usou <code>in</code> no lugar de <code>of</code></td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Mudou a variável <code>const</code> do laço</td></tr>
+<tr><td>O array não mudou depois do laço</td><td>Mudou a variável do laço (uma cópia), não a posição do array</td></tr>
+<tr><td><code>TypeError: total is not iterable</code></td><td>Tentou percorrer um número (ou outra coisa sem itens)</td></tr>
+<tr><td><code>TypeError: alunos is not iterable</code></td><td>A variável não recebeu um array</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<div class="ex-code">for (const cor <input data-answer="of" aria-label="palavra-chave"> cores) {<br>&nbsp;&nbsp;console.log(cor);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto dá?</h3>
+<pre class="file" data-file="ex2.js">let soma = 0;
+for (const n of [2, 4, 6]) {
+  soma += n;
+}
+console.log(soma);
+</pre>
+<div class="ex-code">Mostra <input data-answer="12" aria-label="valor">.</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantas voltas?</h3>
+<p>Quantas vezes o corpo de <code>for (const letra of "sol") { … }</code> roda?</p>
+<div class="ex-code"><input data-answer="3" aria-label="número de voltas"> vezes</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>for (const x in ["a", "b"]) console.log(x);</code> mostra…</p>
+<label><input type="radio" name="q4"> <code>a</code> e <code>b</code></label>
+<label><input type="radio" name="q4"> Um erro</label>
+<label><input type="radio" name="q4"> <code>0</code> e <code>1</code></label>
+<label><input type="radio" name="q4"> Nada</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Depois de <code>const v = [1, 2]; for (let x of v) { x = x * 10; }</code>, quanto vale <code>v</code>?</p>
+<label><input type="radio" name="q5"> <code>[ 10, 20 ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 1, 2 ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 1, 2, 10, 20 ]</code></label>
+<label><input type="radio" name="q5"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Você precisa sair do laço assim que achar um produto em falta. O que usa dentro do <code>for … of</code>?</p>
+<label><input type="radio" name="q6"> <code>continue</code></label>
+<label><input type="radio" name="q6"> <code>return</code></label>
+<label><input type="radio" name="q6"> <code>stop</code></label>
+<label><input type="radio" name="q6"> <code>break</code></label>
+</div>
+
+<h3>Missão final: o estoque da lojinha</h3>
+
+<div class="tryjs" data-goal="out:Itens em estoque: 37;;out:Produtos zerados: 2;;out:Maior estoque: 15;;semerro;;src:\bfor\s*\(\s*const\s+\w+\s+of\b">
+<p class="try-task"><strong>Missão:</strong> o array tem a quantidade de cada produto da lojinha. Com <strong>um</strong> <code>for … of</code>, calcule as três coisas de uma vez: o total de itens (soma), quantos produtos estão zerados (quantidade igual a 0) e o maior estoque.</p>
+<pre class="script" data-file="main.js">const estoque = [12, 0, 5, 15, 0, 3, 2];
+let total = 0;
+let zerados = 0;
+let maior = estoque[0];
+
+// o for … of aqui
+
+console.log(`Itens em estoque: ${total}`);
+console.log(`Produtos zerados: ${zerados}`);
+console.log(`Maior estoque: ${maior}`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = [12, 0, 5, 15, 0, 3, 2];
+let total = 0;
+let zerados = 0;
+let maior = estoque[0];
+
+// o for … of aqui
+for (const quantidade of estoque) {
+  total += quantidade;
+  if (quantidade === 0) {
+    zerados++;
+  }
+  if (quantidade &gt; maior) {
+    maior = quantidade;
+  }
+}
+
+console.log(`Itens em estoque: ${total}`);
+console.log(`Produtos zerados: ${zerados}`);
+console.log(`Maior estoque: ${maior}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Itens em estoque: 37</code>, <code>Produtos zerados: 2</code> e <code>Maior estoque: 15</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (const item of lista) { … }</code> roda o bloco uma vez para cada item, do primeiro ao último, sem contador nem <code>length</code>.</li>
+  <li>Com uma variável criada antes do laço, você soma (acumulador), conta (contador) ou acha o maior.</li>
+  <li>Funciona com tudo que é <strong>iterável</strong>: arrays, strings (uma letra por volta) e outros. Um número não é iterável.</li>
+  <li><code>lista.entries()</code> entrega <code>[posição, item]</code>: <code>for (const [i, item] of lista.entries())</code>.</li>
+  <li><code>break</code> sai do laço; <code>continue</code> pula para o próximo item.</li>
+  <li>A variável do laço é uma cópia: mudá-la não muda o array.</li>
+  <li><code>for … in</code> dá as posições (como texto); para os itens de um array, é <code>of</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
