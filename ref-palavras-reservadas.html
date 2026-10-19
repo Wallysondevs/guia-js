@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Palavras Reservadas — a lista completa, o modo estrito e as palavras especiais | Guia JavaScript</title>
+<meta name="description" content="Referência das palavras reservadas do JavaScript (ECMAScript 2025): as que nunca podem ser nome de variável, função ou classe, as reservadas só no modo estrito e nos módulos (await, yield, let, static, public…), as palavras com sentido especial que ainda podem ser nomes (async, of, get, set, from, as), as antigas que foram liberadas (int, goto…) e as mensagens de erro reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Palavras Reservadas</span></h1>
+
+<p class="intro">Algumas palavras são da própria linguagem: <code>if</code>, <code>for</code>, <code>function</code>, <code>class</code>… São as <strong>palavras reservadas</strong>. Elas não podem ser usadas como <strong>nome</strong> de variável, função, classe ou parâmetro, porque o JavaScript não saberia se você está dando um nome ou usando o comando. Esta página reúne todas, separadas em grupos, com o que cada uma faz e onde ela é ensinada no guia.</p>
+
+<div class="note">
+<strong>Nesta página</strong>
+<ul>
+  <li><a href="#sempre">As palavras reservadas sempre</a> (36 palavras).</li>
+  <li><a href="#estrito">As reservadas só no modo estrito, nos módulos ou em certos lugares</a>.</li>
+  <li><a href="#especiais">Palavras com sentido especial que ainda podem ser nomes</a>.</li>
+  <li><a href="#antigas">As antigas, que foram liberadas</a>.</li>
+  <li><a href="#errado">As mensagens de erro reais</a> e <a href="#propriedades">a exceção das propriedades</a>.</li>
+</ul>
+</div>
+
+<p>A lista segue a especificação da linguagem, o <strong>ECMAScript 2025</strong> (conferida na documentação da MDN), e as mensagens de erro foram colhidas no Node.js v24.22.0 do computador da Ana. Para regras de nomes em geral (letras, <code>camelCase</code>, sem acento), veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>.</p>
+
+<hr>
+
+<h2 id="sempre">Reservadas sempre</h2>
+<p>Estas nunca podem ser nome de nada, em nenhum lugar do código:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Tradução</th><th>Para que serve</th><th>Aula</th></tr>
+<tr><td><code>break</code></td><td>quebrar</td><td>Sai de um laço ou de um <code>switch</code></td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>case</code></td><td>caso</td><td>Um valor dentro do <code>switch</code></td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>catch</code></td><td>pegar</td><td>Trata o erro de um <code>try</code></td><td><a href="try-catch.html">try … catch</a></td></tr>
+<tr><td><code>class</code></td><td>classe</td><td>Cria uma classe</td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>const</code></td><td>constante</td><td>Cria uma variável que não recebe outro valor</td><td><a href="const.html">const</a></td></tr>
+<tr><td><code>continue</code></td><td>continuar</td><td>Pula para a próxima volta do laço</td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>debugger</code></td><td>depurador</td><td>Pausa o programa no depurador</td><td><a href="depuracao.html">Depurando</a></td></tr>
+<tr><td><code>default</code></td><td>padrão</td><td>O caso "nenhum dos outros" do <code>switch</code>; o <code>export default</code></td><td><a href="switch.html">switch</a>, <a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>delete</code></td><td>apagar</td><td>Apaga uma propriedade de um objeto</td><td><a href="objetos-propriedades.html">Propriedades</a></td></tr>
+<tr><td><code>do</code></td><td>faça</td><td>O laço <code>do … while</code></td><td><a href="do-while.html">do … while</a></td></tr>
+<tr><td><code>else</code></td><td>senão</td><td>O caminho do <code>if</code> quando a condição é falsa</td><td><a href="if-else.html">else e else if</a></td></tr>
+<tr><td><code>enum</code></td><td>enumeração</td><td>Nenhum: reservada para o futuro (o TypeScript a usa)</td><td><a href="typescript.html">TypeScript</a></td></tr>
+<tr><td><code>export</code></td><td>exportar</td><td>Deixa um módulo oferecer algo para outros</td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>extends</code></td><td>estende</td><td>Herança entre classes</td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>false</code></td><td>falso</td><td>O booleano falso</td><td><a href="booleanos.html">Booleanos</a></td></tr>
+<tr><td><code>finally</code></td><td>finalmente</td><td>Roda no fim do <code>try</code>, com ou sem erro</td><td><a href="try-catch.html">try … catch … finally</a></td></tr>
+<tr><td><code>for</code></td><td>para</td><td>Os laços <code>for</code>, <code>for … of</code>, <code>for … in</code></td><td><a href="for.html">for</a></td></tr>
+<tr><td><code>function</code></td><td>função</td><td>Cria uma função</td><td><a href="funcoes.html">Funções</a></td></tr>
+<tr><td><code>if</code></td><td>se</td><td>Decide pelo valor de uma condição</td><td><a href="if.html">if</a></td></tr>
+<tr><td><code>import</code></td><td>importar</td><td>Traz algo de outro módulo</td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>in</code></td><td>em</td><td>"Esta propriedade existe no objeto?"; o <code>for … in</code></td><td><a href="objetos-percorrer.html">Percorrendo Objetos</a></td></tr>
+<tr><td><code>instanceof</code></td><td>instância de</td><td>"Este objeto foi criado por esta classe?"</td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>new</code></td><td>novo</td><td>Cria um objeto a partir de uma classe (<code>new Date()</code>)</td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>null</code></td><td>nulo</td><td>O valor "nada, de propósito"</td><td><a href="null-undefined.html">null e undefined</a></td></tr>
+<tr><td><code>return</code></td><td>devolver</td><td>Devolve um valor e sai da função</td><td><a href="return.html">return</a></td></tr>
+<tr><td><code>super</code></td><td>superior</td><td>Chama a classe mãe</td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>switch</code></td><td>chavear</td><td>Escolhe entre vários casos</td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>this</code></td><td>este</td><td>O objeto "dono" do método</td><td><a href="this.html">this</a></td></tr>
+<tr><td><code>throw</code></td><td>lançar</td><td>Lança um erro</td><td><a href="throw.html">throw</a></td></tr>
+<tr><td><code>true</code></td><td>verdadeiro</td><td>O booleano verdadeiro</td><td><a href="booleanos.html">Booleanos</a></td></tr>
+<tr><td><code>try</code></td><td>tentar</td><td>Tenta rodar um bloco que pode dar erro</td><td><a href="try-catch.html">try … catch</a></td></tr>
+<tr><td><code>typeof</code></td><td>tipo de</td><td>Diz o tipo de um valor</td><td><a href="typeof.html">typeof</a></td></tr>
+<tr><td><code>var</code></td><td>variável</td><td>O jeito antigo de criar variáveis</td><td><a href="var.html">var</a></td></tr>
+<tr><td><code>void</code></td><td>vazio</td><td>Avalia uma expressão e devolve <code>undefined</code> (raro)</td><td>—</td></tr>
+<tr><td><code>while</code></td><td>enquanto</td><td>O laço <code>while</code></td><td><a href="while.html">while</a></td></tr>
+<tr><td><code>with</code></td><td>com</td><td>Comando antigo, proibido no modo estrito: nunca use</td><td><a href="strict-mode.html">Modo Estrito</a></td></tr>
+</table>
+</div>
+
+<p>Repare que <code>true</code>, <code>false</code> e <code>null</code> são valores, mas também são reservados: não dá para criar uma variável chamada <code>true</code>.</p>
+
+<hr>
+
+<h2 id="estrito">Reservadas só em certos lugares</h2>
+<p>Estas palavras viraram parte da linguagem depois que muito código antigo já as usava como nome. Para não quebrar esse código, elas só são proibidas no <a href="strict-mode.html">modo estrito</a> (<code>"use strict"</code>, que vale sozinho dentro de <a href="classes.html">classes</a> e de <a href="modulos.html">módulos</a> com <code>import</code>/<code>export</code>) ou em lugares específicos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Proibida como nome…</th><th>Para que serve</th></tr>
+<tr><td><code>let</code></td><td>no modo estrito, e sempre num <code>let</code>/<code>const</code>/<code>class</code></td><td>Cria uma variável (<a href="variaveis.html">Variáveis</a>)</td></tr>
+<tr><td><code>static</code></td><td>no modo estrito</td><td>Membro da própria classe (<a href="static.html">static</a>)</td></tr>
+<tr><td><code>yield</code></td><td>no modo estrito e dentro de geradores</td><td>Entrega um valor num gerador (<a href="geradores.html">Geradores</a>)</td></tr>
+<tr><td><code>await</code></td><td>em módulos e dentro de funções <code>async</code></td><td>Espera uma Promise (<a href="async-await.html">async e await</a>)</td></tr>
+<tr><td><code>implements</code>, <code>interface</code>, <code>package</code>, <code>private</code>, <code>protected</code>, <code>public</code></td><td>no modo estrito</td><td>Nenhum: reservadas para o futuro (o TypeScript usa várias)</td></tr>
+<tr><td><code>arguments</code>, <code>eval</code></td><td>no modo estrito (não são reservadas, mas não podem ser declaradas)</td><td>O <code>arguments</code> das funções antigas; o <code>eval</code>, que roda texto como código (evite)</td></tr>
+</table>
+</div>
+
+<p>Na prática: <strong>trate todas como reservadas</strong>. Um nome que funciona hoje num arquivo comum quebra no dia em que o arquivo virar módulo ou ganhar um <code>"use strict"</code>.</p>
+
+<hr>
+
+<h2 id="especiais">Palavras especiais que ainda podem ser nomes</h2>
+<p>Algumas palavras têm sentido especial só numa posição da sintaxe e, fora dela, são nomes comuns. São chamadas de palavras <strong>contextuais</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Onde tem sentido especial</th></tr>
+<tr><td><code>async</code></td><td>antes de <code>function</code> ou de uma arrow function (<a href="async-await.html">async</a>)</td></tr>
+<tr><td><code>of</code></td><td>no <code>for (const x of lista)</code> (<a href="for-of.html">for … of</a>)</td></tr>
+<tr><td><code>get</code>, <code>set</code></td><td>em objetos e classes (<a href="getters-setters.html">get e set</a>)</td></tr>
+<tr><td><code>from</code>, <code>as</code></td><td>no <code>import … from "…"</code> e no <code>import * as …</code> (<a href="modulos.html">Módulos</a>)</td></tr>
+<tr><td><code>target</code>, <code>meta</code></td><td>só em <code>new.target</code> e <code>import.meta</code></td></tr>
+</table>
+</div>
+
+<p>E três nomes que parecem palavras da linguagem, mas são só <strong>variáveis globais</strong> que já vêm prontas: <code>undefined</code>, <code>NaN</code> e <code>Infinity</code>. Dentro de uma função ou de um bloco, dá para criar uma variável com esses nomes, que "esconde" a original. Não faça isso: veja o cenário <a href="#errado">abaixo</a>.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> palavras reservadas podem ser nomes de <strong>propriedade</strong>, e as contextuais podem ser nomes de variável. Rode e depois tente trocar <code>const async</code> por <code>const class</code>.</p>
+<pre class="script" data-file="propriedades.js">const aluno = { nome: "Bia", class: "3º ano B", new: true, default: 10 };
+console.log(aluno.class);
+console.log(aluno.new, aluno.default);
+
+const async = "ainda é um nome";
+const of = 1;
+const get = 2;
+const int = 3;
+console.log(async, of, get, int);
+</pre>
+</div>
+
+<pre class="term" data-cwd="~/ref">$ node propriedades.js
+3º ano B
+true 10
+ainda é um nome 1 2 3</pre>
+
+<p id="propriedades">Depois de um ponto (<code>aluno.class</code>) ou como chave de objeto (<code>{ class: … }</code>), não há confusão possível: ali só pode vir um nome de propriedade. Por isso o JavaScript permite. É comum ver isso no DOM, por exemplo: <code>elemento.className</code> é o nome "seguro", mas propriedades como <code>default</code> e <code>new</code> aparecem em bibliotecas.</p>
+
+<hr>
+
+<h2 id="antigas">As antigas, que foram liberadas</h2>
+<p>As primeiras versões da linguagem (ECMAScript 1 a 3, de 1997 a 1999) reservavam várias palavras do Java, para um futuro que nunca chegou. Desde o ECMAScript 5 (2009), elas são nomes comuns:</p>
+
+<p><code>abstract</code>, <code>boolean</code>, <code>byte</code>, <code>char</code>, <code>double</code>, <code>final</code>, <code>float</code>, <code>goto</code>, <code>int</code>, <code>long</code>, <code>native</code>, <code>short</code>, <code>synchronized</code>, <code>throws</code>, <code>transient</code>, <code>volatile</code>.</p>
+
+<p>O <code>const int = 3</code> do exemplo acima funcionou por isso. Em sites e livros antigos, elas ainda aparecem na lista de proibidas.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Uma palavra reservada como nome: <code>Unexpected token 'class'</code></strong>
+<pre class="file" data-file="turma.js">const class = "3º ano B";
+console.log(class);
+</pre>
+<pre class="term" data-cwd="~/ref">$ node turma.js
+/home/ana/ref/turma.js:1
+const class = "3º ano B";
+      ^^^^^
+
+SyntaxError: Unexpected token 'class'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at …" internas do Node, cortadas aqui
+
+Node.js v24.22.0</pre>
+<p>"Erro de sintaxe: símbolo inesperado <code>'class'</code>". Depois de <code>const</code>, o Node esperava um nome e encontrou o começo de uma classe. As setinhas <code>^^^^^</code> marcam a palavra. Nenhuma linha rodou: erro de sintaxe impede o programa inteiro de começar. Com um parâmetro, a mensagem é a mesma:</p>
+<pre class="term" data-cwd="~/ref">$ node funcao.js
+/home/ana/ref/funcao.js:1
+function calcular(valor, return) {
+                         ^^^^^^
+
+SyntaxError: Unexpected token 'return'
+    «  as linhas "at …" foram cortadas
+
+Node.js v24.22.0</pre>
+</div>
+
+<div class="cenario">
+<strong>As outras mensagens</strong>
+<p>Cada grupo da página tem a sua mensagem. As primeiras linhas de cada uma, no Node.js v24.22.0 (as linhas <code>at …</code> foram cortadas):</p>
+<pre class="term" data-cwd="~/ref">$ node enum.js
+/home/ana/ref/enum.js:1
+const enum = ["P", "M", "G"];
+      ^^^^
+
+SyntaxError: Unexpected reserved word
+$ node letlet.js
+/home/ana/ref/letlet.js:1
+let let = 1;
+    ^^^
+
+SyntaxError: let is disallowed as a lexically bound name
+$ node publico.js
+/home/ana/ref/publico.js:3
+const public = true;
+      ^^^^^^
+
+SyntaxError: Unexpected strict mode reserved word
+$ node eval.js
+/home/ana/ref/eval.js:3
+let eval = 1;
+    ^^^^
+
+SyntaxError: Unexpected eval or arguments in strict mode</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Quer dizer</th></tr>
+<tr><td><code>Unexpected token 'class'</code></td><td>Uma palavra de comando apareceu onde devia vir um nome</td></tr>
+<tr><td><code>Unexpected reserved word</code></td><td>Uma palavra reservada sem uso (<code>enum</code>) ou o <code>await</code> num módulo</td></tr>
+<tr><td><code>let is disallowed as a lexically bound name</code></td><td>"<code>let</code> não é permitido como nome de <code>let</code>/<code>const</code>"</td></tr>
+<tr><td><code>Unexpected strict mode reserved word</code></td><td>Palavra reservada só no modo estrito (<code>public</code>, <code>yield</code>, <code>static</code>…), num arquivo com <code>"use strict"</code></td></tr>
+<tr><td><code>Unexpected eval or arguments in strict mode</code></td><td>Tentou declarar <code>eval</code> ou <code>arguments</code> no modo estrito</td></tr>
+</table>
+</div>
+</div>
+
+<div class="cenario">
+<strong>O mesmo nome, dois resultados: <code>public</code> e <code>await</code></strong>
+<p>O arquivo <code>publico2.js</code> é o <code>publico.js</code> sem o <code>"use strict"</code>; o <code>espera.js</code> e o <code>espera.mjs</code> têm o mesmo código, <code>const await = 3; console.log(await);</code>, mas o <code>.mjs</code> é sempre um módulo:</p>
+<pre class="term" data-cwd="~/ref">$ node publico2.js
+true
+$ node espera.js
+3
+$ node espera.mjs
+file:///home/ana/ref/espera.mjs:1
+const await = 3;
+      ^^^^^
+
+SyntaxError: Unexpected reserved word
+    «  as linhas "at …" foram cortadas
+
+Node.js v24.22.0</pre>
+<p>Sem modo estrito e fora de módulo, <code>public</code> e <code>await</code> passam. Bastou mudar a extensão para <code>.mjs</code> e o mesmo código quebrou. É o motivo da recomendação de tratar todas como reservadas. O mesmo vale para o <code>let</code>, o <code>yield</code> e o <code>static</code>: com <code>var let = 1; var yield = 2; var static = 3;</code>, um arquivo comum roda e mostra <code>1 2 3</code>; com <code>"use strict"</code> na primeira linha, o <code>var yield</code> dá <code>Unexpected strict mode reserved word</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esconder o <code>undefined</code>: nenhum erro, só confusão</strong>
+<pre class="file" data-file="indefinido.js">const undefined = "surpresa";
+console.log(undefined);
+let x;
+console.log(x === undefined);
+</pre>
+<pre class="term" data-cwd="~/ref">$ node indefinido.js
+surpresa
+false</pre>
+<p>O <code>undefined</code> não é reservado: num arquivo do Node (que roda dentro de uma função, por baixo dos panos), dá para criar uma constante com esse nome. Daí em diante, <code>undefined</code> vale <code>"surpresa"</code>, e a variável <code>x</code>, que não recebeu valor (e, portanto, é o <code>undefined</code> de verdade), deixa de ser igual a ele. Nenhuma mensagem avisa. O mesmo vale para <code>NaN</code> e <code>Infinity</code>: nunca os use como nome.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Turma 3º ano B, nota mínima 7;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa da Ana não roda: ele usa duas palavras reservadas como nome. Rode para ver o erro e troque os nomes (por exemplo, <code>turma</code> e <code>notaMinima</code>) em todos os lugares, para sair <code>Turma 3º ano B, nota mínima 7</code>.</p>
+<pre class="script" data-file="turma.js">const class = "3º ano B";
+const default = 7;
+console.log(`Turma ${class}, nota mínima ${default}`);
+</pre>
+<pre class="solucao" data-file="turma.js">const turma = "3º ano B";
+const notaMinima = 7;
+console.log(`Turma ${turma}, nota mínima ${notaMinima}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Pode ou não pode?</h3>
+<p>Num arquivo comum (sem <code>"use strict"</code> e sem <code>import</code>), <code>const int = 3;</code> funciona? Responda <code>sim</code> ou <code>não</code>.</p>
+<div class="ex-code"><input data-answer="sim" aria-label="resposta"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A reservada sem uso</h3>
+<p>Qual palavra é sempre reservada, mas não tem nenhum uso no JavaScript (só no TypeScript)?</p>
+<div class="ex-code"><input data-answer="enum" aria-label="palavra"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A propriedade</h3>
+<p>Sem rodar: o que <code>console.log({ class: "B" }.class);</code> mostra?</p>
+<div class="ex-code"><input data-answer="B" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que <code>const await = 3;</code> funciona num <code>.js</code> comum e dá erro num <code>.mjs</code>?</p>
+<label><input type="radio" name="q4"> Porque o <code>.mjs</code> é mais novo</label>
+<label><input type="radio" name="q4"> Porque <code>await</code> só é reservada em módulos (e dentro de funções <code>async</code>), e o <code>.mjs</code> é sempre módulo</label>
+<label><input type="radio" name="q4"> Porque <code>await</code> é sempre reservada, e o <code>.js</code> ignora o erro</label>
+<label><input type="radio" name="q4"> Porque <code>3</code> não pode ser guardado</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destes nomes de variável é permitido em qualquer arquivo?</p>
+<label><input type="radio" name="q5"> <code>new</code></label>
+<label><input type="radio" name="q5"> <code>let</code></label>
+<label><input type="radio" name="q5"> <code>of</code></label>
+<label><input type="radio" name="q5"> <code>return</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que a mensagem <code>Unexpected strict mode reserved word</code> indica?</p>
+<label><input type="radio" name="q6"> Uma palavra reservada só no modo estrito (como <code>public</code>) foi usada como nome num arquivo em modo estrito</label>
+<label><input type="radio" name="q6"> Faltou o <code>"use strict"</code></label>
+<label><input type="radio" name="q6"> O arquivo tem um erro de digitação qualquer</label>
+<label><input type="radio" name="q6"> A palavra não existe no JavaScript</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Palavras reservadas são da linguagem e não podem ser nome de variável, função, classe ou parâmetro: o erro é de sintaxe (<code>Unexpected token</code> ou <code>Unexpected reserved word</code>) e nada do programa roda.</li>
+  <li>36 são sempre reservadas, inclusive <code>true</code>, <code>false</code>, <code>null</code> e a sem uso <code>enum</code>.</li>
+  <li><code>let</code>, <code>static</code>, <code>yield</code>, <code>await</code>, <code>public</code>, <code>private</code> e outras são reservadas no modo estrito, nos módulos ou em certos lugares: trate-as como sempre reservadas.</li>
+  <li><code>async</code>, <code>of</code>, <code>get</code>, <code>set</code>, <code>from</code> e <code>as</code> têm sentido especial só em certas posições; fora delas, são nomes comuns.</li>
+  <li>Como nome de propriedade (<code>aluno.class</code>), qualquer palavra serve.</li>
+  <li><code>undefined</code>, <code>NaN</code> e <code>Infinity</code> não são reservadas, mas nunca as use como nome.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
