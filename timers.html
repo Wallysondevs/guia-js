@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript setTimeout e setInterval — timers | Guia JavaScript</title>
+<meta name="description" content="setTimeout e setInterval no JavaScript para quem está começando: agendar uma função para daqui a alguns segundos, vários timers, passar argumentos, cancelar com clearTimeout, repetir com setInterval e parar com clearInterval, contagem regressiva, setTimeout que chama a si mesmo, timers/promises e os erros reais do Node.js 24 (ERR_INVALID_ARG_TYPE, var no laço, relogio is not defined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">setTimeout</span> e <span class="hl">setInterval</span></h1>
+
+<p class="intro">Na aula <a href="assincrono.html">O que é Código Assíncrono</a>, você viu o <code>setTimeout</code> de relance. Agora ele e o irmão dele, o <code>setInterval</code>, ganham uma aula inteira. São os <strong>timers</strong> ("temporizadores") do JavaScript: o <code>setTimeout</code> é o despertador que toca <strong>uma vez</strong>; o <code>setInterval</code> é o relógio que faz "tic" <strong>sem parar</strong>, de tempos em tempos. Com eles você faz alarmes, lembretes, contagens regressivas, relógios na tela e jogos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Agendar uma função com <code>setTimeout(funcao, ms)</code>, e o que acontece com vários timers ao mesmo tempo.</li>
+  <li>Passar argumentos para a função agendada.</li>
+  <li>Cancelar um timer com <code>clearTimeout</code>.</li>
+  <li>Repetir com <code>setInterval</code> e parar com <code>clearInterval</code>: a contagem regressiva.</li>
+  <li>Outras formas: o <code>setTimeout</code> que se reagenda, e o <code>await</code> com <code>node:timers/promises</code>.</li>
+  <li>Os erros reais: chamar a função em vez de passá-la, o <code>var</code> no laço, o intervalo que nunca para.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. <code>setTimeout</code> e <code>setInterval</code> existem do mesmo jeito no navegador. No editor do guia, as esperas acontecem de verdade: um timer de 3 segundos demora 3 segundos.</p>
+
+<hr>
+
+<h2>A ideia: o despertador e o metrônomo</h2>
+<p>Na cozinha da Ana tem dois aparelhos:</p>
+<ul>
+  <li>o <strong>timer do forno</strong>: ela gira para 3 minutos e vai fazer outra coisa; quando o tempo acaba, ele toca <strong>uma vez</strong>. Se ela tirar o pão antes, pode <strong>desligar</strong> o timer, e ele não toca. Esse é o <code>setTimeout</code>, e o "desligar" é o <code>clearTimeout</code>;</li>
+  <li>o <strong>metrônomo</strong> do piano do irmão: faz "tic" a cada segundo, para sempre, até alguém <strong>desligar</strong>. Esse é o <code>setInterval</code>, e o "desligar" é o <code>clearInterval</code>.</li>
+</ul>
+<p>Nos dois casos, o aparelho não fica "segurando" a Ana: ela liga e continua a vida. É o código assíncrono.</p>
+
+<hr>
+
+<h2>1. <code>setTimeout</code>: fazer uma coisa daqui a pouco</h2>
+
+<pre class="file" data-file="alarme.js">function tocarAlarme() {
+  console.log("TRIIIM! Tire o pão de queijo do forno!");
+}
+
+console.log("Pão de queijo no forno.");
+setTimeout(tocarAlarme, 3000);
+console.log("Alarme agendado para daqui a 3 segundos.");
+</pre>
+
+<dl class="anatomy">
+  <dt>function tocarAlarme() { … }</dt><dd>A função que vai rodar quando o tempo acabar: o <strong>callback</strong>.</dd>
+  <dt>setTimeout(tocarAlarme, 3000)</dt><dd>"Daqui a 3000 milissegundos, chame <code>tocarAlarme</code>." Repare: <code>tocarAlarme</code> <strong>sem parênteses</strong>. Você entrega a função para o timer chamar depois; com parênteses, você a chamaria agora (é o primeiro erro da seção <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>3000</dt><dd>O tempo, em <strong>milissegundos</strong>: 1000 ms = 1 segundo, então 3000 = 3 segundos; meio segundo é 500; um minuto, 60000.</dd>
+</dl>
+
+<pre class="term">$ node alarme.js
+Pão de queijo no forno.
+Alarme agendado para daqui a 3 segundos.
+TRIIIM! Tire o pão de queijo do forno!
+</pre>
+
+<p>As duas primeiras linhas aparecem na hora; a terceira, 3 segundos depois. Aí o programa termina sozinho: o Node espera os timers pendentes e, quando não sobra nenhum, encerra.</p>
+
+<h3>Vários timers ao mesmo tempo</h3>
+<p>Cada <code>setTimeout</code> é um timer independente. Eles tocam na ordem do <strong>tempo</strong>, não na ordem em que foram escritos:</p>
+
+<pre class="file" data-file="varios.js">setTimeout(() =&gt; console.log("3 segundos: bolo"), 3000);
+setTimeout(() =&gt; console.log("1 segundo: café"), 1000);
+setTimeout(() =&gt; console.log("2 segundos: pão"), 2000);
+console.log("Tudo agendado!");
+</pre>
+
+<pre class="term">$ node varios.js
+Tudo agendado!
+1 segundo: café
+2 segundos: pão
+3 segundos: bolo
+</pre>
+
+<p>Aqui o callback foi escrito direto, como <a href="arrow-functions.html">arrow function</a>: <code>() =&gt; console.log(…)</code>. É o jeito mais comum. E o programa todo levou <strong>3</strong> segundos, não 1 + 2 + 3 = 6: os três timers correram <strong>ao mesmo tempo</strong>.</p>
+
+<div class="tip">
+<strong>O tempo é um mínimo, não uma promessa</strong>
+<p><code>setTimeout(f, 1000)</code> quer dizer "chame <code>f</code> daqui a <strong>pelo menos</strong> 1 segundo". Se o JavaScript estiver ocupado com outra coisa nessa hora (um laço pesado, por exemplo), o callback espera a vez: você viu um timer de 0 ms atrasar quase 3 segundos em <a href="assincrono.html">O que é Código Assíncrono</a>. Para coisas do dia a dia, a diferença é de poucos milésimos.</p>
+</div>
+
+<h3>Passando argumentos</h3>
+<p>Se a função agendada precisa de valores, há dois jeitos:</p>
+
+<pre class="file" data-file="argumentos.js">function lembrar(nome, remedio) {
+  console.log(`${nome}, hora do ${remedio}!`);
+}
+
+setTimeout(lembrar, 1000, "Vó Lurdes", "remédio da pressão");
+setTimeout(() =&gt; lembrar("Caio", "xarope"), 1500);
+</pre>
+
+<pre class="term">$ node argumentos.js
+Vó Lurdes, hora do remédio da pressão!
+Caio, hora do xarope!
+</pre>
+
+<ul>
+  <li><strong>Depois do tempo</strong>: tudo o que vem depois do <code>1000</code> é entregue à função quando ela for chamada.</li>
+  <li><strong>Arrow function em volta</strong>: <code>() =&gt; lembrar("Caio", "xarope")</code> é uma função nova, sem parâmetros, que chama <code>lembrar</code> com os valores certos. É o jeito mais usado, porque fica claro de ler.</li>
+</ul>
+
+<hr>
+
+<h2>2. Cancelando: <code>clearTimeout</code></h2>
+<p>Todo <code>setTimeout</code> devolve uma "identificação" do timer. Guarde-a numa variável, e você pode cancelá-lo antes de ele tocar com <code>clearTimeout</code> ("limpar o timer"):</p>
+
+<pre class="file" data-file="cancelar.js">console.log("Alarme agendado.");
+const alarme = setTimeout(() =&gt; {
+  console.log("TRIIIM!");
+}, 2000);
+
+console.log("A Ana tirou o bolo antes da hora.");
+clearTimeout(alarme);
+console.log("Alarme cancelado.");
+</pre>
+
+<pre class="term">$ node cancelar.js
+Alarme agendado.
+A Ana tirou o bolo antes da hora.
+Alarme cancelado.
+</pre>
+
+<dl class="anatomy">
+  <dt>const alarme = setTimeout(…)</dt><dd>Guarda a identificação do timer. No Node ela é um objeto (<code>typeof</code> dá <code>object</code>, da classe <code>Timeout</code>); no navegador, é um número. Você não precisa olhar dentro dela: só guardar e entregar ao <code>clearTimeout</code>.</dd>
+  <dt>clearTimeout(alarme)</dt><dd>Desliga o timer. O <code>TRIIIM!</code> nunca aparece, e o programa termina na hora, sem esperar os 2 segundos: não sobrou nada pendente.</dd>
+</dl>
+
+<p>No navegador, isso é muito usado em campos de busca: a cada tecla, cancela a busca anterior e agenda uma nova para daqui a meio segundo; só quando a pessoa para de digitar a busca acontece.</p>
+
+<div class="tryjs" data-goal="outre:^Alarme agendado\.\nAlarme cancelado\.\n?$;;src:clearTimeout\s*\(\s*alarme\s*\)">
+<p class="try-task"><strong>Missão:</strong> o programa diz que cancelou o alarme, mas ele toca mesmo assim depois de 2 segundos. Guarde o timer numa constante <code>alarme</code> e cancele com <code>clearTimeout(alarme)</code> antes da mensagem de cancelado. A saída deve ter só <code>Alarme agendado.</code> e <code>Alarme cancelado.</code>, sem <code>TRIIIM!</code>.</p>
+<pre class="script" data-file="main.js">console.log("Alarme agendado.");
+setTimeout(() =&gt; {
+  console.log("TRIIIM!");
+}, 2000);
+
+console.log("Alarme cancelado.");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Alarme agendado.");
+const alarme = setTimeout(() =&gt; {
+  console.log("TRIIIM!");
+}, 2000);
+
+clearTimeout(alarme);
+console.log("Alarme cancelado.");
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>setInterval</code>: repetir de tempos em tempos</h2>
+<p>O <code>setInterval</code> recebe as mesmas duas coisas (a função e o tempo), mas chama a função <strong>de novo e de novo</strong>, a cada intervalo. Para parar, guarde a identificação e use <code>clearInterval</code>. A contagem regressiva para o lançamento do bolo novo da padaria:</p>
+
+<pre class="file" data-file="regressiva.js">let segundos = 3;
+
+const relogio = setInterval(() =&gt; {
+  console.log(segundos);
+  segundos = segundos - 1;
+  if (segundos === 0) {
+    clearInterval(relogio);
+    console.log("Já!");
+  }
+}, 1000);
+
+console.log("Contagem começando...");
+</pre>
+
+<pre class="term">$ node regressiva.js
+Contagem começando...
+3
+2
+1
+Já!
+</pre>
+
+<dl class="anatomy">
+  <dt>let segundos = 3;</dt><dd>Uma variável <strong>fora</strong> do callback, que guarda o estado entre um "tic" e outro. Se ela fosse criada dentro do callback, nasceria valendo 3 a cada volta.</dd>
+  <dt>const relogio = setInterval(() =&gt; { … }, 1000)</dt><dd>"A cada 1000 ms, rode esta função." A primeira chamada acontece depois de 1 segundo (não na hora).</dd>
+  <dt>segundos = segundos - 1;</dt><dd>Cada "tic" diminui o contador.</dd>
+  <dt>if (segundos === 0) { clearInterval(relogio); … }</dt><dd>A <strong>condição de parada</strong>: quando chega a zero, desliga o intervalo. Sem ela, o relógio contaria 0, -1, -2… para sempre.</dd>
+  <dt>"Contagem começando..." primeiro</dt><dd>Como sempre com timers: o programa agendou e seguiu. A contagem vem depois.</dd>
+</dl>
+
+<p>Repare que o <code>setInterval</code> parece um <a href="while.html">while</a>, mas com uma pausa entre as voltas e sem travar o programa: entre um "tic" e outro, o JavaScript fica livre para fazer outras coisas.</p>
+
+<h3>O intervalo que nunca para</h3>
+<p>Um <code>setInterval</code> sem <code>clearInterval</code> não termina nunca, e o programa também não: sempre há um próximo "tic" pendente. A Ana rodou este com o comando <code>timeout 3.5</code>, que mata o programa depois de 3,5 segundos:</p>
+
+<pre class="file" data-file="sem-fim.js">let voltas = 0;
+setInterval(() =&gt; {
+  voltas = voltas + 1;
+  console.log(`tic ${voltas}`);
+}, 1000);
+</pre>
+
+<pre class="term">$ timeout 3.5 node sem-fim.js
+tic 1
+tic 2
+tic 3
+$ echo $?
+124
+</pre>
+
+<p>Três "tics" e o <code>timeout</code> interrompeu (o código de saída 124 é o jeito do <code>timeout</code> dizer "eu matei o programa"). Sem o <code>timeout</code>, você pararia com <kbd>Ctrl</kbd>+<kbd>C</kbd> no terminal. No editor do guia, use o botão <strong>■ Parar</strong>. Num relógio na tela de uma página, rodar para sempre é exatamente o que se quer (veja o <a href="projeto-relogio-web.html">Projeto: Relógio e Cronômetro</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<h3>Um <code>setTimeout</code> que se reagenda</h3>
+<p>Dá para repetir sem <code>setInterval</code>: a função, no fim, agenda a si mesma de novo. A mesma contagem:</p>
+
+<pre class="file" data-file="recursivo.js">let segundos = 3;
+
+function contar() {
+  console.log(segundos);
+  segundos = segundos - 1;
+  if (segundos &gt; 0) {
+    setTimeout(contar, 1000);
+  } else {
+    setTimeout(() =&gt; console.log("Já!"), 1000);
+  }
+}
+
+setTimeout(contar, 1000);
+</pre>
+
+<pre class="term">$ node recursivo.js
+3
+2
+1
+Já!
+</pre>
+
+<p>Aqui não há nada para cancelar: quando a condição falha, a função simplesmente não se reagenda, e acabou. (Repare que o <code>Já!</code> agora vem 1 segundo depois do <code>1</code>, porque ganhou um timer próprio.) A vantagem desse jeito: a próxima volta só é agendada <strong>depois</strong> que a anterior terminou, o que importa quando cada volta demora (como buscar dados na internet a cada 10 segundos).</p>
+
+<h3>Esperar com <code>await</code> (só no Node)</h3>
+<p>O Node tem uma versão do <code>setTimeout</code> que devolve uma Promise, no módulo <code>node:timers/promises</code>. Com ela, dá para "esperar" no meio do código com <code>await</code> (assunto das aulas <a href="promises.html">Promises</a> e <a href="async-await.html">async e await</a>). Este arquivo termina em <code>.mjs</code> para poder usar <code>import</code> e <code>await</code> direto no topo (aula <a href="modulos.html">Módulos</a>):</p>
+
+<pre class="file" data-file="promessa.mjs">import { setTimeout as esperar } from "node:timers/promises";
+
+console.log("Pão no forno...");
+await esperar(2000);
+console.log("Pão pronto!");
+</pre>
+
+<pre class="term">$ node promessa.mjs
+Pão no forno...
+Pão pronto!
+</pre>
+
+<p>A segunda linha veio 2 segundos depois, e o código ficou em ordem, de cima para baixo. No navegador esse módulo não existe; lá se escreve <code>await new Promise((r) =&gt; setTimeout(r, 2000))</code>, que você vai entender na aula <a href="promises.html">Promises</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Use</th></tr>
+<tr><td>Fazer algo <strong>uma vez</strong>, daqui a pouco</td><td><code>setTimeout(funcao, ms)</code></td></tr>
+<tr><td>Desistir antes de acontecer</td><td><code>clearTimeout(id)</code></td></tr>
+<tr><td>Repetir em intervalos fixos (relógio, animação simples)</td><td><code>setInterval(funcao, ms)</code> + <code>clearInterval(id)</code></td></tr>
+<tr><td>Repetir quando cada volta pode demorar, ou o tempo muda a cada volta</td><td><code>setTimeout</code> que se reagenda</td></tr>
+<tr><td>Uma pausa no meio de uma função <code>async</code></td><td><code>await</code> com <code>node:timers/promises</code> (Node) ou com uma Promise (navegador)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou a função em vez de entregá-la</strong>
+<pre class="file" data-file="chamou.js">function tocarAlarme() {
+  console.log("TRIIIM!");
+}
+
+setTimeout(tocarAlarme(), 3000);
+</pre>
+<pre class="term">$ node chamou.js
+TRIIIM!
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "callback" argument must be of type function. Received undefined
+    at setTimeout (node:timers:124:3)
+    at Object.&lt;anonymous&gt; (/home/ana/chamou.js:5:1)   « (mais 6 linhas at node:internal… cortadas)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>TRIIIM!</dt><dd>O alarme tocou <strong>na hora</strong>, não depois de 3 segundos. Com os parênteses, <code>tocarAlarme()</code> foi <strong>chamada</strong> já na linha 5, e o que foi entregue ao <code>setTimeout</code> foi o <strong>resultado</strong> dela.</dd>
+  <dt>node:internal/errors:543 / throw error; / ^</dt><dd>Desta vez a linha que aparece no topo não é sua: o erro foi lançado de dentro do próprio Node (<code>node:internal</code>), que conferiu o que recebeu.</dd>
+  <dt>TypeError [ERR_INVALID_ARG_TYPE]</dt><dd>Erro de tipo, com um <strong>código</strong> do Node entre colchetes: "tipo de argumento inválido".</dd>
+  <dt>The "callback" argument must be of type function. Received undefined</dt><dd>"O argumento <code>callback</code> precisa ser uma função. Recebi <code>undefined</code>." A <code>tocarAlarme</code> não tem <code>return</code>, então o resultado dela é <code>undefined</code> (aula <a href="return.html">return</a>), e foi isso que chegou ao <code>setTimeout</code>.</dd>
+  <dt>at setTimeout (node:timers:124:3)</dt><dd>O erro foi lançado dentro do <code>setTimeout</code>…</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/chamou.js:5:1)</dt><dd>…chamado pela <strong>sua</strong> linha 5. Numa mensagem que começa em <code>node:internal</code>, procure na pilha a primeira linha com <code>/home/ana/</code>: é lá que está o problema.</dd>
+  <dt>{ code: 'ERR_INVALID_ARG_TYPE' }</dt><dd>O código do erro, de novo, como propriedade do objeto de erro.</dd>
+</dl>
+<p><strong>Como consertar:</strong> tire os parênteses: <code>setTimeout(tocarAlarme, 3000)</code>. Se precisar passar argumentos, use uma arrow em volta: <code>setTimeout(() =&gt; tocarAlarme("forno 2"), 3000)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou o código como texto</strong>
+<pre class="file" data-file="texto.js">setTimeout("console.log('oi')", 1000);
+</pre>
+<pre class="term">$ node texto.js
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "callback" argument must be of type function. Received type string ("console.log('oi')")
+    at setTimeout (node:timers:124:3)
+    at Object.&lt;anonymous&gt; (/home/ana/texto.js:1:1)   « (mais 6 linhas at node:internal… cortadas)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+</pre>
+<p>Em tutoriais muito antigos você vai ver o código entre aspas. O navegador ainda aceita isso (por compatibilidade), mas o Node não: "recebi o tipo <code>string</code>". Mesmo no navegador, é um jeito inseguro e lento. <strong>Como consertar:</strong> <code>setTimeout(() =&gt; console.log("oi"), 1000)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Timers dentro de um laço com <code>var</code></strong>
+<pre class="file" data-file="var-laco.js">for (var i = 1; i &lt;= 3; i++) {
+  setTimeout(() =&gt; console.log(`Var: forno ${i}`), 100);
+}
+for (let j = 1; j &lt;= 3; j++) {
+  setTimeout(() =&gt; console.log(`Let: forno ${j}`), 200);
+}
+</pre>
+<pre class="term">$ node var-laco.js
+Var: forno 4
+Var: forno 4
+Var: forno 4
+Let: forno 1
+Let: forno 2
+Let: forno 3
+</pre>
+<p>Um clássico. Os callbacks só rodam <strong>depois</strong> que o laço inteiro terminou. Com <code>var</code>, existe <strong>uma</strong> variável <code>i</code> só, para o laço todo, e quando os timers tocam ela já vale 4 (o valor que fez o laço parar). Com <code>let</code>, cada volta tem a <strong>sua</strong> <code>j</code>, e cada callback lembra a da sua volta (aulas <a href="var.html">var</a> e <a href="closures.html">Closures</a>). <strong>Como consertar:</strong> use <code>let</code> no laço, sempre.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>clearInterval</code> não achou o relógio</strong>
+<pre class="file" data-file="clear-nome.js">let segundos = 3;
+
+setInterval(() =&gt; {
+  console.log(segundos);
+  segundos = segundos - 1;
+  if (segundos === 0) {
+    clearInterval(relogio);
+  }
+}, 1000);
+</pre>
+<pre class="term">$ node clear-nome.js
+3
+2
+1
+/home/ana/clear-nome.js:7
+    clearInterval(relogio);
+                  ^
+
+ReferenceError: relogio is not defined
+    at Timeout._onTimeout (/home/ana/clear-nome.js:7:19)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>A Ana esqueceu de <strong>guardar</strong> a identificação numa variável (<code>const relogio = setInterval(…)</code>). O programa contou normalmente e só quebrou no terceiro "tic", quando chegou ao <code>clearInterval</code>: "<code>relogio</code> não está definido". A pilha começa com <code>at Timeout._onTimeout</code>: quem chamou a função foi um timer do Node. <strong>Como consertar:</strong> <code>const relogio = setInterval(…)</code>. (Trocar <code>clearInterval</code> por <code>clearTimeout</code>, ao contrário, não dá erro: no lab, <code>clearTimeout(relogio)</code> também parou o intervalo. Mas use o par certo, para quem lê entender.)</p>
+</div>
+
+<div class="cenario">
+<strong>A contagem não para, ou para cedo demais</strong>
+<p>Se a contagem passa do zero (<code>0</code>, <code>-1</code>, <code>-2</code>…), a condição de parada nunca ficou verdadeira: confira se o <code>if</code> testa o valor certo (<code>segundos === 0</code> depois de diminuir) e se o <code>clearInterval</code> está dentro dele. Se a variável do contador foi criada <strong>dentro</strong> do callback, ela nasce de novo a cada "tic" e a contagem fica presa no mesmo número: crie-a fora. No editor, o botão <strong>■ Parar</strong> interrompe um intervalo que não para.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>setTimeout(funcao, ms)</code></td><td>Chama a função uma vez, daqui a pelo menos <code>ms</code> milissegundos; devolve a identificação do timer</td></tr>
+<tr><td><code>setTimeout(funcao, ms, a, b)</code></td><td>Idem, entregando <code>a</code> e <code>b</code> à função</td></tr>
+<tr><td><code>setTimeout(() =&gt; f(a, b), ms)</code></td><td>O jeito mais comum de passar argumentos</td></tr>
+<tr><td><code>clearTimeout(id)</code></td><td>Cancela um <code>setTimeout</code> que ainda não tocou</td></tr>
+<tr><td><code>setInterval(funcao, ms)</code></td><td>Chama a função a cada <code>ms</code> milissegundos, até ser parado</td></tr>
+<tr><td><code>clearInterval(id)</code></td><td>Para um <code>setInterval</code></td></tr>
+<tr><td><code>await esperar(ms)</code> com <code>import { setTimeout as esperar } from "node:timers/promises"</code></td><td>Pausa uma função <code>async</code> (só no Node)</td></tr>
+<tr><td>1000 ms</td><td>1 segundo (60000 ms = 1 minuto)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Rodou na hora e deu <code>ERR_INVALID_ARG_TYPE … Received undefined</code></td><td>Escreveu <code>setTimeout(f(), ms)</code>: tire os parênteses</td></tr>
+<tr><td><code>ERR_INVALID_ARG_TYPE … Received type string</code></td><td>Passou o código entre aspas</td></tr>
+<tr><td>Todos os timers do laço mostram o mesmo número</td><td><code>var</code> no laço: use <code>let</code></td></tr>
+<tr><td>O programa nunca termina</td><td>Um <code>setInterval</code> sem <code>clearInterval</code></td></tr>
+<tr><td><code>ReferenceError: … is not defined</code> no <code>clearInterval</code></td><td>Não guardou a identificação numa variável</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar "Bom dia!" a cada 2 segundos, e depois parar o relógio:</p>
+<div class="ex-code">const relogio = <input data-answer="setInterval" aria-label="função que repete">(() =&gt; console.log("Bom dia!"), <input data-answer="2000" aria-label="tempo em ms">);<br>// mais tarde:<br><input data-answer="clearInterval" aria-label="função que para">(relogio);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual a ordem?</h3>
+<p>Escreva as letras na ordem em que aparecem, juntas:</p>
+<pre class="file" data-file="ordem.js">setTimeout(() =&gt; console.log("A"), 300);
+setTimeout(() =&gt; console.log("B"), 100);
+console.log("C");
+setTimeout(() =&gt; console.log("D"), 200);
+</pre>
+<div class="ex-code">Mostra <input data-answer="CBDA" aria-label="letras em ordem"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual linha agenda <code>avisar</code> corretamente para daqui a 5 segundos?</p>
+<label><input type="radio" name="q3"> <code>setTimeout(avisar(), 5000);</code></label>
+<label><input type="radio" name="q3"> <code>setTimeout(avisar, 5000);</code></label>
+<label><input type="radio" name="q3"> <code>setTimeout(avisar, 5);</code></label>
+<label><input type="radio" name="q3"> <code>setTimeout("avisar", 5000);</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Um programa com <code>setInterval</code> não termina nunca. Por quê?</p>
+<label><input type="radio" name="q4"> O tempo do intervalo é curto demais</label>
+<label><input type="radio" name="q4"> O <code>setInterval</code> trava o JavaScript</label>
+<label><input type="radio" name="q4"> Faltou um <code>return</code> no callback</label>
+<label><input type="radio" name="q4"> Ninguém chamou <code>clearInterval</code>, então sempre há um próximo "tic" pendente</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>const t = setTimeout(f, 1000); clearTimeout(t);</code> O que acontece com <code>f</code>?</p>
+<label><input type="radio" name="q5"> Nunca é chamada</label>
+<label><input type="radio" name="q5"> É chamada na hora</label>
+<label><input type="radio" name="q5"> É chamada depois de 1 segundo, normalmente</label>
+<label><input type="radio" name="q5"> Dá erro, porque o timer ainda não tocou</label>
+</div>
+
+<h3>Missão final: a contagem do lançamento</h3>
+
+<div class="tryjs" data-goal="outre:3\n2\n1\nJá!;;src:setInterval\s*\(;;src:clearInterval\s*\(\s*relogio\s*\)">
+<p class="try-task"><strong>Missão:</strong> este programa usa <code>setTimeout</code> e por isso só mostra o <code>3</code>. Troque por <code>setInterval</code>, para ele repetir a cada segundo, e, dentro do <code>if</code>, pare o relógio com <code>clearInterval(relogio)</code>. A saída deve ser <code>3</code>, <code>2</code>, <code>1</code> e <code>Já!</code>, um por segundo, e o programa deve terminar sozinho.</p>
+<pre class="script" data-file="main.js">let contador = 3;
+
+const relogio = setTimeout(() =&gt; {
+  console.log(contador);
+  contador = contador - 1;
+  if (contador === 0) {
+    console.log("Já!");
+  }
+}, 1000);
+</pre>
+<pre class="solucao" data-file="main.js">let contador = 3;
+
+const relogio = setInterval(() =&gt; {
+  console.log(contador);
+  contador = contador - 1;
+  if (contador === 0) {
+    clearInterval(relogio);
+    console.log("Já!");
+  }
+}, 1000);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>3</code>, <code>2</code>, <code>1</code> e <code>Já!</code>, e terminou em uns 3 segundos.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>setTimeout(funcao, ms)</code> chama a função <strong>uma vez</strong>, daqui a pelo menos <code>ms</code> milissegundos (1000 ms = 1 s). O programa não espera: agenda e segue.</li>
+  <li>Entregue a função <strong>sem parênteses</strong> (<code>setTimeout(f, 1000)</code>), ou uma arrow em volta (<code>() =&gt; f(a)</code>) para passar argumentos.</li>
+  <li><code>setInterval(funcao, ms)</code> repete até alguém chamar <code>clearInterval(id)</code>. Sem isso, o programa não termina.</li>
+  <li>Guarde a identificação do timer numa variável para poder cancelar: <code>clearTimeout(id)</code> e <code>clearInterval(id)</code>.</li>
+  <li>Vários timers correm ao mesmo tempo e tocam na ordem do tempo. Dentro de laços, use <code>let</code>, nunca <code>var</code>.</li>
+  <li>Outras formas: um <code>setTimeout</code> que se reagenda, e o <code>await</code> com <code>node:timers/promises</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
