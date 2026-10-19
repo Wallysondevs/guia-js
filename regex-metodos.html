@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Regex na Prática — test, match, matchAll, replace e split | Guia JavaScript</title>
+<meta name="description" content="Expressões regulares na prática em JavaScript, para quem nunca programou: filtrar com test, achar com match, todas as ocorrências com a flag g, grupos de captura e grupos com nome, matchAll, replace e replaceAll com $1 e com função, limpar CPF e telefone, split com regex, search, o lastIndex do test com g e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Regex na Prática</span></h1>
+
+<p class="intro">Na aula <a href="regex.html">Expressões Regulares</a>, você aprendeu a escrever padrões e a perguntar "o texto tem esse formato?" com o <code>test</code>. Mas uma regex faz muito mais do que responder sim ou não: ela <strong>acha</strong> o pedaço do texto que casou com o padrão, <strong>separa</strong> as partes dele (o DDD e o número, o dia e o mês), <strong>troca</strong> o que você quiser e <strong>divide</strong> um texto bagunçado. Esta aula mostra os métodos que fazem cada uma dessas coisas, sempre com exemplos do dia a dia da Ana.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Quando usar cada método: <code>test</code>, <code>match</code>, <code>matchAll</code>, <code>replace</code>, <code>replaceAll</code>, <code>split</code> e <code>search</code>.</li>
+  <li>Como achar a primeira ocorrência e, com a flag <code>g</code>, todas.</li>
+  <li>Como <strong>capturar</strong> partes do texto com grupos <code>( )</code> e com grupos com nome <code>(?&lt;dia&gt;…)</code>.</li>
+  <li>Como trocar com <code>replace</code>: um texto fixo, os pedaços capturados (<code>$1</code>, <code>$&lt;nome&gt;</code>) ou uma função.</li>
+  <li>Como limpar CPF e telefone, juntar espaços repetidos e dividir uma lista com separadores misturados.</li>
+  <li>As armadilhas: o <code>null</code> do <code>match</code>, o <code>g</code> esquecido, o <code>replaceAll</code> sem <code>g</code> e o <code>test</code> que alterna <code>true</code> e <code>false</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Tudo aqui é da linguagem e funciona igual no navegador.</p>
+
+<hr>
+
+<h2>A ideia: o marca-texto, a tesoura e a borracha</h2>
+<p>Pense numa folha de recados presa na geladeira. Com uma regex na mão, a Ana pode fazer quatro coisas diferentes com ela:</p>
+<ul>
+  <li><strong>perguntar</strong>: "tem algum telefone neste recado?" (sim ou não) → <code>test</code>;</li>
+  <li><strong>passar o marca-texto</strong> no pedaço que casou, para copiar: "qual é o telefone?" → <code>match</code> e <code>matchAll</code>;</li>
+  <li><strong>apagar e escrever por cima</strong>: "troque todo <code>gato</code> por <code>cão</code>" → <code>replace</code> e <code>replaceAll</code>;</li>
+  <li><strong>recortar com a tesoura</strong> onde o padrão aparece: "separe a lista em cada vírgula ou ponto e vírgula" → <code>split</code>.</li>
+</ul>
+<p>Repare que só o <code>test</code> é chamado <strong>na regex</strong> (<code>regex.test(texto)</code>). Os outros são métodos <strong>do texto</strong>, que recebem a regex: <code>texto.match(regex)</code>, <code>texto.replace(regex, …)</code>.</p>
+
+<hr>
+
+<h2>1. <code>test</code>: filtrar uma lista</h2>
+<p>O <code>test</code> você já conhece. Ele brilha junto com o <a href="filter.html">filter</a>: "fique só com os itens que têm o padrão":</p>
+
+<pre class="file" data-file="rm-test.js">const temNumero = /\d/;
+const frases = ["Mesa 7", "Balcão", "Pedido 1042"];
+
+const comNumero = frases.filter((frase) =&gt; temNumero.test(frase));
+console.log(comNumero);
+</pre>
+
+<pre class="term">$ node rm-test.js
+[ 'Mesa 7', 'Pedido 1042' ]
+</pre>
+
+<hr>
+
+<h2>2. <code>match</code>: o que casou, e onde</h2>
+
+<pre class="file" data-file="rm-match.js">const recado = "Ligar para (11) 91234-5678 depois das 14h";
+const resultado = recado.match(/\d+/);
+
+console.log(resultado[0]);
+console.log(resultado.index);
+console.log(resultado);
+console.log("sem números".match(/\d+/));
+</pre>
+
+<pre class="term">$ node rm-match.js
+11
+12
+[
+  '11',
+  index: 12,
+  input: 'Ligar para (11) 91234-5678 depois das 14h',
+  groups: undefined
+]
+null
+</pre>
+
+<dl class="anatomy">
+  <dt>recado.match(/\d+/)</dt><dd><em>match</em> = "casar", "combinar". Procura a <strong>primeira</strong> vez que o padrão aparece no texto.</dd>
+  <dt>resultado[0] → '11'</dt><dd>O resultado é um <a href="arrays.html">array</a> especial. Na posição 0 está o pedaço que casou: os primeiros dígitos seguidos, o DDD.</dd>
+  <dt>resultado.index → 12</dt><dd>A posição onde o pedaço começa no texto (contando do 0: o <code>(</code> está na 11, o <code>1</code> na 12).</dd>
+  <dt>input e groups</dt><dd>O texto original e os grupos com nome (seção 4; aqui não há nenhum, então <code>undefined</code>).</dd>
+  <dt>"sem números".match(…) → null</dt><dd>Quando o padrão <strong>não aparece</strong>, o <code>match</code> devolve <code>null</code> ("nada"), e não um array vazio. Isso é importante: veja <a href="#errado">Quando dá errado</a>.</dd>
+</dl>
+
+<h3>Todas as ocorrências: a flag <code>g</code></h3>
+<p>Com a flag <code>g</code> (<em>global</em>, "todas"), o <code>match</code> muda de comportamento: devolve um array simples com <strong>todos</strong> os pedaços que casaram:</p>
+
+<pre class="file" data-file="rm-match-g.js">const cupom = "Pão R$ 4,50 · Leite R$ 6,25 · Café R$ 21,90";
+
+console.log(cupom.match(/\d+,\d{2}/));
+console.log(cupom.match(/\d+,\d{2}/g));
+console.log("sem preço".match(/\d+,\d{2}/g));
+</pre>
+
+<pre class="term">$ node rm-match-g.js
+[
+  '4,50',
+  index: 7,
+  input: 'Pão R$ 4,50 · Leite R$ 6,25 · Café R$ 21,90',
+  groups: undefined
+]
+[ '4,50', '6,25', '21,90' ]
+null
+</pre>
+
+<p>Sem <code>g</code>: só o primeiro preço, com <code>index</code> e companhia. Com <code>g</code>: os três preços, sem detalhes. E, se não achar nada, continua sendo <code>null</code>.</p>
+
+<hr>
+
+<h2>3. Grupos de captura: separando as partes</h2>
+<p>Na aula anterior, os parênteses serviam para agrupar. Eles têm um segundo poder: cada par de parênteses <strong>captura</strong> o pedaço do texto que casou com ele, e o <code>match</code> devolve cada captura numa posição do array:</p>
+
+<pre class="file" data-file="rm-grupos.js">const telefone = "(11) 91234-5678";
+const partes = telefone.match(/\((\d{2})\) (\d{4,5}-\d{4})/);
+
+console.log(partes[0]);
+console.log(partes[1]);
+console.log(partes[2]);
+</pre>
+
+<pre class="term">$ node rm-grupos.js
+(11) 91234-5678
+11
+91234-5678
+</pre>
+
+<dl class="anatomy">
+  <dt>\( e \)</dt><dd>Parênteses <strong>escapados</strong>: os do texto, de verdade.</dd>
+  <dt>(\d{2})</dt><dd>O 1º grupo de captura (parênteses sem barra): os 2 dígitos do DDD → <code>partes[1]</code>.</dd>
+  <dt>(\d{4,5}-\d{4})</dt><dd>O 2º grupo: o número → <code>partes[2]</code>.</dd>
+  <dt>partes[0]</dt><dd>Sempre o pedaço inteiro que casou.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Grupos com nome: <code>(?&lt;nome&gt;…)</code></h2>
+<p>Com muitos grupos, lembrar que o mês é o <code>[2]</code> e o ano é o <code>[3]</code> confunde. Dá para dar um <strong>nome</strong> a cada grupo, escrevendo <code>?&lt;nome&gt;</code> logo depois do <code>(</code>. Os pedaços aparecem no objeto <code>groups</code>:</p>
+
+<pre class="file" data-file="rm-nomeados.js">const data = "05/03/2026";
+const resultado = data.match(/^(?&lt;dia&gt;\d{2})\/(?&lt;mes&gt;\d{2})\/(?&lt;ano&gt;\d{4})$/);
+
+console.log(resultado.groups);
+const { dia, mes, ano } = resultado.groups;
+console.log(`Dia ${dia}, mês ${mes}, ano ${ano}`);
+console.log(new Date(Number(ano), Number(mes) - 1, Number(dia)).getDay());
+</pre>
+
+<pre class="term">$ node rm-nomeados.js
+[Object: null prototype] { dia: '05', mes: '03', ano: '2026' }
+Dia 05, mês 03, ano 2026
+4
+</pre>
+
+<dl class="anatomy">
+  <dt>(?&lt;dia&gt;\d{2})</dt><dd>Um grupo chamado <code>dia</code>, com 2 dígitos.</dd>
+  <dt>\/</dt><dd>A barra <code>/</code> de verdade precisa de escape, porque a barra também fecha a regex.</dd>
+  <dt>resultado.groups</dt><dd>Um objeto com uma propriedade por grupo. O <code>[Object: null prototype]</code> é só o Node avisando que é um objeto "puro", sem os métodos de sempre; use como qualquer objeto.</dd>
+  <dt>const { dia, mes, ano } = …</dt><dd>Tira as três propriedades de uma vez (veja <a href="desestruturacao.html">Desestruturação</a>). As capturas são sempre <strong>textos</strong> (<code>'05'</code>); para fazer contas ou criar um <a href="date.html">Date</a>, converta com <code>Number</code>. O <code>4</code> da última linha é quinta-feira.</dd>
+</dl>
+
+<p>Esse é o jeito certo de ler uma data no formato brasileiro, que o <code>new Date("05/03/2026")</code> não entende.</p>
+
+<hr>
+
+<h2>5. <code>matchAll</code>: todas as ocorrências, com os grupos</h2>
+<p>O <code>match</code> com <code>g</code> devolve todos os pedaços, mas <strong>perde os grupos</strong>. Quando você quer as duas coisas (todos os itens do cupom, e de cada um o nome e o preço), use o <code>matchAll</code> ("casar todos") num <a href="for-of.html">for … of</a>. Ele exige a flag <code>g</code>:</p>
+
+<pre class="file" data-file="rm-matchall.js">const cupom = "Pão R$ 4,50 · Leite R$ 6,25 · Café R$ 21,90";
+const item = /(?&lt;nome&gt;[A-Za-zçãé]+) R\$ (?&lt;preco&gt;\d+,\d{2})/g;
+
+let total = 0;
+for (const achado of cupom.matchAll(item)) {
+  const { nome, preco } = achado.groups;
+  const valor = Number(preco.replace(",", "."));
+  total += valor;
+  console.log(`${nome}: ${valor}`);
+}
+console.log(`Total: ${total.toFixed(2)}`);
+</pre>
+
+<pre class="term">$ node rm-matchall.js
+Pão: 4.5
+Leite: 6.25
+Café: 21.9
+Total: 32.65
+</pre>
+
+<p>Cada <code>achado</code> é igual ao resultado de um <code>match</code> sem <code>g</code> (com <code>[0]</code>, <code>index</code> e <code>groups</code>), um para cada item. O <code>preco.replace(",", ".")</code> troca a vírgula por ponto, para o <code>Number</code> entender (veja <a href="conversao.html">Conversão</a>).</p>
+
+<hr>
+
+<h2>6. <code>replace</code> e <code>replaceAll</code>: trocar</h2>
+<p>Você já viu o <code>replace</code> com texto na aula <a href="strings-substituir.html">Substituindo</a>. Com regex, ele fica muito mais poderoso:</p>
+
+<pre class="file" data-file="rm-replace.js">const texto = "O gato viu outro gato no telhado do gato vizinho";
+
+console.log(texto.replace("gato", "cão"));
+console.log(texto.replace(/gato/, "cão"));
+console.log(texto.replace(/gato/g, "cão"));
+console.log(texto.replaceAll("gato", "cão"));
+console.log(texto.replaceAll(/gato/g, "cão"));
+</pre>
+
+<pre class="term">$ node rm-replace.js
+O cão viu outro gato no telhado do gato vizinho
+O cão viu outro gato no telhado do gato vizinho
+O cão viu outro cão no telhado do cão vizinho
+O cão viu outro cão no telhado do cão vizinho
+O cão viu outro cão no telhado do cão vizinho
+</pre>
+
+<p>Sem <code>g</code>, o <code>replace</code> troca só a <strong>primeira</strong> ocorrência; com <code>g</code>, troca todas. O <code>replaceAll</code> troca todas sempre, mas, quando recebe uma regex, ela <strong>tem de ter</strong> o <code>g</code> (senão dá erro; veja <a href="#errado">Quando dá errado</a>).</p>
+
+<h3>Limpando o que as pessoas digitam</h3>
+<p>O uso mais comum do <code>replace</code> com regex é limpar dados: tirar a pontuação de um CPF, deixar só os números de um telefone, juntar espaços repetidos:</p>
+
+<pre class="file" data-file="rm-limpar.js">const digitado = "  Ana    Maria   da   Silva ";
+const cpf = "123.456.789-09";
+
+console.log(`[${digitado.trim().replace(/\s+/g, " ")}]`);
+console.log(cpf.replace(/\D/g, ""));
+console.log("(11) 91234-5678".replace(/\D/g, ""));
+</pre>
+
+<pre class="term">$ node rm-limpar.js
+[Ana Maria da Silva]
+12345678909
+11912345678
+</pre>
+
+<dl class="anatomy">
+  <dt>.replace(/\s+/g, " ")</dt><dd>Cada sequência de um ou mais espaços vira <strong>um</strong> espaço. O <code>trim()</code> antes tira os espaços das pontas. Os colchetes no <code>console.log</code> só mostram onde o texto começa e termina.</dd>
+  <dt>.replace(/\D/g, "")</dt><dd><code>\D</code> é "qualquer coisa que não seja dígito". Trocar tudo isso por nada (<code>""</code>) deixa só os números.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:11912345678;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa devia deixar só os dígitos do telefone, mas tira só o primeiro caractere. Conserte a regex para ele mostrar <code>11912345678</code>.</p>
+<pre class="script" data-file="main.js">const telefone = "(11) 91234-5678";
+console.log(telefone.replace(/\D/, ""));
+</pre>
+<pre class="solucao" data-file="main.js">const telefone = "(11) 91234-5678";
+console.log(telefone.replace(/\D/g, ""));
+</pre>
+</div>
+
+<h3>Usando o que foi capturado: <code>$1</code> e <code>$&lt;nome&gt;</code></h3>
+<p>No texto de troca, <code>$1</code>, <code>$2</code>… são os grupos capturados, e <code>$&lt;nome&gt;</code> é um grupo com nome. Assim dá para <strong>reorganizar</strong> as partes:</p>
+
+<pre class="file" data-file="rm-dolar.js">const data = "2026-03-05";
+
+console.log(data.replace(/(\d{4})-(\d{2})-(\d{2})/, "$3/$2/$1"));
+console.log(data.replace(/(?&lt;ano&gt;\d{4})-(?&lt;mes&gt;\d{2})-(?&lt;dia&gt;\d{2})/, "$&lt;dia&gt;/$&lt;mes&gt;/$&lt;ano&gt;"));
+console.log("11912345678".replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3"));
+</pre>
+
+<pre class="term">$ node rm-dolar.js
+05/03/2026
+05/03/2026
+(11) 91234-5678
+</pre>
+
+<p>A data do jeito do computador virou a data do jeito brasileiro, e os 11 dígitos viraram um telefone formatado: o caminho de volta da limpeza.</p>
+
+<h3>Uma função no lugar do texto de troca</h3>
+<p>Quando a troca depende do que foi achado, passe uma <a href="funcoes-valores.html">função</a>. Ela é chamada para cada pedaço que casou, recebe esse pedaço, e o que ela devolver entra no lugar:</p>
+
+<pre class="file" data-file="rm-funcao.js">const recado = "comprar 2 pães e 3 leites";
+const dobrado = recado.replace(/\d+/g, (numero) =&gt; String(Number(numero) * 2));
+console.log(dobrado);
+
+const titulo = "a padaria do bairro".replace(/\b\w/g, (letra) =&gt; letra.toUpperCase());
+console.log(titulo);
+</pre>
+
+<pre class="term">$ node rm-funcao.js
+comprar 4 pães e 6 leites
+A Padaria Do Bairro
+</pre>
+
+<p>No segundo, <code>\b</code> é a <strong>borda de palavra</strong> (o ponto entre um espaço e uma letra, ou o começo do texto), então <code>\b\w</code> é "a primeira letra de cada palavra". (Como o <code>\w</code>, o <code>\b</code> não conhece acentos: uma palavra que começa com <code>é</code> não seria pega.)</p>
+
+<hr>
+
+<h2>7. <code>split</code> com regex: separadores misturados</h2>
+<p>A lista de compras que a Ana recebeu por mensagem veio bagunçada: umas vírgulas, uns pontos e vírgulas, espaços sobrando. O <a href="strings-split.html">split</a> com texto não dá conta; com regex, sim:</p>
+
+<pre class="file" data-file="rm-split.js">const lista = "pão, leite;café ,  queijo;manteiga";
+
+console.log(lista.split(","));
+console.log(lista.split(/\s*[,;]\s*/));
+console.log("um  dois   três".split(/\s+/));
+</pre>
+
+<pre class="term">$ node rm-split.js
+[ 'pão', ' leite;café ', '  queijo;manteiga' ]
+[ 'pão', 'leite', 'café', 'queijo', 'manteiga' ]
+[ 'um', 'dois', 'três' ]
+</pre>
+
+<p><code>/\s*[,;]\s*/</code> quer dizer "uma vírgula <strong>ou</strong> um ponto e vírgula, com quantos espaços houver em volta". O corte acontece ali, e os espaços vão embora junto. O último exemplo separa palavras por qualquer quantidade de espaços.</p>
+
+<hr>
+
+<h2>8. <code>search</code>: a posição</h2>
+<p>O <code>search</code> ("procurar") é o <code>indexOf</code> das regex: devolve a <strong>posição</strong> da primeira ocorrência, ou <code>-1</code> se não achar:</p>
+
+<pre class="file" data-file="rm-search.js">const recado = "Ligar para (11) 91234-5678";
+
+console.log(recado.search(/\d/));
+console.log(recado.search(/@/));
+console.log(recado.indexOf("("));
+</pre>
+
+<pre class="term">$ node rm-search.js
+12
+-1
+11
+</pre>
+
+<hr>
+
+<h2 id="formas">Qual método usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Método</th><th>Devolve</th></tr>
+<tr><td>Saber se tem (sim ou não)</td><td><code>regex.test(texto)</code></td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td>O primeiro pedaço, com a posição e os grupos</td><td><code>texto.match(regex)</code> (sem <code>g</code>)</td><td>Array com <code>[0]</code>, <code>[1]</code>…, <code>index</code>, <code>groups</code>; ou <code>null</code></td></tr>
+<tr><td>Todos os pedaços (só o texto)</td><td><code>texto.match(regex)</code> (com <code>g</code>)</td><td>Array de textos; ou <code>null</code></td></tr>
+<tr><td>Todos os pedaços, com os grupos</td><td><code>texto.matchAll(regex)</code> (<code>g</code> obrigatório)</td><td>Para usar num <code>for … of</code></td></tr>
+<tr><td>Trocar a primeira / todas</td><td><code>texto.replace(regex, troca)</code> sem / com <code>g</code></td><td>Texto novo</td></tr>
+<tr><td>Trocar todas (deixando claro)</td><td><code>texto.replaceAll(regex, troca)</code> (<code>g</code> obrigatório)</td><td>Texto novo</td></tr>
+<tr><td>Cortar em pedaços</td><td><code>texto.split(regex)</code></td><td>Array de textos</td></tr>
+<tr><td>A posição da primeira ocorrência</td><td><code>texto.search(regex)</code></td><td>Número ou <code>-1</code></td></tr>
+</table>
+</div>
+
+<p>Em código mais antigo você vai ver também o <code>regex.exec(texto)</code>, que faz o mesmo que o <code>match</code> sem <code>g</code> e, com <code>g</code>, devolve uma ocorrência por chamada, num laço:</p>
+
+<pre class="file" data-file="rm-exec.js">const preco = /\d+,\d{2}/g;
+const cupom = "R$ 4,50 e R$ 6,25";
+
+let achado;
+while ((achado = preco.exec(cupom)) !== null) {
+  console.log(`${achado[0]} na posição ${achado.index}`);
+}
+</pre>
+
+<pre class="term">$ node rm-exec.js
+4,50 na posição 3
+6,25 na posição 13
+</pre>
+
+<p>Hoje, o <code>matchAll</code> com <code>for … of</code> faz isso de um jeito mais simples.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>match</code> não achou nada: <code>null</code></strong>
+<pre class="file" data-file="rm-null.js">const recado = "Ligar mais tarde";
+const telefone = recado.match(/\d{4,5}-\d{4}/);
+console.log(telefone[0]);
+</pre>
+<pre class="term">$ node rm-null.js
+/home/ana/rm-null.js:3
+console.log(telefone[0]);
+                    ^
+
+TypeError: Cannot read properties of null (reading '0')
+    at Object.&lt;anonymous&gt; (/home/ana/rm-null.js:3:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/rm-null.js:3</dt><dd>O arquivo e a linha 3, a do <code>console.log</code>.</dd>
+  <dt>console.log(telefone[0]); e o ^</dt><dd>O <code>^</code> aponta para o <code>[0]</code>.</dd>
+  <dt>TypeError: Cannot read properties of null (reading '0')</dt><dd>"Não é possível ler propriedades de <code>null</code> (lendo <code>'0'</code>)". O recado não tinha telefone, o <code>match</code> devolveu <code>null</code>, e <code>null</code> não tem posição 0.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/rm-null.js:3:21)</dt><dd>Linha 3, coluna 21, no programa principal; as linhas com <code>node:internal</code> são o Node carregando o arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> trate o "não achou" antes de usar o resultado. Um jeito curto, com <a href="optional-chaining.html">?. e ??</a>:</p>
+<pre class="file" data-file="rm-null-ok.js">const recado = "Ligar mais tarde";
+const telefone = recado.match(/\d{4,5}-\d{4}/);
+console.log(telefone?.[0] ?? "nenhum telefone no recado");
+</pre>
+<pre class="term">$ node rm-null-ok.js
+nenhum telefone no recado
+</pre>
+<p>Com <code>match</code> e <code>g</code>, é o mesmo: sem nada, vem <code>null</code>, e não <code>[]</code>. Para ter sempre um array, escreva <code>texto.match(regex) ?? []</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>g</code>: só a primeira foi trocada</strong>
+<pre class="file" data-file="rm-esqueceu-g.js">const cpf = "123.456.789-09";
+console.log(cpf.replace(/\D/, ""));
+</pre>
+<pre class="term">$ node rm-esqueceu-g.js
+123456.789-09
+</pre>
+<p>Sem mensagem de erro: o primeiro ponto sumiu e o resto ficou. <strong>Como consertar:</strong> <code>/\D/g</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>replaceAll</code> ou <code>matchAll</code> com uma regex sem <code>g</code></strong>
+<pre class="file" data-file="rm-replaceall.js">const texto = "a-b-c";
+console.log(texto.replaceAll(/-/, "+"));
+</pre>
+<pre class="term">$ node rm-replaceall.js
+/home/ana/rm-replaceall.js:2
+console.log(texto.replaceAll(/-/, "+"));
+                  ^
+
+TypeError: String.prototype.replaceAll called with a non-global RegExp argument
+    at String.replaceAll (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/rm-replaceall.js:2:19)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>String.prototype.replaceAll</code> chamado com uma regex que não é global". O <code>String.prototype.replaceAll</code> é o nome completo do método <code>replaceAll</code> dos textos (veja <a href="prototipos.html">Protótipos</a>). O nome promete trocar <strong>todas</strong>, e uma regex sem <code>g</code> diria "só a primeira": o JavaScript prefere avisar a adivinhar. Com o <code>matchAll</code> acontece igual: <code>TypeError: String.prototype.matchAll called with a non-global RegExp argument</code>. <strong>Como consertar:</strong> ponha o <code>g</code>: <code>/-/g</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>test</code> com <code>g</code> que alterna <code>true</code> e <code>false</code></strong>
+<pre class="file" data-file="rm-lastindex.js">const temNumero = /\d/g;
+
+console.log(temNumero.test("Mesa 7"));
+console.log(temNumero.test("Mesa 7"));
+console.log(temNumero.test("Mesa 7"));
+console.log(temNumero.lastIndex);
+</pre>
+<pre class="term">$ node rm-lastindex.js
+true
+false
+true
+6
+</pre>
+<p>O mesmo teste, no mesmo texto, deu <code>true</code>, <code>false</code>, <code>true</code>! Uma regex com <code>g</code> <strong>lembra onde parou</strong>, na propriedade <code>lastIndex</code> ("última posição"), e o próximo <code>test</code> continua a busca dali. Na 2ª vez, ela começou depois do <code>7</code>, não achou mais nada, deu <code>false</code> e voltou para o 0. Isso causa erros muito difíceis de achar num <code>filter</code>. <strong>Como consertar:</strong> não use <code>g</code> no <code>test</code>: para "tem ou não tem", basta achar o primeiro.</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'Mesa 7', 'Mesa 9', 'Pedido 12' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> o filtro devia ficar com as três frases que têm número, mas perde uma por causa do <code>lastIndex</code> (no lab, saiu <code>[ 'Mesa 7', 'Pedido 12' ]</code>: a <code>Mesa 9</code> sumiu). Conserte a regex.</p>
+<pre class="script" data-file="main.js">const temNumero = /\d/g;
+const frases = ["Mesa 7", "Mesa 9", "Balcão", "Pedido 12"];
+
+console.log(frases.filter((frase) =&gt; temNumero.test(frase)));
+</pre>
+<pre class="solucao" data-file="main.js">const temNumero = /\d/;
+const frases = ["Mesa 7", "Mesa 9", "Balcão", "Pedido 12"];
+
+console.log(frases.filter((frase) =&gt; temNumero.test(frase)));
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado no lab</th></tr>
+<tr><td><code>/\d/.test("Mesa 7")</code></td><td><code>true</code></td></tr>
+<tr><td><code>"Mesa 127".match(/\d+/)[0]</code></td><td><code>'127'</code></td></tr>
+<tr><td><code>cupom.match(/\d+,\d{2}/g)</code></td><td><code>[ '4,50', '6,25', '21,90' ]</code></td></tr>
+<tr><td><code>texto.match(/(\d{2})/)[1]</code></td><td>O 1º grupo capturado</td></tr>
+<tr><td><code>texto.match(/(?&lt;dia&gt;\d{2})/).groups.dia</code></td><td>O grupo com nome <code>dia</code></td></tr>
+<tr><td><code>for (const a of texto.matchAll(/…/g))</code></td><td>Cada ocorrência, com grupos</td></tr>
+<tr><td><code>cpf.replace(/\D/g, "")</code></td><td><code>12345678909</code></td></tr>
+<tr><td><code>"2026-03-05".replace(/(\d{4})-(\d{2})-(\d{2})/, "$3/$2/$1")</code></td><td><code>05/03/2026</code></td></tr>
+<tr><td><code>texto.replace(/\d+/g, (n) =&gt; …)</code></td><td>Troca usando uma função</td></tr>
+<tr><td><code>lista.split(/\s*[,;]\s*/)</code></td><td>Corta em vírgulas ou pontos e vírgulas</td></tr>
+<tr><td><code>texto.search(/\d/)</code></td><td>Posição do primeiro dígito, ou <code>-1</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para deixar só os dígitos do CEP <code>"01310-100"</code>:</p>
+<div class="ex-code">cep.<input data-answer="replace|replaceAll" aria-label="nome do método">(/\D/<input data-answer="g" aria-label="flag">, "")</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que mostra <code>console.log("sem números".match(/\d+/g))</code>?</p>
+<div class="ex-code">Mostra <input data-answer="null" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>"2026-03-05".replace(/(\d{4})-(\d{2})-(\d{2})/, "$2")</code> dá:</p>
+<label><input type="radio" name="q3"> <code>2026</code></label>
+<label><input type="radio" name="q3"> <code>05</code></label>
+<label><input type="radio" name="q3"> <code>03</code></label>
+<label><input type="radio" name="q3"> <code>$2</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Você quer todos os itens de um cupom e, de cada um, o nome e o preço (grupos). Qual método?</p>
+<label><input type="radio" name="q4"> <code>matchAll</code>, com a flag <code>g</code></label>
+<label><input type="radio" name="q4"> <code>match</code>, com a flag <code>g</code></label>
+<label><input type="radio" name="q4"> <code>test</code></label>
+<label><input type="radio" name="q4"> <code>search</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que <code>texto.replaceAll(/a/, "b")</code> dá erro?</p>
+<label><input type="radio" name="q5"> Porque <code>replaceAll</code> não aceita regex</label>
+<label><input type="radio" name="q5"> Porque o <code>"b"</code> deveria ser uma função</label>
+<label><input type="radio" name="q5"> Porque faltou o <code>^</code> e o <code>$</code></label>
+<label><input type="radio" name="q5"> Porque, com regex, o <code>replaceAll</code> exige a flag <code>g</code></label>
+</div>
+
+<h3>Missão final: o total do cupom</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 32,65;;src:match">
+<p class="try-task"><strong>Missão:</strong> o cupom veio como um texto só. Use <code>match</code> com a flag <code>g</code> para achar <strong>todos</strong> os preços (o padrão é "dígitos, vírgula, 2 dígitos"), some e mostre <code>Total: R$ 32,65</code>. O laço que soma já está pronto.</p>
+<pre class="script" data-file="main.js">const cupom = "Pão R$ 4,50 · Leite R$ 6,25 · Café R$ 21,90";
+const precos = []; // troque por um match
+
+let total = 0;
+for (const preco of precos) {
+  total += Number(preco.replace(",", "."));
+}
+console.log(`Total: R$ ${total.toFixed(2).replace(".", ",")}`);
+</pre>
+<pre class="solucao" data-file="main.js">const cupom = "Pão R$ 4,50 · Leite R$ 6,25 · Café R$ 21,90";
+const precos = cupom.match(/\d+,\d{2}/g);
+
+let total = 0;
+for (const preco of precos) {
+  total += Number(preco.replace(",", "."));
+}
+console.log(`Total: R$ ${total.toFixed(2).replace(".", ",")}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>regex.test(texto)</code> pergunta; <code>texto.match(regex)</code> acha (o primeiro, com <code>index</code> e grupos; ou todos, com <code>g</code>); <code>texto.matchAll(regex)</code> dá todos com os grupos.</li>
+  <li>Parênteses <strong>capturam</strong>: <code>resultado[1]</code>, <code>resultado[2]</code>… Com nome, <code>(?&lt;dia&gt;…)</code> e <code>resultado.groups.dia</code>. As capturas são textos.</li>
+  <li><code>texto.replace(regex, troca)</code> troca a primeira (ou todas, com <code>g</code>); na troca, <code>$1</code> e <code>$&lt;nome&gt;</code> reaproveitam os grupos, e uma função decide caso a caso. Limpeza clássica: <code>replace(/\D/g, "")</code>.</li>
+  <li><code>texto.split(regex)</code> corta com separadores variados; <code>texto.search(regex)</code> dá a posição.</li>
+  <li>Cuidados: o <code>match</code> sem resultado é <code>null</code>; sem <code>g</code>, o <code>replace</code> troca uma só; <code>replaceAll</code> e <code>matchAll</code> exigem <code>g</code>; e nunca use <code>g</code> no <code>test</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
