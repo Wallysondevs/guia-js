@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Onde Roda — navegador e Node.js | Guia JavaScript</title>
+<meta name="description" content="Onde o JavaScript roda, para quem nunca programou: a mesma linguagem no navegador e no Node.js, o que é só do navegador (document, alert, window), o que é só do Node (fs, process), como descobrir onde o código está rodando (typeof, globalThis) e os erros reais de usar uma coisa no lugar errado.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Onde Roda</span></h1>
+
+<p class="intro">Na <a href="introducao.html">Introdução</a> você viu que o JavaScript roda em dois lugares: dentro do <strong>navegador</strong> (Chrome, Edge, Firefox, Safari) e no terminal, com o <strong>Node.js</strong>. Esta aula mostra o que é igual nos dois, o que só existe num deles, e o que acontece quando você usa uma coisa do navegador no Node (ou o contrário). Saber isso evita muita confusão quando você copiar exemplos da internet.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que a <strong>linguagem</strong> é a mesma no navegador e no Node.js, e o que muda é o <strong>ambiente</strong> em volta dela.</li>
+  <li>O que é só do navegador: a página (<code>document</code>), as janelinhas (<code>alert</code>), a janela (<code>window</code>).</li>
+  <li>O que é só do Node.js: os arquivos (<code>node:fs</code>), o programa em execução (<code>process</code>).</li>
+  <li>Como descobrir onde o código está rodando, com <code>typeof</code> e <code>globalThis</code>.</li>
+  <li>Os erros reais: <code>alert is not defined</code>, <code>document is not defined</code>, <code>process is not defined</code>.</li>
+  <li>Onde este guia usa cada um.</li>
+</ul>
+</div>
+
+<p>As saídas de terminal desta aula foram colhidas com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana (<code>ana@notebook</code>). As caixas "Experimente" de página (com o quadro <strong>Resultado</strong>) rodam no seu próprio navegador.</p>
+
+<hr>
+
+<h2>A ideia: a mesma língua, cômodos diferentes</h2>
+<p>A Ana fala português na cozinha e no escritório. A <strong>língua</strong> é a mesma nos dois lugares: as mesmas palavras, a mesma gramática. O que muda são as <strong>coisas à mão</strong>: na cozinha tem fogão e geladeira; no escritório tem impressora e arquivo de papéis. Se ela pedir "liga o fogão" no escritório, ninguém sabe do que ela está falando.</p>
+
+<p>Com o JavaScript é igual. A linguagem (as contas, os textos, o <code>if</code>, o <code>for</code>, as funções) é a mesma em todo lugar: é o padrão ECMAScript. Mas cada lugar onde ela roda, chamado de <strong>ambiente</strong> (em inglês, <em>runtime</em> ou <em>host</em>, "anfitrião"), oferece as suas próprias ferramentas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na casa da Ana</th><th>No JavaScript</th></tr>
+<tr><td>A língua portuguesa</td><td>A linguagem JavaScript (ECMAScript): igual em todo lugar</td></tr>
+<tr><td>A cozinha, com fogão</td><td>O <strong>navegador</strong>, com a página (<code>document</code>) e as janelinhas (<code>alert</code>)</td></tr>
+<tr><td>O escritório, com o arquivo de papéis</td><td>O <strong>Node.js</strong>, com os arquivos do computador (<code>fs</code>) e o terminal (<code>process</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. A mesma linguagem nos dois lugares</h2>
+<p>Este programa só usa a linguagem e o <code>console.log</code>, que os dois ambientes têm:</p>
+
+<pre class="file" data-file="mesmo.js">console.log("Bom dia, Ana!");
+console.log(2 + 3);
+console.log("Pão: R$", 7.5);
+</pre>
+
+<p>No Node.js, a saída vai para o <strong>terminal</strong>:</p>
+
+<pre class="term">$ node mesmo.js
+Bom dia, Ana!
+5
+Pão: R$ 7.5
+</pre>
+
+<p>No navegador, o mesmo código escreve no <strong>Console</strong>, uma área escondida que se abre com a tecla <kbd>F12</kbd> (aula <a href="console-navegador.html">O Console do Navegador</a>). A pessoa que visita a página nem vê o Console: ele é uma ferramenta de quem programa. Na caixa abaixo, o Console aparece embaixo do Resultado. Clique em Rodar:</p>
+
+<div class="tryweb" data-goal="console:Pão: R$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o <code>script.js</code> tem só as duas primeiras linhas do programa. Acrescente a terceira, <code>console.log("Pão: R$", 7.5);</code>, clique em Rodar e compare o Console com a saída do terminal acima.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria&lt;/h1&gt;
+&lt;p&gt;Abra o Console para ver as mensagens.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Bom dia, Ana!");
+console.log(2 + 3);
+</pre>
+<pre class="solucao" data-file="script.js">console.log("Bom dia, Ana!");
+console.log(2 + 3);
+console.log("Pão: R$", 7.5);
+</pre>
+</div>
+
+<p>Repare na aba <code>index.html</code>: no navegador, o JavaScript mora <strong>dentro de uma página</strong>, e a linha <code>&lt;script src="script.js"&gt;&lt;/script&gt;</code> é o que manda o navegador carregar o arquivo <code>script.js</code>. No Node.js não há página: o arquivo <code>.js</code> é o programa inteiro.</p>
+
+<hr>
+
+<h2>2. O que é só do navegador</h2>
+<p>No navegador, o JavaScript serve para mexer na <strong>página</strong>. Para isso, o navegador oferece algumas coisas que o Node.js não tem:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>O que é</th><th>Aula</th></tr>
+<tr><td><code>document</code></td><td>A página aberta: os títulos, os parágrafos, os botões (o "DOM")</td><td><a href="dom.html">O que é o DOM</a></td></tr>
+<tr><td><code>alert()</code>, <code>prompt()</code>, <code>confirm()</code></td><td>As janelinhas de aviso e de pergunta</td><td><a href="prompt.html">prompt() e alert()</a></td></tr>
+<tr><td><code>window</code></td><td>A janela (ou aba) do navegador, com tudo dentro</td><td><a href="dom.html">O que é o DOM</a></td></tr>
+<tr><td><code>localStorage</code></td><td>Uma gaveta para guardar dados no navegador</td><td><a href="localstorage.html">localStorage</a></td></tr>
+</table>
+</div>
+
+<p>Na caixa abaixo, o JavaScript troca o texto do título da página. Esse tipo de coisa só o navegador faz:</p>
+
+<div class="tryweb" data-goal="texto:#titulo~Padaria da Ana;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa troca o título para "Padaria do Bairro". Faça ele trocar para <code>Padaria da Ana</code> e clique em Rodar.</p>
+<pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Padaria&lt;/h1&gt;
+&lt;p&gt;Pão quentinho às 7h.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">document.querySelector("#titulo").textContent = "Padaria do Bairro";
+</pre>
+<pre class="solucao" data-file="script.js">document.querySelector("#titulo").textContent = "Padaria da Ana";
+</pre>
+</div>
+
+<p>Não precisa entender o <code>document.querySelector</code> agora: ele "procura na página o elemento com <code>id="titulo"</code>", e o <code>.textContent = …</code> troca o texto dele. Isso tem aulas próprias no grupo "A Página Web" (<a href="dom-selecionar.html">Selecionando Elementos</a>).</p>
+
+<hr>
+
+<h2>3. O que é só do Node.js</h2>
+<p>No Node.js não há página nem janelinha, mas há o <strong>computador</strong>: os arquivos, as pastas, o terminal. Este programa cria um arquivo de verdade na pasta da Ana, lê de volta o que escreveu e diz em que sistema está rodando:</p>
+
+<pre class="file" data-file="so-node.js">import fs from "node:fs";
+
+fs.writeFileSync("recado.txt", "Comprar pão");
+console.log("Arquivo criado!");
+console.log(fs.readFileSync("recado.txt", "utf8"));
+console.log(process.platform);
+</pre>
+
+<pre class="term">$ node so-node.js
+Arquivo criado!
+Comprar pão
+linux
+$ cat recado.txt; echo
+Comprar pão
+</pre>
+
+<dl class="anatomy">
+  <dt>import fs from "node:fs";</dt><dd>Traz para o programa o módulo <code>fs</code> (de <em>file system</em>, "sistema de arquivos"), que vem com o Node.js. O <code>node:</code> na frente deixa claro que é um módulo do próprio Node. Módulos têm aula própria: <a href="modulos.html">Módulos</a>.</dd>
+  <dt>fs.writeFileSync("recado.txt", "Comprar pão");</dt><dd>Escreve o texto <code>Comprar pão</code> num arquivo chamado <code>recado.txt</code>, na pasta onde o programa rodou (a pasta da Ana). Se o arquivo não existe, ele é criado.</dd>
+  <dt>fs.readFileSync("recado.txt", "utf8")</dt><dd>Lê o arquivo e devolve o conteúdo como texto (o <code>"utf8"</code> diz como as letras estão gravadas). O <code>console.log</code> mostra esse texto.</dd>
+  <dt>process.platform</dt><dd>O <code>process</code> é o programa que está rodando agora; <code>platform</code> diz o sistema operacional: <code>linux</code> na máquina da Ana (no Windows sairia <code>win32</code>; no macOS, <code>darwin</code>).</dd>
+  <dt>$ cat recado.txt; echo</dt><dd>Prova de que o arquivo existe de verdade: o comando <code>cat</code> do terminal mostrou o conteúdo dele. (O <code>echo</code> só pula a linha, porque o recado não terminava com uma quebra de linha.)</dd>
+</dl>
+
+<p>Um site não pode fazer isso: imagine se qualquer página que você visita pudesse ler e apagar os arquivos do seu computador! Por segurança, o navegador não deixa. O Node.js deixa porque é um programa que <strong>você</strong> rodou, de propósito, no seu computador. Os arquivos têm aulas próprias, no nível 3 (<a href="fs-ler.html">Lendo Arquivos</a>).</p>
+
+<div class="tryjs" data-goal="arquivo:lista.txt~leite;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa grava <code>pão</code> no arquivo <code>lista.txt</code>. Mude o texto para que a lista tenha também <code>leite</code> (por exemplo, <code>"pão e leite"</code>) e rode.</p>
+<pre class="script" data-file="main.js">import fs from "node:fs";
+
+fs.writeFileSync("lista.txt", "pão");
+console.log(fs.readFileSync("lista.txt", "utf8"));
+</pre>
+<pre class="solucao" data-file="main.js">import fs from "node:fs";
+
+fs.writeFileSync("lista.txt", "pão e leite");
+console.log(fs.readFileSync("lista.txt", "utf8"));
+</pre>
+</div>
+
+<p>Na caixa "Experimente", o arquivo é criado numa pasta de mentira, só da caixa: o editor do guia imita o Node.js, e o seu computador não é tocado.</p>
+
+<hr>
+
+<h2>4. O que é de quem</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Recurso</th><th>Navegador</th><th>Node.js</th></tr>
+<tr><td>A linguagem: números, textos, <code>if</code>, <code>for</code>, funções, arrays, objetos, classes</td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>console.log</code>, <code>console.error</code></td><td>Sim (no Console, <kbd>F12</kbd>)</td><td>Sim (no terminal)</td></tr>
+<tr><td><code>setTimeout</code>, <code>fetch</code>, <code>JSON</code>, <code>Math</code></td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>document</code> (a página), <code>window</code></td><td>Sim</td><td><strong>Não</strong></td></tr>
+<tr><td><code>alert</code>, <code>prompt</code>, <code>confirm</code></td><td>Sim</td><td><strong>Não</strong> (para ler o teclado: <a href="entrada-teclado.html">readline</a>)</td></tr>
+<tr><td><code>localStorage</code></td><td>Sim</td><td><strong>Não</strong> (no Node, guarde em arquivo)</td></tr>
+<tr><td><code>node:fs</code> (arquivos), <code>process</code></td><td><strong>Não</strong></td><td>Sim</td></tr>
+<tr><td><code>require</code>, <code>npm</code></td><td><strong>Não</strong> (direto)</td><td>Sim</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Descobrindo onde o código está rodando</h2>
+<p>O operador <code>typeof</code> ("tipo de") diz o tipo de um valor. Para um nome que não existe, em vez de erro, ele responde <code>"undefined"</code> ("indefinido"). Isso permite perguntar, sem quebrar o programa, se o ambiente tem uma coisa:</p>
+
+<pre class="file" data-file="onde.js">console.log(typeof window);
+console.log(typeof document);
+console.log(typeof process);
+</pre>
+
+<pre class="term">$ node onde.js
+undefined
+undefined
+object
+</pre>
+
+<p>No Node.js, <code>window</code> e <code>document</code> não existem (<code>undefined</code>), e o <code>process</code> existe (<code>object</code>, um "objeto"). No navegador, a resposta se inverte. Rode na caixa abaixo e compare o Console:</p>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente:</strong> as mesmas três linhas, agora no navegador.</p>
+<pre class="script" data-file="index.html">&lt;p&gt;Veja o Console.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log(typeof window);
+console.log(typeof document);
+console.log(typeof process);
+</pre>
+</div>
+
+<h3>O nome que vale nos dois: <code>globalThis</code></h3>
+<p>Cada ambiente tem o seu "objeto global", a caixa onde ficam os nomes que existem em todo o programa: no navegador ele se chama <code>window</code>; no Node.js, <code>global</code>. Para não precisar saber qual é, o ECMAScript 2020 criou um nome que funciona nos dois: <code>globalThis</code> <span class="versao">ES2020</span>.</p>
+
+<pre class="file" data-file="global.js">console.log(typeof globalThis);
+console.log(globalThis === global);
+</pre>
+
+<pre class="term">$ node global.js
+object
+true
+</pre>
+
+<p>O <code>true</code> ("verdadeiro") confirma: no Node.js, <code>globalThis</code> e <code>global</code> são a mesma coisa. Você vai usar isso pouco no começo; o importante é reconhecer o nome.</p>
+
+<hr>
+
+<h2>6. Outros lugares onde o JavaScript roda</h2>
+<p>O navegador e o Node.js são os dois grandes, mas não são os únicos. Você vai ouvir falar de:</p>
+<ul>
+  <li><strong>Deno</strong> e <strong>Bun</strong>: outros ambientes de terminal, como o Node.js. Rodam a mesma linguagem, com ferramentas próprias. Este guia não os usa.</li>
+  <li><strong>Aplicativos de computador e de celular</strong> feitos com JavaScript por baixo (o editor VS Code é um exemplo).</li>
+  <li><strong>O editor deste guia</strong>: as caixas "Experimente" rodam no motor de JavaScript do seu navegador, com uma imitação do Node.js por cima (aula <a href="simulador.html">O Editor do Guia</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Formas diferentes de rodar JavaScript</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como</th><th>Quando usar</th></tr>
+<tr><td>Arquivo no Node.js</td><td><code>node arquivo.js</code> no terminal (aula <a href="executar.html">Rodando um Programa</a>)</td><td>O jeito principal deste guia: programas, contas, arquivos</td></tr>
+<tr><td>Modo interativo do Node</td><td><code>node</code> sozinho, e você digita no <code>&gt;</code> (aula <a href="repl.html">O Modo Interativo</a>)</td><td>Testar uma linha rápida, como numa calculadora</td></tr>
+<tr><td>Console do navegador</td><td><kbd>F12</kbd> → aba Console (aula <a href="console-navegador.html">O Console do Navegador</a>)</td><td>Testar uma linha numa página aberta, investigar um site</td></tr>
+<tr><td>Página com <code>&lt;script&gt;</code></td><td>Um <code>.html</code> que carrega um <code>.js</code> (grupo "A Página Web")</td><td>Fazer a página reagir a cliques e digitação</td></tr>
+<tr><td>Caixa "Experimente"</td><td>Aqui mesmo no guia (aula <a href="simulador.html">O Editor do Guia</a>)</td><td>Praticar sem instalar nada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Quase todos os erros desta aula têm a mesma causa: uma coisa de um ambiente usada no outro. A mensagem é sempre um <code>ReferenceError</code> ("erro de referência": um nome que não existe ali).</p>
+
+<div class="cenario">
+<strong><code>alert</code> no Node.js</strong>
+<pre class="file" data-file="alerta.js">console.log("Antes do alert");
+alert("Bom dia, Ana!");
+console.log("Depois do alert");
+</pre>
+<pre class="term">$ node alerta.js
+Antes do alert
+/home/ana/alerta.js:2
+alert("Bom dia, Ana!");
+^
+
+ReferenceError: alert is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/alerta.js:2:1)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas: são do próprio Node
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>Antes do alert</dt><dd>A linha 1 rodou normalmente: o programa vai de cima para baixo.</dd>
+  <dt>/home/ana/alerta.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>alert("Bom dia, Ana!"); e o ^</dt><dd>A linha copiada do arquivo e o <code>^</code> apontando o começo do problema, o <code>alert</code>.</dd>
+  <dt>ReferenceError: alert is not defined</dt><dd>"<code>alert</code> não está definido": o Node.js não tem janelinhas.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/alerta.js:2:1)</dt><dd>Onde aconteceu: arquivo <code>alerta.js</code>, linha 2, coluna 1.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou.</dd>
+</dl>
+<p>E a linha 3 nunca rodou: o erro <strong>derrubou</strong> o programa, e "Depois do alert" não apareceu. <strong>Como consertar:</strong> no Node.js, para mostrar um recado, use <code>console.log</code>; para perguntar alguma coisa, veja <a href="entrada-teclado.html">Lendo o Teclado no Node</a>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>document</code> no Node.js</strong>
+<pre class="file" data-file="pagina.js">document.title = "Padaria da Ana";
+</pre>
+<pre class="term">$ node pagina.js
+/home/ana/pagina.js:1
+document.title = "Padaria da Ana";
+^
+
+ReferenceError: document is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/pagina.js:1:1)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A Ana copiou de um tutorial uma linha que muda o título da página. No Node.js não há página, então não há <code>document</code>. <strong>Como consertar:</strong> código com <code>document</code> vai numa página, carregado por um <code>&lt;script&gt;</code> (ou numa caixa <code>.tryweb</code> deste guia), nunca no <code>node arquivo.js</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>process</code> no navegador</strong>
+<p>O contrário também acontece: o <code>process</code> é só do Node.js. Na página, ele não existe, e o erro aparece em vermelho no Console. A mensagem é a mesma do Node: <code>process is not defined</code>.</p>
+<div class="tryweb" data-goal="console:Padaria aberta;;semerro">
+<p class="try-task"><strong>Missão:</strong> clique em Rodar e veja o erro no Console. Depois apague a linha que só funciona no Node.js e rode de novo, até o Console mostrar só <code>Padaria aberta</code>, sem erro.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria&lt;/h1&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Padaria aberta");
+console.log(process.platform);
+</pre>
+<pre class="solucao" data-file="script.js">console.log("Padaria aberta");
+</pre>
+</div>
+</div>
+
+<div class="cenario">
+<strong>Um exemplo da internet que não diz onde roda</strong>
+<p>Muitos tutoriais mostram código sem avisar se é para o navegador ou para o Node.js. Uma pista rápida: se aparece <code>document</code>, <code>window</code>, <code>alert</code> ou <code>addEventListener</code>, é de navegador; se aparece <code>require</code>, <code>process</code>, <code>node:fs</code> ou <code>npm</code>, é de Node.js. Se o código só tem contas, textos e <code>console.log</code>, roda nos dois.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem ou situação</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: alert is not defined</code> no terminal</td><td><code>alert</code> é só do navegador; no Node, use <code>console.log</code></td></tr>
+<tr><td><code>ReferenceError: document is not defined</code> no terminal</td><td>Código de página rodado com <code>node</code></td></tr>
+<tr><td><code>ReferenceError: window is not defined</code> no terminal</td><td><code>window</code> é só do navegador; o nome comum aos dois é <code>globalThis</code></td></tr>
+<tr><td><code>process is not defined</code> no Console do navegador</td><td><code>process</code> é só do Node.js</td></tr>
+<tr><td><code>typeof X</code> → <code>"undefined"</code></td><td>O nome <code>X</code> não existe neste ambiente (sem erro)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. O que muda entre o navegador e o Node.js?</p>
+<label><input type="radio" name="q1"> A linguagem: são dois JavaScripts diferentes</label>
+<label><input type="radio" name="q1"> As ferramentas que o ambiente oferece (página, arquivos…)</label>
+<label><input type="radio" name="q1"> O jeito de somar números</label>
+<label><input type="radio" name="q1"> Nada: tudo funciona igual nos dois</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">2. Qual destas linhas dá erro no <code>node arquivo.js</code>?</p>
+<label><input type="radio" name="q2"> <code>console.log(2 + 3);</code></label>
+<label><input type="radio" name="q2"> <code>console.log("Olá");</code></label>
+<label><input type="radio" name="q2"> <code>alert("Olá");</code></label>
+<label><input type="radio" name="q2"> <code>console.log(typeof window);</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Por que uma página da internet não pode ler os arquivos do seu computador com o <code>node:fs</code>?</p>
+<label><input type="radio" name="q3"> Por segurança: o <code>fs</code> é só do Node.js, que você roda de propósito</label>
+<label><input type="radio" name="q3"> Porque o navegador não sabe JavaScript</label>
+<label><input type="radio" name="q3"> Porque precisa de internet</label>
+<label><input type="radio" name="q3"> Pode, basta escrever <code>import fs from "node:fs"</code> na página</label>
+</div>
+
+<div class="exercise">
+<h3>4. O que aparece?</h3>
+<p>No Node.js, o que <code>console.log(typeof document);</code> mostra?</p>
+<div class="ex-code">Saída: <input data-answer="undefined" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>5. O nome comum</h3>
+<p>Qual nome dá acesso ao objeto global tanto no navegador quanto no Node.js?</p>
+<div class="ex-code"><input data-answer="globalThis" aria-label="nome"></div>
+</div>
+
+<h3>Missão final: só o que roda nos dois</h3>
+
+<div class="tryjs" data-goal="out:Total: 12;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa veio de um tutorial de navegador e não roda no Node.js. Troque o <code>alert</code> por <code>console.log</code> para que ele mostre <code>Total: 12</code> no terminal.</p>
+<pre class="script" data-file="main.js">const paes = 12;
+alert("Total: " + paes);
+</pre>
+<pre class="solucao" data-file="main.js">const paes = 12;
+console.log("Total: " + paes);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A <strong>linguagem</strong> JavaScript é a mesma em todo lugar; o <strong>ambiente</strong> (navegador ou Node.js) é que oferece ferramentas próprias.</li>
+  <li>Só do navegador: <code>document</code>, <code>window</code>, <code>alert</code>/<code>prompt</code>/<code>confirm</code>, <code>localStorage</code>. Só do Node.js: <code>node:fs</code>, <code>process</code>, <code>require</code>, <code>npm</code>.</li>
+  <li>O <code>console.log</code> existe nos dois: no Node.js escreve no terminal; no navegador, no Console (<kbd>F12</kbd>).</li>
+  <li><code>typeof nome</code> diz <code>"undefined"</code> para um nome que não existe, sem erro; <code>globalThis</code> é o objeto global nos dois ambientes.</li>
+  <li>Usar uma coisa no ambiente errado dá <code>ReferenceError: … is not defined</code> e derruba o programa na linha do erro.</li>
+  <li>Neste guia: níveis 1 e 2 no Node.js (<code>node arquivo.js</code>); o grupo "A Página Web", no navegador.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
