@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Nomes de Variáveis — regras, camelCase e bons nomes | Guia JavaScript</title>
+<meta name="description" content="Como dar nome às variáveis no JavaScript, para quem nunca programou: as regras obrigatórias (letras, números, _ e $, sem espaço, sem hífen, sem começar com número, sem palavras reservadas), maiúsculas e minúsculas, acentos, camelCase, MAIÚSCULAS para constantes e como escolher bons nomes, com os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Nomes de Variáveis</span></h1>
+
+<p class="intro">Toda variável precisa de um nome, a etiqueta da caixa. O JavaScript tem algumas <strong>regras</strong> para esse nome (se você não seguir, o programa nem começa) e os programadores têm alguns <strong>costumes</strong> (se você não seguir, o programa roda, mas fica difícil de ler). Nesta aula você vai ver as duas coisas, e por que <code>quantidadePaes</code> é um nome muito melhor que <code>x</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As regras obrigatórias: que caracteres podem entrar num nome e quais não podem.</li>
+  <li>Que <code>nome</code>, <code>Nome</code> e <code>NOME</code> são três variáveis diferentes.</li>
+  <li>As <strong>palavras reservadas</strong>, que não podem ser nomes (<code>let</code>, <code>new</code>, <code>class</code>…).</li>
+  <li>O que acontece com acentos, e por que este guia não os usa em nomes.</li>
+  <li>Os costumes: <code>camelCase</code>, <code>MAIÚSCULAS_COM_SUBLINHADO</code> e como escolher um nome que explica a si mesmo.</li>
+  <li>Os erros reais de cada regra quebrada.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: etiquetas que qualquer um entende</h2>
+<p>Imagine a despensa da padaria com as caixas etiquetadas assim: "x", "coisa2", "aaa". O padeiro novo, no primeiro dia, não acharia nada. Agora imagine as etiquetas "farinha de trigo", "açúcar refinado", "fermento". Ninguém precisa perguntar nada.</p>
+<p>Nomes de variáveis são lidos muito mais vezes do que são escritos: por você, daqui a uma semana, e por outras pessoas. Um bom nome é a forma mais barata de explicar o que um programa faz.</p>
+
+<hr>
+
+<h2>1. As regras obrigatórias</h2>
+<p>Um nome de variável (o nome técnico é <strong>identificador</strong>) segue estas regras:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Pode</th><th>Não pode</th></tr>
+<tr><td>Usar letras, números, <code>_</code> (sublinhado) e <code>$</code> (cifrão)</td><td><code>total2</code>, <code>_codigo</code>, <code>$saldo</code></td><td><code>preco-pao</code>, <code>preco.pao</code>, <code>total%</code></td></tr>
+<tr><td>Não começar com número</td><td><code>lugar1</code></td><td><code>1lugar</code></td></tr>
+<tr><td>Ser uma palavra só, sem espaços</td><td><code>precoDoPao</code></td><td><code>preco do pao</code></td></tr>
+<tr><td>Não ser uma palavra reservada</td><td><code>nova</code>, <code>classe</code></td><td><code>new</code>, <code>class</code>, <code>let</code></td></tr>
+</table>
+</div>
+
+<p>Todos estes nomes são válidos:</p>
+
+<pre class="file" data-file="validos.js">const nome = "Ana";
+const precoPao = 0.75;
+const total2 = 15;
+const _codigo = 42;
+const $saldo = 100;
+const TAXA_ENTREGA = 5;
+console.log(nome, precoPao, total2, _codigo, $saldo, TAXA_ENTREGA);
+</pre>
+
+<pre class="term">$ node validos.js
+Ana 0.75 15 42 100 5
+</pre>
+
+<dl class="anatomy">
+  <dt>precoPao</dt><dd>Duas palavras juntas, sem espaço, a segunda começando com maiúscula. É o estilo mais comum (seção 4).</dd>
+  <dt>total2</dt><dd>Números podem aparecer no meio ou no fim, nunca no começo.</dd>
+  <dt>_codigo</dt><dd>O sublinhado é permitido em qualquer posição, inclusive no começo.</dd>
+  <dt>$saldo</dt><dd>O cifrão também. Ele não tem nada a ver com dinheiro: para o JavaScript, é só mais um caractere permitido. Você vai vê-lo em bibliotecas antigas, como o jQuery.</dd>
+  <dt>TAXA_ENTREGA</dt><dd>Tudo em maiúsculas, com <code>_</code> entre as palavras: o costume para constantes de configuração (veja <a href="const.html">Constantes</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>2. Maiúsculas e minúsculas fazem diferença</h2>
+<p>O JavaScript é <strong>sensível a maiúsculas e minúsculas</strong> (em inglês, <em>case-sensitive</em>). Para ele, uma letra maiúscula é um caractere diferente da minúscula:</p>
+
+<pre class="file" data-file="maiuscula.js">const nome = "Ana";
+const Nome = "Bia";
+const NOME = "Caio";
+console.log(nome, Nome, NOME);
+</pre>
+
+<pre class="term">$ node maiuscula.js
+Ana Bia Caio
+</pre>
+
+<p>Três variáveis diferentes, com três valores diferentes. Isso é permitido, mas é uma péssima ideia num programa de verdade: ninguém vai lembrar qual é qual. O lado prático dessa regra é o erro mais comum de quem começa: criar <code>precoPao</code> e escrever <code>precopao</code> depois.</p>
+
+<pre class="file" data-file="maiusc2.js">const precoPao = 0.75;
+console.log(precopao);
+</pre>
+
+<pre class="term">$ node maiusc2.js
+/home/ana/maiusc2.js:2
+console.log(precopao);
+            ^
+
+ReferenceError: precopao is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/maiusc2.js:2:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>precopao</code> não está definido". O Node não diz "você quis dizer <code>precoPao</code>?": para ele, são etiquetas sem nenhuma relação. Quando aparecer um <code>is not defined</code> de uma variável que você <strong>tem certeza</strong> de que criou, compare letra por letra, maiúsculas incluídas.</p>
+
+<hr>
+
+<h2>3. Acentos: funcionam, mas evite</h2>
+<p>O JavaScript aceita letras de qualquer idioma em nomes, incluindo as acentuadas:</p>
+
+<pre class="file" data-file="acento.js">const preço = 0.75;
+const açúcar = "1 kg";
+console.log(preço, açúcar);
+</pre>
+
+<pre class="term">$ node acento.js
+0.75 1 kg
+</pre>
+
+<p>Funciona. Mesmo assim, <strong>este guia escreve os nomes em português sem acento</strong> (<code>preco</code>, <code>acucar</code>, <code>quantidade</code>), e você deve fazer o mesmo. Por quê?</p>
+<ul>
+  <li><strong>Ninguém lembra onde estava o acento.</strong> Você escreve <code>preço</code> numa linha e <code>preco</code> em outra, e o resultado é este:</li>
+</ul>
+
+<pre class="file" data-file="acento2.js">const preço = 0.75;
+console.log(preco);
+</pre>
+
+<pre class="term">$ node acento2.js
+/home/ana/acento2.js:2
+console.log(preco);
+            ^
+
+ReferenceError: preco is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/acento2.js:2:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<ul>
+  <li><strong>Teclados e equipes.</strong> Num teclado sem <code>ç</code> e sem acentos (comum fora do Brasil), digitar <code>preço</code> é um sofrimento; uma equipe com pessoas de outros países vai reclamar.</li>
+  <li><strong>Costume.</strong> Praticamente todo código JavaScript que você vai ler usa só as letras de <code>a</code> a <code>z</code> nos nomes.</li>
+</ul>
+<p>Os <strong>textos</strong> entre aspas, esses sim, podem e devem ter acento: <code>const produto = "pão de açúcar";</code> está perfeito. A regra vale só para os <strong>nomes</strong>.</p>
+
+<div class="note">
+<strong>E emoji?</strong>
+<p>Não: <code>const 🍞 = 6;</code> dá <code>SyntaxError: Invalid or unexpected token</code> no lab. Emoji não é letra, então não pode fazer parte de um nome (dentro de um texto entre aspas, pode).</p>
+</div>
+
+<hr>
+
+<h2>4. Os costumes: camelCase e MAIÚSCULAS</h2>
+<p>Como não pode haver espaço no nome, os programadores precisam de um jeito de juntar várias palavras. Cada linguagem tem o seu costume; no JavaScript são estes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estilo</th><th>Como é</th><th>Para quê</th><th>Exemplo</th></tr>
+<tr><td><strong>camelCase</strong></td><td>a primeira palavra em minúsculas, as outras começando com maiúscula</td><td>quase tudo: variáveis, constantes comuns, funções</td><td><code>precoPao</code>, <code>totalDaCompra</code>, <code>nomeCliente</code></td></tr>
+<tr><td><strong>MAIÚSCULAS_COM_SUBLINHADO</strong></td><td>tudo maiúsculo, <code>_</code> entre as palavras</td><td>constantes de configuração, fixas antes de o programa rodar</td><td><code>TAXA_ENTREGA</code>, <code>MAXIMO_TENTATIVAS</code></td></tr>
+<tr><td><strong>PascalCase</strong></td><td>todas as palavras começando com maiúscula</td><td>classes (aula <a href="classes.html">Classes</a>)</td><td><code>Cliente</code>, <code>CarrinhoDeCompras</code></td></tr>
+</table>
+</div>
+
+<p>O nome <em>camelCase</em> vem de <em>camel</em>, "camelo": as maiúsculas no meio do nome parecem as corcovas (<code>preco<strong>P</strong>ao<strong>F</strong>ances</code>). Em outras linguagens, como Python, se usa <code>preco_pao</code> (com sublinhado); no JavaScript isso funciona, mas foge do costume.</p>
+
+<div class="tryjs" data-goal="out:Total: 4.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> os nomes deste programa quebram as regras, e ele não roda. Conserte os dois nomes (nas três linhas onde aparecem), usando camelCase: por exemplo, <code>precoPao</code> e <code>quantidadePaes</code>.</p>
+<pre class="script" data-file="main.js">const 1preco = 0.75;
+const quantidade-paes = 6;
+const total = 1preco * quantidade-paes;
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const precoPao = 0.75;
+const quantidadePaes = 6;
+const total = precoPao * quantidadePaes;
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Palavras reservadas</h2>
+<p>Algumas palavras já têm um significado para o JavaScript (<code>const</code>, <code>if</code>, <code>for</code>, <code>new</code>, <code>class</code>, <code>return</code>…). Elas são <strong>reservadas</strong>: não podem ser nomes de variáveis, porque o JavaScript não saberia se você está falando da variável ou do comando.</p>
+
+<pre class="file" data-file="reservada.js">const new = "pão quentinho";
+</pre>
+
+<pre class="term">$ node reservada.js
+/home/ana/reservada.js:1
+const new = "pão quentinho";
+      ^^^
+
+SyntaxError: Unexpected token 'new'
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Símbolo inesperado <code>new</code>": depois do <code>const</code>, o JavaScript esperava um nome e encontrou um comando (<code>new</code> cria objetos; você vai vê-lo em <a href="classes.html">Classes</a>). Com <code>const class = "3º ano";</code> sai <code>SyntaxError: Unexpected token 'class'</code>. E o <code>let</code> tem uma mensagem só para ele:</p>
+
+<pre class="term">$ node reservada2.js
+/home/ana/reservada2.js:1
+let let = 1;
+    ^^^
+
+SyntaxError: let is disallowed as a lexically bound name
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>let</code> não é permitido como nome de variável <code>let</code>/<code>const</code>". A saída mais simples é usar a palavra em português, que nunca é reservada:</p>
+
+<pre class="file" data-file="reservada4.js">const nova = "pão quentinho";
+const classe = "3º ano";
+const turma = classe;
+console.log(nova, turma);
+</pre>
+
+<pre class="term">$ node reservada4.js
+pão quentinho 3º ano
+</pre>
+
+<p>Algumas palavras reservadas que você vai encontrar no curso:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><td><code>break</code></td><td><code>case</code></td><td><code>catch</code></td><td><code>class</code></td><td><code>const</code></td><td><code>continue</code></td></tr>
+<tr><td><code>default</code></td><td><code>delete</code></td><td><code>do</code></td><td><code>else</code></td><td><code>export</code></td><td><code>extends</code></td></tr>
+<tr><td><code>false</code></td><td><code>finally</code></td><td><code>for</code></td><td><code>function</code></td><td><code>if</code></td><td><code>import</code></td></tr>
+<tr><td><code>in</code></td><td><code>instanceof</code></td><td><code>super</code></td><td><code>new</code></td><td><code>null</code></td><td><code>return</code></td></tr>
+<tr><td><code>switch</code></td><td><code>this</code></td><td><code>throw</code></td><td><code>true</code></td><td><code>try</code></td><td><code>typeof</code></td></tr>
+<tr><td><code>var</code></td><td><code>void</code></td><td><code>while</code></td><td><code>with</code></td><td><code>enum</code></td><td><code>debugger</code></td></tr>
+</table>
+</div>
+<p>A lista completa, com o que cada uma faz, está em <a href="ref-palavras-reservadas.html">Palavras Reservadas</a>. Não precisa decorar: se der <code>Unexpected token</code> apontando para o nome, troque por uma palavra em português.</p>
+
+<hr>
+
+<h2>6. Escolhendo bons nomes</h2>
+<p>As regras dizem o que o JavaScript <strong>aceita</strong>. Mas um nome aceito pode ser ruim. Compare dois programas que fazem exatamente a mesma conta:</p>
+
+<pre class="file" data-file="bons.js">const x = 6;
+const y = 0.75;
+const z = x * y;
+console.log(z);
+
+const quantidadePaes = 6;
+const precoPao = 0.75;
+const totalCompra = quantidadePaes * precoPao;
+console.log(totalCompra);
+</pre>
+
+<pre class="term">$ node bons.js
+4.5
+4.5
+</pre>
+
+<p>O resultado é o mesmo, mas só o segundo trecho explica a si mesmo. No primeiro, você precisa adivinhar o que é <code>x</code>. Algumas dicas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Dica</th><th>Evite</th><th>Prefira</th></tr>
+<tr><td>Diga <strong>o que</strong> a variável guarda</td><td><code>x</code>, <code>valor</code>, <code>dados</code>, <code>coisa</code></td><td><code>precoPao</code>, <code>nomeCliente</code></td></tr>
+<tr><td>Não abrevie demais</td><td><code>qtdPs</code>, <code>vlTt</code></td><td><code>quantidadePaes</code>, <code>valorTotal</code></td></tr>
+<tr><td>Para sim/não (<code>true</code>/<code>false</code>), comece com <code>esta</code>, <code>tem</code>, <code>pode</code></td><td><code>aberta</code>, <code>desconto</code></td><td><code>estaAberta</code>, <code>temDesconto</code></td></tr>
+<tr><td>Listas no plural</td><td><code>produto</code> (para uma lista)</td><td><code>produtos</code>, <code>compras</code></td></tr>
+<tr><td>Um idioma só no programa</td><td><code>totalPrice</code> e <code>precoTotal</code> juntos</td><td>tudo em português (ou tudo em inglês)</td></tr>
+<tr><td>Sem acento nos nomes</td><td><code>preço</code></td><td><code>preco</code></td></tr>
+</table>
+</div>
+
+<p>O prefixo <code>esta</code>/<code>tem</code> deixa a leitura quase uma frase em português:</p>
+
+<pre class="file" data-file="booleano.js">const estaAberta = true;
+const temDesconto = false;
+console.log("A padaria está aberta?", estaAberta);
+console.log("Tem desconto hoje?", temDesconto);
+</pre>
+
+<pre class="term">$ node booleano.js
+A padaria está aberta? true
+Tem desconto hoje? false
+</pre>
+
+<div class="tip">
+<strong>E o <code>i</code> dos laços?</strong>
+<p>Existe uma exceção famosa à regra "nada de uma letra só": o contador de um laço <code>for</code> curto costuma se chamar <code>i</code> (de "índice"), e todo programador entende. Fora disso, prefira nomes inteiros.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de escrever o mesmo nome</h2>
+<p>O nome "preço do pão francês" pode virar identificador de vários jeitos. Todos estes são <strong>válidos</strong> para o JavaScript; a tabela diz qual usar:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Válido?</th><th>Usar?</th></tr>
+<tr><td><code>precoPaoFrances</code></td><td>Sim</td><td><strong>Sim</strong>: camelCase, o costume do JavaScript</td></tr>
+<tr><td><code>preco_pao_frances</code></td><td>Sim</td><td>Não: é o costume de outras linguagens (Python, Ruby)</td></tr>
+<tr><td><code>PRECO_PAO_FRANCES</code></td><td>Sim</td><td>Só se for uma constante de configuração</td></tr>
+<tr><td><code>PrecoPaoFrances</code></td><td>Sim</td><td>Só para nomes de classes</td></tr>
+<tr><td><code>precopaofrances</code></td><td>Sim</td><td>Não: difícil de ler</td></tr>
+<tr><td><code>preçoPãoFrancês</code></td><td>Sim</td><td>Não: acentos em nomes (seção 3)</td></tr>
+<tr><td><code>ppf</code></td><td>Sim</td><td>Não: ninguém sabe o que é</td></tr>
+<tr><td><code>preco-pao-frances</code></td><td><strong>Não</strong></td><td>—</td></tr>
+<tr><td><code>preco pao frances</code></td><td><strong>Não</strong></td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Hífen no nome</strong>
+<pre class="file" data-file="hifen2.js">let preco-pao = 0.75;
+</pre>
+<pre class="term">$ node hifen2.js
+/home/ana/hifen2.js:1
+let preco-pao = 0.75;
+         ^
+
+SyntaxError: Unexpected token '-'
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o erro está na linha 1 de <code>hifen2.js</code>; a setinha aponta o <code>-</code>; e a mensagem diz "símbolo inesperado <code>-</code>". Para o JavaScript, o <code>-</code> é sempre o sinal de <strong>menos</strong>: ele leu <code>let preco</code> e depois "menos <code>pao</code>", o que não faz sentido numa criação de variável. Como é erro de sintaxe, nada roda.</p>
+<p>Com <code>const</code>, a mensagem engana mais:</p>
+<pre class="term">$ node hifen.js
+/home/ana/hifen.js:1
+const preco-pao = 0.75;
+      ^^^^^
+
+SyntaxError: Missing initializer in const declaration
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Falta o valor na declaração <code>const</code>": o JavaScript entendeu <code>const preco</code> <strong>sem valor</strong>, seguido de um "menos" perdido. A mesma mensagem aparece com espaço (<code>const preco do pao = 0.75;</code>) ou ponto (<code>const preco.pao = 0.75;</code>) no nome. <strong>Como consertar:</strong> <code>precoPao</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome começando com número</strong>
+<pre class="file" data-file="numero.js">const 1lugar = "Ana";
+</pre>
+<pre class="term">$ node numero.js
+/home/ana/numero.js:1
+const 1lugar = "Ana";
+      ^
+
+SyntaxError: Invalid or unexpected token
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inválido ou inesperado". Um <code>1</code> no começo faz o JavaScript achar que vem um número, e <code>1lugar</code> não é um número. <strong>Como consertar:</strong> ponha o número no fim (<code>lugar1</code>) ou escreva por extenso (<code>primeiroLugar</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Palavra reservada como nome</strong>
+<p>Sintoma: <code>SyntaxError: Unexpected token 'new'</code> (ou <code>'class'</code>, <code>'return'</code>…) apontando o nome, ou <code>let is disallowed as a lexically bound name</code>. <strong>Como consertar:</strong> use outra palavra; em português, nunca há conflito (<code>nova</code>, <code>classe</code>, <code>retorno</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Maiúscula, minúscula ou acento diferentes</strong>
+<p>Sintoma: <code>ReferenceError: precopao is not defined</code>, mesmo você tendo criado a variável. Causa: o nome foi criado como <code>precoPao</code> (ou <code>preço</code>) e usado como <code>precopao</code> (ou <code>preco</code>). <strong>Como consertar:</strong> copie o nome exatamente como foi criado. Escrever todos os nomes sem acento e em camelCase evita a maior parte desses enganos.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pode</th><th>Não pode</th></tr>
+<tr><td>Letras (<code>a</code>–<code>z</code>, <code>A</code>–<code>Z</code>)</td><td>Espaço, hífen (<code>-</code>), ponto (<code>.</code>), <code>%</code>, <code>@</code>, emoji</td></tr>
+<tr><td>Números, menos no começo (<code>lugar1</code>)</td><td>Começar com número (<code>1lugar</code>)</td></tr>
+<tr><td><code>_</code> e <code>$</code> em qualquer posição</td><td>Palavras reservadas (<code>let</code>, <code>new</code>, <code>class</code>, <code>if</code>…)</td></tr>
+<tr><td>Letras acentuadas (mas evite)</td><td>—</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected token '-'</code></td><td>Hífen no nome</td></tr>
+<tr><td><code>SyntaxError: Missing initializer in const declaration</code> (com um valor ali)</td><td>Hífen, espaço ou ponto no nome de uma <code>const</code></td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td>Nome começando com número, ou com emoji</td></tr>
+<tr><td><code>SyntaxError: Unexpected token 'new'</code></td><td>Palavra reservada como nome</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>Maiúscula/minúscula ou acento diferentes do nome criado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Escreva em camelCase</h3>
+<p>Escreva "nome do cliente" como nome de variável, no costume do JavaScript:</p>
+<div class="ex-code">const <input data-answer="nomeDoCliente|nomeCliente" aria-label="nome em camelCase"> = "Ana";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Constante de configuração</h3>
+<p>Escreva "máximo de tentativas" como constante de configuração (maiúsculas, sem acento):</p>
+<div class="ex-code">const <input data-answer="MAXIMO_TENTATIVAS|MAXIMO_DE_TENTATIVAS|MAX_TENTATIVAS" aria-label="nome em maiúsculas"> = 3;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destes nomes é <strong>inválido</strong>?</p>
+<label><input type="radio" name="q3"> <code>_total</code></label>
+<label><input type="radio" name="q3"> <code>$preco</code></label>
+<label><input type="radio" name="q3"> <code>2turma</code></label>
+<label><input type="radio" name="q3"> <code>turma2</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O programa cria <code>const precoPao = 1;</code> e depois usa <code>console.log(PrecoPao);</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Mostra <code>1</code>: maiúsculas não importam</label>
+<label><input type="radio" name="q4"> <code>ReferenceError: PrecoPao is not defined</code></label>
+<label><input type="radio" name="q4"> <code>SyntaxError: Unexpected token</code></label>
+<label><input type="radio" name="q4"> Mostra <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual é o melhor nome para uma variável que diz se o cliente tem cadastro (<code>true</code> ou <code>false</code>)?</p>
+<label><input type="radio" name="q5"> <code>c</code></label>
+<label><input type="radio" name="q5"> <code>cadastro</code></label>
+<label><input type="radio" name="q5"> <code>TemCadastro</code></label>
+<label><input type="radio" name="q5"> <code>temCadastro</code></label>
+</div>
+
+<h3>Missão final: dê nomes de verdade</h3>
+
+<div class="tryjs" data-goal="out:Bia pagou 8;;src:\bconst\s+nomeCliente\b;;src:\bconst\s+quantidadePaes\b;;src:\bconst\s+precoPao\b;;src:\bconst\s+totalCompra\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa funciona, mas os nomes não dizem nada. Renomeie <code>a</code> para <code>nomeCliente</code>, <code>b</code> para <code>quantidadePaes</code>, <code>c</code> para <code>precoPao</code> e <code>d</code> para <code>totalCompra</code>, em todos os lugares onde aparecem. Depois, troque a cliente para <code>"Bia"</code>, que levou <strong>10</strong> pães de <strong>0.8</strong>. Tem de aparecer <code>Bia pagou 8</code>.</p>
+<pre class="script" data-file="main.js">const a = "Ana";
+const b = 6;
+const c = 0.75;
+const d = b * c;
+console.log(a, "pagou", d);
+</pre>
+<pre class="solucao" data-file="main.js">const nomeCliente = "Bia";
+const quantidadePaes = 10;
+const precoPao = 0.8;
+const totalCompra = quantidadePaes * precoPao;
+console.log(nomeCliente, "pagou", totalCompra);
+</pre>
+</div>
+
+<p>No lab, o código inicial mostra <code>Ana pagou 4.5</code>, e a solução, <code>Bia pagou 8</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Nomes podem ter letras, números, <code>_</code> e <code>$</code>; não podem começar com número, ter espaço, hífen ou ponto, nem ser uma palavra reservada.</li>
+  <li>Maiúsculas e minúsculas contam: <code>precoPao</code> e <code>precopao</code> são variáveis diferentes.</li>
+  <li>Acentos funcionam em nomes, mas este guia (e quase todo código JavaScript) não os usa: <code>preco</code>, não <code>preço</code>. Nos textos entre aspas, acento à vontade.</li>
+  <li>O costume é <code>camelCase</code> (<code>precoPao</code>) para quase tudo e <code>MAIUSCULAS_COM_SUBLINHADO</code> para constantes de configuração.</li>
+  <li>Um bom nome diz o que a variável guarda: <code>quantidadePaes</code>, não <code>x</code>; <code>temDesconto</code> para sim/não; plural para listas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
