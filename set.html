@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Set — conjuntos sem repetição | Guia JavaScript</title>
+<meta name="description" content="O Set do JavaScript para quem nunca programou: new Set, add, has, delete, size, percorrer com for … of, tirar os repetidos de um array com [...new Set()], como o Set compara os valores e as operações de conjunto do ES2025 (union, intersection, difference, isSubsetOf), com as saídas e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Set</span></h1>
+
+<p class="intro">Um <a href="arrays.html">array</a> aceita qualquer coisa, inclusive o mesmo valor várias vezes: <code>["arroz", "arroz", "arroz"]</code> é um array válido. Às vezes é exatamente isso que você quer (a lista de visitas da loja, com a Ana aparecendo três vezes). Outras vezes, a repetição atrapalha: a lista de convidados de uma festa, as figurinhas que você já colou no álbum, as palavras diferentes de um texto. Para guardar valores <strong>sem repetição</strong>, o JavaScript tem o <code>Set</code> (em inglês, "<strong>conjunto</strong>").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar um conjunto com <code>new Set()</code> e colocar valores com <code>add</code> ("adicionar").</li>
+  <li>Como perguntar se um valor está lá (<code>has</code>), tirar um valor (<code>delete</code>), esvaziar (<code>clear</code>) e contar (<code>size</code>).</li>
+  <li>Como percorrer um conjunto com <code>for … of</code> e <code>forEach</code>, e transformá-lo de volta em array.</li>
+  <li>O truque mais usado do <code>Set</code>: <strong>tirar os repetidos de um array</strong> numa linha.</li>
+  <li>Como o <code>Set</code> decide que dois valores são "iguais" (e por que dois objetos com o mesmo conteúdo não são).</li>
+  <li>As operações de conjunto que chegaram no <span class="versao">ES2025</span>: juntar (<code>union</code>), o que há em comum (<code>intersection</code>), a diferença (<code>difference</code>) e as perguntas "está contido?".</li>
+  <li>Os erros reais mais comuns: esquecer o <code>new</code>, usar <code>push</code>, procurar a posição <code>[0]</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o álbum de figurinhas</h2>
+<p>Pense num álbum de figurinhas da Copa. Cada jogador tem <strong>um</strong> espaço no álbum. Quando você abre um pacotinho:</p>
+<ol class="passo">
+  <li>Saiu o Pelé, que você ainda não tinha? Cola no álbum.</li>
+  <li>Saiu a Marta? Cola também.</li>
+  <li>Saiu o Pelé <strong>de novo</strong>? Não tem onde colar: ele já está lá. A repetida vai para o bolo de trocas, e o álbum continua igual.</li>
+</ol>
+<p>O <code>Set</code> é esse álbum. Ele guarda cada valor <strong>uma vez só</strong>. Se você tenta pôr um valor que já está lá, ele simplesmente ignora, sem erro e sem aviso. E ele responde rápido à pergunta mais importante do colecionador: "<strong>eu já tenho essa?</strong>".</p>
+
+<p>Duas diferenças em relação ao array, para guardar desde já:</p>
+<ul>
+  <li>O array é uma <strong>fila numerada</strong> (posição 0, 1, 2…). O conjunto <strong>não tem posições</strong>: não existe "a figurinha número 0".</li>
+  <li>O array deixa repetir. O conjunto, não.</li>
+</ul>
+
+<hr>
+
+<h2>1. Criar um conjunto e colocar valores (<code>new Set</code> e <code>add</code>)</h2>
+
+<pre class="file" data-file="figurinhas.js">const album = new Set();
+album.add("Pelé");
+album.add("Marta");
+album.add("Pelé");
+album.add("Ronaldo");
+console.log(album);
+console.log(album.size);
+</pre>
+
+<dl class="anatomy">
+  <dt>new Set()</dt><dd>Cria um conjunto <strong>vazio</strong>. O <code>new</code> ("novo") é obrigatório: ele diz "fabrique um conjunto novo". Sem ele, dá erro (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>const album</dt><dd>A variável que guarda o conjunto. É <code>const</code> porque a variável vai apontar sempre para o <strong>mesmo</strong> álbum; o que muda é o conteúdo dele, e isso o <code>const</code> permite (como num array, veja <a href="const.html">Constantes</a>).</dd>
+  <dt>album.add("Pelé")</dt><dd><code>add</code> = "adicionar". Coloca o valor no conjunto, se ele ainda não estiver lá.</dd>
+  <dt>album.add("Pelé") de novo</dt><dd>O <code>"Pelé"</code> já está lá: o <code>add</code> não faz nada. Não dá erro.</dd>
+  <dt>album.size</dt><dd>"Tamanho": quantos valores <strong>diferentes</strong> o conjunto tem. Repare que é <code>size</code>, e não <code>length</code> como no array. E é uma propriedade, sem parênteses.</dd>
+</dl>
+
+<pre class="term">$ node figurinhas.js
+Set(3) { 'Pelé', 'Marta', 'Ronaldo' }
+3
+</pre>
+
+<p>Foram 4 chamadas de <code>add</code>, mas o álbum tem 3 figurinhas: o segundo Pelé foi ignorado. Repare em como o Node mostra um conjunto:</p>
+<ul>
+  <li><code>Set(3)</code>: "é um <code>Set</code>, com 3 valores";</li>
+  <li>entre <code>{ }</code>, os valores, na <strong>ordem em que entraram</strong>, com os textos entre aspas simples (é o jeito do Node mostrar textos dentro de uma estrutura, como em <code>[ 'a', 'b' ]</code>).</li>
+</ul>
+
+<div class="tryjs" data-goal="out:Set(4);;src:\.add\(">
+<p class="try-task"><strong>Missão:</strong> a Ana abriu mais um pacotinho e saíram a <strong>Formiga</strong> e a <strong>Marta</strong> (repetida). Acrescente os dois <code>add</code> antes do <code>console.log</code> e veja o álbum ficar com 4 figurinhas, não 5.</p>
+<pre class="script" data-file="main.js">const album = new Set();
+album.add("Pelé");
+album.add("Marta");
+album.add("Pelé");
+album.add("Ronaldo");
+console.log(album);
+console.log(album.size);
+</pre>
+<pre class="solucao" data-file="main.js">const album = new Set();
+album.add("Pelé");
+album.add("Marta");
+album.add("Pelé");
+album.add("Ronaldo");
+album.add("Formiga");
+album.add("Marta");
+console.log(album);
+console.log(album.size);
+</pre>
+</div>
+
+<h3>Encadeando <code>add</code></h3>
+<p>O <code>add</code> devolve o próprio conjunto. Por isso dá para escrever vários <code>add</code> grudados, um depois do outro (isso se chama <strong>encadear</strong>):</p>
+
+<pre class="file" data-file="encadear.js">const cores = new Set().add("azul").add("verde").add("azul");
+console.log(cores);
+const resultado = cores.add("rosa");
+console.log(resultado === cores);
+</pre>
+
+<pre class="term">$ node encadear.js
+Set(2) { 'azul', 'verde' }
+true
+</pre>
+
+<p>O <code>true</code> da última linha confirma: o que o <code>add</code> devolveu é o mesmo conjunto <code>cores</code>. Funciona, mas um <code>add</code> por linha costuma ser mais fácil de ler.</p>
+
+<hr>
+
+<h2>2. Criar a partir de um array</h2>
+<p>Quase sempre você já tem os valores num array. Basta entregar o array ao <code>new Set(…)</code>: ele passa por todos os itens e guarda cada valor uma vez.</p>
+
+<pre class="file" data-file="compras.js">const lista = ["arroz", "feijão", "leite", "arroz", "café", "leite"];
+const semRepetir = new Set(lista);
+console.log(semRepetir);
+console.log(`Itens na lista: ${lista.length}`);
+console.log(`Itens diferentes: ${semRepetir.size}`);
+</pre>
+
+<pre class="term">$ node compras.js
+Set(4) { 'arroz', 'feijão', 'leite', 'café' }
+Itens na lista: 6
+Itens diferentes: 4
+</pre>
+
+<p>O array tinha 6 itens; o conjunto ficou com 4. O segundo <code>"arroz"</code> e o segundo <code>"leite"</code> ficaram de fora, e a ordem é a da <strong>primeira vez</strong> que cada um apareceu. O array <code>lista</code> continua igual: o <code>new Set</code> faz uma coleção nova, não mexe no original.</p>
+
+<div class="note">
+<strong>O que o <code>new Set(…)</code> aceita</strong>
+<p>Entre os parênteses vai <strong>uma coisa só</strong>, que dê para percorrer: um array, outro <code>Set</code>, um texto… (os programadores chamam isso de <strong>iterável</strong>; veja <a href="iteradores.html">Iteradores</a>). Vazio, <code>new Set()</code>, cria um conjunto vazio. <code>new Set(1, 2, 3)</code> não funciona: são três coisas, e um número não dá para percorrer. A seção <a href="#errado">Quando dá errado</a> mostra a mensagem.</p>
+</div>
+
+<hr>
+
+<h2>3. Perguntar, tirar e esvaziar (<code>has</code>, <code>delete</code>, <code>clear</code>)</h2>
+<p>A Ana montou a lista de convidados do aniversário:</p>
+
+<pre class="file" data-file="has.js">const convidados = new Set(["Ana", "Bia", "Caio"]);
+console.log(convidados.has("Bia"));
+console.log(convidados.has("Davi"));
+console.log(convidados.has("bia"));
+console.log(convidados.delete("Caio"));
+console.log(convidados.delete("Davi"));
+console.log(convidados);
+convidados.clear();
+console.log(convidados);
+console.log(convidados.size);
+</pre>
+
+<pre class="term">$ node has.js
+true
+false
+false
+true
+false
+Set(2) { 'Ana', 'Bia' }
+Set(0) {}
+0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Saída</th><th>Por quê</th></tr>
+<tr><td><code>has("Bia")</code></td><td><code>true</code></td><td><code>has</code> = "tem?". A Bia está na lista.</td></tr>
+<tr><td><code>has("Davi")</code></td><td><code>false</code></td><td>O Davi não foi convidado.</td></tr>
+<tr><td><code>has("bia")</code></td><td><code>false</code></td><td>Maiúscula e minúscula contam: <code>"bia"</code> e <code>"Bia"</code> são textos diferentes.</td></tr>
+<tr><td><code>delete("Caio")</code></td><td><code>true</code></td><td><code>delete</code> = "apagar". O Caio estava lá e saiu; o <code>true</code> quer dizer "apaguei".</td></tr>
+<tr><td><code>delete("Davi")</code></td><td><code>false</code></td><td>Não tinha Davi para apagar. Não é erro: só devolve <code>false</code>.</td></tr>
+<tr><td><code>clear()</code></td><td><code>Set(0) {}</code></td><td><code>clear</code> = "limpar". Tira tudo; o conjunto fica vazio, com <code>size</code> 0.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Por que usar <code>has</code> e não o <code>includes</code> do array?</strong>
+<p>Os dois respondem a mesma pergunta. A diferença é a <strong>velocidade</strong> com muitos valores: o <code>includes</code> do array olha item por item, do começo até achar (com 1 milhão de itens, pode olhar 1 milhão); o <code>has</code> do conjunto vai direto ao lugar certo, como um índice no fim de um livro. Para listas pequenas, tanto faz; para "esse e-mail já está cadastrado?" num cadastro grande, o <code>Set</code> ganha longe.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Pode entrar, Davi!;;src:\.add\(">
+<p class="try-task"><strong>Missão:</strong> o Davi chegou na porta e o porteiro mandou ele embora. Convide o Davi com um <code>add</code> <strong>antes</strong> do <code>if</code> e rode de novo.</p>
+<pre class="script" data-file="main.js">const convidados = new Set(["Ana", "Bia", "Caio"]);
+const chegou = "Davi";
+
+if (convidados.has(chegou)) {
+  console.log(`Pode entrar, ${chegou}!`);
+} else {
+  console.log(`Sinto muito, ${chegou}, seu nome não está na lista.`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const convidados = new Set(["Ana", "Bia", "Caio"]);
+const chegou = "Davi";
+convidados.add("Davi");
+
+if (convidados.has(chegou)) {
+  console.log(`Pode entrar, ${chegou}!`);
+} else {
+  console.log(`Sinto muito, ${chegou}, seu nome não está na lista.`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Percorrer um conjunto</h2>
+<p>O conjunto não tem posições, então o <code>for</code> com contador (<code>i = 0, 1, 2…</code>) não serve. Use o <code>for … of</code> (veja <a href="for-of.html">for … of</a>) ou o <code>forEach</code> (veja <a href="foreach.html">forEach</a>), do mesmo jeito que num array:</p>
+
+<pre class="file" data-file="percorrer.js">const turma = new Set(["Ana", "Bia", "Caio"]);
+for (const aluno of turma) {
+  console.log(`Chamada: ${aluno}`);
+}
+turma.forEach((aluno) =&gt; {
+  console.log(`Prova entregue por ${aluno}`);
+});
+console.log([...turma]);
+console.log(Array.from(turma));
+</pre>
+
+<pre class="term">$ node percorrer.js
+Chamada: Ana
+Chamada: Bia
+Chamada: Caio
+Prova entregue por Ana
+Prova entregue por Bia
+Prova entregue por Caio
+[ 'Ana', 'Bia', 'Caio' ]
+[ 'Ana', 'Bia', 'Caio' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>for (const aluno of turma)</dt><dd>"Para cada <code>aluno</code> <strong>de</strong> <code>turma</code>". A cada volta, <code>aluno</code> recebe um valor do conjunto, na ordem em que entraram.</dd>
+  <dt>turma.forEach((aluno) =&gt; { … })</dt><dd>"Para cada um", com uma <a href="arrow-functions.html">arrow function</a> que recebe cada valor.</dd>
+  <dt>[...turma]</dt><dd>O <a href="spread-rest.html">espalhamento</a> (<code>...</code>) tira os valores do conjunto e os põe dentro de <code>[ ]</code>: vira um <strong>array</strong> de novo.</dd>
+  <dt>Array.from(turma)</dt><dd>"Array a partir de turma": outro jeito de fazer o mesmo array.</dd>
+</dl>
+
+<p>Transformar em array é útil quando você precisa de algo que só o array tem: a posição <code>[0]</code>, o <code>sort</code>, o <code>map</code>, o <code>join</code>.</p>
+
+<h3>A ordem é a de entrada</h3>
+<p>O conjunto lembra a ordem em que cada valor <strong>entrou</strong>. Ele não coloca em ordem alfabética, e um valor que sai e volta vai para o fim da fila:</p>
+
+<pre class="file" data-file="ordem.js">const s = new Set();
+s.add("c");
+s.add("a");
+s.add("b");
+s.add("a");
+console.log(s);
+s.delete("c");
+s.add("c");
+console.log(s);
+</pre>
+
+<pre class="term">$ node ordem.js
+Set(3) { 'c', 'a', 'b' }
+Set(3) { 'a', 'b', 'c' }
+</pre>
+
+<p>O segundo <code>add("a")</code> não mudou nada (o <code>"a"</code> já estava lá, e continuou no seu lugar). Já o <code>"c"</code> saiu com <code>delete</code> e entrou de novo: agora é o último.</p>
+
+<hr>
+
+<h2>5. O truque mais usado: tirar os repetidos de um array</h2>
+<p>A professora tem as notas de uma prova e quer saber quais notas <strong>diferentes</strong> apareceram. Juntando o que você já viu (array → conjunto → array):</p>
+
+<pre class="file" data-file="repetidos.js">const notas = [7, 9, 7, 10, 9, 7];
+const unicas = [...new Set(notas)];
+console.log(unicas);
+const unicas2 = Array.from(new Set(notas));
+console.log(unicas2);
+const unicas3 = notas.filter((nota, i) =&gt; notas.indexOf(nota) === i);
+console.log(unicas3);
+</pre>
+
+<pre class="term">$ node repetidos.js
+[ 7, 9, 10 ]
+[ 7, 9, 10 ]
+[ 7, 9, 10 ]
+</pre>
+
+<p>Leia <code>[...new Set(notas)]</code> de dentro para fora:</p>
+<ol class="passo">
+  <li><code>new Set(notas)</code>: cria um conjunto com as notas; as repetidas ficam de fora → <code>Set(3) { 7, 9, 10 }</code>.</li>
+  <li><code>[... ]</code>: espalha esse conjunto dentro de um array novo → <code>[ 7, 9, 10 ]</code>.</li>
+</ol>
+<p>As três formas dão o mesmo resultado. A terceira, com <a href="filter.html">filter</a> e <code>indexOf</code> ("fica o item se esta for a <strong>primeira</strong> posição em que ele aparece"), é a que se usava antes do <code>Set</code> existir; você ainda vai encontrá-la em código antigo. Ela é mais difícil de ler e fica lenta com arrays grandes.</p>
+
+<hr>
+
+<h2>6. Quando dois valores são "o mesmo"?</h2>
+<p>Para decidir se um valor já está no conjunto, o <code>Set</code> compara quase como o <code>===</code> (veja <a href="operadores-comparacao.html">Comparação</a>). Veja o que acontece com valores parecidos:</p>
+
+<pre class="file" data-file="igualdade.js">const s = new Set([1, "1", 1, NaN, NaN, 0, -0]);
+console.log(s);
+console.log(s.size);
+const pessoas = new Set();
+pessoas.add({ nome: "Ana" });
+pessoas.add({ nome: "Ana" });
+console.log(pessoas);
+console.log(pessoas.has({ nome: "Ana" }));
+const ana = { nome: "Ana" };
+const amigas = new Set([ana, ana]);
+console.log(amigas.size, amigas.has(ana));
+</pre>
+
+<pre class="term">$ node igualdade.js
+Set(4) { 1, '1', NaN, 0 }
+4
+Set(2) { { nome: 'Ana' }, { nome: 'Ana' } }
+false
+1 true
+</pre>
+
+<ul>
+  <li><strong><code>1</code> e <code>"1"</code></strong> são diferentes: um é número, o outro é texto. Os dois ficaram (o texto aparece com aspas).</li>
+  <li><strong><code>NaN</code></strong> entrou <strong>uma vez só</strong>. Isso é curioso, porque <code>NaN === NaN</code> dá <code>false</code> (veja <a href="numeros-especiais.html">NaN e Infinity</a>). O <code>Set</code> abre essa exceção de propósito: para ele, <code>NaN</code> é igual a <code>NaN</code>.</li>
+  <li><strong><code>0</code> e <code>-0</code></strong> contam como o mesmo valor (ficou só o <code>0</code>).</li>
+  <li><strong>Dois objetos com o mesmo conteúdo</strong> são dois objetos <strong>diferentes</strong>: cada <code>{ nome: "Ana" }</code> escrito no código fabrica um objeto novo. Por isso entraram os dois, e o <code>has({ nome: "Ana" })</code> deu <code>false</code> (ele perguntou por um terceiro objeto, novinho). É a mesma regra de <a href="objetos-referencia.html">Objetos são Referências</a>.</li>
+  <li>Com <strong>a mesma variável</strong> <code>ana</code> duas vezes, é o mesmo objeto: entrou uma vez só, e <code>has(ana)</code> deu <code>true</code>.</li>
+</ul>
+
+<div class="warning">
+<strong>Para não repetir pessoas, guarde algo simples</strong>
+<p>Se você quer um conjunto de "pessoas sem repetição", guarde algo que identifica a pessoa e é um texto ou número, como o nome, o CPF ou o e-mail: <code>new Set(["ana@email.com", "bia@email.com"])</code>. Objetos só são "iguais" se forem o mesmo objeto na memória.</p>
+</div>
+
+<hr>
+
+<h2>7. Operações de conjunto <span class="versao">ES2025</span></h2>
+<p>Na escola, você talvez tenha desenhado conjuntos como círculos (os "diagramas de Venn") e aprendido a <strong>união</strong>, a <strong>interseção</strong> e a <strong>diferença</strong>. Desde o ECMAScript 2025, o <code>Set</code> faz essas contas sozinho. O Node.js 24 já tem todas elas.</p>
+<p>A Ana dá aula de violão às segundas e às terças. Quem foi em cada dia:</p>
+
+<pre class="file" data-file="operacoes.js">const segunda = new Set(["Ana", "Bia", "Caio", "Davi"]);
+const terca = new Set(["Bia", "Davi", "Eva"]);
+console.log(segunda.union(terca));
+console.log(segunda.intersection(terca));
+console.log(segunda.difference(terca));
+console.log(terca.difference(segunda));
+console.log(segunda.symmetricDifference(terca));
+</pre>
+
+<pre class="term">$ node operacoes.js
+Set(5) { 'Ana', 'Bia', 'Caio', 'Davi', 'Eva' }
+Set(2) { 'Bia', 'Davi' }
+Set(2) { 'Ana', 'Caio' }
+Set(1) { 'Eva' }
+Set(3) { 'Ana', 'Caio', 'Eva' }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Em português</th><th>A pergunta que responde</th><th>Resultado</th></tr>
+<tr><td><code>segunda.union(terca)</code></td><td>união</td><td>Quem veio em <strong>algum</strong> dos dias?</td><td>Ana, Bia, Caio, Davi, Eva</td></tr>
+<tr><td><code>segunda.intersection(terca)</code></td><td>interseção</td><td>Quem veio nos <strong>dois</strong> dias?</td><td>Bia, Davi</td></tr>
+<tr><td><code>segunda.difference(terca)</code></td><td>diferença</td><td>Quem veio na segunda, <strong>mas não</strong> na terça?</td><td>Ana, Caio</td></tr>
+<tr><td><code>terca.difference(segunda)</code></td><td>diferença (ao contrário)</td><td>Quem veio na terça, mas não na segunda?</td><td>Eva</td></tr>
+<tr><td><code>segunda.symmetricDifference(terca)</code></td><td>diferença simétrica</td><td>Quem veio em <strong>só um</strong> dos dias?</td><td>Ana, Caio, Eva</td></tr>
+</table>
+</div>
+
+<p>Três detalhes:</p>
+<ul>
+  <li>Todos devolvem um conjunto <strong>novo</strong>; <code>segunda</code> e <code>terca</code> continuam iguais.</li>
+  <li>Na <code>difference</code>, a <strong>ordem importa</strong>: "segunda menos terça" é diferente de "terça menos segunda". Nas outras, não.</li>
+  <li>O que vai entre os parênteses tem de ser outro <code>Set</code> (ou algo que se pareça muito com um). Com um array, dá erro: veja <a href="#errado">Quando dá errado</a>.</li>
+</ul>
+
+<h3>Perguntas de sim ou não: está contido?</h3>
+<p>Outros três métodos não criam conjunto nenhum: respondem <code>true</code> ou <code>false</code>. A Ana quer saber se dá para fazer um bolo com o que tem na despensa:</p>
+
+<pre class="file" data-file="subconjunto.js">const ingredientes = new Set(["farinha", "ovo", "leite", "açúcar", "fermento"]);
+const bolo = new Set(["farinha", "ovo", "açúcar"]);
+const panqueca = new Set(["farinha", "ovo", "leite", "manteiga"]);
+console.log(bolo.isSubsetOf(ingredientes));
+console.log(panqueca.isSubsetOf(ingredientes));
+console.log(ingredientes.isSupersetOf(bolo));
+console.log(panqueca.difference(ingredientes));
+const salgado = new Set(["sal", "queijo"]);
+console.log(salgado.isDisjointFrom(bolo));
+console.log(panqueca.isDisjointFrom(bolo));
+</pre>
+
+<pre class="term">$ node subconjunto.js
+true
+false
+true
+Set(1) { 'manteiga' }
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>bolo.isSubsetOf(ingredientes)</dt><dd>"O bolo é <strong>subconjunto</strong> dos ingredientes?" Ou seja: tudo o que o bolo pede está na despensa? <code>true</code>: dá para fazer o bolo.</dd>
+  <dt>panqueca.isSubsetOf(ingredientes)</dt><dd><code>false</code>: falta alguma coisa. Para saber <strong>o quê</strong>, a <code>difference</code> responde: <code>Set(1) { 'manteiga' }</code>.</dd>
+  <dt>ingredientes.isSupersetOf(bolo)</dt><dd>A mesma pergunta, olhando do outro lado: "a despensa <strong>contém</strong> tudo do bolo?" (<em>superset</em> = "superconjunto").</dd>
+  <dt>salgado.isDisjointFrom(bolo)</dt><dd>"São <strong>separados</strong>, sem nada em comum?" Sal e queijo não aparecem no bolo: <code>true</code>. A panqueca e o bolo dividem farinha e ovo: <code>false</code>.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Set(2) { 'Bia', 'Davi' };;src:\.intersection\(">
+<p class="try-task"><strong>Missão:</strong> a Ana quer mandar um parabéns para quem veio <strong>nos dois dias</strong>. Troque o <code>union</code> pelo método que responde "quem está nos dois conjuntos".</p>
+<pre class="script" data-file="main.js">const segunda = new Set(["Ana", "Bia", "Caio", "Davi"]);
+const terca = new Set(["Bia", "Davi", "Eva"]);
+const assiduos = segunda.union(terca);
+console.log(assiduos);
+</pre>
+<pre class="solucao" data-file="main.js">const segunda = new Set(["Ana", "Bia", "Caio", "Davi"]);
+const terca = new Set(["Bia", "Davi", "Eva"]);
+const assiduos = segunda.intersection(terca);
+console.log(assiduos);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quase tudo o que o <code>Set</code> faz dá para fazer com um array, com mais trabalho. Compare:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Com array</th><th>Com Set</th></tr>
+<tr><td>Guardar sem repetir</td><td><code>if (!lista.includes(x)) lista.push(x);</code></td><td><code>conjunto.add(x);</code></td></tr>
+<tr><td>Já tenho esse?</td><td><code>lista.includes(x)</code></td><td><code>conjunto.has(x)</code></td></tr>
+<tr><td>Tirar um valor</td><td><code>lista.splice(lista.indexOf(x), 1)</code> (e cuidado se não achar!)</td><td><code>conjunto.delete(x)</code></td></tr>
+<tr><td>Quantos?</td><td><code>lista.length</code></td><td><code>conjunto.size</code></td></tr>
+<tr><td>Tirar repetidos</td><td><code>lista.filter((x, i) =&gt; lista.indexOf(x) === i)</code></td><td><code>[...new Set(lista)]</code></td></tr>
+<tr><td>Em comum</td><td><code>a.filter((x) =&gt; b.includes(x))</code></td><td><code>a.intersection(b)</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A ordem e as posições importam, ou repetir é permitido (a fila do caixa, as notas de cada prova)</td><td>Array</td></tr>
+<tr><td>Cada valor só pode aparecer uma vez (convidados, tags, figurinhas)</td><td><code>Set</code></td></tr>
+<tr><td>Você vai perguntar "tem esse?" muitas vezes</td><td><code>Set</code> (o <code>has</code> é rápido)</td></tr>
+<tr><td>Comparar dois grupos (em comum, o que falta)</td><td><code>Set</code> com <code>intersection</code>, <code>difference</code>…</td></tr>
+<tr><td>Cada valor precisa de uma informação junto (o nome <strong>e</strong> o telefone)</td><td><code>Map</code> (próxima aula: <a href="colecao-map.html">Map: Dicionários</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>new</code></strong>
+<pre class="file" data-file="semnew.js">const album = Set(["Pelé", "Marta"]);
+console.log(album);
+</pre>
+<pre class="term">$ node semnew.js
+/home/ana/semnew.js:1
+const album = Set(["Pelé", "Marta"]);
+              ^
+
+TypeError: Constructor Set requires 'new'
+    at Set (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/semnew.js:1:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+«                                  (mais 6 linhas "at" internas do Node, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semnew.js:1</dt><dd>O arquivo e a <strong>linha</strong> onde o erro aconteceu: a 1.</dd>
+  <dt>const album = Set(…) e o ^</dt><dd>A linha do código, e embaixo um <code>^</code> apontando a <strong>coluna</strong>: bem no <code>Set</code>.</dd>
+  <dt>TypeError: Constructor Set requires 'new'</dt><dd>O tipo do erro (<code>TypeError</code>, "erro de tipo") e a mensagem: "o construtor <code>Set</code> exige <code>new</code>". Um <strong>construtor</strong> é uma função que fabrica objetos, e ela só funciona com <code>new</code> na frente.</dd>
+  <dt>at …</dt><dd>O caminho que o programa fez até o erro. A linha que interessa é a que tem o seu arquivo: <code>semnew.js:1:15</code> (linha 1, coluna 15).</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p>A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> explica cada parte com calma. <strong>Como consertar:</strong> <code>new Set(["Pelé", "Marta"])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>push</code>, o método do array</strong>
+<pre class="file" data-file="push.js">const frutas = new Set(["maçã", "banana"]);
+frutas.push("uva");
+console.log(frutas);
+</pre>
+<pre class="term">$ node push.js
+/home/ana/push.js:2
+frutas.push("uva");
+       ^
+
+TypeError: frutas.push is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/push.js:2:8)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>frutas.push</code> não é uma função". O conjunto não tem <code>push</code>; quem tem é o array. <strong>Como consertar:</strong> <code>frutas.add("uva")</code>. Pelo mesmo motivo, <code>pop</code>, <code>map</code>, <code>filter</code> e <code>sort</code> não existem no <code>Set</code>: transforme em array primeiro (<code>[...frutas].sort()</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Procurou a posição <code>[0]</code> ou o <code>length</code></strong>
+<p>Este não dá erro, o que é pior: o programa segue com um valor errado.</p>
+<pre class="file" data-file="indice.js">const frutas = new Set(["maçã", "banana", "uva"]);
+console.log(frutas[0]);
+console.log(frutas.length);
+console.log([...frutas][0]);
+</pre>
+<pre class="term">$ node indice.js
+undefined
+undefined
+maçã
+</pre>
+<p>O conjunto não tem posições nem <code>length</code>, então os dois primeiros dão <code>undefined</code> ("indefinido", veja <a href="null-undefined.html">null e undefined</a>). <strong>Como consertar:</strong> use <code>frutas.size</code> para contar, e transforme em array quando precisar de uma posição: <code>[...frutas][0]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou os valores soltos, sem os colchetes</strong>
+<pre class="file" data-file="numeros.js">const numeros = new Set(1, 2, 3);
+console.log(numeros);
+</pre>
+<pre class="term">$ node numeros.js
+/home/ana/numeros.js:1
+const numeros = new Set(1, 2, 3);
+                ^
+
+TypeError: number 1 is not iterable (cannot read property Symbol(Symbol.iterator))
+    at new Set (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/numeros.js:1:17)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O número 1 não é iterável" (não dá para percorrer). O <code>new Set</code> só olha a <strong>primeira</strong> coisa entre os parênteses e tenta percorrê-la; um número não se percorre. O <code>(cannot read property Symbol(Symbol.iterator))</code> é o detalhe técnico do motivo (veja <a href="iteradores.html">Iteradores</a>). <strong>Como consertar:</strong> ponha os valores num array: <code>new Set([1, 2, 3])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um texto e ganhou letras</strong>
+<pre class="file" data-file="texto.js">const palavra = new Set("arroz");
+console.log(palavra);
+const lista = new Set(["arroz"]);
+console.log(lista);
+</pre>
+<pre class="term">$ node texto.js
+Set(4) { 'a', 'r', 'o', 'z' }
+Set(1) { 'arroz' }
+</pre>
+<p>Um texto <strong>é</strong> percorrível: letra por letra. Então <code>new Set("arroz")</code> guardou as letras diferentes (o segundo <code>r</code> ficou de fora). Às vezes é isso que você quer ("quais letras aparecem nessa palavra?"); se você queria o texto inteiro, ponha-o num array: <code>new Set(["arroz"])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um array para o <code>union</code></strong>
+<pre class="file" data-file="unionarray.js">const a = new Set([1, 2]);
+console.log(a.union([2, 3]));
+</pre>
+<pre class="term">$ node unionarray.js
+/home/ana/unionarray.js:2
+console.log(a.union([2, 3]));
+              ^
+
+TypeError: The .size property is NaN
+    at Set.union (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/unionarray.js:2:15)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"A propriedade <code>.size</code> é <code>NaN</code>". A mensagem é estranha, mas o motivo é simples: o <code>union</code> e os outros métodos de conjunto precisam de algo com <code>size</code> e <code>has</code>, como outro <code>Set</code>. O array não tem <code>size</code> (tem <code>length</code>). <strong>Como consertar:</strong> <code>a.union(new Set([2, 3]))</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Set(3) { 'maçã', 'banana', 'uva' };;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois erros (o Node mostra um de cada vez). Leia a mensagem, conserte, rode de novo, até aparecer o conjunto com as três frutas.</p>
+<pre class="script" data-file="main.js">const frutas = Set(["maçã", "banana"]);
+frutas.push("uva");
+console.log(frutas);
+</pre>
+<pre class="solucao" data-file="main.js">const frutas = new Set(["maçã", "banana"]);
+frutas.add("uva");
+console.log(frutas);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>new Set()</code></td><td>Cria um conjunto vazio</td><td>o conjunto</td></tr>
+<tr><td><code>new Set(array)</code></td><td>Cria um conjunto com os valores do array, sem repetição</td><td>o conjunto</td></tr>
+<tr><td><code>s.add(v)</code></td><td>Coloca <code>v</code> (se ainda não estiver)</td><td>o próprio <code>s</code></td></tr>
+<tr><td><code>s.has(v)</code></td><td>Pergunta se <code>v</code> está lá</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>s.delete(v)</code></td><td>Tira <code>v</code></td><td><code>true</code> se tirou, <code>false</code> se não estava</td></tr>
+<tr><td><code>s.clear()</code></td><td>Tira tudo</td><td><code>undefined</code></td></tr>
+<tr><td><code>s.size</code></td><td>Quantos valores (sem parênteses)</td><td>número</td></tr>
+<tr><td><code>for (const v of s)</code> · <code>s.forEach(…)</code></td><td>Percorre, na ordem de entrada</td><td>—</td></tr>
+<tr><td><code>[...s]</code> · <code>Array.from(s)</code></td><td>Transforma em array</td><td>array</td></tr>
+<tr><td><code>[...new Set(array)]</code></td><td>Tira os repetidos de um array</td><td>array</td></tr>
+<tr><td><code>a.union(b)</code> <span class="versao">ES2025</span></td><td>Tudo o que está em <code>a</code> ou em <code>b</code></td><td>conjunto novo</td></tr>
+<tr><td><code>a.intersection(b)</code> <span class="versao">ES2025</span></td><td>O que está nos dois</td><td>conjunto novo</td></tr>
+<tr><td><code>a.difference(b)</code> <span class="versao">ES2025</span></td><td>O que está em <code>a</code> e não em <code>b</code></td><td>conjunto novo</td></tr>
+<tr><td><code>a.symmetricDifference(b)</code> <span class="versao">ES2025</span></td><td>O que está em só um dos dois</td><td>conjunto novo</td></tr>
+<tr><td><code>a.isSubsetOf(b)</code> <span class="versao">ES2025</span></td><td>Tudo de <code>a</code> está em <code>b</code>?</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>a.isSupersetOf(b)</code> <span class="versao">ES2025</span></td><td><code>a</code> contém tudo de <code>b</code>?</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>a.isDisjointFrom(b)</code> <span class="versao">ES2025</span></td><td>Não têm nada em comum?</td><td><code>true</code>/<code>false</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Constructor Set requires 'new'</code></td><td>Escreveu <code>Set(…)</code> sem o <code>new</code></td></tr>
+<tr><td><code>TypeError: x.push is not a function</code></td><td>Usou um método de array (<code>push</code>, <code>map</code>, <code>sort</code>…) num conjunto</td></tr>
+<tr><td><code>undefined</code> em <code>s[0]</code> ou <code>s.length</code></td><td>Conjunto não tem posições nem <code>length</code>: use <code>size</code> ou <code>[...s]</code></td></tr>
+<tr><td><code>TypeError: number 1 is not iterable</code></td><td><code>new Set(1, 2, 3)</code> sem os colchetes</td></tr>
+<tr><td>Um conjunto de letras soltas</td><td><code>new Set("texto")</code>: o texto foi percorrido letra por letra</td></tr>
+<tr><td><code>TypeError: The .size property is NaN</code></td><td>Passou um array para <code>union</code>, <code>intersection</code>…; passe um <code>Set</code></td></tr>
+<tr><td>Dois objetos "iguais" no conjunto</td><td>Objetos diferentes nunca são iguais; guarde um texto que os identifique</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para criar o conjunto, colocar <code>"pão"</code> e mostrar quantos itens ele tem:</p>
+<div class="ex-code">const cesta = <input data-answer="new" aria-label="palavra que fabrica o conjunto"> Set();<br>cesta.<input data-answer="add" aria-label="método que coloca um valor">("pão");<br>console.log(cesta.<input data-answer="size" aria-label="propriedade do tamanho">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos sobram?</h3>
+<p>Qual é o <code>size</code> de <code>new Set(["a", "b", "a", "A", "b"])</code>? Responda com um número.</p>
+<div class="ex-code">size = <input data-answer="3" aria-label="tamanho do conjunto"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual linha tira os repetidos de <code>const nomes = ["Ana", "Bia", "Ana"]</code> e devolve um <strong>array</strong>?</p>
+<label><input type="radio" name="q3"> <code>new Set(nomes)</code></label>
+<label><input type="radio" name="q3"> <code>nomes.unique()</code></label>
+<label><input type="radio" name="q3"> <code>[...new Set(nomes)]</code></label>
+<label><input type="radio" name="q3"> <code>Set(nomes)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>const s = new Set([1, 2]);</code> O que <code>s.delete(5)</code> devolve?</p>
+<label><input type="radio" name="q4"> Um erro: o 5 não está lá</label>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>a = new Set([1, 2, 3])</code> e <code>b = new Set([2, 3, 4])</code>. Qual destas dá <code>Set(1) { 1 }</code>?</p>
+<label><input type="radio" name="q5"> <code>a.union(b)</code></label>
+<label><input type="radio" name="q5"> <code>a.intersection(b)</code></label>
+<label><input type="radio" name="q5"> <code>b.difference(a)</code></label>
+<label><input type="radio" name="q5"> <code>a.difference(b)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>new Set([{ id: 1 }, { id: 1 }])</code> fica com <code>size</code> 2?</p>
+<label><input type="radio" name="q6"> Porque são dois objetos diferentes, mesmo com o mesmo conteúdo</label>
+<label><input type="radio" name="q6"> Porque o <code>Set</code> não funciona com objetos</label>
+<label><input type="radio" name="q6"> Porque o <code>Set</code> deixa repetir quando o valor é número</label>
+<label><input type="radio" name="q6"> Não fica: o <code>size</code> é 1</label>
+</div>
+
+<h3>Missão final: quantos clientes diferentes?</h3>
+
+<div class="tryjs" data-goal="out:Pessoas diferentes: 3;;src:new Set\(">
+<p class="try-task"><strong>Missão:</strong> o caderno da lojinha anota cada visita. A Ana quer saber quantas <strong>pessoas diferentes</strong> passaram por lá. Crie um conjunto <code>pessoas</code> a partir de <code>visitas</code> e mostre o tamanho dele.</p>
+<pre class="script" data-file="main.js">const visitas = ["Ana", "Bia", "Ana", "Caio", "Bia", "Ana"];
+// crie o conjunto aqui
+
+console.log(`Visitas: ${visitas.length}`);
+// mostre "Pessoas diferentes: ..." aqui
+</pre>
+<pre class="solucao" data-file="main.js">const visitas = ["Ana", "Bia", "Ana", "Caio", "Bia", "Ana"];
+const pessoas = new Set(visitas);
+console.log(`Visitas: ${visitas.length}`);
+console.log(`Pessoas diferentes: ${pessoas.size}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Visitas: 6</code> e <code>Pessoas diferentes: 3</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>Set</code> ("conjunto") guarda valores <strong>sem repetição</strong>. Repetir um <code>add</code> não dá erro: o valor só não entra de novo.</li>
+  <li>Crie com <code>new Set()</code> (vazio) ou <code>new Set(array)</code>. O <code>new</code> é obrigatório.</li>
+  <li><code>add</code> coloca, <code>has</code> pergunta, <code>delete</code> tira, <code>clear</code> esvazia, <code>size</code> conta (não é <code>length</code>).</li>
+  <li>O conjunto não tem posições: percorra com <code>for … of</code> ou <code>forEach</code> (na ordem de entrada) e transforme em array com <code>[...s]</code> quando precisar.</li>
+  <li><code>[...new Set(array)]</code> tira os repetidos de um array.</li>
+  <li>Valores iguais pelo <code>===</code> são iguais no <code>Set</code> (e <code>NaN</code> também); objetos só são iguais se forem o mesmo objeto.</li>
+  <li><span class="versao">ES2025</span> <code>union</code>, <code>intersection</code>, <code>difference</code>, <code>symmetricDifference</code> criam conjuntos novos; <code>isSubsetOf</code>, <code>isSupersetOf</code>, <code>isDisjointFrom</code> respondem sim ou não.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
