@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript WeakMap e WeakSet — guardar dados ligados a objetos | Guia JavaScript</title>
+<meta name="description" content="WeakMap e WeakSet do JavaScript para quem nunca programou: a diferença para Map e Set, o coletor de lixo, set/get/has/delete, por que não existe size nem for … of, guardar informações extras sobre um objeto sem mexer nele (até congelado), marcar objetos já processados, e os erros reais do Node.js 24 (Invalid value used as weak map key, is not iterable).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">WeakMap</span> e WeakSet</h1>
+
+<p class="intro">Você já conhece o <a href="colecao-map.html">Map</a> (um dicionário: chave → valor) e o <a href="set.html">Set</a> (um conjunto sem repetição). Eles têm dois primos com um nome curioso: <code>WeakMap</code> e <code>WeakSet</code>. <em>Weak</em> quer dizer "fraco": eles seguram os objetos <strong>sem força</strong>, de um jeito que não impede o JavaScript de jogá-los fora quando ninguém mais precisa deles. Parece um detalhe, mas é o que permite "pendurar" informações num objeto sem mexer nele e sem desperdiçar memória.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o <strong>coletor de lixo</strong> do JavaScript e por que um <code>Map</code> pode atrapalhar o trabalho dele.</li>
+  <li>Como usar um <code>WeakMap</code>: <code>set</code>, <code>get</code>, <code>has</code> e <code>delete</code>, com objetos como chave.</li>
+  <li>Por que o <code>WeakMap</code> não tem <code>size</code>, nem <code>for … of</code>, nem <code>forEach</code>.</li>
+  <li>Dois usos de verdade: guardar dados extras sobre um objeto (até um congelado) e lembrar um resultado já calculado.</li>
+  <li>Como usar um <code>WeakSet</code> para marcar objetos ("este pedido já foi impresso").</li>
+  <li>Os erros reais: chave que não é objeto, <code>is not iterable</code> e o objeto "igual" que não é o mesmo.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Esta é uma aula do nível avançado: se <code>Map</code>, <code>Set</code> e <a href="objetos-referencia.html">referências</a> ainda estão confusos, revise essas aulas primeiro.</p>
+
+<hr>
+
+<h2>A ideia: o guarda-volumes e o post-it</h2>
+<p>Pense no guarda-volumes do supermercado. Você deixa a mochila, recebe uma ficha, e a mochila fica lá até alguém buscar. Se o dono for embora e esquecer, a mochila <strong>continua ocupando o armário</strong> para sempre, porque o guarda-volumes "segura" as coisas com força. Assim é o <code>Map</code>: o que entra nele fica guardado até alguém tirar.</p>
+<p>Agora pense num <strong>post-it</strong> colado numa caixa: "frágil", "conferido", "é da Ana". O post-it fala da caixa, mas não segura a caixa. Quando a caixa vai para o lixo, o post-it vai junto. Assim é o <code>WeakMap</code>: ele guarda uma informação <strong>sobre</strong> um objeto, mas, quando o resto do programa não usa mais esse objeto, o objeto e a informação somem juntos.</p>
+
+<h3>O coletor de lixo</h3>
+<p>O JavaScript cuida da memória sozinho. De tempos em tempos, um ajudante chamado <strong>coletor de lixo</strong> (em inglês, <em>garbage collector</em>) procura objetos que nenhuma variável alcança mais e libera o espaço deles. Você nunca chama esse ajudante: ele trabalha quando quer. A regra dele é simples: <strong>enquanto alguém segura o objeto, ele fica</strong>. Um <code>Map</code> conta como "alguém segurando"; um <code>WeakMap</code>, não.</p>
+
+<hr>
+
+<h2>1. O problema do <code>Map</code></h2>
+<p>A lojinha da Ana guarda, para cada cliente (um objeto), a data do último atendimento. Com um <code>Map</code>:</p>
+
+<pre class="file" data-file="map-segura.js">const ultimaVisita = new Map();
+
+let cliente = { nome: "Bia" };
+ultimaVisita.set(cliente, "18/10");
+
+cliente = null; // a Bia saiu do sistema
+console.log(ultimaVisita.size);
+console.log(ultimaVisita);
+</pre>
+
+<pre class="term">$ node map-segura.js
+1
+Map(1) { { nome: 'Bia' } =&gt; '18/10' }
+</pre>
+
+<p>O programa jogou fora a variável <code>cliente</code>, mas o objeto da Bia <strong>continua vivo</strong> dentro do <code>Map</code>. Num programa que roda o dia inteiro (um servidor, uma página aberta por horas), isso vai acumulando: é o que os programadores chamam de <strong>vazamento de memória</strong>. Às vezes é exatamente o que você quer (um cadastro tem de guardar tudo). Mas, quando a informação só faz sentido enquanto o objeto existe, quem resolve é o <code>WeakMap</code>.</p>
+
+<hr>
+
+<h2>2. O primeiro <code>WeakMap</code></h2>
+
+<pre class="file" data-file="weakmap.js">const ultimaVisita = new WeakMap();
+
+const ana = { nome: "Ana" };
+const bia = { nome: "Bia" };
+
+ultimaVisita.set(ana, "17/10");
+ultimaVisita.set(bia, "18/10");
+
+console.log(ultimaVisita.get(ana));
+console.log(ultimaVisita.has(bia));
+ultimaVisita.delete(bia);
+console.log(ultimaVisita.has(bia));
+console.log(ultimaVisita.get(bia));
+console.log(ultimaVisita);
+</pre>
+
+<dl class="anatomy">
+  <dt>new WeakMap()</dt><dd>Cria um <code>WeakMap</code> vazio. (Também aceita uma lista de pares, como o <code>Map</code>: <code>new WeakMap([[ana, "17/10"]])</code>.)</dd>
+  <dt>.set(chave, valor)</dt><dd>Guarda o valor ligado à chave. A <strong>chave tem de ser um objeto</strong> (ou um array, uma função…); o valor pode ser qualquer coisa.</dd>
+  <dt>.get(chave)</dt><dd>Devolve o valor ligado à chave, ou <code>undefined</code> se não houver.</dd>
+  <dt>.has(chave)</dt><dd>"Tem essa chave?": <code>true</code> ou <code>false</code>.</dd>
+  <dt>.delete(chave)</dt><dd>Apaga a chave e o valor dela.</dd>
+</dl>
+
+<pre class="term">$ node weakmap.js
+17/10
+true
+false
+undefined
+WeakMap { &lt;items unknown&gt; }
+</pre>
+
+<p>Os quatro métodos funcionam igual aos do <code>Map</code>. A última linha é a novidade: o Node não mostra o conteúdo. <code>&lt;items unknown&gt;</code> quer dizer "itens desconhecidos". Não é preguiça: o coletor de lixo pode tirar um item a qualquer momento, então o JavaScript <strong>não deixa ninguém listar</strong> o que tem dentro. Por isso o <code>WeakMap</code> só tem esses quatro métodos:</p>
+<ul>
+  <li>não tem <code>size</code> (dá <code>undefined</code>);</li>
+  <li>não tem <code>for … of</code>, <code>forEach</code>, <code>keys()</code>, <code>values()</code> nem <code>entries()</code>;</li>
+  <li>não tem <code>clear()</code>.</li>
+</ul>
+<p>Para pegar um valor, você precisa <strong>ter o objeto na mão</strong> e perguntar por ele.</p>
+
+<h3>Vendo o coletor trabalhar</h3>
+<p>Normalmente não dá para ver o coletor de lixo. Mas o Node tem uma opção para testes, <code>--expose-gc</code> ("expor o coletor"), que deixa o programa chamar o coletor na hora com <code>globalThis.gc()</code>. E o <code>FinalizationRegistry</code> ("registro de finalização") avisa quando um objeto é recolhido. Com os dois, a Ana fez a experiência da seção 1 com um <code>WeakMap</code>:</p>
+
+<pre class="file" data-file="coletor-weakmap.js">const avisos = new FinalizationRegistry((nome) =&gt; {
+  console.log(`${nome} foi recolhido pelo coletor de lixo.`);
+});
+
+const fichas = new WeakMap();
+let cliente = { nome: "Ana" };
+fichas.set(cliente, "cliente desde 2024");
+avisos.register(cliente, "O objeto da Ana");
+
+cliente = null;
+globalThis.gc();
+setTimeout(() =&gt; console.log("Fim do programa."), 100);
+</pre>
+
+<pre class="term">$ node --expose-gc coletor-weakmap.js
+O objeto da Ana foi recolhido pelo coletor de lixo.
+Fim do programa.
+$ sed 's/new WeakMap()/new Map()/' coletor-weakmap.js &gt; coletor-map.js
+$ node --expose-gc coletor-map.js
+Fim do programa.
+</pre>
+
+<p>Com o <code>WeakMap</code>, depois do <code>cliente = null</code> ninguém mais segurava o objeto, e o coletor o recolheu (a ficha foi junto). Com o <code>Map</code> (o comando <code>sed</code> trocou uma palavra pela outra numa cópia do arquivo), o objeto continuou preso e o aviso nunca veio. Isso é só uma experiência para enxergar o que acontece por dentro: em programas normais, não use <code>--expose-gc</code> nem conte com o momento exato em que o coletor passa (sem a opção, <code>globalThis.gc</code> nem existe: <code>TypeError: globalThis.gc is not a function</code>).</p>
+
+<hr>
+
+<h2>3. Uso 1: informações extras sobre um objeto</h2>
+<p>O uso mais comum do <code>WeakMap</code> é guardar dados <strong>sobre</strong> um objeto que não é seu, ou que você não quer (ou não pode) mudar. Lembra da aula <a href="imutabilidade.html">Object.freeze</a>? Um objeto congelado não aceita propriedade nova. Mas um <code>WeakMap</code> pode "colar o post-it" nele mesmo assim:</p>
+
+<pre class="file" data-file="visitas.js">const visitas = new WeakMap();
+
+function registrarVisita(cliente) {
+  const anteriores = visitas.get(cliente) ?? 0;
+  visitas.set(cliente, anteriores + 1);
+}
+
+const ana = Object.freeze({ nome: "Ana" });
+registrarVisita(ana);
+registrarVisita(ana);
+registrarVisita(ana);
+
+console.log(`${ana.nome} visitou ${visitas.get(ana)} vezes`);
+console.log(ana);
+</pre>
+
+<dl class="anatomy">
+  <dt>visitas.get(cliente) ?? 0</dt><dd>Na primeira visita, o <code>get</code> devolve <code>undefined</code>, e o <a href="optional-chaining.html"><code>??</code></a> troca por 0.</dd>
+  <dt>visitas.set(cliente, anteriores + 1)</dt><dd>Guarda o novo total, ligado ao objeto.</dd>
+  <dt>Object.freeze({ nome: "Ana" })</dt><dd>O objeto da Ana está congelado: <code>ana.visitas = 1</code> seria ignorado. O <code>WeakMap</code> não mexe no objeto, então funciona.</dd>
+</dl>
+
+<pre class="term">$ node visitas.js
+Ana visitou 3 vezes
+{ nome: 'Ana' }
+</pre>
+
+<p>O objeto continua limpo, só com <code>nome</code>: a contagem ficou "do lado de fora", no <code>WeakMap</code>. E se um dia o objeto da Ana sumir do programa, a contagem some junto, sem você precisar apagar nada.</p>
+
+<div class="tryjs" data-goal="out:Bia visitou 2 vezes;;out:Ana visitou 3 vezes;;src:new\s+WeakMap">
+<p class="try-task"><strong>Missão:</strong> o programa tenta guardar as visitas <strong>dentro</strong> do objeto, mas os clientes estão congelados e a contagem não funciona. Troque para um <code>WeakMap</code> chamado <code>visitas</code>, como no exemplo acima. A Bia veio duas vezes, a Ana três.</p>
+<pre class="script" data-file="main.js">function registrarVisita(cliente) {
+  cliente.visitas = (cliente.visitas ?? 0) + 1;
+}
+
+const ana = Object.freeze({ nome: "Ana" });
+const bia = Object.freeze({ nome: "Bia" });
+registrarVisita(bia);
+registrarVisita(ana);
+registrarVisita(bia);
+registrarVisita(ana);
+registrarVisita(ana);
+
+console.log(`${bia.nome} visitou ${bia.visitas} vezes`);
+console.log(`${ana.nome} visitou ${ana.visitas} vezes`);
+</pre>
+<pre class="solucao" data-file="main.js">const visitas = new WeakMap();
+
+function registrarVisita(cliente) {
+  visitas.set(cliente, (visitas.get(cliente) ?? 0) + 1);
+}
+
+const ana = Object.freeze({ nome: "Ana" });
+const bia = Object.freeze({ nome: "Bia" });
+registrarVisita(bia);
+registrarVisita(ana);
+registrarVisita(bia);
+registrarVisita(ana);
+registrarVisita(ana);
+
+console.log(`${bia.nome} visitou ${visitas.get(bia)} vezes`);
+console.log(`${ana.nome} visitou ${visitas.get(ana)} vezes`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Uso 2: lembrar um resultado já calculado</h2>
+<p>Somar um pedido grande dá trabalho. Se o mesmo pedido é somado várias vezes, dá para guardar o resultado na primeira vez e reaproveitar depois. Guardar resultados assim se chama <strong>cache</strong> (pronuncia-se "quéch"; quer dizer "esconderijo"):</p>
+
+<pre class="file" data-file="cache.js">const totais = new WeakMap();
+
+function totalDoPedido(pedido) {
+  if (totais.has(pedido)) {
+    console.log("(do cache)");
+    return totais.get(pedido);
+  }
+  console.log("(calculando...)");
+  const total = pedido.itens.reduce((soma, item) =&gt; soma + item.preco, 0);
+  totais.set(pedido, total);
+  return total;
+}
+
+const pedido = { itens: [{ preco: 4.5 }, { preco: 12 }, { preco: 3.25 }] };
+console.log(totalDoPedido(pedido));
+console.log(totalDoPedido(pedido));
+</pre>
+
+<pre class="term">$ node cache.js
+(calculando...)
+19.75
+(do cache)
+19.75
+</pre>
+
+<p>Na primeira chamada, a soma foi feita (com o <a href="reduce.html">reduce</a>) e guardada; na segunda, veio pronta. Com um <code>Map</code>, cada pedido somado ficaria preso no cache para sempre; com o <code>WeakMap</code>, quando o pedido não é mais usado, o total guardado vai embora junto.</p>
+
+<div class="warning">
+<strong>Cuidado com o cache de objeto que muda</strong>
+<p>Se alguém fizer <code>pedido.itens.push(…)</code> depois, o cache continua devolvendo o total antigo. Um cache assim combina com objetos que não mudam, como os congelados da aula <a href="imutabilidade.html">Imutabilidade</a>.</p>
+</div>
+
+<hr>
+
+<h2>5. <code>WeakSet</code>: marcando objetos</h2>
+<p>O <code>WeakSet</code> é o <code>Set</code> "fraco": guarda objetos, sem repetição, sem segurá-los com força. Ele só responde uma pergunta: "este objeto está marcado?". Na padaria, a impressora da cozinha não pode imprimir o mesmo pedido duas vezes:</p>
+
+<pre class="file" data-file="weakset.js">const impressos = new WeakSet();
+
+function imprimir(pedido) {
+  if (impressos.has(pedido)) {
+    console.log(`Pedido ${pedido.numero} já foi impresso.`);
+    return;
+  }
+  console.log(`Imprimindo pedido ${pedido.numero}: ${pedido.item}`);
+  impressos.add(pedido);
+}
+
+const p1 = { numero: 1, item: "3 pães" };
+const p2 = { numero: 2, item: "1 sonho" };
+imprimir(p1);
+imprimir(p2);
+imprimir(p1);
+console.log(impressos);
+</pre>
+
+<dl class="anatomy">
+  <dt>new WeakSet()</dt><dd>Cria um conjunto fraco vazio.</dd>
+  <dt>.add(objeto)</dt><dd>Marca o objeto. Marcar duas vezes não faz nada de diferente.</dd>
+  <dt>.has(objeto)</dt><dd>"Está marcado?".</dd>
+  <dt>.delete(objeto)</dt><dd>Tira a marca.</dd>
+</dl>
+
+<pre class="term">$ node weakset.js
+Imprimindo pedido 1: 3 pães
+Imprimindo pedido 2: 1 sonho
+Pedido 1 já foi impresso.
+WeakSet { &lt;items unknown&gt; }
+</pre>
+
+<p>Como no <code>WeakMap</code>, não dá para listar nem contar: só <code>add</code>, <code>has</code> e <code>delete</code>.</p>
+
+<hr>
+
+<h2 id="formas">Map ou WeakMap? Set ou WeakSet?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>Map</code> / <code>Set</code></th><th><code>WeakMap</code> / <code>WeakSet</code></th></tr>
+<tr><td>Chaves (ou itens)</td><td>Qualquer valor: texto, número, objeto…</td><td>Só objetos (e símbolos criados com <code>Symbol()</code>)</td></tr>
+<tr><td>Segura o objeto na memória?</td><td>Sim, até alguém tirar</td><td>Não: quando ninguém mais usa, o coletor leva</td></tr>
+<tr><td><code>size</code></td><td>Tem</td><td>Não tem</td></tr>
+<tr><td><code>for … of</code>, <code>forEach</code>, <code>keys()</code></td><td>Tem</td><td>Não tem</td></tr>
+<tr><td>Métodos</td><td><code>set</code>/<code>add</code>, <code>get</code>, <code>has</code>, <code>delete</code>, <code>clear</code>…</td><td>Só <code>set</code>/<code>add</code>, <code>get</code>, <code>has</code>, <code>delete</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Dicionário com chaves de texto ou número (preços por nome, notas por aluno)</td><td><code>Map</code> (ou um objeto comum)</td></tr>
+<tr><td>Precisa listar, contar ou percorrer</td><td><code>Map</code> / <code>Set</code></td></tr>
+<tr><td>Guardar uma informação sobre um objeto, que só vale enquanto ele existir</td><td><code>WeakMap</code></td></tr>
+<tr><td>Cache de resultados calculados a partir de um objeto</td><td><code>WeakMap</code></td></tr>
+<tr><td>Marcar objetos ("já visto", "já impresso", "já validado")</td><td><code>WeakSet</code></td></tr>
+<tr><td>Esconder dados dentro da sua própria classe</td><td>campos privados <code>#</code> (veja <a href="campos-privados.html">Campos Privados</a>)</td></tr>
+</table>
+</div>
+
+<p>Na dúvida, use <code>Map</code> e <code>Set</code>: são os mais comuns e os mais fáceis de depurar (dá para ver o conteúdo com <code>console.log</code>). O <code>WeakMap</code> e o <code>WeakSet</code> são ferramentas para casos específicos, muito usadas dentro de bibliotecas e frameworks.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou um texto (ou número) como chave</strong>
+<pre class="file" data-file="chave-texto.js">const precos = new WeakMap();
+precos.set("pão", 0.75);
+</pre>
+<pre class="term">$ node chave-texto.js
+/home/ana/chave-texto.js:2
+precos.set("pão", 0.75);
+       ^
+
+TypeError: Invalid value used as weak map key
+    at WeakMap.set (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/chave-texto.js:2:8)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o erro aconteceu na linha 2 (<code>/home/ana/chave-texto.js:2</code>), no <code>.set</code> (o <code>^</code> aponta para ele); é um <code>TypeError</code> ("erro de tipo") com a mensagem "valor inválido usado como chave de <em>weak map</em>"; o <code>at WeakMap.set (&lt;anonymous&gt;)</code> diz que o erro saiu de dentro do método <code>set</code>, chamado pela linha 2, coluna 8. Um texto não é objeto, e o coletor de lixo não "recolhe" textos, então ele não pode ser chave fraca. No <code>WeakSet</code>, <code>new WeakSet().add(5)</code> dá <code>TypeError: Invalid value used in weak set</code>. <strong>Como consertar:</strong> para chaves de texto, use um <code>Map</code> comum.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou percorrer ou contar</strong>
+<pre class="file" data-file="percorrer.js">const visitas = new WeakMap();
+visitas.set({ nome: "Ana" }, 3);
+console.log(visitas.size);
+for (const [cliente, n] of visitas) {
+  console.log(cliente.nome, n);
+}
+</pre>
+<pre class="term">$ node percorrer.js
+undefined
+/home/ana/percorrer.js:4
+for (const [cliente, n] of visitas) {
+                           ^
+
+TypeError: visitas is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/percorrer.js:4:28)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+<p>O <code>size</code> não existe (deu <code>undefined</code>, sem erro), e o <code>for … of</code> reclama: "<code>visitas</code> não é iterável" (não dá para percorrer; veja <a href="iteradores.html">Iteradores</a>). Com <code>visitas.forEach(…)</code> sai <code>TypeError: visitas.forEach is not a function</code>. <strong>Como consertar:</strong> se você precisa listar, o certo é um <code>Map</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um objeto "igual" não é o mesmo objeto</strong>
+<pre class="file" data-file="outro-objeto.js">const visitas = new WeakMap();
+visitas.set({ nome: "Ana" }, 3);
+console.log(visitas.get({ nome: "Ana" }));
+</pre>
+<pre class="term">$ node outro-objeto.js
+undefined
+</pre>
+<p>Cada <code>{ nome: "Ana" }</code> escrito no código cria um objeto <strong>novo</strong>. Os dois têm o mesmo conteúdo, mas são caixas diferentes (veja <a href="objetos-referencia.html">Objetos são Referências</a>), e o <code>WeakMap</code> compara pela caixa. Pior: como ninguém guardou o primeiro objeto numa variável, ele já está pronto para o coletor levar, junto com o 3. <strong>Como consertar:</strong> guarde o objeto numa variável e use sempre ela: <code>const ana = { nome: "Ana" };</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>new WeakMap()</code></td><td>Cria um mapa fraco (chave: objeto)</td></tr>
+<tr><td><code>wm.set(obj, valor)</code></td><td>Liga um valor ao objeto</td></tr>
+<tr><td><code>wm.get(obj)</code></td><td>O valor ligado ao objeto, ou <code>undefined</code></td></tr>
+<tr><td><code>wm.has(obj)</code> / <code>wm.delete(obj)</code></td><td>Tem? / Apaga</td></tr>
+<tr><td><code>new WeakSet()</code></td><td>Cria um conjunto fraco (só objetos)</td></tr>
+<tr><td><code>ws.add(obj)</code> / <code>ws.has(obj)</code> / <code>ws.delete(obj)</code></td><td>Marca / Está marcado? / Tira a marca</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Invalid value used as weak map key</code></td><td>Chave que não é objeto (texto, número…) num <code>WeakMap</code></td></tr>
+<tr><td><code>Invalid value used in weak set</code></td><td>Item que não é objeto num <code>WeakSet</code></td></tr>
+<tr><td><code>… is not iterable</code></td><td><code>for … of</code> num <code>WeakMap</code>/<code>WeakSet</code></td></tr>
+<tr><td><code>….forEach is not a function</code></td><td><code>forEach</code> num <code>WeakMap</code>/<code>WeakSet</code></td></tr>
+<tr><td><code>size</code> dá <code>undefined</code></td><td><code>WeakMap</code>/<code>WeakSet</code> não têm tamanho</td></tr>
+<tr><td><code>get</code> dá <code>undefined</code> com um objeto "igual"</td><td>É outro objeto; use a mesma variável</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para guardar e ler a nota da Ana num mapa fraco:</p>
+<div class="ex-code">const notas = new <input data-answer="WeakMap" aria-label="classe">();<br>const ana = { nome: "Ana" };<br>notas.<input data-answer="set" aria-label="método que guarda">(ana, 9);<br>console.log(notas.<input data-answer="get" aria-label="método que lê">(ana));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que este trecho mostra? <code>const ws = new WeakSet(); const p = {}; ws.add(p); console.log(ws.has(p));</code></p>
+<div class="ex-code">Mostra <input data-answer="true" aria-label="valor mostrado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destas linhas dá <code>TypeError</code>?</p>
+<label><input type="radio" name="q3"> <code>new WeakMap().set({}, "oi")</code></label>
+<label><input type="radio" name="q3"> <code>new WeakMap().set([], 1)</code></label>
+<label><input type="radio" name="q3"> <code>new WeakMap().set("chave", 1)</code></label>
+<label><input type="radio" name="q3"> <code>new Map().set("chave", 1)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que o <code>WeakMap</code> não tem <code>size</code> nem <code>for … of</code>?</p>
+<label><input type="radio" name="q4"> Porque ele é mais antigo que o <code>Map</code></label>
+<label><input type="radio" name="q4"> Porque o coletor de lixo pode tirar itens a qualquer momento, então o conteúdo não pode ser listado</label>
+<label><input type="radio" name="q4"> Porque ele só guarda um item</label>
+<label><input type="radio" name="q4"> Porque ele só funciona no navegador</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Você quer guardar o preço de cada produto pelo nome (<code>"pão"</code>, <code>"leite"</code>) e depois listar todos. O que usar?</p>
+<label><input type="radio" name="q5"> <code>WeakMap</code></label>
+<label><input type="radio" name="q5"> <code>WeakSet</code></label>
+<label><input type="radio" name="q5"> <code>Object.freeze</code></label>
+<label><input type="radio" name="q5"> <code>Map</code></label>
+</div>
+
+<h3>Missão final: o caixa que não cobra duas vezes</h3>
+
+<div class="tryjs" data-goal="out:Cobrando Ana: R$ 20;;out:Cobrando Bia: R$ 7.5;;out:Ana já pagou.;;src:new\s+WeakSet">
+<p class="try-task"><strong>Missão:</strong> o caixa da lojinha está cobrando a Ana duas vezes. Crie um <code>WeakSet</code> chamado <code>pagos</code> e, na função <code>cobrar</code>: se a compra já estiver em <code>pagos</code>, mostre <code>Ana já pagou.</code> (com o nome do cliente) e saia com <code>return</code>; senão, cobre e marque a compra com <code>add</code>.</p>
+<pre class="script" data-file="main.js">function cobrar(compra) {
+  console.log(`Cobrando ${compra.cliente}: R$ ${compra.total}`);
+}
+
+const compraAna = { cliente: "Ana", total: 20 };
+const compraBia = { cliente: "Bia", total: 7.5 };
+cobrar(compraAna);
+cobrar(compraBia);
+cobrar(compraAna);
+</pre>
+<pre class="solucao" data-file="main.js">const pagos = new WeakSet();
+
+function cobrar(compra) {
+  if (pagos.has(compra)) {
+    console.log(`${compra.cliente} já pagou.`);
+    return;
+  }
+  console.log(`Cobrando ${compra.cliente}: R$ ${compra.total}`);
+  pagos.add(compra);
+}
+
+const compraAna = { cliente: "Ana", total: 20 };
+const compraBia = { cliente: "Bia", total: 7.5 };
+cobrar(compraAna);
+cobrar(compraBia);
+cobrar(compraAna);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Cobrando Ana: R$ 20</code>, <code>Cobrando Bia: R$ 7.5</code> e <code>Ana já pagou.</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>coletor de lixo</strong> libera os objetos que ninguém mais alcança. Um <code>Map</code>/<code>Set</code> segura seus itens; um <code>WeakMap</code>/<code>WeakSet</code>, não.</li>
+  <li><code>WeakMap</code>: chave é um objeto; métodos <code>set</code>, <code>get</code>, <code>has</code>, <code>delete</code>. <code>WeakSet</code>: guarda objetos; métodos <code>add</code>, <code>has</code>, <code>delete</code>.</li>
+  <li>Eles não têm <code>size</code>, <code>for … of</code>, <code>forEach</code> nem <code>clear</code>, e o <code>console.log</code> mostra <code>&lt;items unknown&gt;</code>: para consultar, é preciso ter o objeto na mão.</li>
+  <li>Usos típicos: guardar dados extras sobre um objeto sem mexer nele (até congelado), cache de resultados e marcar objetos ("já impresso").</li>
+  <li>Chave de texto ou número dá <code>TypeError: Invalid value used as weak map key</code>; para isso existe o <code>Map</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
