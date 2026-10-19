@@ -252,7 +252,7 @@ cafe: 3
 </pre>
 
 <div class="tryjs" data-goal="out:Ana: 9;;out:Caio: 6;;src:\[\s*\w+\s*,\s*\w+\s*\]\s+of">
-<p class="try-task"><strong>Missão:</strong> o laço usa <code>par[0]</code> e <code>par[1]</code>, que não dizem nada. Troque <code>const par</code> por <code>const [aluno, nota]</code> e use essas variáveis no <code>console.log</code>.</p>
+<p class="try-task"><strong>Missão:</strong> o laço usa <code>par[0]</code> e <code>par[1]</code>, que não dizem nada. Troque <code>const par</code> por <code>const [aluno, nota]</code> e use essas variáveis no <code>console.log</code>, mostrando no formato <code>Ana: 9</code> (com dois-pontos; um <a href="template-strings.html">template string</a> ajuda).</p>
 <pre class="script" data-file="main.js">const notas = { Ana: 9, Bia: 7.5, Caio: 6 };
 for (const par of Object.entries(notas)) {
   console.log(par[0] + " " + par[1]);
