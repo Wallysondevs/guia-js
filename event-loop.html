@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Event Loop — como o JavaScript faz várias coisas com uma mão só | Guia JavaScript</title>
+<meta name="description" content="O event loop do JavaScript para quem nunca programou: a cozinheira que faz uma coisa por vez, a pilha de chamadas, a fila de tarefas e a de microtarefas, por que o setTimeout de 0 ms roda depois, a ordem entre then, queueMicrotask, await e setTimeout, process.nextTick no Node, o código pesado que atrasa tudo e o laço que espera para sempre, com as saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Event Loop</span></h1>
+
+<p class="intro">Nas últimas aulas, você viu o JavaScript "esperar" um timer, uma Promise, várias Promises juntas, e mesmo assim continuar rodando outras linhas enquanto espera. Como ele faz isso? O JavaScript tem <strong>uma mão só</strong>: executa <strong>uma coisa por vez</strong>. O truque está num mecanismo chamado <strong>event loop</strong> ("laço de eventos"), que decide <strong>o que roda depois</strong>. Entender o event loop explica todas as ordens "estranhas" de saída que você já viu, e evita alguns erros feios.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o JavaScript faz uma coisa por vez, e o que é a <strong>pilha de chamadas</strong>.</li>
+  <li>O que é a <strong>fila de tarefas</strong>, e por que um <code>setTimeout</code> de <strong>0 ms</strong> roda depois do resto do código.</li>
+  <li>O que é a <strong>fila de microtarefas</strong> (<code>.then</code>, <code>await</code>, <code>queueMicrotask</code>) e por que ela passa na frente dos timers.</li>
+  <li>O <code>process.nextTick</code>, que existe só no Node.</li>
+  <li>Por que um cálculo pesado <strong>atrasa</strong> os timers (e trava a página no navegador).</li>
+  <li>O erro clássico do laço que espera uma variável mudar e nunca termina, e como consertar.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>node arquivo.js</code>. O event loop do navegador funciona do mesmo jeito nas partes que esta aula mostra; as diferenças estão marcadas.</p>
+
+<hr>
+
+<h2>A ideia: a cozinheira que faz uma coisa por vez</h2>
+<p>Imagine a cozinha da padaria com <strong>uma cozinheira só</strong>. Ela tem:</p>
+<ul>
+  <li>a <strong>tarefa que está fazendo agora</strong> (com as mãos ocupadas, não larga no meio);</li>
+  <li>um <strong>espeto de comandas</strong>: os pedidos novos ficam espetados ali, em fila, na ordem em que chegaram;</li>
+  <li>um <strong>bloquinho de "coisas rápidas"</strong>: lembretes curtos do tipo "assim que terminar isso, tempere o molho".</li>
+</ul>
+<p>E o forno, o timer da cozinha e o telefone trabalham <strong>sozinhos</strong>: quando o timer apita, ninguém interrompe a cozinheira; uma comanda nova é espetada na fila.</p>
+<p>A rotina dela é sempre a mesma, para sempre:</p>
+<ol class="passo">
+  <li>Termina a tarefa que está fazendo, até o fim.</li>
+  <li>Faz <strong>todos</strong> os lembretes do bloquinho de coisas rápidas.</li>
+  <li>Pega a <strong>próxima comanda</strong> do espeto e volta ao passo 1.</li>
+</ol>
+<p>Essa rotina é o <strong>event loop</strong>. No JavaScript:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No JavaScript</th></tr>
+<tr><td>A cozinheira (uma só)</td><td>O JavaScript, que roda uma coisa por vez (dizem que ele é <em>single-threaded</em>, "de um fio só")</td></tr>
+<tr><td>A tarefa que ela está fazendo agora</td><td>A <strong>pilha de chamadas</strong> (<em>call stack</em>): o código rodando agora</td></tr>
+<tr><td>O espeto de comandas</td><td>A <strong>fila de tarefas</strong> (<em>task queue</em>): timers que venceram, cliques, dados que chegaram</td></tr>
+<tr><td>O bloquinho de coisas rápidas</td><td>A <strong>fila de microtarefas</strong> (<em>microtask queue</em>): o <code>.then</code> das Promises e a continuação depois de um <code>await</code></td></tr>
+<tr><td>O forno, o timer, o telefone</td><td>O Node ou o navegador, que contam o tempo, leem arquivos e buscam dados <strong>fora</strong> do JavaScript</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. A pilha de chamadas: uma coisa de cada vez</h2>
+<p>O código comum, <strong>síncrono</strong> (sem timers nem Promises), roda de cima para baixo. Quando uma função chama outra, a de fora espera a de dentro terminar:</p>
+
+<pre class="file" data-file="pilha.js">function picarCebola() {
+  console.log("picando a cebola");
+}
+
+function fazerMolho() {
+  console.log("começando o molho");
+  picarCebola();
+  console.log("molho pronto");
+}
+
+console.log("abrindo a cozinha");
+fazerMolho();
+console.log("fechando a cozinha");
+</pre>
+
+<pre class="term">$ node pilha.js
+abrindo a cozinha
+começando o molho
+picando a cebola
+molho pronto
+fechando a cozinha
+</pre>
+
+<p>Pense numa <strong>pilha de pratos</strong>. Quando o programa chama <code>fazerMolho()</code>, ela vai para o topo da pilha; quando <code>fazerMolho</code> chama <code>picarCebola()</code>, essa vai por cima. A de cima tem de terminar e sair da pilha para a de baixo continuar. Quando a pilha fica <strong>vazia</strong>, o código síncrono acabou. É só nesse momento que o event loop olha as filas. (As linhas <code>at …</code> das mensagens de erro do Node são justamente essa pilha, impressa de cima para baixo: veja <a href="erros.html">Lendo uma Mensagem de Erro</a>.)</p>
+
+<hr>
+
+<h2>2. A fila de tarefas: por que o <code>setTimeout</code> de 0 ms espera</h2>
+<p>Na aula <a href="timers.html">setTimeout e setInterval</a>, o <code>setTimeout</code> pedia para rodar uma função "daqui a tantos milissegundos". E com <strong>0</strong>?</p>
+
+<pre class="file" data-file="timeout0.js">console.log("1. Anotei o pedido");
+setTimeout(() =&gt; {
+  console.log("3. Timer: tirar o bolo do forno");
+}, 0);
+console.log("2. Lavei a louça");
+</pre>
+
+<pre class="term">$ node timeout0.js
+1. Anotei o pedido
+2. Lavei a louça
+3. Timer: tirar o bolo do forno
+</pre>
+
+<p>Mesmo com 0 ms, o timer rodou <strong>por último</strong>. O que aconteceu, passo a passo:</p>
+<ol class="passo">
+  <li>A linha 1 mostra <code>1. Anotei o pedido</code>.</li>
+  <li>O <code>setTimeout</code> entrega a função para o Node ("o timer da cozinha") e <strong>segue</strong> na hora, sem rodá-la.</li>
+  <li>O tempo de 0 ms vence logo, e a função vai para o <strong>fim da fila de tarefas</strong> (uma comanda espetada).</li>
+  <li>Mas a cozinheira ainda está ocupada: a linha 5 mostra <code>2. Lavei a louça</code>.</li>
+  <li>O código síncrono acabou, a pilha esvaziou. O event loop pega a próxima tarefa da fila: o timer. Aparece o <code>3</code>.</li>
+</ol>
+<p>Ou seja, o número do <code>setTimeout</code> é o <strong>tempo mínimo</strong> de espera, nunca uma garantia de "rodar exatamente agora". Uma tarefa da fila só roda quando a pilha está vazia.</p>
+
+<p>Vários timers saem na ordem em que <strong>vencem</strong>, não na ordem em que foram escritos:</p>
+
+<pre class="file" data-file="dois-timers.js">setTimeout(() =&gt; console.log("timer de 200 ms"), 200);
+setTimeout(() =&gt; console.log("timer de 0 ms"), 0);
+setTimeout(() =&gt; console.log("timer de 100 ms"), 100);
+console.log("fim do código síncrono");
+</pre>
+
+<pre class="term">$ node dois-timers.js
+fim do código síncrono
+timer de 0 ms
+timer de 100 ms
+timer de 200 ms
+</pre>
+
+<div class="tryjs" data-goal="outre:Pedido 1\nPedido 3\nPedido 2;;src:setTimeout">
+<p class="try-task"><strong>Missão:</strong> sem mudar a ordem das linhas, faça o <code>Pedido 2</code> aparecer <strong>por último</strong>. Dica: embrulhe o <code>console.log("Pedido 2")</code> num <code>setTimeout(() =&gt; …, 0)</code>.</p>
+<pre class="script" data-file="main.js">console.log("Pedido 1");
+console.log("Pedido 2");
+console.log("Pedido 3");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Pedido 1");
+setTimeout(() =&gt; console.log("Pedido 2"), 0);
+console.log("Pedido 3");
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A fila de microtarefas: o <code>.then</code> passa na frente</h2>
+<p>As Promises não usam a fila de tarefas: elas têm uma fila <strong>só delas</strong>, a de <strong>microtarefas</strong> (o bloquinho de coisas rápidas). A regra que decide tudo: <strong>depois de cada tarefa, o event loop esvazia a fila de microtarefas inteira</strong>, e só então pega a próxima tarefa. Por isso uma microtarefa sempre passa na frente de um timer, mesmo de 0 ms.</p>
+<p>O <code>queueMicrotask(função)</code> ("enfileirar microtarefa") põe uma função diretamente nessa fila. Veja os três juntos:</p>
+
+<pre class="file" data-file="ordem.js">console.log("1. síncrono: começo");
+
+setTimeout(() =&gt; console.log("5. timer (setTimeout 0)"), 0);
+
+Promise.resolve().then(() =&gt; console.log("3. microtarefa (then)"));
+
+queueMicrotask(() =&gt; console.log("4. microtarefa (queueMicrotask)"));
+
+console.log("2. síncrono: fim");
+</pre>
+
+<pre class="term">$ node ordem.js
+1. síncrono: começo
+2. síncrono: fim
+3. microtarefa (then)
+4. microtarefa (queueMicrotask)
+5. timer (setTimeout 0)
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ordem</th><th>Por quê</th></tr>
+<tr><td>1 e 2</td><td>Código síncrono: roda primeiro, inteiro, de cima para baixo</td></tr>
+<tr><td>3 e 4</td><td>Microtarefas: rodam assim que a pilha esvazia, na ordem em que entraram na fila</td></tr>
+<tr><td>5</td><td>Tarefa (timer): só depois que a fila de microtarefas ficou vazia</td></tr>
+</table>
+</div>
+
+<p><code>Promise.resolve()</code> cria uma Promise já resolvida (veja <a href="promises.html">Promises</a>), e mesmo assim o <code>.then</code> não roda na hora: a função dele <strong>sempre</strong> vai para a fila de microtarefas. Um <code>.then</code> nunca roda no meio do seu código síncrono.</p>
+
+<h3>E o <code>await</code>?</h3>
+<p>O <code>await</code> é feito de Promises, então segue a mesma regra. Tudo o que vem <strong>depois</strong> de um <code>await</code> é uma microtarefa: a função pausa, o código de quem a chamou continua, e a função volta pela fila de microtarefas:</p>
+
+<pre class="file" data-file="await-ordem.js">async function preparar() {
+  console.log("B. preparar: antes do await");
+  await null;
+  console.log("D. preparar: depois do await");
+}
+
+console.log("A. início");
+preparar();
+console.log("C. fim do código síncrono");
+</pre>
+
+<pre class="term">$ node await-ordem.js
+A. início
+B. preparar: antes do await
+C. fim do código síncrono
+D. preparar: depois do await
+</pre>
+
+<p>Repare no <code>B</code>: o começo de uma função <code>async</code>, até o primeiro <code>await</code>, roda <strong>na hora</strong>, como código comum. Só o que vem depois do <code>await</code> espera, mesmo que seja um <code>await null</code>, que não tem nada para esperar. É o mesmo padrão que você viu em <a href="async-await.html">async e await</a>, na padaria que não para.</p>
+
+<h3>Só no Node: <code>process.nextTick</code></h3>
+<p>O Node tem uma fila ainda mais apressada, a do <code>process.nextTick(função)</code> ("no próximo tique"), que roda antes até das microtarefas das Promises. Ela não existe no navegador:</p>
+
+<pre class="file" data-file="nexttick.js">setTimeout(() =&gt; console.log("4. setTimeout"), 0);
+Promise.resolve().then(() =&gt; console.log("3. then"));
+process.nextTick(() =&gt; console.log("2. nextTick"));
+console.log("1. síncrono");
+</pre>
+
+<pre class="term">$ node nexttick.js
+1. síncrono
+2. nextTick
+3. then
+4. setTimeout
+</pre>
+
+<p>No seu código, você quase nunca vai precisar dele; ele aparece em bibliotecas do Node. Em código novo, prefira <code>queueMicrotask</code>, que funciona no Node e no navegador (é o que a <a href="https://nodejs.org/docs/latest-v24.x/api/process.html#processnexttickcallback-args">documentação do Node</a> recomenda).</p>
+
+<hr>
+
+<h2>4. Quem trava a cozinha trava tudo</h2>
+<p>A cozinheira <strong>não larga uma tarefa no meio</strong>. Se ela começa algo que demora 2 segundos, nenhuma comanda é atendida nesses 2 segundos, nem os timers. Veja um timer de 100 ms disputando com um cálculo que ocupa o JavaScript por uns 2 segundos (o <code>while</code> só fica repetindo até o relógio passar de 2000 ms; veja <a href="date.html">Datas</a> para o <code>Date.now()</code>):</p>
+
+<pre class="file" data-file="bloqueio.js">const inicio = Date.now();
+
+setTimeout(() =&gt; {
+  console.log(`O timer de 100 ms rodou depois de ${Date.now() - inicio} ms`);
+}, 100);
+
+// um cálculo pesado, que ocupa a cozinheira por uns 2 segundos
+let soma = 0;
+while (Date.now() - inicio &lt; 2000) {
+  soma++;
+}
+console.log("Cálculo pesado terminou");
+</pre>
+
+<pre class="term">$ node bloqueio.js
+Cálculo pesado terminou
+O timer de 100 ms rodou depois de 2004 ms
+$ node bloqueio.js
+Cálculo pesado terminou
+O timer de 100 ms rodou depois de 2005 ms
+</pre>
+
+<p>O timer pediu 100 ms e esperou mais de 2000. Aos 100 ms, a função dele foi para a fila, mas a pilha estava ocupada com o <code>while</code>; o event loop só conseguiu pegá-la quando o cálculo acabou. (Os números mudam um pouco a cada execução: <code>2004</code>, <code>2005</code>…)</p>
+
+<div class="warning">
+<strong>No navegador, a página congela</strong>
+<p>No navegador, o mesmo event loop cuida dos cliques, da digitação e de redesenhar a tela. Um código que ocupa o JavaScript por 3 segundos deixa a página <strong>congelada</strong> por 3 segundos: os botões não respondem, o texto não aparece. Experimente abaixo: clique em <strong>Contar</strong> algumas vezes, depois em <strong>Travar 3 s</strong>, e logo em seguida em <strong>Contar</strong> de novo.</p>
+</div>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente:</strong> enquanto o "Travar 3 s" roda, os cliques em "Contar" ficam na fila. Quando o laço termina, eles são atendidos todos de uma vez.</p>
+<pre class="script" data-file="index.html">&lt;button id="contar"&gt;Contar&lt;/button&gt;
+&lt;button id="travar"&gt;Travar 3 s&lt;/button&gt;
+&lt;p&gt;Cliques: &lt;span id="total"&gt;0&lt;/span&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">let cliques = 0;
+
+document.querySelector("#contar").addEventListener("click", () =&gt; {
+  cliques++;
+  document.querySelector("#total").textContent = cliques;
+});
+
+document.querySelector("#travar").addEventListener("click", () =&gt; {
+  console.log("Travando...");
+  const inicio = Date.now();
+  while (Date.now() - inicio &lt; 3000) {
+    // ocupando o JavaScript sem parar
+  }
+  console.log("Destravou!");
+});
+</pre>
+</div>
+
+<p>Os botões e o <code>addEventListener</code> são assunto do grupo <a href="dom.html">A Página Web</a>; aqui basta ver o efeito. A lição vale para o Node e para o navegador: <strong>não ocupe o JavaScript por muito tempo de uma vez</strong>. Se um trabalho é longo, divida-o em pedaços e deixe o event loop respirar entre eles.</p>
+
+<h3>Dividir em pedaços</h3>
+<p>Um <code>await</code> de um timer de 0 ms entre os pedaços devolve a vez ao event loop: o que estava na fila consegue rodar.</p>
+
+<pre class="file" data-file="fatias.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+setTimeout(() =&gt; console.log("  (o timer conseguiu rodar no meio)"), 0);
+
+for (let parte = 1; parte &lt;= 3; parte++) {
+  console.log(`Processando a parte ${parte}`);
+  await esperar(0);
+}
+console.log("Tudo processado");
+</pre>
+
+<pre class="term">$ node fatias.js
+Processando a parte 1
+  (o timer conseguiu rodar no meio)
+Processando a parte 2
+Processando a parte 3
+Tudo processado
+</pre>
+
+<p>Depois da parte 1, o <code>await esperar(0)</code> pausou o laço e pôs um timer na fila, <strong>atrás</strong> do timer que já estava lá. O event loop atendeu o da frente (a mensagem do meio) e só depois voltou ao laço.</p>
+
+<hr>
+
+<h2 id="formas">Resumo das filas: quem roda primeiro</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ordem</th><th>O quê</th><th>Exemplos</th></tr>
+<tr><td>1º</td><td>Código síncrono (a pilha, até esvaziar)</td><td>as linhas do arquivo, funções comuns, o começo de uma função <code>async</code> até o primeiro <code>await</code></td></tr>
+<tr><td>2º</td><td>Só no Node: a fila do <code>nextTick</code></td><td><code>process.nextTick(f)</code></td></tr>
+<tr><td>3º</td><td>Microtarefas (todas, até a fila esvaziar)</td><td><code>.then</code>, <code>.catch</code>, <code>.finally</code>, o que vem depois de um <code>await</code>, <code>queueMicrotask(f)</code></td></tr>
+<tr><td>4º</td><td>Uma tarefa, e de novo o 2º e o 3º</td><td><code>setTimeout</code>, <code>setInterval</code>, cliques e teclas (navegador), arquivos lidos e dados que chegaram (Node)</td></tr>
+</table>
+</div>
+
+<p>O Node divide a fila de tarefas em fases (timers, entrada e saída, <code>setImmediate</code>…), e o navegador tem as dele (como redesenhar a tela). Para quem está começando, a tabela acima basta; os detalhes estão na documentação do Node, no guia <a href="https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick">The Node.js Event Loop</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esperar uma variável mudar com um laço: o programa nunca termina</strong>
+<pre class="file" data-file="esperaflag.js">let pronto = false;
+
+setTimeout(() =&gt; {
+  pronto = true;
+}, 1000);
+
+while (!pronto) {
+  // esperando o bolo ficar pronto...
+}
+console.log("Bolo pronto!");
+</pre>
+<pre class="term">$ timeout 3 node esperaflag.js
+$ echo $?
+124
+</pre>
+<p>A ideia parece boa: "fique repetindo até o <code>pronto</code> virar <code>true</code>". Mas a função que muda o <code>pronto</code> é uma <strong>tarefa da fila</strong>, e ela só roda quando a pilha esvaziar. A pilha nunca esvazia, porque o <code>while</code> não termina. A cozinheira fica olhando para o forno sem parar, e por isso nunca ouve o timer. Um <strong>laço infinito</strong> sem nenhuma mensagem.</p>
+<p>A Ana rodou com o comando <code>timeout 3</code> do Linux, que mata o programa depois de 3 segundos. O <code>echo $?</code> mostra o código de saída: <code>124</code> é o jeito do <code>timeout</code> dizer "precisei matar". Sem o <code>timeout</code>, o programa ficaria rodando até você apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+<p><strong>Como consertar:</strong> dentro do laço, <strong>devolva a vez</strong> ao event loop com um <code>await</code>:</p>
+<pre class="file" data-file="esperaflag-ok.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+let pronto = false;
+
+setTimeout(() =&gt; {
+  pronto = true;
+}, 1000);
+
+while (!pronto) {
+  await esperar(100);
+}
+console.log("Bolo pronto!");
+</pre>
+<pre class="term">$ node esperaflag-ok.js
+Bolo pronto!
+</pre>
+<p>Melhor ainda: em vez de ficar perguntando, faça o próprio timer resolver uma Promise e dê <code>await</code> nela, como em <a href="async-await.html">async e await</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achar que o <code>setTimeout(…, 0)</code> roda na hora</strong>
+<pre class="file" data-file="cedo.js">let nome;
+setTimeout(() =&gt; {
+  nome = "Ana";
+}, 0);
+console.log(`Olá, ${nome}!`);
+</pre>
+<pre class="term">$ node cedo.js
+Olá, undefined!
+</pre>
+<p>O <code>console.log</code> é síncrono e roda <strong>antes</strong> do timer, quando <code>nome</code> ainda não tem valor (<code>undefined</code>; veja <a href="null-undefined.html">null e undefined</a>). <strong>Como consertar:</strong> use o valor <strong>dentro</strong> da função do timer, ou espere o timer com <code>await</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um cálculo longo atrasa os timers</strong>
+<p>Não aparece erro nenhum: só atraso, como em <code>bloqueio.js</code> (o timer de 100 ms rodou depois de 2004 ms). No navegador, o sintoma é a página que não responde aos cliques e, se demorar muito, o aviso de "página sem resposta" do navegador. <strong>Como consertar:</strong> divida o trabalho em pedaços com <code>await esperar(0)</code>, como em <code>fatias.js</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:Processando a parte 1\n  \(o timer conseguiu rodar no meio\);;src:await">
+<p class="try-task"><strong>Missão:</strong> o laço ocupa o JavaScript do começo ao fim, e a mensagem do timer só aparece no final. Acrescente <code>await esperar(0);</code> dentro do <code>for</code>, depois do <code>console.log</code>, para o timer conseguir rodar logo depois da parte 1.</p>
+<pre class="script" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+setTimeout(() =&gt; console.log("  (o timer conseguiu rodar no meio)"), 0);
+
+for (let parte = 1; parte &lt;= 3; parte++) {
+  console.log(`Processando a parte ${parte}`);
+}
+console.log("Tudo processado");
+</pre>
+<pre class="solucao" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+setTimeout(() =&gt; console.log("  (o timer conseguiu rodar no meio)"), 0);
+
+for (let parte = 1; parte &lt;= 3; parte++) {
+  console.log(`Processando a parte ${parte}`);
+  await esperar(0);
+}
+console.log("Tudo processado");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo ou escrita</th><th>O que é</th></tr>
+<tr><td>Event loop (laço de eventos)</td><td>A rotina que, quando a pilha esvazia, roda as microtarefas e depois pega a próxima tarefa da fila</td></tr>
+<tr><td>Pilha de chamadas (<em>call stack</em>)</td><td>As funções rodando agora, uma em cima da outra</td></tr>
+<tr><td>Fila de tarefas</td><td>Timers vencidos, cliques, dados que chegaram; uma por volta do event loop</td></tr>
+<tr><td>Fila de microtarefas</td><td><code>.then</code>/<code>.catch</code>/<code>.finally</code>, o que vem depois de um <code>await</code>, <code>queueMicrotask</code>; todas antes da próxima tarefa</td></tr>
+<tr><td><code>setTimeout(f, 0)</code></td><td>Põe <code>f</code> na fila de tarefas: roda depois de todo o código síncrono e das microtarefas</td></tr>
+<tr><td><code>queueMicrotask(f)</code></td><td>Põe <code>f</code> na fila de microtarefas (Node e navegador)</td></tr>
+<tr><td><code>process.nextTick(f)</code></td><td>Só no Node: roda <code>f</code> antes das microtarefas das Promises</td></tr>
+<tr><td><code>await esperar(0)</code></td><td>Devolve a vez ao event loop no meio de um trabalho longo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Programa que nunca termina, sem mostrar nada</td><td>Um <code>while</code> esperando uma variável que só um timer ou uma Promise mudaria</td></tr>
+<tr><td><code>undefined</code> onde devia vir o valor do timer</td><td>Usou o valor antes de o timer rodar (o código síncrono roda primeiro)</td></tr>
+<tr><td>Timers atrasados, página congelada</td><td>Um cálculo longo ocupando o JavaScript sem devolver a vez</td></tr>
+<tr><td>O <code>.then</code> rodou antes do <code>setTimeout(…, 0)</code></td><td>Não é erro: microtarefas sempre passam na frente das tarefas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual é a ordem?</h3>
+<p>Escreva as letras na ordem em que aparecem, sem espaços (por exemplo, <code>ABC</code>):</p>
+<pre class="file" data-file="ex1.js">setTimeout(() =&gt; console.log("A"), 0);
+console.log("B");
+Promise.resolve().then(() =&gt; console.log("C"));
+console.log("D");
+</pre>
+<div class="ex-code">Ordem: <input data-answer="BDCA" aria-label="ordem das letras"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a regra</h3>
+<div class="ex-code">Depois de cada tarefa, o event loop roda <strong>todas</strong> as <input data-answer="microtarefas|micro tarefas" aria-label="nome da fila"> antes de pegar a próxima tarefa.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Um <code>setTimeout(f, 100)</code> foi marcado, e logo depois o programa faz um cálculo que leva 5 segundos. Quando <code>f</code> roda?</p>
+<label><input type="radio" name="q3"> Exatamente aos 100 ms, interrompendo o cálculo</label>
+<label><input type="radio" name="q3"> Nunca</label>
+<label><input type="radio" name="q3"> Depois que o cálculo terminar, por volta dos 5 segundos</label>
+<label><input type="radio" name="q3"> Antes do cálculo começar</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa função <code>async</code>, quais linhas rodam na hora em que ela é chamada?</p>
+<label><input type="radio" name="q4"> Nenhuma: a função inteira vai para a fila</label>
+<label><input type="radio" name="q4"> As linhas antes do primeiro <code>await</code></label>
+<label><input type="radio" name="q4"> Todas, inclusive as que vêm depois do <code>await</code></label>
+<label><input type="radio" name="q4"> Só a linha do <code>await</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>while (!pronto) {}</code> nunca termina, se um <code>setTimeout</code> vai mudar <code>pronto</code> para <code>true</code>?</p>
+<label><input type="radio" name="q5"> Porque o timer só roda quando a pilha esvazia, e o <code>while</code> nunca deixa ela esvaziar</label>
+<label><input type="radio" name="q5"> Porque o <code>setTimeout</code> não pode mudar variáveis</label>
+<label><input type="radio" name="q5"> Porque faltou o ponto e vírgula</label>
+<label><input type="radio" name="q5"> Porque o <code>!</code> inverte o <code>setTimeout</code></label>
+</div>
+
+<h3>Missão final: o cardápio na ordem certa</h3>
+
+<div class="tryjs" data-goal="outre:Entrada\nPrato principal\nSobremesa\nCafezinho;;src:setTimeout;;src:then">
+<p class="try-task"><strong>Missão:</strong> sem mudar a ordem das quatro linhas de código, faça o cardápio sair na ordem <code>Entrada</code>, <code>Prato principal</code>, <code>Sobremesa</code>, <code>Cafezinho</code>. Use o que você aprendeu: o <code>Cafezinho</code> deve ir para a <strong>fila de tarefas</strong> (com <code>setTimeout</code>) e a <code>Sobremesa</code> para a <strong>fila de microtarefas</strong> (com <code>Promise.resolve().then(…)</code>).</p>
+<pre class="script" data-file="main.js">console.log("Cafezinho");
+console.log("Entrada");
+console.log("Sobremesa");
+console.log("Prato principal");
+</pre>
+<pre class="solucao" data-file="main.js">setTimeout(() =&gt; console.log("Cafezinho"), 0);
+console.log("Entrada");
+Promise.resolve().then(() =&gt; console.log("Sobremesa"));
+console.log("Prato principal");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O JavaScript faz <strong>uma coisa por vez</strong>: o código síncrono roda inteiro, de cima para baixo, na <strong>pilha de chamadas</strong>.</li>
+  <li>Timers, cliques e dados que chegam viram <strong>tarefas</strong> numa fila; uma tarefa só roda quando a pilha está vazia. Por isso <code>setTimeout(f, 0)</code> roda depois.</li>
+  <li><code>.then</code>, o que vem depois de um <code>await</code> e <code>queueMicrotask</code> são <strong>microtarefas</strong>: rodam todas antes da próxima tarefa.</li>
+  <li>Ordem: síncrono → (<code>nextTick</code>, só no Node) → microtarefas → uma tarefa → microtarefas → …</li>
+  <li>Um cálculo longo atrasa timers e congela a página; um <code>while</code> esperando uma variável que um timer mudaria nunca termina. Devolva a vez com <code>await</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
