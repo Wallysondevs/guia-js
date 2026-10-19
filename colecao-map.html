@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Map — dicionários de chave e valor | Guia JavaScript</title>
+<meta name="description" content="O Map do JavaScript para quem nunca programou: new Map, set, get, has, delete, size, chaves de qualquer tipo, percorrer com for … of e forEach, contar palavras, converter de e para objeto, Map.groupBy, Map × objeto e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Map</span></h1>
+
+<p class="intro">Na aula anterior, o <a href="set.html">Set</a> guardava valores soltos, sem repetição. Muitas vezes, porém, cada coisa vem com uma informação junto: o <strong>produto</strong> e o seu <strong>preço</strong>, o <strong>nome</strong> e o <strong>telefone</strong>, a <strong>palavra</strong> e <strong>quantas vezes</strong> ela apareceu. Para guardar pares assim, o JavaScript tem o <code>Map</code> (em inglês, "mapa"), que funciona como um <strong>dicionário</strong>: você procura pela palavra e encontra o significado.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um par <strong>chave → valor</strong>, e como criar um <code>Map</code> com <code>new Map()</code>.</li>
+  <li>Os métodos do dia a dia: <code>set</code> (guardar), <code>get</code> (buscar), <code>has</code> (tem?), <code>delete</code> (apagar), <code>clear</code> (esvaziar) e <code>size</code> (quantos).</li>
+  <li>Como criar um <code>Map</code> já cheio, a partir de uma lista de pares.</li>
+  <li>Que no <code>Map</code> a chave pode ser de <strong>qualquer tipo</strong>: número, texto, até um objeto.</li>
+  <li>Como percorrer com <code>for … of</code>, <code>forEach</code>, <code>keys()</code>, <code>values()</code> e <code>entries()</code>.</li>
+  <li>O uso clássico: <strong>contar</strong> quantas vezes cada coisa aparece.</li>
+  <li>Como converter entre <code>Map</code> e objeto, agrupar com <code>Map.groupBy</code> e quando usar cada um.</li>
+  <li>Os erros reais: esquecer o <code>new</code>, usar colchetes no lugar de <code>set</code>/<code>get</code>, trocar a ordem do <code>forEach</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a tabela de preços da padaria</h2>
+<p>Na parede da padaria do bairro tem uma tabela:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Produto (a <strong>chave</strong>)</th><th>Preço (o <strong>valor</strong>)</th></tr>
+<tr><td>pão</td><td>R$ 0,75</td></tr>
+<tr><td>leite</td><td>R$ 5,49</td></tr>
+<tr><td>café</td><td>R$ 18,90</td></tr>
+</table>
+</div>
+<p>Quando o cliente pergunta "quanto é o leite?", o caixa não lê a tabela inteira: vai direto na linha do <strong>leite</strong> e responde <strong>5,49</strong>. Cada linha é um <strong>par</strong>:</p>
+<ul>
+  <li>a <strong>chave</strong> é o que você usa para procurar (o nome do produto). Ela não se repete: não existem duas linhas "leite";</li>
+  <li>o <strong>valor</strong> é o que você quer descobrir (o preço). Valores podem se repetir: dois produtos podem custar o mesmo.</li>
+</ul>
+<p>Um <code>Map</code> é essa tabela dentro do programa. Você também pode pensar num dicionário (palavra → significado) ou na agenda do celular (nome → telefone).</p>
+
+<hr>
+
+<h2>1. Guardar e buscar (<code>set</code> e <code>get</code>)</h2>
+
+<pre class="file" data-file="precos.js">const precos = new Map();
+precos.set("pão", 0.75);
+precos.set("leite", 5.49);
+precos.set("café", 18.9);
+console.log(precos);
+console.log(precos.get("leite"));
+console.log(precos.get("manteiga"));
+console.log(precos.size);
+</pre>
+
+<dl class="anatomy">
+  <dt>new Map()</dt><dd>Cria um mapa <strong>vazio</strong>. Como no <code>Set</code>, o <code>new</code> é obrigatório.</dd>
+  <dt>precos.set("pão", 0.75)</dt><dd><code>set</code> = "definir". Guarda o par: a chave <code>"pão"</code> com o valor <code>0.75</code>. A chave vem <strong>primeiro</strong>, o valor depois. (Repare no ponto: em JavaScript, a casa decimal é com ponto, <code>0.75</code>.)</dd>
+  <dt>precos.get("leite")</dt><dd><code>get</code> = "pegar". Procura a chave <code>"leite"</code> e devolve o valor dela.</dd>
+  <dt>precos.get("manteiga")</dt><dd>Não tem manteiga na tabela: o <code>get</code> devolve <code>undefined</code> ("indefinido"), sem erro.</dd>
+  <dt>precos.size</dt><dd>Quantos <strong>pares</strong> o mapa tem. É <code>size</code>, como no <code>Set</code> (sem parênteses).</dd>
+</dl>
+
+<pre class="term">$ node precos.js
+Map(3) { 'pão' =&gt; 0.75, 'leite' =&gt; 5.49, 'café' =&gt; 18.9 }
+5.49
+undefined
+3
+</pre>
+
+<p>O Node mostra o mapa assim: <code>Map(3)</code> ("um <code>Map</code> com 3 pares") e, entre <code>{ }</code>, cada par como <code>chave =&gt; valor</code>. A setinha <code>=&gt;</code> se lê "aponta para": <code>'pão'</code> aponta para <code>0.75</code>. Os pares aparecem na <strong>ordem em que foram guardados</strong>.</p>
+
+<div class="tryjs" data-goal="out:Manteiga: R$ 9.9;;src:\.set\(">
+<p class="try-task"><strong>Missão:</strong> a padaria começou a vender manteiga a <strong>9.90</strong>. Guarde o preço com <code>set</code> antes do <code>console.log</code> (escreva o número como <code>9.9</code> ou <code>9.90</code>; o JavaScript mostra <code>9.9</code> nos dois casos).</p>
+<pre class="script" data-file="main.js">const precos = new Map();
+precos.set("pão", 0.75);
+precos.set("leite", 5.49);
+
+console.log(`Manteiga: R$ ${precos.get("manteiga")}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = new Map();
+precos.set("pão", 0.75);
+precos.set("leite", 5.49);
+precos.set("manteiga", 9.9);
+console.log(`Manteiga: R$ ${precos.get("manteiga")}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Mudar, perguntar e apagar (<code>has</code>, <code>delete</code>, <code>clear</code>)</h2>
+<p>O preço do pão subiu. Para mudar um valor, basta outro <code>set</code> com a <strong>mesma chave</strong>: o valor novo toma o lugar do antigo (a chave não se repete).</p>
+
+<pre class="file" data-file="mudar.js">const precos = new Map();
+precos.set("pão", 0.75);
+precos.set("leite", 5.49);
+precos.set("pão", 0.8);
+console.log(precos);
+console.log(precos.has("pão"));
+console.log(precos.has("manteiga"));
+console.log(precos.delete("leite"));
+console.log(precos.delete("leite"));
+console.log(precos);
+precos.clear();
+console.log(precos);
+</pre>
+
+<pre class="term">$ node mudar.js
+Map(2) { 'pão' =&gt; 0.8, 'leite' =&gt; 5.49 }
+true
+false
+true
+false
+Map(1) { 'pão' =&gt; 0.8 }
+Map(0) {}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Saída</th><th>Por quê</th></tr>
+<tr><td><code>set("pão", 0.8)</code></td><td><code>'pão' =&gt; 0.8</code></td><td>A chave <code>"pão"</code> já existia: o valor foi <strong>trocado</strong>, e o pão continua no primeiro lugar.</td></tr>
+<tr><td><code>has("pão")</code></td><td><code>true</code></td><td><code>has</code> = "tem?". Pergunta pela <strong>chave</strong>.</td></tr>
+<tr><td><code>has("manteiga")</code></td><td><code>false</code></td><td>Não há essa chave.</td></tr>
+<tr><td><code>delete("leite")</code></td><td><code>true</code>, depois <code>false</code></td><td>Na primeira vez, apagou o par. Na segunda, não tinha mais o que apagar.</td></tr>
+<tr><td><code>clear()</code></td><td><code>Map(0) {}</code></td><td>Apaga todos os pares.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>has</code> ou <code>get</code>?</strong>
+<p>Para saber se uma chave existe, use <code>has</code>. Testar <code>if (precos.get("x"))</code> engana quando o valor guardado é <code>0</code>, <code>""</code> ou <code>false</code>: o valor existe, mas o <code>if</code> o trata como falso (veja <a href="truthy-falsy.html">Truthy e Falsy</a>).</p>
+</div>
+
+<hr>
+
+<h2>3. Criar um <code>Map</code> já cheio</h2>
+<p>Em vez de vários <code>set</code>, dá para entregar ao <code>new Map(…)</code> uma lista de <strong>pares</strong>. Cada par é um arrayzinho de dois itens: <code>[chave, valor]</code>.</p>
+
+<pre class="file" data-file="criar.js">const telefones = new Map([
+  ["Ana", "99999-1111"],
+  ["Bia", "98888-2222"],
+  ["Caio", "97777-3333"],
+]);
+console.log(telefones);
+console.log(telefones.get("Bia"));
+</pre>
+
+<pre class="term">$ node criar.js
+Map(3) {
+  'Ana' =&gt; '99999-1111',
+  'Bia' =&gt; '98888-2222',
+  'Caio' =&gt; '97777-3333'
+}
+98888-2222
+</pre>
+
+<p>Repare nos colchetes: um par <strong>de fora</strong> (a lista) com vários pares <strong>de dentro</strong> (<code>["Ana", "99999-1111"]</code>). A vírgula depois do último par é permitida e facilita acrescentar outro depois. Quando a linha fica comprida, o Node mostra um par por linha; é só a apresentação, o mapa é o mesmo.</p>
+
+<hr>
+
+<h2>4. A chave pode ser de qualquer tipo</h2>
+<p>Esta é a grande diferença entre o <code>Map</code> e um <a href="objetos.html">objeto</a> comum. No objeto, as chaves viram sempre <strong>texto</strong>. No <code>Map</code>, a chave fica do jeito que você deu: número, texto, booleano, até um objeto.</p>
+
+<pre class="file" data-file="chaves.js">const salas = new Map();
+salas.set(1, "Matemática");
+salas.set("1", "Sala de leitura");
+salas.set(true, "Ginásio");
+console.log(salas);
+console.log(salas.get(1));
+console.log(salas.get("1"));
+const ana = { nome: "Ana" };
+const bia = { nome: "Bia" };
+const notas = new Map();
+notas.set(ana, 9.5);
+notas.set(bia, 7);
+console.log(notas.get(ana));
+console.log(notas);
+const obj = {};
+obj[1] = "Matemática";
+obj["1"] = "Sala de leitura";
+console.log(obj);
+</pre>
+
+<pre class="term">$ node chaves.js
+Map(3) {
+  1 =&gt; 'Matemática',
+  '1' =&gt; 'Sala de leitura',
+  true =&gt; 'Ginásio'
+}
+Matemática
+Sala de leitura
+9.5
+Map(2) { { nome: 'Ana' } =&gt; 9.5, { nome: 'Bia' } =&gt; 7 }
+{ '1': 'Sala de leitura' }
+</pre>
+
+<ul>
+  <li>No mapa <code>salas</code>, <code>1</code> (número) e <code>"1"</code> (texto) são <strong>duas chaves diferentes</strong>. O Node mostra o número sem aspas e o texto com aspas.</li>
+  <li>No mapa <code>notas</code>, a chave é o <strong>próprio objeto</strong> da aluna. Isso serve para "pendurar" uma informação num objeto sem mexer nele.</li>
+  <li>No objeto comum <code>obj</code>, o <code>1</code> virou o texto <code>'1'</code>, e o segundo valor <strong>apagou</strong> o primeiro: sobrou só <code>'Sala de leitura'</code>.</li>
+</ul>
+
+<p>A regra de "chave igual" é a mesma do <code>Set</code> (veja <a href="set.html">Set</a>): textos e números iguais pelo <code>===</code>; objetos só se forem <strong>o mesmo</strong> objeto. Por isso o <code>get(ana)</code> funcionou com a variável <code>ana</code>, mas <code>notas.get({ nome: "Ana" })</code> devolveria <code>undefined</code> (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>5. Percorrer um <code>Map</code></h2>
+<p>O estoque da papelaria da Ana:</p>
+
+<pre class="file" data-file="percorrer.js">const estoque = new Map([
+  ["caneta", 40],
+  ["caderno", 12],
+  ["borracha", 25],
+]);
+for (const [produto, quantidade] of estoque) {
+  console.log(`${produto}: ${quantidade} unidades`);
+}
+estoque.forEach((quantidade, produto) =&gt; {
+  console.log(`${produto} -&gt; ${quantidade}`);
+});
+console.log(estoque.keys());
+console.log([...estoque.keys()]);
+console.log([...estoque.values()]);
+console.log([...estoque.entries()]);
+let total = 0;
+for (const quantidade of estoque.values()) {
+  total += quantidade;
+}
+console.log(`Total de itens: ${total}`);
+</pre>
+
+<pre class="term">$ node percorrer.js
+caneta: 40 unidades
+caderno: 12 unidades
+borracha: 25 unidades
+caneta -&gt; 40
+caderno -&gt; 12
+borracha -&gt; 25
+[Map Iterator] { 'caneta', 'caderno', 'borracha' }
+[ 'caneta', 'caderno', 'borracha' ]
+[ 40, 12, 25 ]
+[ [ 'caneta', 40 ], [ 'caderno', 12 ], [ 'borracha', 25 ] ]
+Total de itens: 77
+</pre>
+
+<dl class="anatomy">
+  <dt>for (const [produto, quantidade] of estoque)</dt><dd>A cada volta, o <code>for … of</code> entrega <strong>um par</strong> <code>[chave, valor]</code>. Os colchetes em <code>[produto, quantidade]</code> abrem o par em duas variáveis (isso é a <a href="desestruturacao.html">desestruturação</a>): a primeira recebe a chave, a segunda o valor.</dd>
+  <dt>estoque.forEach((quantidade, produto) =&gt; …)</dt><dd>O <code>forEach</code> do <code>Map</code> entrega primeiro o <strong>valor</strong> e depois a <strong>chave</strong>. É o contrário do <code>for … of</code>, e é uma fonte clássica de confusão (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>estoque.keys()</dt><dd>As <strong>chaves</strong>. Ele devolve um "iterador" (<code>[Map Iterator]</code>), uma fila que se percorre com <code>for … of</code>; com <code>[... ]</code> vira array.</dd>
+  <dt>estoque.values()</dt><dd>Os <strong>valores</strong>. Bom para somar, como no total de itens.</dd>
+  <dt>estoque.entries()</dt><dd>Os <strong>pares</strong> <code>[chave, valor]</code>. É o que o <code>for … of</code> usa quando você percorre o mapa direto.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Total: 77;;src:\.values\(\)">
+<p class="try-task"><strong>Missão:</strong> some as quantidades do estoque percorrendo <code>estoque.values()</code> e mostre <code>Total: 77</code>.</p>
+<pre class="script" data-file="main.js">const estoque = new Map([
+  ["caneta", 40],
+  ["caderno", 12],
+  ["borracha", 25],
+]);
+let total = 0;
+// percorra os valores aqui
+
+console.log(`Total: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = new Map([
+  ["caneta", 40],
+  ["caderno", 12],
+  ["borracha", 25],
+]);
+let total = 0;
+for (const quantidade of estoque.values()) {
+  total += quantidade;
+}
+console.log(`Total: ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>6. O uso clássico: contar</h2>
+<p>Quantas vezes cada palavra aparece num texto? Para cada palavra, o programa pega a contagem atual (ou 0, se for a primeira vez) e guarda essa contagem mais 1:</p>
+
+<pre class="file" data-file="contar.js">const frase = "o rato roeu a roupa do rei de roma o rato fugiu";
+const contagem = new Map();
+for (const palavra of frase.split(" ")) {
+  const atual = contagem.get(palavra) ?? 0;
+  contagem.set(palavra, atual + 1);
+}
+console.log(contagem);
+console.log(`"rato" apareceu ${contagem.get("rato")} vezes`);
+</pre>
+
+<pre class="term">$ node contar.js
+Map(10) {
+  'o' =&gt; 2,
+  'rato' =&gt; 2,
+  'roeu' =&gt; 1,
+  'a' =&gt; 1,
+  'roupa' =&gt; 1,
+  'do' =&gt; 1,
+  'rei' =&gt; 1,
+  'de' =&gt; 1,
+  'roma' =&gt; 1,
+  'fugiu' =&gt; 1
+}
+"rato" apareceu 2 vezes
+</pre>
+
+<dl class="anatomy">
+  <dt>frase.split(" ")</dt><dd>Corta a frase nos espaços e devolve um array de palavras (veja <a href="strings-split.html">split e join</a>).</dd>
+  <dt>contagem.get(palavra) ?? 0</dt><dd>Na primeira vez que a palavra aparece, o <code>get</code> devolve <code>undefined</code>; o <code>??</code> troca esse <code>undefined</code> por <code>0</code> (veja <a href="optional-chaining.html">?. e ??</a>).</dd>
+  <dt>contagem.set(palavra, atual + 1)</dt><dd>Guarda a contagem nova. Se a chave já existia, o valor é trocado.</dd>
+</dl>
+
+<p>Sem o <code>?? 0</code>, a primeira conta seria <code>undefined + 1</code>, que dá <code>NaN</code> ("não é um número"). A missão final desta aula mostra exatamente isso.</p>
+
+<hr>
+
+<h2>7. <code>Map</code> e objeto: convertendo de um para o outro</h2>
+<p>Às vezes os dados chegam como objeto (de um <a href="json.html">JSON</a>, por exemplo) e você quer um <code>Map</code>, ou o contrário:</p>
+
+<pre class="file" data-file="objeto.js">const objeto = { pão: 0.75, leite: 5.49 };
+const mapa = new Map(Object.entries(objeto));
+console.log(mapa);
+mapa.set("café", 18.9);
+const deVolta = Object.fromEntries(mapa);
+console.log(deVolta);
+console.log(JSON.stringify(mapa));
+console.log(JSON.stringify(Object.fromEntries(mapa)));
+</pre>
+
+<pre class="term">$ node objeto.js
+Map(2) { 'pão' =&gt; 0.75, 'leite' =&gt; 5.49 }
+{ 'pão': 0.75, leite: 5.49, 'café': 18.9 }
+{}
+{"pão":0.75,"leite":5.49,"café":18.9}
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.entries(objeto)</dt><dd>Transforma o objeto numa lista de pares <code>[chave, valor]</code> (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>), exatamente o que o <code>new Map</code> aceita.</dd>
+  <dt>Object.fromEntries(mapa)</dt><dd>O caminho de volta: "objeto a partir dos pares". (O Node pôs aspas em <code>'pão'</code> e <code>'café'</code> por causa do acento; no objeto, a chave é o mesmo texto.)</dd>
+  <dt>JSON.stringify(mapa) → {}</dt><dd><strong>Cuidado:</strong> o <code>JSON.stringify</code> não sabe escrever um <code>Map</code> e devolve <code>{}</code>, vazio, sem avisar. Para salvar ou enviar, converta antes para objeto.</dd>
+</dl>
+
+<h3>Agrupar com <code>Map.groupBy</code> <span class="versao">ES2024</span></h3>
+<p>O <code>Map.groupBy</code> separa os itens de um array em grupos e devolve um <code>Map</code>: a chave é o nome do grupo, e o valor é o array dos itens daquele grupo.</p>
+
+<pre class="file" data-file="agrupar.js">const alunos = [
+  { nome: "Ana", turma: "A" },
+  { nome: "Bia", turma: "B" },
+  { nome: "Caio", turma: "A" },
+  { nome: "Davi", turma: "B" },
+  { nome: "Eva", turma: "A" },
+];
+const porTurma = Map.groupBy(alunos, (aluno) =&gt; aluno.turma);
+console.log(porTurma);
+console.log(porTurma.get("A").length);
+</pre>
+
+<pre class="term">$ node agrupar.js
+Map(2) {
+  'A' =&gt; [
+    { nome: 'Ana', turma: 'A' },
+    { nome: 'Caio', turma: 'A' },
+    { nome: 'Eva', turma: 'A' }
+  ],
+  'B' =&gt; [ { nome: 'Bia', turma: 'B' }, { nome: 'Davi', turma: 'B' } ]
+}
+3
+</pre>
+
+<p>A função <code>(aluno) =&gt; aluno.turma</code> diz, para cada aluno, a que grupo ele pertence. A turma A tem 3 alunos. (Existe também o <code>Object.groupBy</code>, que faz o mesmo e devolve um objeto.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: <code>Map</code> ou objeto?</h2>
+<p>Um objeto comum também guarda pares de chave e valor (<code>{ pão: 0.75 }</code>), e em muito código você vai ver objetos usados como dicionário. Compare:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Objeto</th><th><code>Map</code></th></tr>
+<tr><td>Guardar</td><td><code>precos["pão"] = 0.75</code></td><td><code>precos.set("pão", 0.75)</code></td></tr>
+<tr><td>Buscar</td><td><code>precos["pão"]</code></td><td><code>precos.get("pão")</code></td></tr>
+<tr><td>Tem a chave?</td><td><code>Object.hasOwn(precos, "pão")</code></td><td><code>precos.has("pão")</code></td></tr>
+<tr><td>Apagar</td><td><code>delete precos["pão"]</code></td><td><code>precos.delete("pão")</code></td></tr>
+<tr><td>Quantos?</td><td><code>Object.keys(precos).length</code></td><td><code>precos.size</code></td></tr>
+<tr><td>Tipos de chave</td><td>só texto (e <code>Symbol</code>)</td><td>qualquer um</td></tr>
+<tr><td>Virar JSON</td><td>direto, com <code>JSON.stringify</code></td><td>precisa de <code>Object.fromEntries</code> antes</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um "registro" com campos fixos e conhecidos (<code>nome</code>, <code>idade</code>, <code>email</code>)</td><td>Objeto</td></tr>
+<tr><td>Dados que vão virar JSON (salvar em arquivo, mandar pela internet)</td><td>Objeto</td></tr>
+<tr><td>Chaves que surgem durante o programa (as palavras de um texto, os produtos vendidos)</td><td><code>Map</code></td></tr>
+<tr><td>Contar, somar ou agrupar por chave</td><td><code>Map</code></td></tr>
+<tr><td>Chaves que não são texto (números de verdade, objetos)</td><td><code>Map</code></td></tr>
+<tr><td>Só os valores, sem informação junto, sem repetir</td><td><code>Set</code> (<a href="set.html">aula anterior</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>new</code></strong>
+<pre class="file" data-file="semnew.js">const precos = Map();
+</pre>
+<pre class="term">$ node semnew.js
+/home/ana/semnew.js:1
+const precos = Map();
+               ^
+
+TypeError: Constructor Map requires 'new'
+    at Map (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/semnew.js:1:16)
+«                                  (mais 7 linhas "at" internas do Node, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o arquivo e a linha (<code>semnew.js:1</code>), a linha do código com o <code>^</code> embaixo do <code>Map</code>, o tipo e a mensagem (<code>TypeError</code>: "o construtor <code>Map</code> exige <code>new</code>"), o caminho até o erro (<code>at …</code>, com a linha 1, coluna 16 do seu arquivo) e a versão do Node. A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> detalha cada parte. <strong>Como consertar:</strong> <code>new Map()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou colchetes em vez de <code>set</code> e <code>get</code></strong>
+<p>Este não dá erro nenhum, e por isso é perigoso:</p>
+<pre class="file" data-file="colchete.js">const precos = new Map();
+precos["pão"] = 0.75;
+console.log(precos.get("pão"));
+console.log(precos.size);
+console.log(precos);
+</pre>
+<pre class="term">$ node colchete.js
+undefined
+0
+Map(0) { 'pão': 0.75 }
+</pre>
+<p>Com colchetes, você pendurou uma propriedade comum no objeto <code>precos</code>, por fora do mapa. O mapa continua vazio (<code>Map(0)</code>, <code>size</code> 0), e o <code>get</code> não acha nada. O Node até mostra o <code>'pão': 0.75</code> (com <code>:</code>, e não <code>=&gt;</code>), mas ele não é um par do mapa. <strong>Como consertar:</strong> no <code>Map</code>, sempre <code>set</code> para guardar e <code>get</code> para buscar.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>get</code> num objeto comum</strong>
+<pre class="file" data-file="getobj.js">const precos = { pão: 0.75 };
+console.log(precos.get("pão"));
+</pre>
+<pre class="term">$ node getobj.js
+/home/ana/getobj.js:2
+console.log(precos.get("pão"));
+                   ^
+
+TypeError: precos.get is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/getobj.js:2:20)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>precos.get</code> não é uma função". As chaves <code>{ }</code> criaram um <strong>objeto</strong>, não um <code>Map</code>, e objeto não tem <code>get</code>. <strong>Como consertar:</strong> escolha um dos dois e use o jeito dele: <code>precos["pão"]</code> no objeto, ou <code>new Map([["pão", 0.75]])</code> com <code>get</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Trocou a ordem no <code>forEach</code></strong>
+<pre class="file" data-file="foreachordem.js">const estoque = new Map([["caneta", 40], ["caderno", 12]]);
+estoque.forEach((produto, quantidade) =&gt; {
+  console.log(`${produto}: ${quantidade} unidades`);
+});
+</pre>
+<pre class="term">$ node foreachordem.js
+40: caneta unidades
+12: caderno unidades
+</pre>
+<p>Sem erro, mas com tudo trocado. O <code>forEach</code> entrega <strong>(valor, chave)</strong>, e os nomes que você dá aos parâmetros não mudam essa ordem: o primeiro recebeu o 40, mesmo se chamando <code>produto</code>. <strong>Como consertar:</strong> <code>(quantidade, produto) =&gt;</code>, ou use <code>for (const [produto, quantidade] of estoque)</code>, que vem na ordem natural.</p>
+</div>
+
+<div class="cenario">
+<strong>Um item da lista não era um par</strong>
+<pre class="file" data-file="entrada.js">const telefones = new Map([
+  ["Ana", "99999-1111"],
+  "Bia",
+]);
+</pre>
+<pre class="term">$ node entrada.js
+/home/ana/entrada.js:1
+const telefones = new Map([
+                  ^
+
+TypeError: Iterator value Bia is not an entry object
+    at new Map (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/entrada.js:1:19)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O valor <code>Bia</code> não é um objeto de entrada". Cada item da lista tem de ser um par <code>[chave, valor]</code>, e <code>"Bia"</code> sozinho não é. O <code>^</code> aponta para o <code>new Map</code> da linha 1, mas o problema está na linha 3: a mensagem diz qual item é (<code>Bia</code>). <strong>Como consertar:</strong> <code>["Bia", "98888-2222"]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Buscou com um objeto "igual", mas não o mesmo</strong>
+<pre class="file" data-file="objchave.js">const notas = new Map();
+notas.set({ nome: "Ana" }, 9.5);
+console.log(notas.get({ nome: "Ana" }));
+</pre>
+<pre class="term">$ node objchave.js
+undefined
+</pre>
+<p>Cada <code>{ nome: "Ana" }</code> escrito no código é um objeto novo. O <code>get</code> procurou um objeto que nunca foi guardado. <strong>Como consertar:</strong> guarde o objeto numa variável e use a mesma variável no <code>set</code> e no <code>get</code> (como na seção 4), ou use um texto como chave: <code>notas.set("Ana", 9.5)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>new Map()</code></td><td>Cria um mapa vazio</td><td>o mapa</td></tr>
+<tr><td><code>new Map([[k1, v1], [k2, v2]])</code></td><td>Cria um mapa com esses pares</td><td>o mapa</td></tr>
+<tr><td><code>m.set(k, v)</code></td><td>Guarda o par (troca o valor se a chave já existir)</td><td>o próprio <code>m</code></td></tr>
+<tr><td><code>m.get(k)</code></td><td>Busca o valor da chave</td><td>o valor, ou <code>undefined</code></td></tr>
+<tr><td><code>m.has(k)</code></td><td>A chave existe?</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>m.delete(k)</code></td><td>Apaga o par</td><td><code>true</code> se apagou</td></tr>
+<tr><td><code>m.clear()</code></td><td>Apaga tudo</td><td><code>undefined</code></td></tr>
+<tr><td><code>m.size</code></td><td>Quantos pares</td><td>número</td></tr>
+<tr><td><code>for (const [k, v] of m)</code></td><td>Percorre os pares, na ordem de entrada</td><td>—</td></tr>
+<tr><td><code>m.forEach((v, k) =&gt; …)</code></td><td>Percorre: <strong>valor primeiro</strong>, chave depois</td><td>—</td></tr>
+<tr><td><code>m.keys()</code> · <code>m.values()</code> · <code>m.entries()</code></td><td>Chaves · valores · pares (use com <code>for … of</code> ou <code>[... ]</code>)</td><td>iterador</td></tr>
+<tr><td><code>new Map(Object.entries(obj))</code></td><td>Objeto → <code>Map</code></td><td>o mapa</td></tr>
+<tr><td><code>Object.fromEntries(m)</code></td><td><code>Map</code> → objeto (para virar JSON)</td><td>objeto</td></tr>
+<tr><td><code>Map.groupBy(array, fn)</code> <span class="versao">ES2024</span></td><td>Agrupa os itens pela chave que a função devolve</td><td>mapa de arrays</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Constructor Map requires 'new'</code></td><td>Escreveu <code>Map()</code> sem <code>new</code></td></tr>
+<tr><td><code>get</code> devolve <code>undefined</code> e <code>size</code> é 0, mas "eu guardei!"</td><td>Guardou com colchetes (<code>m["x"] = …</code>) em vez de <code>set</code></td></tr>
+<tr><td><code>TypeError: x.get is not a function</code></td><td>A variável é um objeto comum (<code>{ }</code>), não um <code>Map</code></td></tr>
+<tr><td>Chaves e valores trocados no <code>forEach</code></td><td>O <code>forEach</code> entrega <code>(valor, chave)</code></td></tr>
+<tr><td><code>TypeError: Iterator value … is not an entry object</code></td><td>Um item da lista do <code>new Map</code> não é um par <code>[chave, valor]</code></td></tr>
+<tr><td><code>NaN</code> numa contagem</td><td>Faltou o <code>?? 0</code> no <code>get</code> da primeira vez</td></tr>
+<tr><td><code>JSON.stringify</code> dá <code>{}</code></td><td>JSON não sabe escrever <code>Map</code>: use <code>Object.fromEntries</code> antes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para guardar o telefone da Bia e depois mostrá-lo:</p>
+<div class="ex-code">const agenda = new Map();<br>agenda.<input data-answer="set" aria-label="método que guarda">("Bia", "98888-2222");<br>console.log(agenda.<input data-answer="get" aria-label="método que busca">("Bia"));</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o tamanho?</h3>
+<p>Depois de <code>m.set("a", 1); m.set("b", 2); m.set("a", 3);</code> num mapa vazio, quanto vale <code>m.size</code>?</p>
+<div class="ex-code">size = <input data-answer="2" aria-label="tamanho do mapa"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Num <code>Map</code>, o que <code>m.get("chave que não existe")</code> devolve?</p>
+<label><input type="radio" name="q3"> Um <code>TypeError</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+<label><input type="radio" name="q3"> <code>false</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Em <code>m.forEach((a, b) =&gt; …)</code>, o que chega em <code>a</code>?</p>
+<label><input type="radio" name="q4"> A chave</label>
+<label><input type="radio" name="q4"> O par <code>[chave, valor]</code></label>
+<label><input type="radio" name="q4"> O valor</label>
+<label><input type="radio" name="q4"> A posição (0, 1, 2…)</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Num <code>Map</code>, <code>m.set(1, "x")</code> e <code>m.set("1", "y")</code> criam quantas chaves?</p>
+<label><input type="radio" name="q5"> Duas: o número 1 e o texto "1" são chaves diferentes</label>
+<label><input type="radio" name="q5"> Uma: a segunda troca o valor da primeira</label>
+<label><input type="radio" name="q5"> Nenhuma: dá erro</label>
+<label><input type="radio" name="q5"> Uma: o <code>Map</code> só aceita texto</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Você quer salvar um <code>Map</code> num arquivo JSON. O que fazer?</p>
+<label><input type="radio" name="q6"> <code>JSON.stringify(m)</code> direto</label>
+<label><input type="radio" name="q6"> <code>m.toJSON()</code></label>
+<label><input type="radio" name="q6"> Nada: <code>Map</code> não pode ser salvo</label>
+<label><input type="radio" name="q6"> <code>JSON.stringify(Object.fromEntries(m))</code></label>
+</div>
+
+<h3>Missão final: a votação do almoço</h3>
+
+<div class="tryjs" data-goal="out:pizza: 3 votos;;out:sushi: 1 votos;;semerro">
+<p class="try-task"><strong>Missão:</strong> a turma votou no almoço da festa. Rode o programa: as contagens saem como <code>NaN</code>. Descubra por quê (a seção 6 tem a pista) e conserte para aparecer <code>pizza: 3 votos</code>.</p>
+<pre class="script" data-file="main.js">const votos = ["pizza", "lasanha", "pizza", "sushi", "pizza", "lasanha"];
+const contagem = new Map();
+for (const voto of votos) {
+  contagem.set(voto, contagem.get(voto) + 1);
+}
+for (const [comida, total] of contagem) {
+  console.log(`${comida}: ${total} votos`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const votos = ["pizza", "lasanha", "pizza", "sushi", "pizza", "lasanha"];
+const contagem = new Map();
+for (const voto of votos) {
+  contagem.set(voto, (contagem.get(voto) ?? 0) + 1);
+}
+for (const [comida, total] of contagem) {
+  console.log(`${comida}: ${total} votos`);
+}
+</pre>
+</div>
+
+<p>No lab, o programa original mostrou <code>pizza: NaN votos</code>, <code>lasanha: NaN votos</code> e <code>sushi: NaN votos</code>; a versão consertada mostrou <code>pizza: 3 votos</code>, <code>lasanha: 2 votos</code> e <code>sushi: 1 votos</code>. (Para escrever "1 voto" no singular, um <a href="ternario.html">ternário</a> resolve: <code>${total === 1 ? "voto" : "votos"}</code>.)</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>Map</code> guarda pares <strong>chave → valor</strong>, como um dicionário. A chave não se repete; o valor pode.</li>
+  <li><code>set</code> guarda (ou troca), <code>get</code> busca (<code>undefined</code> se não achar), <code>has</code> pergunta, <code>delete</code> apaga, <code>clear</code> esvazia, <code>size</code> conta.</li>
+  <li>Crie já cheio com <code>new Map([[chave, valor], …])</code>. O <code>new</code> é obrigatório.</li>
+  <li>A chave pode ser de qualquer tipo; <code>1</code> e <code>"1"</code> são chaves diferentes; objetos só são a mesma chave se forem o mesmo objeto.</li>
+  <li>Percorra com <code>for (const [k, v] of m)</code>; no <code>forEach</code>, o valor vem <strong>primeiro</strong>.</li>
+  <li>Para contar: <code>m.set(x, (m.get(x) ?? 0) + 1)</code>.</li>
+  <li>Use objeto para registros e JSON; <code>Map</code> para chaves que surgem durante o programa, contagens e agrupamentos.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
