@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Selecionando Elementos — querySelector e querySelectorAll | Guia JavaScript</title>
+<meta name="description" content="Como encontrar elementos da página com JavaScript, para quem nunca programou: querySelector com seletores CSS (tag, #id, .classe, atributo, descendente, :last-child, :checked), querySelectorAll e a NodeList (length, posição, forEach, for … of, Array.from e …), getElementById e os métodos antigos, buscar dentro de um elemento, closest e matches, e os erros reais do Chromium (null, map is not a function, seletor inválido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Selecionando Elementos</span></h1>
+
+<p class="intro">Antes de mudar qualquer coisa na página, o JavaScript precisa <strong>encontrar</strong> o elemento certo na árvore do <a href="dom.html">DOM</a>: o título, o terceiro item da lista, todos os preços. Isso se chama <strong>selecionar</strong>. A ferramenta principal é o <code>querySelector</code>, que usa a mesma linguagem de "endereços" do CSS, os <strong>seletores</strong>. Quem já escreveu um pouco de CSS vai se sentir em casa; quem nunca escreveu aprende aqui o essencial.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>document.querySelector(…)</code>: o <strong>primeiro</strong> elemento que combina com um seletor (ou <code>null</code>).</li>
+  <li>Os seletores mais usados: tag, <code>#id</code>, <code>.classe</code>, <code>[atributo]</code>, "dentro de" (<code>#doces .item</code>) e alguns como <code>:last-child</code> e <code>:checked</code>.</li>
+  <li><code>document.querySelectorAll(…)</code>: <strong>todos</strong> os que combinam, numa <strong>NodeList</strong>, e como percorrê-la.</li>
+  <li>Por que a NodeList não tem <code>map</code>, e como transformá-la num array.</li>
+  <li><code>getElementById</code> e os outros métodos antigos.</li>
+  <li>Buscar <strong>dentro</strong> de um elemento, e subir na árvore com <code>closest</code>.</li>
+  <li>Os erros reais: o <code>null</code>, o <code>#</code> esquecido, o seletor inválido e a lista tratada como se fosse um elemento só.</li>
+</ul>
+</div>
+
+<p>As respostas do Console desta aula foram colhidas no <strong>Chromium</strong> da máquina da Ana, com a página do cardápio abaixo aberta.</p>
+
+<hr>
+
+<h2>A ideia: endereços de entrega</h2>
+<p>Para entregar uma encomenda, o motoboy precisa de um <strong>endereço</strong>. Ele pode ser bem exato ("Rua das Flores, 123", só existe uma casa assim) ou valer para várias casas ("todas as casas amarelas da rua"). Os seletores são endereços de elementos:</p>
+<ul>
+  <li><code>#titulo</code> é um endereço exato: o elemento cujo <code>id</code> é <code>titulo</code> (um <code>id</code> não deve se repetir na página).</li>
+  <li><code>.preco</code> vale para vários: todos os elementos da <strong>classe</strong> <code>preco</code>, como "todas as casas amarelas".</li>
+</ul>
+<p>Com o endereço em mãos, você escolhe: quer <strong>a primeira</strong> casa que bate (<code>querySelector</code>) ou <strong>todas</strong> (<code>querySelectorAll</code>)?</p>
+
+<hr>
+
+<h2>A página do cardápio</h2>
+<p>Todos os exemplos usam este <code>index.html</code>. Repare nos <code>id</code> e nas <code>class</code>: são os "endereços" que o JavaScript vai usar.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Cardápio da Padaria&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 id="titulo"&gt;Cardápio da Padaria da Ana&lt;/h1&gt;
+  &lt;h2&gt;Salgados&lt;/h2&gt;
+  &lt;ul id="salgados"&gt;
+    &lt;li class="item"&gt;Coxinha &lt;span class="preco"&gt;6.50&lt;/span&gt;&lt;/li&gt;
+    &lt;li class="item destaque"&gt;Pão de queijo &lt;span class="preco"&gt;4.50&lt;/span&gt;&lt;/li&gt;
+    &lt;li class="item"&gt;Esfiha &lt;span class="preco"&gt;5.00&lt;/span&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;h2&gt;Doces&lt;/h2&gt;
+  &lt;ul id="doces"&gt;
+    &lt;li class="item"&gt;Brigadeiro &lt;span class="preco"&gt;3.00&lt;/span&gt;&lt;/li&gt;
+    &lt;li class="item destaque" data-novo="sim"&gt;Bolo de pote &lt;span class="preco"&gt;9.00&lt;/span&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;p class="aviso"&gt;Aceitamos Pix.&lt;/p&gt;
+  &lt;input type="checkbox" id="entrega" checked&gt; Entrega
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>Um elemento pode ter <strong>várias classes</strong>, separadas por espaço: o pão de queijo tem as classes <code>item</code> e <code>destaque</code>. E o <code>data-novo="sim"</code> é um atributo inventado pela Ana; atributos que começam com <code>data-</code> são livres para guardar informações suas.</p>
+
+<hr>
+
+<h2>1. <code>querySelector</code>: o primeiro que combina</h2>
+
+<pre class="devtools">&gt; document.querySelector("h1")
+&lt;h1 id="titulo"&gt;Cardápio da Padaria da Ana&lt;/h1&gt;
+&gt; document.querySelector("#titulo").textContent
+'Cardápio da Padaria da Ana'
+&gt; document.querySelector(".preco")
+&lt;span class="preco"&gt;6.50&lt;/span&gt;
+&gt; document.querySelector(".destaque").textContent
+'Pão de queijo 4.50'
+</pre>
+
+<dl class="anatomy">
+  <dt>document.querySelector("h1")</dt><dd>Procura em todo o documento o primeiro elemento da <strong>tag</strong> <code>h1</code>. O seletor é um texto, por isso vai entre aspas.</dd>
+  <dt>"#titulo"</dt><dd>O <code>#</code> quer dizer "o <code>id</code> é". Encontra o elemento com <code>id="titulo"</code>.</dd>
+  <dt>".preco"</dt><dd>O ponto quer dizer "tem a <strong>classe</strong>". Há cinco preços na página, mas o <code>querySelector</code> devolve só o <strong>primeiro</strong>, na ordem do HTML: o da coxinha, <code>6.50</code>.</dd>
+  <dt>".destaque"</dt><dd>O primeiro com a classe <code>destaque</code> é o pão de queijo. O <code>textContent</code> junta todo o texto de dentro, inclusive o do <code>&lt;span&gt;</code>: <code>'Pão de queijo 4.50'</code>.</dd>
+</dl>
+
+<h3>Seletores mais elaborados</h3>
+<p>Os seletores se combinam, como no CSS:</p>
+
+<pre class="devtools">&gt; document.querySelector("#doces .item").textContent
+'Brigadeiro 3.00'
+&gt; document.querySelector("li.destaque").textContent
+'Pão de queijo 4.50'
+&gt; document.querySelector("[data-novo]").textContent
+'Bolo de pote 9.00'
+&gt; document.querySelector("#salgados li:last-child").textContent
+'Esfiha 5.00'
+&gt; document.querySelector("input:checked").id
+'entrega'
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Seletor</th><th>Lê-se</th><th>Aqui encontrou</th></tr>
+<tr><td><code>h1</code></td><td>elementos da tag <code>h1</code></td><td>o título</td></tr>
+<tr><td><code>#titulo</code></td><td>o elemento com <code>id="titulo"</code></td><td>o título</td></tr>
+<tr><td><code>.preco</code></td><td>elementos com a classe <code>preco</code></td><td>o primeiro preço</td></tr>
+<tr><td><code>#doces .item</code></td><td>com a classe <code>item</code>, <strong>dentro</strong> do <code>#doces</code> (o espaço quer dizer "dentro de")</td><td>o brigadeiro</td></tr>
+<tr><td><code>li.destaque</code></td><td>um <code>li</code> que <strong>também</strong> tem a classe <code>destaque</code> (sem espaço = "e ao mesmo tempo")</td><td>o pão de queijo</td></tr>
+<tr><td><code>[data-novo]</code></td><td>quem tem o atributo <code>data-novo</code></td><td>o bolo de pote</td></tr>
+<tr><td><code>#salgados li:last-child</code></td><td>o <code>li</code> que é o <strong>último filho</strong>, dentro de <code>#salgados</code></td><td>a esfiha</td></tr>
+<tr><td><code>input:checked</code></td><td>o <code>input</code> que está <strong>marcado</strong></td><td>a caixinha "Entrega"</td></tr>
+</table>
+</div>
+
+<p>Qualquer seletor que funciona no CSS funciona aqui. Os que você vai usar em 90% das vezes são os três primeiros e o "dentro de".</p>
+
+<h3>Quando não acha nada: <code>null</code></h3>
+
+<pre class="devtools">&gt; document.querySelector(".esgotado")
+null
+</pre>
+
+<p>Nenhum elemento tem a classe <code>esgotado</code>, e o <code>querySelector</code> devolve <code>null</code> ("nada"), sem erro. O erro vem na linha <strong>seguinte</strong>, quando você tenta usar esse nada (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="tryweb" data-goal="console:Cardápio da Padaria da Ana;;semerro">
+<p class="try-task"><strong>Missão:</strong> o script quer mostrar o texto do título, mas quebra com <code>Cannot read properties of null</code>. O seletor está procurando uma <strong>tag</strong> chamada <code>titulo</code>, que não existe. Conserte o seletor para procurar o <strong>id</strong> <code>titulo</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Cardápio da Padaria da Ana&lt;/h1&gt;
+&lt;p class="aviso"&gt;Aceitamos Pix.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const titulo = document.querySelector("titulo");
+console.log(titulo.textContent);
+</pre>
+<pre class="solucao" data-file="script.js">const titulo = document.querySelector("#titulo");
+console.log(titulo.textContent);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>querySelectorAll</code>: todos os que combinam</h2>
+<p>Para pegar <strong>todos</strong> os elementos de um endereço, use <code>querySelectorAll</code> ("selecionar todos"). Ele devolve uma <strong>lista</strong>:</p>
+
+<pre class="devtools">&gt; document.querySelectorAll(".item").length
+5
+&gt; document.querySelectorAll(".preco")[2].textContent
+'5.00'
+&gt; document.querySelectorAll(".item").constructor.name
+'NodeList'
+&gt; document.querySelectorAll(".esgotado").length
+0
+</pre>
+
+<dl class="anatomy">
+  <dt>.length</dt><dd>Quantos elementos a lista tem: 5 itens no cardápio.</dd>
+  <dt>[2]</dt><dd>A posição, contada do <strong>0</strong>, como nos <a href="arrays-acessar.html">arrays</a>: o <code>[2]</code> é o terceiro preço, o da esfiha.</dd>
+  <dt>NodeList</dt><dd>O tipo da lista: uma <strong>NodeList</strong> ("lista de nós"). Ela parece um array, mas não é um (seção 3).</dd>
+  <dt>Lista vazia</dt><dd>Se nada combina, o <code>querySelectorAll</code> não devolve <code>null</code>: devolve uma lista <strong>vazia</strong>, com <code>length</code> 0.</dd>
+</dl>
+
+<h3>Percorrendo a lista</h3>
+<p>A NodeList tem <code>forEach</code> (aula <a href="foreach.html">forEach</a>) e funciona com <code>for … of</code> (aula <a href="for-of.html">for … of</a>). A Ana pôs no <code>script.js</code> da página:</p>
+
+<pre class="file" data-file="script.js">const precos = document.querySelectorAll(".preco");
+precos.forEach((preco) =&gt; {
+  console.log(preco.textContent);
+});
+for (const item of document.querySelectorAll("#doces .item")) {
+  console.log(`Doce: ${item.textContent}`);
+}
+</pre>
+
+<pre class="devtools">6.50
+4.50
+5.00
+3.00
+9.00
+Doce: Brigadeiro 3.00
+Doce: Bolo de pote 9.00
+</pre>
+
+<p>É o padrão mais comum do grupo "A Página Web": pegar todos os elementos de um tipo e fazer alguma coisa com cada um (mudar a cor, somar o valor, pôr um evento de clique).</p>
+
+<div class="tryweb" data-goal="console:Destaques: 2;;src:querySelectorAll">
+<p class="try-task"><strong>Missão:</strong> o script quer contar quantos itens têm a classe <code>destaque</code>, mas mostra <code>Destaques: undefined</code>: o <code>querySelector</code> devolve <strong>um</strong> elemento, que não tem <code>length</code>. Troque por <code>querySelectorAll</code>.</p>
+<pre class="script" data-file="index.html">&lt;ul&gt;
+  &lt;li class="item"&gt;Coxinha&lt;/li&gt;
+  &lt;li class="item destaque"&gt;Pão de queijo&lt;/li&gt;
+  &lt;li class="item"&gt;Esfiha&lt;/li&gt;
+  &lt;li class="item destaque"&gt;Bolo de pote&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const destaques = document.querySelector(".destaque");
+console.log(`Destaques: ${destaques.length}`);
+</pre>
+<pre class="solucao" data-file="script.js">const destaques = document.querySelectorAll(".destaque");
+console.log(`Destaques: ${destaques.length}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A NodeList não é um array</h2>
+<p>A NodeList tem <code>length</code>, posições e <code>forEach</code>, mas <strong>não</strong> tem <code>map</code>, <code>filter</code> nem <code>reduce</code>:</p>
+
+<pre class="devtools">&gt; document.querySelectorAll(".preco").map(p =&gt; p.textContent)
+Uncaught TypeError: document.querySelectorAll(...).map is not a function
+    at &lt;anonymous&gt;:1:37
+</pre>
+
+<p>"<code>….map</code> não é uma função." Para usar os métodos de array, transforme a lista num array de verdade, com o <a href="spread-rest.html">spread</a> (<code>[...lista]</code>) ou com <code>Array.from</code>:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll(".preco")].map(p =&gt; Number(p.textContent))
+(5) [6.5, 4.5, 5, 3, 9]
+&gt; Array.from(document.querySelectorAll("h2"), h =&gt; h.textContent)
+(2) ['Salgados', 'Doces']
+</pre>
+
+<dl class="anatomy">
+  <dt>[...document.querySelectorAll(".preco")]</dt><dd>Os <code>...</code> espalham os itens da NodeList dentro de colchetes novos: vira um array, e aí o <code>map</code> funciona. O <code>Number(…)</code> converte o texto <code>"6.50"</code> no número <code>6.5</code> (veja <a href="conversao.html">Conversão</a>).</dd>
+  <dt>Array.from(lista, função)</dt><dd>Cria um array a partir da lista e, de quebra, aplica a função em cada item (como um <code>map</code> embutido).</dd>
+  <dt>(5) [6.5, 4.5, 5, 3, 9]</dt><dd>O jeito do Console do navegador mostrar um array: o <code>(5)</code> é o tamanho. (O Node mostraria <code>[ 6.5, 4.5, 5, 3, 9 ]</code>.)</dd>
+</dl>
+
+<hr>
+
+<h2>4. Os métodos antigos: <code>getElementById</code> e companhia</h2>
+<p>Antes do <code>querySelector</code> (que chegou aos navegadores por volta de 2009), havia métodos mais específicos. Eles continuam funcionando e aparecem em muito código:</p>
+
+<pre class="devtools">&gt; document.getElementById("doces")
+&lt;ul id="doces"&gt;
+    &lt;li class="item"&gt;Brigadeiro &lt;span class="preco"&gt;3.00&lt;/span&gt;&lt;/li&gt;
+    &lt;li class="item destaque" data-novo="sim"&gt;Bolo de pote &lt;span class="preco"&gt;9.00&lt;/span&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&gt; document.getElementsByClassName("item").constructor.name
+'HTMLCollection'
+&gt; document.getElementsByTagName("h2").length
+2
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método antigo</th><th>Equivale a</th><th>Detalhe</th></tr>
+<tr><td><code>document.getElementById("doces")</code></td><td><code>document.querySelector("#doces")</code></td><td>Recebe o id <strong>sem</strong> o <code>#</code></td></tr>
+<tr><td><code>document.getElementsByClassName("item")</code></td><td><code>document.querySelectorAll(".item")</code></td><td>Recebe a classe sem o ponto; devolve uma <code>HTMLCollection</code></td></tr>
+<tr><td><code>document.getElementsByTagName("h2")</code></td><td><code>document.querySelectorAll("h2")</code></td><td>Devolve uma <code>HTMLCollection</code></td></tr>
+</table>
+</div>
+
+<p>A <code>HTMLCollection</code> é outra lista parecida com array, só que "viva": se um elemento novo com aquela classe aparecer na página depois, ele entra na lista sozinho (a NodeList do <code>querySelectorAll</code> é uma foto do momento). Ela <strong>não</strong> tem <code>forEach</code>; use <code>for … of</code> ou <code>[...lista]</code>.</p>
+
+<hr>
+
+<h2>5. Buscando a partir de um elemento</h2>
+<p>O <code>querySelector</code> e o <code>querySelectorAll</code> não são só do <code>document</code>: <strong>todo elemento</strong> os tem, e aí a busca acontece só <strong>dentro</strong> dele. Também dá para <strong>subir</strong> na árvore:</p>
+
+<pre class="devtools">&gt; document.querySelector("#doces").querySelectorAll("li").length
+2
+&gt; document.querySelectorAll("li").length
+5
+&gt; document.querySelector(".preco").closest("ul").id
+'salgados'
+&gt; document.querySelector("#doces li").matches(".destaque")
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>elemento.querySelectorAll("li")</dt><dd>Só os <code>li</code> de dentro da lista de doces: 2. No <code>document</code> inteiro são 5.</dd>
+  <dt>elemento.closest("ul")</dt><dd>"O mais próximo": sobe pelos pais, a partir do próprio elemento, até achar um que combine com o seletor. O primeiro preço está dentro do <code>ul</code> de salgados. Devolve <code>null</code> se chegar ao topo sem achar.</dd>
+  <dt>elemento.matches(".destaque")</dt><dd>"Combina?": <code>true</code> ou <code>false</code>. O primeiro <code>li</code> dos doces (o brigadeiro) não tem a classe <code>destaque</code>.</dd>
+</dl>
+
+<p>O <code>closest</code> vai ser muito útil na aula <a href="eventos-objeto.html">O Objeto do Evento</a>: quando alguém clica num preço, ele descobre em qual item o clique aconteceu.</p>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th><th>Devolve, se não achar</th></tr>
+<tr><td>Um elemento (o primeiro)</td><td><code>document.querySelector("seletor")</code></td><td><code>null</code></td></tr>
+<tr><td>Todos os elementos</td><td><code>document.querySelectorAll("seletor")</code></td><td>NodeList vazia</td></tr>
+<tr><td>Um elemento pelo id, em código antigo</td><td><code>document.getElementById("id")</code></td><td><code>null</code></td></tr>
+<tr><td>Usar <code>map</code>/<code>filter</code>/<code>reduce</code></td><td><code>[...document.querySelectorAll(…)]</code> ou <code>Array.from(…)</code></td><td>array vazio</td></tr>
+<tr><td>Procurar só dentro de um pedaço da página</td><td><code>elemento.querySelector(…)</code></td><td><code>null</code></td></tr>
+<tr><td>Subir até um pai</td><td><code>elemento.closest("seletor")</code></td><td><code>null</code></td></tr>
+</table>
+</div>
+
+<p>No código novo, fique com <code>querySelector</code> e <code>querySelectorAll</code>: um jeito só, com qualquer seletor do CSS.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>#</code> ou o ponto</strong>
+<pre class="devtools">&gt; document.querySelector("aviso")
+null
+&gt; document.querySelector(".aviso").textContent
+'Aceitamos Pix.'
+</pre>
+<p>Sem o ponto, <code>"aviso"</code> procura uma <strong>tag</strong> <code>&lt;aviso&gt;</code>, que não existe: <code>null</code>. E o <code>null</code> só explode na próxima linha, com <code>Uncaught TypeError: Cannot read properties of null (reading 'textContent')</code> (lendo) ou <code>Cannot set properties of null</code> (mudando). <strong>Como consertar:</strong> <code>#</code> para id, ponto para classe, nada para tag.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs o <code>#</code> no <code>getElementById</code></strong>
+<pre class="devtools">&gt; document.getElementById("#doces")
+null
+</pre>
+<p>O <code>getElementById</code> já sabe que é um id: o <code>#</code> vira parte do nome procurado, e nenhum elemento tem <code>id="#doces"</code>. <strong>Como consertar:</strong> <code>getElementById("doces")</code>, ou <code>querySelector("#doces")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tratou a lista como se fosse um elemento</strong>
+<pre class="devtools">&gt; document.querySelectorAll(".item").textContent
+undefined
+</pre>
+<p>Nenhum erro, só um <code>undefined</code>: a NodeList não tem <code>textContent</code>, quem tem é cada elemento dentro dela. E, pior, <code>document.querySelectorAll(".item").textContent = "Esgotado"</code> também não dá erro e <strong>não muda nada</strong> na página. <strong>Como consertar:</strong> percorra a lista com <code>forEach</code> ou <code>for … of</code> e mude um por um.</p>
+</div>
+
+<div class="cenario">
+<strong><code>map is not a function</code></strong>
+<p>O erro da seção 3: a NodeList não tem <code>map</code>. <strong>Como consertar:</strong> <code>[...lista].map(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Seletor inválido</strong>
+<pre class="devtools">&gt; document.querySelector(".1preco")
+Uncaught SyntaxError: Failed to execute 'querySelector' on 'Document': '.1preco' is not a valid selector.
+    at &lt;anonymous&gt;:1:10
+</pre>
+<p>"Falha ao executar o <code>querySelector</code> no <code>Document</code>: <code>'.1preco'</code> não é um seletor válido." No CSS, um nome de classe ou de id não pode <strong>começar com um número</strong> no seletor (outros erros comuns: um colchete ou uma aspa sem fechar). Diferente do <code>null</code>, aqui o erro aparece na hora. <strong>Como consertar:</strong> escolha nomes que comecem com letra: <code>preco1</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>document.querySelector(sel)</code></td><td>O primeiro elemento que combina, ou <code>null</code></td></tr>
+<tr><td><code>document.querySelectorAll(sel)</code></td><td>Uma NodeList com todos (vazia se nenhum)</td></tr>
+<tr><td><code>lista.length</code> / <code>lista[0]</code></td><td>Quantos / o primeiro</td></tr>
+<tr><td><code>lista.forEach((el) =&gt; …)</code> / <code>for (const el of lista)</code></td><td>Percorrer a lista</td></tr>
+<tr><td><code>[...lista]</code> / <code>Array.from(lista)</code></td><td>Transformar em array (para <code>map</code>, <code>filter</code>…)</td></tr>
+<tr><td><code>document.getElementById("id")</code></td><td>O elemento com aquele id (sem <code>#</code>)</td></tr>
+<tr><td><code>el.querySelector(sel)</code> / <code>el.querySelectorAll(sel)</code></td><td>Buscar só dentro de <code>el</code></td></tr>
+<tr><td><code>el.closest(sel)</code></td><td>Subir até o primeiro ancestral (ou o próprio) que combina</td></tr>
+<tr><td><code>el.matches(sel)</code></td><td><code>true</code> se <code>el</code> combina com o seletor</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Seletor</th><th>Significado</th></tr>
+<tr><td><code>p</code></td><td>tag <code>p</code></td></tr>
+<tr><td><code>#nome</code></td><td><code>id="nome"</code></td></tr>
+<tr><td><code>.nome</code></td><td><code>class="nome"</code> (entre outras)</td></tr>
+<tr><td><code>A B</code></td><td>B dentro de A</td></tr>
+<tr><td><code>A.b</code></td><td>tag A com a classe b</td></tr>
+<tr><td><code>A, B</code></td><td>A ou B</td></tr>
+<tr><td><code>[atributo]</code> / <code>[atributo="valor"]</code></td><td>tem o atributo / tem com aquele valor</td></tr>
+<tr><td><code>:first-child</code> / <code>:last-child</code> / <code>:nth-child(2)</code></td><td>primeiro / último / segundo filho</td></tr>
+<tr><td><code>:checked</code></td><td>caixinha ou opção marcada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Escreva o seletor</h3>
+<div class="ex-code">O elemento com <code>id="carrinho"</code>: <input data-answer="#carrinho" aria-label="seletor do id"><br>Os elementos com a classe <code>preco</code>: <input data-answer=".preco" aria-label="seletor da classe"><br>Os <code>li</code> dentro de <code>#doces</code>: <input data-answer="#doces li" aria-label="seletor descendente"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que devolve?</h3>
+<p>Na página do cardápio, quanto vale <code>document.querySelectorAll("#salgados .preco").length</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="quantidade"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>document.querySelector(".preco")</code> numa página com cinco preços devolve…</p>
+<label><input type="radio" name="q3"> os cinco, numa lista</label>
+<label><input type="radio" name="q3"> o primeiro, na ordem do HTML</label>
+<label><input type="radio" name="q3"> o último</label>
+<label><input type="radio" name="q3"> um erro, porque há mais de um</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>document.querySelectorAll(".esgotado")</code> devolve se nenhum elemento tem essa classe?</p>
+<label><input type="radio" name="q4"> <code>null</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> uma NodeList vazia (<code>length</code> 0)</label>
+<label><input type="radio" name="q4"> um <code>SyntaxError</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual destas linhas transforma os preços em números?</p>
+<label><input type="radio" name="q5"> <code>[...document.querySelectorAll(".preco")].map((p) =&gt; Number(p.textContent))</code></label>
+<label><input type="radio" name="q5"> <code>document.querySelectorAll(".preco").map((p) =&gt; Number(p.textContent))</code></label>
+<label><input type="radio" name="q5"> <code>Number(document.querySelectorAll(".preco"))</code></label>
+<label><input type="radio" name="q5"> <code>document.querySelectorAll(".preco").textContent</code></label>
+</div>
+
+<h3>Missão final: o total dos salgados</h3>
+
+<div class="tryweb" data-goal="console:Total dos salgados: R$ 16.00;;src:querySelectorAll">
+<p class="try-task"><strong>Missão:</strong> some os preços <strong>só da lista de salgados</strong> e mostre no Console <code>Total dos salgados: R$ 16.00</code>. Pegue os preços com <code>document.querySelectorAll("#salgados .preco")</code>, percorra com <code>for … of</code> (ou <code>forEach</code>), some <code>Number(preco.textContent)</code> e use <code>total.toFixed(2)</code>.</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Salgados&lt;/h2&gt;
+&lt;ul id="salgados"&gt;
+  &lt;li class="item"&gt;Coxinha &lt;span class="preco"&gt;6.50&lt;/span&gt;&lt;/li&gt;
+  &lt;li class="item"&gt;Pão de queijo &lt;span class="preco"&gt;4.50&lt;/span&gt;&lt;/li&gt;
+  &lt;li class="item"&gt;Esfiha &lt;span class="preco"&gt;5.00&lt;/span&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Doces&lt;/h2&gt;
+&lt;ul id="doces"&gt;
+  &lt;li class="item"&gt;Brigadeiro &lt;span class="preco"&gt;3.00&lt;/span&gt;&lt;/li&gt;
+  &lt;li class="item"&gt;Bolo de pote &lt;span class="preco"&gt;9.00&lt;/span&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">let total = 0;
+// selecione os preços dos salgados e some aqui
+
+console.log(`Total dos salgados: R$ ${total.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="script.js">let total = 0;
+for (const preco of document.querySelectorAll("#salgados .preco")) {
+  total += Number(preco.textContent);
+}
+console.log(`Total dos salgados: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Selecionar é encontrar o elemento na árvore do DOM, usando os <strong>seletores</strong> do CSS: <code>tag</code>, <code>#id</code>, <code>.classe</code>, <code>A B</code> (B dentro de A), <code>[atributo]</code>…</li>
+  <li><code>querySelector</code> devolve o <strong>primeiro</strong> elemento que combina, ou <code>null</code>; <code>querySelectorAll</code> devolve <strong>todos</strong>, numa NodeList (vazia se nenhum).</li>
+  <li>A NodeList tem <code>length</code>, posições, <code>forEach</code> e <code>for … of</code>, mas não tem <code>map</code>: use <code>[...lista]</code> ou <code>Array.from</code>.</li>
+  <li><code>getElementById</code> (sem <code>#</code>), <code>getElementsByClassName</code> e <code>getElementsByTagName</code> são os métodos antigos.</li>
+  <li>Todo elemento tem <code>querySelector</code> (busca dentro dele), <code>closest</code> (sobe até um pai) e <code>matches</code>.</li>
+  <li>O <code>null</code> não dá erro na hora: o erro aparece na linha seguinte (<code>Cannot read properties of null</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
