@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Date e Intl — referência de datas com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida de datas no JavaScript: criar com new Date (o mês começa em 0), ler com getFullYear, getMonth, getDate, getDay, mudar com setDate, calcular diferenças em dias, formatar em português com toLocaleDateString e Intl.DateTimeFormat, e os outros formatadores do Intl, com resultado real do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Date e Intl</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida das <strong>datas</strong> no JavaScript: o objeto <code>Date</code> (criar uma data, ler o dia, o mês e a hora, somar dias, calcular quantos dias faltam) e o <code>Intl</code> (de <em>internationalization</em>, "internacionalização"), que escreve datas, listas e tempos relativos do jeito brasileiro: <code>terça-feira, 10 de março de 2026</code>, <code>ontem</code>, <code>pão, leite e café</code>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Nos exemplos, <code>d</code> é <code>const d = new Date(2026, 2, 10, 14, 30)</code>: <strong>10 de março</strong> de 2026, às 14h30 (o <code>2</code> é março, porque os meses começam em 0; veja abaixo).</li>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana, que está no horário de Brasília (3 horas atrás do UTC, o horário de referência mundial).</li>
+  <li>O modo interativo mostra uma data no formato do <strong>UTC</strong>, com um <code>Z</code> no fim: <code>d</code> aparece como <code>2026-03-10T17:30:00.000Z</code>, que é 14h30 em Brasília. Não é erro: é a mesma hora, escrita no relógio de referência.</li>
+  <li>Os resultados que dependem do relógio (<code>new Date()</code> sem nada, <code>Date.now()</code>) mudam a cada vez; por isso as tabelas usam datas fixas.</li>
+</ul>
+</div>
+
+<div class="warning">
+<strong>Os meses começam em 0</strong>
+<p>Em <code>new Date(ano, mes, dia)</code>, janeiro é <code>0</code>, fevereiro é <code>1</code>… dezembro é <code>11</code>. O dia, não: dia 1 é <code>1</code>. Esse é o erro mais comum com datas no JavaScript. O <code>getMonth()</code> segue a mesma regra: para mostrar o mês, some 1.</p>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#criar">Criar uma data</a>: <code>new Date</code> <code>Date.now</code> <code>Date.UTC</code></li>
+  <li><a href="#ler">Ler as partes</a>: <code>getFullYear</code> <code>getMonth</code> <code>getDate</code> <code>getDay</code> <code>getHours</code> <code>getTime</code></li>
+  <li><a href="#mudar">Mudar e calcular</a>: <code>setDate</code> <code>setMonth</code>, diferença em dias, comparar</li>
+  <li><a href="#formatar">Formatar</a>: <code>toLocaleDateString</code> <code>toLocaleTimeString</code> <code>toISOString</code> <code>Intl.DateTimeFormat</code></li>
+  <li><a href="#intl">Outros formatadores do Intl</a>: <code>RelativeTimeFormat</code> <code>ListFormat</code> <code>PluralRules</code> <code>Collator</code></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="criar">Criar uma data</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Cria</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>new Date()</code></td><td>o momento de agora (muda a cada vez)</td><td colspan="2">veja <a href="date.html">Datas (Date)</a></td><td><a href="date.html">Datas</a></td></tr>
+<tr><td><code>new Date(a, m, d)</code></td><td>uma data no horário <strong>local</strong>, à meia-noite (mês de 0 a 11)</td><td><code>new Date(2026, 0, 15)</code></td><td><code>2026-01-15T03:00:00.000Z</code> (15 de janeiro, 0h em Brasília)</td><td><a href="date.html">Datas</a></td></tr>
+<tr><td><code>new Date(a, m, d, h, min)</code></td><td>com a hora</td><td><code>new Date(2026, 2, 10, 14, 30)</code></td><td><code>2026-03-10T17:30:00.000Z</code></td><td></td></tr>
+<tr><td><code>new Date("AAAA-MM-DDTHH:MM:SS")</code></td><td>a partir de um texto no formato ISO, no horário local (aqui o mês é o de verdade: <code>03</code> = março)</td><td><code>new Date("2026-03-10T14:30:00")</code></td><td><code>2026-03-10T17:30:00.000Z</code></td><td></td></tr>
+<tr><td></td><td>com <code>Z</code> no fim: o horário é UTC</td><td><code>new Date("2026-03-10T14:30:00Z")</code></td><td><code>2026-03-10T14:30:00.000Z</code></td><td></td></tr>
+<tr><td><code>new Date("AAAA-MM-DD")</code></td><td>só a data, sem hora: é lida como meia-noite <strong>UTC</strong> (no Brasil, ainda é o dia anterior!)</td><td><code>new Date("2026-03-10")</code></td><td><code>2026-03-10T00:00:00.000Z</code>; no formato brasileiro, <code>09/03/2026</code> (veja abaixo)</td><td></td></tr>
+<tr><td><code>new Date(ms)</code></td><td>a partir dos milissegundos desde 1/1/1970 UTC</td><td><code>new Date(0)</code></td><td><code>1970-01-01T00:00:00.000Z</code></td><td></td></tr>
+<tr><td><code>Date.now()</code></td><td>os milissegundos de agora (um número)</td><td><code>typeof Date.now()</code></td><td><code>'number'</code></td><td><a href="date.html">Datas</a></td></tr>
+<tr><td><code>Date.UTC(a, m, d)</code></td><td>os milissegundos de uma data em UTC</td><td><code>Date.UTC(2026, 2, 10)</code></td><td><code>1773100800000</code></td><td></td></tr>
+</table>
+</div>
+
+<p>A pegadinha do texto sem hora, rodada no lab:</p>
+
+<pre class="file" data-file="utc.js">const data = new Date("2026-03-10");
+console.log(data.toLocaleDateString("pt-BR"));
+
+const certa = new Date("2026-03-10T00:00:00");
+console.log(certa.toLocaleDateString("pt-BR"));
+</pre>
+
+<pre class="term">$ node utc.js
+09/03/2026
+10/03/2026
+</pre>
+
+<p>O <code>"2026-03-10"</code> virou meia-noite em UTC, que no horário de Brasília ainda é dia 9, às 21h. Com a hora escrita (<code>T00:00:00</code>), a data é lida no horário local e o dia fica certo.</p>
+
+<hr>
+
+<h2 id="ler">Ler as partes</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>getFullYear()</code></td><td>o ano com 4 algarismos</td><td><code>d.getFullYear()</code></td><td><code>2026</code></td><td><a href="date.html">Datas</a></td></tr>
+<tr><td><code>getMonth()</code></td><td>o mês, <strong>de 0 a 11</strong></td><td><code>d.getMonth()</code></td><td><code>2</code> (março)</td><td></td></tr>
+<tr><td><code>getDate()</code></td><td>o dia do mês, de 1 a 31</td><td><code>d.getDate()</code></td><td><code>10</code></td><td></td></tr>
+<tr><td><code>getDay()</code></td><td>o dia da <strong>semana</strong>: 0 = domingo … 6 = sábado</td><td><code>d.getDay()</code></td><td><code>2</code> (terça-feira)</td><td></td></tr>
+<tr><td><code>getHours()</code>, <code>getMinutes()</code>, <code>getSeconds()</code></td><td>hora, minuto, segundo (no horário local)</td><td><code>d.getHours()</code>, <code>d.getMinutes()</code>, <code>d.getSeconds()</code></td><td><code>14</code>, <code>30</code>, <code>0</code></td><td></td></tr>
+<tr><td><code>getTime()</code></td><td>os milissegundos desde 1/1/1970 UTC (bom para comparar e fazer contas)</td><td><code>d.getTime()</code></td><td><code>1773163800000</code></td><td></td></tr>
+<tr><td><code>getUTCHours()</code></td><td>a hora em UTC (há <code>getUTC…</code> para todas as partes)</td><td><code>d.getUTCHours()</code></td><td><code>17</code></td><td></td></tr>
+<tr><td><code>getTimezoneOffset()</code></td><td>quantos minutos o horário local está atrás do UTC</td><td><code>d.getTimezoneOffset()</code></td><td><code>180</code> (3 horas)</td><td></td></tr>
+<tr><td><code>getYear()</code></td><td>antigo e confuso: o ano menos 1900. Não use</td><td><code>d.getYear()</code></td><td><code>126</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="mudar">Mudar e calcular</h2>
+
+<p>Os <code>set…</code> <strong>mudam</strong> a data (mesmo com <code>const</code>) e devolvem os milissegundos novos. Se o dia passar do fim do mês, a data "transborda" para o mês seguinte, o que é ótimo para somar dias.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>setDate(n)</code></td><td>muda o dia; somar dias atravessa meses e anos</td><td><code>const e = new Date(2026, 0, 31)</code>, depois <code>e.setDate(e.getDate() + 1)</code> e <code>e.toLocaleDateString("pt-BR")</code></td><td><code>1769914800000</code>, <code>'01/02/2026'</code></td><td><a href="date.html">Datas</a></td></tr>
+<tr><td><code>setMonth(m)</code></td><td>muda o mês; cuidado: 31 de janeiro em fevereiro transborda</td><td><code>const f = new Date(2026, 0, 31)</code>, <code>f.setMonth(1)</code>, <code>f.toLocaleDateString("pt-BR")</code></td><td><code>'03/03/2026'</code></td><td></td></tr>
+<tr><td></td><td>o mesmo transbordo ao criar</td><td><code>new Date(2026, 1, 30).toLocaleDateString("pt-BR")</code></td><td><code>'02/03/2026'</code> (não existe 30 de fevereiro)</td><td></td></tr>
+<tr><td>também</td><td><code>setFullYear</code>, <code>setHours</code>, <code>setMinutes</code>, <code>setSeconds</code>, <code>setTime</code></td><td colspan="2">funcionam do mesmo jeito</td><td></td></tr>
+<tr><td><code>d2 - d1</code></td><td>a diferença em milissegundos</td><td><code>const natal = new Date(2026, 11, 25)</code>, <code>const hoje = new Date(2026, 9, 19)</code>, <code>(natal - hoje) / (1000 * 60 * 60 * 24)</code></td><td><code>67</code> (dias)</td><td><a href="date.html">Datas</a></td></tr>
+<tr><td></td><td>arredonde: com horário de verão, a conta pode não dar exata</td><td><code>Math.round((natal - hoje) / 86400000)</code></td><td><code>67</code></td><td><a href="ref-math-number.html#arredondar">Math.round</a></td></tr>
+<tr><td><code>&lt;</code> <code>&gt;</code></td><td>comparar datas funciona</td><td><code>natal &gt; hoje</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>===</code></td><td>mas <strong>igualdade</strong> compara se é o mesmo objeto, não a mesma data</td><td><code>natal === new Date(2026, 11, 25)</code></td><td><code>false</code></td><td><a href="objetos-referencia.html">Objetos são Referências</a></td></tr>
+<tr><td></td><td>compare os milissegundos</td><td><code>natal.getTime() === new Date(2026, 11, 25).getTime()</code></td><td><code>true</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Faltam 67 dias;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa deveria dizer quantos dias faltam do dia 19 de outubro até o Natal, mas mostra um número enorme: são <strong>milissegundos</strong>. Divida a diferença por <code>1000 * 60 * 60 * 24</code> (um dia em milissegundos) e arredonde com <code>Math.round</code>, para que saia <code>Faltam 67 dias</code>.</p>
+<pre class="script" data-file="main.js">const hoje = new Date(2026, 9, 19);
+const natal = new Date(2026, 11, 25);
+
+const diferenca = natal - hoje;
+console.log(`Faltam ${diferenca} dias`);
+</pre>
+<pre class="solucao" data-file="main.js">const hoje = new Date(2026, 9, 19);
+const natal = new Date(2026, 11, 25);
+
+const diferenca = natal - hoje;
+const dias = Math.round(diferenca / (1000 * 60 * 60 * 24));
+console.log(`Faltam ${dias} dias`);
+</pre>
+</div>
+
+<pre class="term">$ node faltam.js
+Faltam 5788800000 dias
+$ node faltam2.js
+Faltam 67 dias
+</pre>
+
+<hr>
+
+<h2 id="formatar">Formatar</h2>
+
+<p>Todos devolvem <strong>texto</strong>. O <code>"pt-BR"</code> pede o jeito brasileiro (dia/mês/ano, nomes em português).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>toLocaleDateString("pt-BR")</code></td><td>só a data</td><td><code>d.toLocaleDateString("pt-BR")</code></td><td><code>'10/03/2026'</code></td><td><a href="date-formatar.html">Formatando Datas</a></td></tr>
+<tr><td><code>toLocaleTimeString("pt-BR")</code></td><td>só a hora</td><td><code>d.toLocaleTimeString("pt-BR")</code></td><td><code>'14:30:00'</code></td><td></td></tr>
+<tr><td><code>toLocaleString("pt-BR")</code></td><td>data e hora</td><td><code>d.toLocaleString("pt-BR")</code></td><td><code>'10/03/2026, 14:30:00'</code></td><td></td></tr>
+<tr><td></td><td>com opções: dia da semana e mês por extenso</td><td><code>d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })</code></td><td><code>'terça-feira, 10 de março de 2026'</code></td><td><a href="date-formatar.html">Formatando Datas</a></td></tr>
+<tr><td></td><td>mês abreviado</td><td><code>d.toLocaleDateString("pt-BR", { month: "short" })</code></td><td><code>'mar.'</code></td><td></td></tr>
+<tr><td></td><td>hora sem os segundos</td><td><code>d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })</code></td><td><code>'14:30'</code></td><td></td></tr>
+<tr><td></td><td>outro país, outro formato</td><td><code>d.toLocaleDateString("en-US")</code></td><td><code>'3/10/2026'</code></td><td></td></tr>
+<tr><td>à mão</td><td>montando com <code>padStart</code> (o mês +1!)</td><td><code>`${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`</code></td><td><code>'10/03/2026'</code></td><td><a href="ref-string.html#transformar">padStart</a></td></tr>
+<tr><td><code>toISOString()</code></td><td>o formato padrão internacional, em UTC (bom para guardar e mandar); o <code>JSON.stringify</code> usa este</td><td><code>d.toISOString()</code></td><td><code>'2026-03-10T17:30:00.000Z'</code></td><td><a href="json.html">JSON</a></td></tr>
+<tr><td><code>toString()</code></td><td>o texto completo, em inglês, com o fuso</td><td><code>d.toString()</code></td><td><code>'Tue Mar 10 2026 14:30:00 GMT-0300 (Horário Padrão de Brasília)'</code></td><td></td></tr>
+<tr><td><code>Intl.DateTimeFormat</code></td><td>o formatador completo; <code>dateStyle</code>/<code>timeStyle</code> podem ser <code>"full"</code>, <code>"long"</code>, <code>"medium"</code> ou <code>"short"</code></td><td><code>new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(d)</code></td><td><code>'terça-feira, 10 de março de 2026'</code></td><td><a href="date-formatar.html">Formatando Datas</a></td></tr>
+<tr><td></td><td>data e hora curtas</td><td><code>new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(d)</code></td><td><code>'10/03/2026, 14:30'</code></td><td></td></tr>
+<tr><td></td><td>em outro fuso (<code>timeZone</code>)</td><td><code>new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", timeStyle: "long" }).format(d)</code></td><td><code>'17:30:00 UTC'</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Aniversário: 20/05/2026;;semerro">
+<p class="try-task"><strong>Missão:</strong> o aniversário da Ana é <strong>20 de maio</strong>, mas o programa mostra <code>20/06/2026</code>. Corrija o número do mês em <code>new Date</code> (lembre: os meses começam em 0), para que saia <code>Aniversário: 20/05/2026</code>.</p>
+<pre class="script" data-file="main.js">const aniversario = new Date(2026, 5, 20);
+
+console.log(`Aniversário: ${aniversario.toLocaleDateString("pt-BR")}`);
+</pre>
+<pre class="solucao" data-file="main.js">const aniversario = new Date(2026, 4, 20);
+
+console.log(`Aniversário: ${aniversario.toLocaleDateString("pt-BR")}`);
+</pre>
+</div>
+
+<pre class="term">$ node aniversario.js
+Aniversário: 20/06/2026
+$ node aniversario2.js
+Aniversário: 20/05/2026
+</pre>
+
+<hr>
+
+<h2 id="intl">Outros formatadores do <code>Intl</code></h2>
+
+<p>Além de datas e números (<a href="ref-math-number.html#formatar">Intl.NumberFormat</a>), o <code>Intl</code> escreve outras coisas do jeito de cada idioma:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Formatador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>Intl.RelativeTimeFormat</code></td><td>tempo relativo ("ontem", "em 3 semanas")</td><td><code>new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" }).format(-1, "day")</code>, <code>new Intl.RelativeTimeFormat("pt-BR").format(3, "week")</code></td><td><code>'ontem'</code>, <code>'em 3 semanas'</code></td></tr>
+<tr><td><code>Intl.ListFormat</code></td><td>uma lista com "e" (ou "ou") no lugar certo</td><td><code>new Intl.ListFormat("pt-BR").format(["pão", "leite", "café"])</code>, <code>new Intl.ListFormat("pt-BR", { type: "disjunction" }).format(["pix", "cartão"])</code></td><td><code>'pão, leite e café'</code>, <code>'pix ou cartão'</code></td></tr>
+<tr><td><code>Intl.PluralRules</code></td><td>diz se a palavra vai no singular (<code>'one'</code>) ou no plural (<code>'other'</code>)</td><td><code>new Intl.PluralRules("pt-BR").select(1)</code>, <code>new Intl.PluralRules("pt-BR").select(2)</code></td><td><code>'one'</code>, <code>'other'</code></td></tr>
+<tr><td><code>Intl.Collator</code></td><td>compara textos na ordem do dicionário (para o <code>sort</code>)</td><td><code>["Érica", "ana", "Bia"].sort(new Intl.Collator("pt-BR").compare)</code></td><td><code>[ 'ana', 'Bia', 'Érica' ]</code></td></tr>
+<tr><td><code>resolvedOptions()</code></td><td>em que fuso o computador está</td><td><code>Intl.DateTimeFormat().resolvedOptions().timeZone</code></td><td><code>'America/Sao_Paulo'</code> (no computador da Ana)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E o <code>Temporal</code>?</strong>
+<p>O <code>Temporal</code> é a nova API de datas do JavaScript, que corrige os problemas do <code>Date</code> (os meses começam em 1, os fusos são claros). Ele ainda não vem ligado no Node.js 24: no lab, <code>typeof Temporal</code> deu <code>'undefined'</code>. Por enquanto, use o <code>Date</code> com os cuidados desta página. Veja <a href="novidades.html">Novidades Recentes</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>O que o Node respondeu</th><th>O que aconteceu</th></tr>
+<tr><td><code>new Date("31/12/2026")</code></td><td><code>Invalid Date</code> (sem erro!), e <code>getTime()</code> dá <code>NaN</code></td><td>O formato brasileiro <code>dia/mês/ano</code> não é entendido. Use <code>new Date(2026, 11, 31)</code> ou o ISO <code>"2026-12-31T00:00:00"</code>. Para conferir: <code>Number.isNaN(data.getTime())</code>.</td></tr>
+<tr><td><code>ruim.toISOString()</code> (com a data inválida)</td><td><code>RangeError: Invalid time value</code></td><td>"Valor de tempo inválido": a data inválida só "explode" quando alguém tenta formatá-la em ISO. (O <code>JSON.stringify</code> não dá erro: troca a data inválida por <code>null</code>.)</td></tr>
+<tr><td><code>d.format("dd/mm/yyyy")</code></td><td><code>TypeError: d.format is not a function</code></td><td>O <code>Date</code> não tem <code>format</code> (isso é de bibliotecas como a <em>date-fns</em>). Use <code>toLocaleDateString("pt-BR")</code>.</td></tr>
+<tr><td><code>new Date(2026, 5, 20)</code> querendo maio</td><td>nenhum erro: a data é 20 de <strong>junho</strong></td><td>Os meses começam em 0. Maio é <code>4</code>.</td></tr>
+</table>
+</div>
+
+<p>A data inválida, num programa:</p>
+
+<pre class="term">$ node invalida.js
+/home/ana/invalida.js:2
+console.log(data.toISOString());
+                 ^
+
+RangeError: Invalid time value
+    at Date.toISOString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/invalida.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>Repare que o erro aponta a linha 2, onde a data foi usada, e não a linha 1, onde ela foi criada errada (<code>const data = new Date("31/12/2026");</code>). Mais mensagens em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>new Date(ano, mes, dia)</code>, com o mês de <strong>0 a 11</strong>. Texto ISO com hora (<code>"2026-03-10T14:30:00"</code>) é lido no horário local; só a data (<code>"2026-03-10"</code>) é lida em UTC.</li>
+  <li>Ler: <code>getFullYear</code>, <code>getMonth</code> (+1 para mostrar), <code>getDate</code>, <code>getDay</code> (0 = domingo), <code>getHours</code>, <code>getTime</code>.</li>
+  <li>Somar dias: <code>d.setDate(d.getDate() + n)</code>. Diferença em dias: <code>Math.round((d2 - d1) / 86400000)</code>.</li>
+  <li>Comparar: <code>&lt;</code> e <code>&gt;</code> funcionam; para igualdade, compare <code>getTime()</code>.</li>
+  <li>Formatar: <code>toLocaleDateString("pt-BR")</code>, com opções (<code>weekday: "long"</code>, <code>month: "long"</code>) ou <code>Intl.DateTimeFormat</code>. Para guardar: <code>toISOString()</code>.</li>
+  <li><code>Intl</code> também tem <code>RelativeTimeFormat</code>, <code>ListFormat</code>, <code>PluralRules</code> e <code>Collator</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
