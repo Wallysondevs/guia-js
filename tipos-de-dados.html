@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Tipos de Dados — texto, número, booleano, null, undefined e objeto | Guia JavaScript</title>
+<meta name="description" content="Os tipos de dados do JavaScript para quem nunca programou: string, number, boolean, undefined, null, bigint, symbol e object (objetos e arrays), primitivos × objetos, a diferença entre &quot;6&quot; e 6, a tipagem dinâmica e os erros reais do Node.js 24 quando o tipo não é o esperado.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Os Tipos de Dados</span></h1>
+
+<p class="intro">Você já guardou nas variáveis coisas bem diferentes: o nome <code>"Ana"</code>, o preço <code>0.75</code>, o <code>true</code> de "a padaria está aberta". Cada valor tem um <strong>tipo</strong>: é texto, é número, é sim/não… O tipo decide o que dá para <strong>fazer</strong> com o valor: número se soma, texto se junta, sim/não se usa para decidir. Esta aula apresenta os tipos do JavaScript, um por um. Cada um vai ganhar a sua própria aula mais adiante.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os <strong>oito tipos</strong> do JavaScript: <code>string</code>, <code>number</code>, <code>boolean</code>, <code>undefined</code>, <code>null</code>, <code>bigint</code>, <code>symbol</code> e <code>object</code>.</li>
+  <li>A diferença entre os <strong>primitivos</strong> (um valor simples) e os <strong>objetos</strong> (uma coleção de valores).</li>
+  <li>Por que <code>"6"</code> e <code>6</code> não são a mesma coisa: <code>"6" + 1</code> dá <code>61</code>.</li>
+  <li>Como o Node mostra cada tipo (as aspas no texto, o <code>n</code> no bigint…).</li>
+  <li>Que uma variável não tem tipo fixo (a <strong>tipagem dinâmica</strong>).</li>
+  <li>Os erros reais quando o tipo não é o que você esperava.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: a ficha de cadastro</h2>
+<p>Na ficha de cadastro do cartão fidelidade da padaria, cada campo espera um <strong>tipo</strong> de resposta:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Campo da ficha</th><th>Resposta da Ana</th><th>Tipo de resposta</th><th>No JavaScript</th></tr>
+<tr><td>Nome</td><td>Ana</td><td>texto</td><td><code>string</code></td></tr>
+<tr><td>Idade</td><td>30</td><td>número</td><td><code>number</code></td></tr>
+<tr><td>Altura</td><td>1,68</td><td>número</td><td><code>number</code></td></tr>
+<tr><td>Já tem cadastro? ( ) sim ( ) não</td><td>sim</td><td>sim ou não</td><td><code>boolean</code></td></tr>
+<tr><td>Apelido</td><td>(ficou em branco)</td><td>não preenchido</td><td><code>undefined</code></td></tr>
+<tr><td>Telefone</td><td>"não tenho"</td><td>vazio de propósito</td><td><code>null</code></td></tr>
+</table>
+</div>
+<p>Ninguém escreve "trinta e dois" no campo da altura, nem soma o nome com a idade. Com o computador é igual: saber o tipo de cada valor é saber o que dá para fazer com ele.</p>
+
+<pre class="file" data-file="ficha.js">const nome = "Ana";
+const idade = 30;
+const altura = 1.68;
+const temCadastro = true;
+const apelido = undefined;
+const telefone = null;
+console.log(nome);
+console.log(idade);
+console.log(altura);
+console.log(temCadastro);
+console.log(apelido);
+console.log(telefone);
+</pre>
+
+<pre class="term">$ node ficha.js
+Ana
+30
+1.68
+true
+undefined
+null
+</pre>
+
+<p>Repare que a altura é <code>1.68</code>, com <strong>ponto</strong>: no JavaScript, a vírgula decimal do português vira ponto.</p>
+
+<hr>
+
+<h2>1. <code>string</code>: texto</h2>
+<p>Qualquer texto, de uma letra a um livro inteiro, é uma <strong>string</strong> (em inglês, "cordão", "fileira": uma fileira de caracteres). Ele vai sempre entre aspas, e o JavaScript aceita três tipos de aspas:</p>
+
+<pre class="file" data-file="aspas.js">const a = "pão";
+const b = 'pão';
+const c = `pão`;
+console.log(a, b, c);
+</pre>
+
+<pre class="term">$ node aspas.js
+pão pão pão
+</pre>
+
+<dl class="anatomy">
+  <dt>"pão"</dt><dd>Aspas duplas: o padrão deste guia.</dd>
+  <dt>'pão'</dt><dd>Aspas simples: fazem o mesmo. É como o Node <strong>mostra</strong> os textos dentro de listas e objetos (você vai ver logo abaixo).</dd>
+  <dt>`pão`</dt><dd>A crase: cria uma <strong>template string</strong>, que aceita valores no meio do texto (<code>`Olá, ${nome}`</code>). Tem aula própria: <a href="template-strings.html">Template Strings</a>.</dd>
+</dl>
+<p>Mais em <a href="strings.html">Strings</a>.</p>
+
+<h2>2. <code>number</code>: números</h2>
+<p>Inteiros (<code>30</code>), com casas decimais (<code>1.68</code>), negativos (<code>-5</code>): no JavaScript, <strong>todos</strong> são do mesmo tipo, <code>number</code>. Outras linguagens separam "inteiro" de "decimal"; o JavaScript não. Os detalhes (e algumas surpresas) estão em <a href="numeros.html">Números</a> e <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>.</p>
+
+<h2>3. <code>boolean</code>: verdadeiro ou falso</h2>
+<p>Só dois valores possíveis: <code>true</code> ("verdadeiro") e <code>false</code> ("falso"), sem aspas. É o tipo das perguntas de sim/não: a padaria está aberta? O cliente tem desconto? O nome vem de George Boole, matemático que estudou a lógica do verdadeiro e falso. Aula própria: <a href="booleanos.html">Booleanos</a>.</p>
+
+<h2>4. <code>undefined</code> e <code>null</code>: o vazio</h2>
+<p>O JavaScript tem <strong>dois</strong> jeitos de dizer "não tem nada aqui":</p>
+<ul>
+  <li><code>undefined</code> ("indefinido") é o vazio <strong>automático</strong>: uma variável criada sem valor, um campo que não existe. É o campo da ficha que ficou em branco.</li>
+  <li><code>null</code> ("nulo") é o vazio <strong>de propósito</strong>: o programador escreveu <code>null</code> para dizer "eu sei que não tem". É a Ana escrevendo "não tenho" no campo do telefone.</li>
+</ul>
+<p>Os dois têm aula própria: <a href="null-undefined.html">null e undefined</a>.</p>
+
+<h2>5. <code>bigint</code> e <code>symbol</code>: os raros</h2>
+<pre class="file" data-file="grandes.js">const populacaoMundial = 8100000000n;
+const id = Symbol("id");
+console.log(populacaoMundial);
+console.log(id);
+</pre>
+
+<pre class="term">$ node grandes.js
+8100000000n
+Symbol(id)
+</pre>
+
+<dl class="anatomy">
+  <dt>8100000000n</dt><dd>Um <code>bigint</code> ("inteiro grande"): um número inteiro com um <code>n</code> no fim. Serve para inteiros gigantes, maiores do que o <code>number</code> consegue guardar com exatidão. Aula: <a href="bigint.html">BigInt</a>.</dd>
+  <dt>Symbol("id")</dt><dd>Um <code>symbol</code> ("símbolo"): um valor único, usado como "etiqueta secreta" em objetos. Você quase não vai precisar dele no começo. Aula: <a href="symbol.html">Symbol</a>.</dd>
+</dl>
+
+<h2>6. <code>object</code>: as coleções</h2>
+<p>Os sete tipos acima guardam <strong>um</strong> valor cada. Para guardar <strong>vários</strong> valores juntos existe o <strong>objeto</strong>. As duas formas mais comuns:</p>
+
+<pre class="file" data-file="objetos.js">const cliente = { nome: "Ana", idade: 30, temCadastro: true };
+const compras = ["pão", "leite", "café"];
+console.log(cliente);
+console.log(compras);
+console.log(cliente.nome, compras[0]);
+</pre>
+
+<pre class="term">$ node objetos.js
+{ nome: 'Ana', idade: 30, temCadastro: true }
+[ 'pão', 'leite', 'café' ]
+Ana pão
+</pre>
+
+<dl class="anatomy">
+  <dt>{ nome: "Ana", idade: 30, … }</dt><dd>Um <strong>objeto</strong> com campos que têm nome: a ficha inteira numa variável só. Cada campo tem o seu próprio tipo (um texto, um número, um booleano). <code>cliente.nome</code> pega um campo. Aula: <a href="objetos.html">Objetos</a>.</dd>
+  <dt>["pão", "leite", "café"]</dt><dd>Um <strong>array</strong> (lista): valores em ordem, numerados a partir do 0. <code>compras[0]</code> pega o primeiro. Para o JavaScript, um array é um tipo especial de objeto. Aula: <a href="arrays.html">Arrays</a>.</dd>
+</dl>
+<p>As funções (trechos de código com nome, aula <a href="funcoes.html">Funções</a>) também são objetos.</p>
+
+<hr>
+
+<h2>7. Primitivos e objetos</h2>
+<p>Os oito tipos se dividem em dois grupos:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Grupo</th><th>Exemplos</th><th>Como o Node mostra</th></tr>
+<tr><td><code>string</code></td><td>primitivo</td><td><code>"Ana"</code>, <code>"6"</code>, <code>""</code></td><td><code>Ana</code> sozinho; <code>'Ana'</code> dentro de listas e objetos</td></tr>
+<tr><td><code>number</code></td><td>primitivo</td><td><code>30</code>, <code>1.68</code>, <code>-5</code></td><td><code>30</code></td></tr>
+<tr><td><code>boolean</code></td><td>primitivo</td><td><code>true</code>, <code>false</code></td><td><code>true</code></td></tr>
+<tr><td><code>undefined</code></td><td>primitivo</td><td><code>undefined</code></td><td><code>undefined</code></td></tr>
+<tr><td><code>null</code></td><td>primitivo</td><td><code>null</code></td><td><code>null</code></td></tr>
+<tr><td><code>bigint</code></td><td>primitivo</td><td><code>10n</code></td><td><code>10n</code></td></tr>
+<tr><td><code>symbol</code></td><td>primitivo</td><td><code>Symbol("id")</code></td><td><code>Symbol(id)</code></td></tr>
+<tr><td><code>object</code></td><td>objeto</td><td><code>{ nome: "Ana" }</code>, <code>[1, 2]</code>, funções</td><td><code>{ nome: 'Ana' }</code>, <code>[ 1, 2 ]</code></td></tr>
+</table>
+</div>
+<p>Um <strong>primitivo</strong> é um valor simples, que não se divide: o número 30, o texto "Ana". Um <strong>objeto</strong> é uma coleção, com valores dentro. A diferença vai importar mais tarde: lembra que uma lista num <code>const</code> pode ganhar itens (aula <a href="const.html">Constantes</a>)? Isso só acontece com objetos. Um primitivo nunca muda por dentro: o número 30 é sempre 30.</p>
+
+<p>Numa lista, dá para ver como o Node mostra cada primitivo:</p>
+
+<pre class="file" data-file="lista.js">console.log(["Ana", 30, 1.68, true, undefined, null]);
+</pre>
+
+<pre class="term">$ node lista.js
+[ 'Ana', 30, 1.68, true, undefined, null ]
+</pre>
+
+<p>Só o texto ganhou aspas. É assim que o Node mostra, dentro de uma lista, quem é texto e quem não é.</p>
+
+<hr>
+
+<h2>8. <code>"6"</code> não é <code>6</code></h2>
+<p>Esta é a lição mais importante da aula. Um número entre aspas <strong>não é um número</strong>: é um texto que, por acaso, tem o caractere 6.</p>
+
+<pre class="file" data-file="texto-numero.js">const quantidadeNumero = 6;
+const quantidadeTexto = "6";
+console.log(quantidadeNumero + 1);
+console.log(quantidadeTexto + 1);
+console.log([quantidadeNumero, quantidadeTexto]);
+</pre>
+
+<pre class="term">$ node texto-numero.js
+7
+61
+[ 6, '6' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>quantidadeNumero + 1 → 7</dt><dd>Número mais número: o <code>+</code> <strong>soma</strong>.</dd>
+  <dt>quantidadeTexto + 1 → 61</dt><dd>Texto mais qualquer coisa: o <code>+</code> <strong>junta</strong> (o nome técnico é <em>concatenar</em>). O <code>"6"</code> e o <code>1</code> foram colados lado a lado: <code>"61"</code>.</dd>
+  <dt>[ 6, '6' ]</dt><dd>Na lista, a diferença aparece: o número sem aspas, o texto com aspas. Quando você não sabe se um valor é texto ou número, este é um jeito rápido de conferir. (Outro jeito é o <code>typeof</code>, assunto da <a href="typeof.html">próxima aula</a>.)</dd>
+</dl>
+
+<p>No modo interativo, as aspas também denunciam o texto:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Ana"
+'Ana'
+&gt; 30
+30
+&gt; 1.68
+1.68
+&gt; true
+true
+&gt; null
+null
+&gt; undefined
+undefined
+&gt; 10n
+10n
+&gt; "6" + 1
+'61'
+&gt; 6 + 1
+7
+&gt; .exit
+</pre>
+
+<p>De onde vêm números "disfarçados" de texto? De todo lugar que fala com pessoas: o que alguém digita no teclado, o que vem de um formulário de site, o que se lê de um arquivo. Tudo isso chega como <code>string</code>, e precisa ser <strong>convertido</strong> antes da conta (aula <a href="conversao.html">Conversão</a>). E o JavaScript às vezes converte sozinho, de um jeito que surpreende:</p>
+
+<pre class="file" data-file="conta.js">const preco = "4.50";
+const quantidade = 2;
+console.log(preco * quantidade);
+console.log(preco + quantidade);
+</pre>
+
+<pre class="term">$ node conta.js
+9
+4.502
+</pre>
+
+<p>Com <code>*</code>, o JavaScript transformou o texto em número e multiplicou (9). Com <code>+</code>, juntou os dois como texto (<code>4.502</code>). Essas "pegadinhas" têm aula própria: <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+
+<div class="tryjs" data-goal="out:Total: 10;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 4 pães e depois mais 6, mas o programa mostra <code>Total: 46</code>. Uma das quantidades foi escrita como texto. Conserte para aparecer <code>Total: 10</code>.</p>
+<pre class="script" data-file="main.js">const manha = "4";
+const tarde = 6;
+const total = manha + tarde;
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const manha = 4;
+const tarde = 6;
+const total = manha + tarde;
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>9. A variável não tem tipo; o valor tem</h2>
+<p>Em algumas linguagens, você diz o tipo da variável ao criá-la ("esta caixa só aceita números"). No JavaScript, não: a <strong>caixa</strong> aceita qualquer coisa, e quem tem tipo é o <strong>valor</strong> que está dentro dela. Isso se chama <strong>tipagem dinâmica</strong>.</p>
+
+<pre class="file" data-file="muda.js">let valor = 42;
+console.log(valor);
+valor = "quarenta e dois";
+console.log(valor);
+valor = false;
+console.log(valor);
+</pre>
+
+<pre class="term">$ node muda.js
+42
+quarenta e dois
+false
+</pre>
+
+<p>A mesma variável guardou um número, um texto e um booleano, sem nenhuma reclamação. É prático, mas perigoso: se o valor mudar de tipo sem você perceber, a conta seguinte dá um resultado estranho (como o <code>46</code> da missão acima). Por isso, mantenha cada variável com <strong>um tipo só</strong> do começo ao fim. (O <a href="typescript.html">TypeScript</a> é uma versão do JavaScript que obriga a isso.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de escrever o mesmo valor</h2>
+<p>O mesmo "seis" pode ser escrito de vários jeitos, e cada jeito dá um tipo diferente:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Tipo</th><th>Quando usar</th></tr>
+<tr><td><code>6</code></td><td><code>number</code></td><td>Quantidades, preços, contas: <strong>quase sempre</strong></td></tr>
+<tr><td><code>6.0</code></td><td><code>number</code> (o mesmo 6)</td><td>Não há motivo: o Node mostra <code>6</code></td></tr>
+<tr><td><code>"6"</code>, <code>'6'</code>, <code>`6`</code></td><td><code>string</code></td><td>Só quando é texto de verdade (um código, um número de casa que não entra em conta)</td></tr>
+<tr><td><code>6n</code></td><td><code>bigint</code></td><td>Só para inteiros gigantes</td></tr>
+</table>
+</div>
+<p>E o "vazio" também tem dois jeitos: deixe o <code>undefined</code> para o JavaScript (variável sem valor, campo que não existe) e use <code>null</code> quando <strong>você</strong> quiser dizer "não tem".</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu as aspas do texto</strong>
+<pre class="file" data-file="semaspas.js">const nome = Ana;
+console.log(nome);
+</pre>
+<pre class="term">$ node semaspas.js
+/home/ana/semaspas.js:1
+const nome = Ana;
+             ^
+
+ReferenceError: Ana is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/semaspas.js:1:14)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: linha 1 de <code>semaspas.js</code>; a setinha embaixo do <code>Ana</code>; e "<code>Ana</code> não está definido". Sem aspas, <code>Ana</code> não é um texto: é um <strong>nome de variável</strong>, e o JavaScript foi procurar uma caixa com a etiqueta <code>Ana</code>. Não achou. <strong>Como consertar:</strong> <code>const nome = "Ana";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspas que não combinam</strong>
+<pre class="file" data-file="misturadas.js">const nome = 'Ana";
+</pre>
+<pre class="term">$ node misturadas.js
+/home/ana/misturadas.js:1
+const nome = 'Ana";
+             ^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>O texto abriu com aspa simples <code>'</code> e "fechou" com aspa dupla <code>"</code>. Para o JavaScript, a aspa dupla é só mais um caractere dentro do texto, e a aspa simples nunca fechou. <strong>Como consertar:</strong> abra e feche com o mesmo tipo de aspa.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um recurso de número num texto</strong>
+<pre class="file" data-file="metodo.js">const preco = "0.75";
+console.log(preco.toFixed(2));
+</pre>
+<pre class="term">$ node metodo.js
+/home/ana/metodo.js:2
+console.log(preco.toFixed(2));
+                  ^
+
+TypeError: preco.toFixed is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/metodo.js:2:19)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>toFixed(2)</code> escreve um número com 2 casas decimais (aula <a href="numeros-formatar.html">Formatando Números</a>), mas só existe para <strong>números</strong>. Como <code>preco</code> é o texto <code>"0.75"</code>, o recurso não existe: "erro de tipo: <code>preco.toFixed</code> não é uma função". O nome do erro, <code>TypeError</code>, já diz tudo: o <strong>tipo</strong> do valor não é o que o código esperava. <strong>Como consertar:</strong> guarde o preço como número: <code>const preco = 0.75;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu um campo de <code>null</code></strong>
+<pre class="file" data-file="nulo.js">const cliente = null;
+console.log(cliente.nome);
+</pre>
+<pre class="term">$ node nulo.js
+/home/ana/nulo.js:2
+console.log(cliente.nome);
+                    ^
+
+TypeError: Cannot read properties of null (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/nulo.js:2:21)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível ler propriedades de <code>null</code> (lendo <code>nome</code>)". Só objetos têm campos; <code>null</code> é o vazio, e não tem nada dentro. Esse é um dos erros mais comuns do JavaScript; com <code>undefined</code> no lugar de <code>null</code>, a mensagem é a mesma, com <code>undefined</code>. Como evitar tem aula própria: <a href="optional-chaining.html">Optional Chaining</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Cliente: Bia, 25 anos;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não roda. Leia a mensagem de erro e conserte: o nome é um texto. Tem de aparecer <code>Cliente: Bia, 25 anos</code>.</p>
+<pre class="script" data-file="main.js">const nome = Bia;
+const idade = 25;
+console.log("Cliente: " + nome + ", " + idade + " anos");
+</pre>
+<pre class="solucao" data-file="main.js">const nome = "Bia";
+const idade = 25;
+console.log("Cliente: " + nome + ", " + idade + " anos");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>O que guarda</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>string</code></td><td>Texto</td><td><code>"pão"</code></td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td><code>number</code></td><td>Número (inteiro ou decimal)</td><td><code>0.75</code></td><td><a href="numeros.html">Números</a></td></tr>
+<tr><td><code>boolean</code></td><td>Verdadeiro ou falso</td><td><code>true</code></td><td><a href="booleanos.html">Booleanos</a></td></tr>
+<tr><td><code>undefined</code></td><td>O vazio automático</td><td><code>undefined</code></td><td><a href="null-undefined.html">null e undefined</a></td></tr>
+<tr><td><code>null</code></td><td>O vazio de propósito</td><td><code>null</code></td><td><a href="null-undefined.html">null e undefined</a></td></tr>
+<tr><td><code>bigint</code></td><td>Inteiro gigante</td><td><code>8100000000n</code></td><td><a href="bigint.html">BigInt</a></td></tr>
+<tr><td><code>symbol</code></td><td>Valor único</td><td><code>Symbol("id")</code></td><td><a href="symbol.html">Symbol</a></td></tr>
+<tr><td><code>object</code></td><td>Coleção de valores</td><td><code>{ nome: "Ana" }</code>, <code>["pão"]</code></td><td><a href="objetos.html">Objetos</a>, <a href="arrays.html">Arrays</a></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Uma soma deu <code>61</code> em vez de <code>7</code></td><td>Um dos valores é texto (<code>"6"</code>), e o <code>+</code> juntou em vez de somar</td></tr>
+<tr><td><code>ReferenceError: Ana is not defined</code></td><td>Texto sem aspas: virou nome de variável</td></tr>
+<tr><td><code>TypeError: x.toFixed is not a function</code></td><td>O valor não é do tipo que tem esse recurso (um texto no lugar de um número)</td></tr>
+<tr><td><code>TypeError: Cannot read properties of null</code></td><td>Pediu um campo de <code>null</code> (ou de <code>undefined</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual é o tipo?</h3>
+<p>Escreva o tipo (em inglês, minúsculo, como na tabela) de cada valor:</p>
+<div class="ex-code"><code>"30"</code> é <input data-answer="string" aria-label="tipo de &quot;30&quot;"><br><code>30</code> é <input data-answer="number" aria-label="tipo de 30"><br><code>false</code> é <input data-answer="boolean" aria-label="tipo de false"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p><code>console.log("2" + 2);</code></p>
+<div class="ex-code">Aparece <input data-answer="22" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual é a diferença entre <code>undefined</code> e <code>null</code>?</p>
+<label><input type="radio" name="q3"> Nenhuma: são o mesmo valor</label>
+<label><input type="radio" name="q3"> <code>null</code> é um texto e <code>undefined</code> é um número</label>
+<label><input type="radio" name="q3"> <code>undefined</code> é o vazio automático; <code>null</code> é o vazio que o programador põe de propósito</label>
+<label><input type="radio" name="q3"> <code>undefined</code> dá erro e <code>null</code> não</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Como o Node mostra <code>console.log(["6", 6]);</code>?</p>
+<label><input type="radio" name="q4"> <code>[ '6', 6 ]</code></label>
+<label><input type="radio" name="q4"> <code>[ 6, 6 ]</code></label>
+<label><input type="radio" name="q4"> <code>[ "6", "6" ]</code></label>
+<label><input type="radio" name="q4"> <code>66</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual destes valores é um <strong>objeto</strong> (e não um primitivo)?</p>
+<label><input type="radio" name="q5"> <code>"pão, leite, café"</code></label>
+<label><input type="radio" name="q5"> <code>["pão", "leite", "café"]</code></label>
+<label><input type="radio" name="q5"> <code>3</code></label>
+<label><input type="radio" name="q5"> <code>true</code></label>
+</div>
+
+<h3>Missão final: a ficha completa</h3>
+
+<div class="tryjs" data-goal="out:Bia;;out:25;;out:false;;out:null;;src:\bconst\s+temCadastro\s*=\s*false\b;;src:\bconst\s+telefone\s*=\s*null\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete a ficha da Bia com os tipos certos: <code>nome</code> é o texto <code>Bia</code>, <code>idade</code> é o número <code>25</code>, <code>temCadastro</code> é o booleano <code>false</code> e <code>telefone</code> é <code>null</code> (ela não tem telefone). Rode e confira, na lista, quem aparece com aspas.</p>
+<pre class="script" data-file="main.js">// complete a ficha
+const nome = ;
+const idade = ;
+const temCadastro = ;
+const telefone = ;
+console.log([nome, idade, temCadastro, telefone]);
+</pre>
+<pre class="solucao" data-file="main.js">// complete a ficha
+const nome = "Bia";
+const idade = 25;
+const temCadastro = false;
+const telefone = null;
+console.log([nome, idade, temCadastro, telefone]);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>[ 'Bia', 25, false, null ]</code>: só o nome tem aspas. Se você escreveu <code>"25"</code> ou <code>"false"</code>, eles também vão aparecer com aspas, e é sinal de que viraram texto.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Todo valor tem um <strong>tipo</strong>, e o tipo decide o que dá para fazer com ele.</li>
+  <li>São oito tipos: sete <strong>primitivos</strong> (<code>string</code>, <code>number</code>, <code>boolean</code>, <code>undefined</code>, <code>null</code>, <code>bigint</code>, <code>symbol</code>) e o <strong><code>object</code></strong> (objetos, arrays e funções).</li>
+  <li>Texto vai entre aspas; número, booleano, <code>null</code> e <code>undefined</code>, sem aspas. No Node, dentro de listas e objetos, o texto aparece com aspas simples.</li>
+  <li><code>"6"</code> é texto, <code>6</code> é número: <code>"6" + 1</code> dá <code>"61"</code>, <code>6 + 1</code> dá <code>7</code>.</li>
+  <li><code>undefined</code> é o vazio automático; <code>null</code>, o vazio de propósito.</li>
+  <li>No JavaScript, a variável não tem tipo fixo (tipagem dinâmica): quem tem tipo é o valor. Mantenha cada variável com um tipo só.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
