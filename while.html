@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript while — repetindo enquanto a condição for verdadeira | Guia JavaScript</title>
+<meta name="description" content="O laço while do JavaScript para quem nunca programou: while (condição) { … }, contar com uma variável contadora, contagem regressiva, juntar dinheiro até a meta, acumular uma soma, zero voltas, o laço infinito (Ctrl+C e o botão Parar), while (true) com break, o while no modo interativo e os erros reais do Node.js 24 (const no contador, variável que não existe, o ponto e vírgula depois do while).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">while</span></h1>
+
+<p class="intro">Até agora, cada linha dos seus programas rodou <strong>uma vez só</strong> (ou nenhuma, com o <a href="if.html">if</a>). Mas boa parte do trabalho de um computador é <strong>repetir</strong>: mostrar os 30 alunos da turma, somar os preços de todas as compras, conferir mês a mês quanto falta para a meta. Para repetir existem os <strong>laços</strong> (em inglês, <em>loops</em>). O mais simples deles é o <code>while</code>, que em inglês quer dizer "<strong>enquanto</strong>": enquanto a condição for verdadeira, repita.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um laço e como se escreve um <code>while</code>: a condição entre parênteses e o bloco entre chaves.</li>
+  <li>Como contar de 1 até 5, e de 5 até 1, com uma variável <strong>contadora</strong>.</li>
+  <li>Como repetir quando você <strong>não sabe</strong> quantas voltas vão ser: juntar dinheiro até chegar à meta.</li>
+  <li>Como <strong>acumular</strong> um total volta a volta.</li>
+  <li>O que é um <strong>laço infinito</strong> e como pará-lo: <kbd>Ctrl</kbd>+<kbd>C</kbd> no terminal e o botão Parar no editor.</li>
+  <li><code>while (true)</code> com <code>break</code>, e o <code>while</code> no modo interativo do Node.</li>
+  <li>Os erros reais: <code>const</code> no contador, a variável que não existe e o ponto e vírgula depois do <code>while</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "enquanto tiver pão no cesto, atenda o próximo"</h2>
+<p>A padaria do bairro abre às 6 horas com um cesto de pães. O dono deixa um bilhete para o funcionário: <em>"Enquanto tiver pão no cesto, atenda o próximo cliente."</em> O bilhete não diz quantos clientes vão ser atendidos. Mesmo assim, ele funciona:</p>
+<ol class="passo">
+  <li>O funcionário olha o cesto: tem pão? <strong>Sim</strong> → atende um cliente.</li>
+  <li>Olha de novo: tem pão? <strong>Sim</strong> → atende mais um.</li>
+  <li>… e assim por diante …</li>
+  <li>Olha de novo: tem pão? <strong>Não</strong> → para de atender e vai fazer outra coisa.</li>
+</ol>
+<p>Três detalhes desse bilhete valem para <strong>todo</strong> <code>while</code>:</p>
+<ul>
+  <li>A <strong>pergunta vem antes</strong> de cada atendimento. Se o cesto já começar vazio, ninguém é atendido.</li>
+  <li>Cada volta <strong>muda alguma coisa</strong> (sai pão do cesto). Sem isso, a resposta seria sempre a mesma, e o funcionário atenderia para sempre.</li>
+  <li>Quando a resposta vira <strong>não</strong>, ele sai da repetição e continua o resto do dia.</li>
+</ul>
+<p>Em JavaScript, a "pergunta" é uma <strong>condição</strong>, igual à do <code>if</code>. A diferença: o <code>if</code> roda o bloco <strong>uma vez</strong> se a condição for verdadeira; o <code>while</code> roda o bloco <strong>de novo e de novo</strong>, enquanto ela continuar verdadeira.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>while</code>: contar de 1 a 5</h2>
+
+<pre class="file" data-file="contador.js">let contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+
+console.log(`Fim! contador agora vale ${contador}`);
+</pre>
+
+<dl class="anatomy">
+  <dt>let contador = 1;</dt><dd>A variável <strong>contadora</strong>, criada <strong>antes</strong> do laço, com o valor inicial. Tem de ser <code>let</code>, porque o valor vai mudar. Poderia se chamar <code>volta</code> ou <code>i</code> (de "índice", um nome tradicional para contadores).</dd>
+  <dt>while</dt><dd>A palavra-chave do laço: "enquanto".</dd>
+  <dt>(contador &lt;= 5)</dt><dd>A <strong>condição</strong>, entre parênteses obrigatórios, testada <strong>antes de cada volta</strong>: "enquanto o contador for menor ou igual a 5".</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong> do laço: as linhas que se repetem, com 2 espaços de recuo.</dd>
+  <dt>console.log(`Volta ${contador}`);</dt><dd>Mostra o valor atual do contador (veja <a href="template-strings.html">Template Strings</a>).</dd>
+  <dt>contador++;</dt><dd>Soma 1 ao contador (veja <a href="incremento.html">Incremento e Decremento</a>). É esta linha que faz o laço <strong>andar</strong>: sem ela, o contador seria 1 para sempre.</dd>
+  <dt>}</dt><dd>Fim do bloco. Quando o Node chega aqui, ele <strong>volta lá para cima</strong> e testa a condição de novo.</dd>
+  <dt>console.log(`Fim! …`);</dt><dd>Depois do laço: roda uma vez só, quando ele termina.</dd>
+</dl>
+
+<pre class="term">$ node contador.js
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim! contador agora vale 6
+</pre>
+
+<p>Cada execução do corpo se chama uma <strong>volta</strong> (os programadores também dizem <strong>iteração</strong>). Aqui foram 5 voltas.</p>
+
+<h3>Passo a passo: o que o Node fez</h3>
+<p>Siga a variável <code>contador</code> volta por volta. Fazer de conta que você é o computador é a melhor forma de entender laços:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th>Valor de <code>contador</code></th><th><code>contador &lt;= 5</code>?</th><th>O que acontece</th></tr>
+<tr><td>1º teste</td><td>1</td><td><code>true</code></td><td>Entra: mostra <code>Volta 1</code>, o contador vira 2</td></tr>
+<tr><td>2º teste</td><td>2</td><td><code>true</code></td><td>Mostra <code>Volta 2</code>, o contador vira 3</td></tr>
+<tr><td>3º teste</td><td>3</td><td><code>true</code></td><td>Mostra <code>Volta 3</code>, o contador vira 4</td></tr>
+<tr><td>4º teste</td><td>4</td><td><code>true</code></td><td>Mostra <code>Volta 4</code>, o contador vira 5</td></tr>
+<tr><td>5º teste</td><td>5</td><td><code>true</code></td><td>Mostra <code>Volta 5</code>, o contador vira 6</td></tr>
+<tr><td>6º teste</td><td>6</td><td><strong><code>false</code></strong></td><td>Sai do laço e vai para a primeira linha depois da <code>}</code></td></tr>
+</table>
+</div>
+
+<p>Por isso a última linha mostra <code>contador agora vale 6</code>: o laço só termina quando a condição fica falsa, e ela só fica falsa quando o contador passa de 5. A condição foi testada <strong>6 vezes</strong> para o corpo rodar <strong>5 vezes</strong>.</p>
+
+<div class="tip">
+<strong>As três peças de todo laço com contador</strong>
+<p>1) o <strong>início</strong>: <code>let contador = 1;</code> · 2) a <strong>condição</strong>: <code>contador &lt;= 5</code> · 3) o <strong>passo</strong>: <code>contador++;</code>. Se faltar qualquer uma, o laço dá errado (a seção <a href="#errado">Quando dá errado</a> mostra cada caso). Na aula <a href="for.html">for</a>, você vai ver um laço que junta as três numa linha só.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Volta 10;;src:\bwhile\b">
+<p class="try-task"><strong>Missão:</strong> faça o programa contar até <strong>10</strong> em vez de 5. Depois, por curiosidade, troque o valor inicial para 3 e veja quantas voltas sobram.</p>
+<pre class="script" data-file="main.js">let contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+
+console.log(`Fim! contador agora vale ${contador}`);
+</pre>
+<pre class="solucao" data-file="main.js">let contador = 1;
+
+while (contador &lt;= 10) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+
+console.log(`Fim! contador agora vale ${contador}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Contar para trás</h2>
+<p>O passo não precisa ser "mais 1". Para uma contagem regressiva, comece do maior número, <strong>diminua</strong> e troque a condição para "maior que zero":</p>
+
+<pre class="file" data-file="regressiva.js">let segundos = 5;
+
+while (segundos &gt; 0) {
+  console.log(`${segundos}...`);
+  segundos--;
+}
+
+console.log("Já!");
+</pre>
+
+<pre class="term">$ node regressiva.js
+5...
+4...
+3...
+2...
+1...
+Já!
+</pre>
+
+<p>Quando <code>segundos</code> chega a 0, a pergunta <code>0 &gt; 0</code> dá <code>false</code> e o laço termina. O <code>Já!</code> está <strong>depois</strong> da <code>}</code>, então aparece uma vez só, no fim.</p>
+
+<p>O passo também pode ser de 2 em 2 (<code>contador += 2</code>), de 10 em 10, ou até uma multiplicação (<code>valor *= 2</code>; veja <a href="atribuicao.html">Atribuição</a>), como na missão final.</p>
+
+<hr>
+
+<h2>3. Quando você não sabe quantas voltas vão ser</h2>
+<p>Nos dois exemplos acima, dava para saber de antemão: 5 voltas. O <code>while</code> brilha mesmo quando <strong>ninguém sabe</strong> quantas voltas serão. A Ana quer juntar R$ 1000 para comprar um notebook novo. Ela consegue guardar R$ 150 por mês. Quantos meses vai levar?</p>
+
+<pre class="file" data-file="poupanca.js">let saldo = 0;
+let meses = 0;
+
+while (saldo &lt; 1000) {
+  saldo += 150;
+  meses++;
+  console.log(`Mês ${meses}: R$ ${saldo}`);
+}
+
+console.log(`A Ana juntou R$ ${saldo} em ${meses} meses.`);
+</pre>
+
+<pre class="term">$ node poupanca.js
+Mês 1: R$ 150
+Mês 2: R$ 300
+Mês 3: R$ 450
+Mês 4: R$ 600
+Mês 5: R$ 750
+Mês 6: R$ 900
+Mês 7: R$ 1050
+A Ana juntou R$ 1050 em 7 meses.
+</pre>
+
+<p>Repare nos papéis das duas variáveis:</p>
+<ul>
+  <li><code>saldo</code> é um <strong>acumulador</strong>: começa em 0 e, a cada volta, recebe mais um pouco. É ele que a condição olha.</li>
+  <li><code>meses</code> é um <strong>contador</strong>: conta as voltas, para no fim a gente saber quantas foram.</li>
+</ul>
+<p>No mês 6 o saldo era 900, ainda menor que 1000: mais uma volta. No mês 7 ele passou para 1050, a condição <code>1050 &lt; 1000</code> deu <code>false</code>, e o laço parou. O programa descobriu sozinho que eram 7 meses.</p>
+
+<h3>Zero voltas também é possível</h3>
+<p>Como a pergunta vem <strong>antes</strong> da primeira volta, o corpo pode não rodar nenhuma vez. Se a Ana já tivesse R$ 1200:</p>
+
+<pre class="file" data-file="nunca.js">let saldo = 1200;
+let meses = 0;
+
+while (saldo &lt; 1000) {
+  saldo += 150;
+  meses++;
+}
+
+console.log(`Meses de espera: ${meses}`);
+</pre>
+
+<pre class="term">$ node nunca.js
+Meses de espera: 0
+</pre>
+
+<p>Logo no primeiro teste, <code>1200 &lt; 1000</code> deu <code>false</code>: o Node pulou o bloco inteiro. Isso não é erro; é o cesto que já começou vazio. Se você precisa que o bloco rode <strong>pelo menos uma vez</strong>, existe outro laço, que testa no fim: <a href="do-while.html">do … while</a>.</p>
+
+<hr>
+
+<h2>4. Acumular: somar de 1 até 100</h2>
+<p>Conta a história que um professor mandou a turma somar todos os números de 1 a 100, para ter sossego por um bom tempo. Para o computador, é um laço de 100 voltas com um acumulador:</p>
+
+<pre class="file" data-file="soma.js">let numero = 1;
+let soma = 0;
+
+while (numero &lt;= 100) {
+  soma += numero;
+  numero++;
+}
+
+console.log(`A soma de 1 até 100 é ${soma}`);
+</pre>
+
+<pre class="term">$ node soma.js
+A soma de 1 até 100 é 5050
+</pre>
+
+<p>A cada volta, <code>soma += numero</code> junta o número da vez no total: 0 + 1 = 1, depois 1 + 2 = 3, depois 3 + 3 = 6, … até 5050. O acumulador começa em <strong>0</strong>, o "nada" da soma. (Para uma multiplicação acumulada, o começo seria <strong>1</strong>.)</p>
+
+<div class="tryjs" data-goal="out:A soma de 1 até 10 é 55;;src:\bwhile\b">
+<p class="try-task"><strong>Missão:</strong> mude o programa para somar de 1 até <strong>10</strong>, e ajuste a frase. Deve aparecer <code>A soma de 1 até 10 é 55</code>.</p>
+<pre class="script" data-file="main.js">let numero = 1;
+let soma = 0;
+
+while (numero &lt;= 100) {
+  soma += numero;
+  numero++;
+}
+
+console.log(`A soma de 1 até 100 é ${soma}`);
+</pre>
+<pre class="solucao" data-file="main.js">let numero = 1;
+let soma = 0;
+
+while (numero &lt;= 10) {
+  soma += numero;
+  numero++;
+}
+
+console.log(`A soma de 1 até 10 é ${soma}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. O laço infinito, e como pará-lo</h2>
+<p>Um laço cuja condição <strong>nunca</strong> fica falsa não termina nunca: é um <strong>laço infinito</strong>. O jeito mais comum de criar um sem querer é esquecer a linha que faz o laço andar. Olhe o contador da seção 1 sem o <code>contador++</code>:</p>
+
+<pre class="file" data-file="infinito.js">let contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+}
+
+console.log("Fim!");
+</pre>
+
+<p>O contador fica em 1 para sempre, então <code>1 &lt;= 5</code> é sempre <code>true</code>, e o programa mostra <code>Volta 1</code> sem parar. A Ana deixou ele rodar 1 segundo só (com o comando <code>timeout 1</code>) e contou as linhas com o <code>wc -l</code>:</p>
+
+<pre class="term">$ timeout 1 node infinito.js | head -3
+Volta 1
+Volta 1
+Volta 1
+$ timeout 1 node infinito.js | wc -l
+493714
+</pre>
+
+<p>Quase <strong>meio milhão</strong> de linhas em um segundo (o número muda de um computador para outro, e de uma vez para outra). O <code>Fim!</code> nunca chega.</p>
+
+<h3>No terminal: <kbd>Ctrl</kbd>+<kbd>C</kbd></h3>
+<p>Para interromper um programa que não termina, segure <kbd>Ctrl</kbd> e aperte <kbd>C</kbd>. Um laço infinito também pode ser silencioso; aqui a Ana esqueceu de somar o dinheiro no saldo, e o programa ficou parado, "pensando":</p>
+
+<pre class="file" data-file="esqueceu.js">let saldo = 0;
+let meses = 0;
+
+while (saldo &lt; 1000) {
+  meses++;
+}
+
+console.log(`A Ana juntou R$ ${saldo} em ${meses} meses.`);
+</pre>
+
+<pre class="term">$ node esqueceu.js
+^C
+$ echo $?
+130
+</pre>
+
+<dl class="anatomy">
+  <dt>^C</dt><dd>O terminal mostrando que você apertou <kbd>Ctrl</kbd>+<kbd>C</kbd>. O Node para na hora, sem mensagem de erro.</dd>
+  <dt>echo $? → 130</dt><dd>O código de saída do programa (o <code>$?</code> do terminal). 0 quer dizer "terminou bem"; 130 é o código de "interrompido pelo <kbd>Ctrl</kbd>+<kbd>C</kbd>" (veja <a href="process-env.html">process.env e process.exit</a>).</dd>
+</dl>
+
+<h3>No editor do guia</h3>
+<p>A caixa "Experimente" roda o JavaScript de verdade dentro do navegador, então um laço infinito lá também não termina sozinho. Enquanto o programa roda, o botão de rodar vira <strong>■ Parar</strong>: ele é o <kbd>Ctrl</kbd>+<kbd>C</kbd> do editor. Os detalhes estão em <a href="simulador.html">O Editor do Guia</a>.</p>
+
+<div class="tryjs" data-sem-fim>
+<p class="try-task"><strong>Experimente:</strong> este é o programa da Ana que esqueceu de somar no saldo. Clique em Rodar e depois em <strong>■ Parar</strong>. Depois, conserte: acrescente <code>saldo += 150;</code> dentro do laço e rode de novo.</p>
+<pre class="script" data-file="main.js">let saldo = 0;
+let meses = 0;
+
+while (saldo &lt; 1000) {
+  meses++;
+}
+
+console.log(`A Ana juntou R$ ${saldo} em ${meses} meses.`);
+</pre>
+</div>
+
+<h3>Quando o infinito é de propósito: <code>while (true)</code></h3>
+<p>Às vezes o laço "infinito" é <strong>proposital</strong>, e a saída fica no meio do bloco, com o <code>break</code> (em inglês, "quebrar"), que você já viu no <a href="switch.html">switch</a>. O dinheiro da Ana, agora com a saída no meio:</p>
+
+<pre class="file" data-file="whiletrue.js">let saldo = 0;
+let meses = 0;
+
+while (true) {
+  saldo += 150;
+  meses++;
+  if (saldo &gt;= 1000) {
+    break;
+  }
+}
+
+console.log(`${meses} meses, R$ ${saldo}`);
+</pre>
+
+<pre class="term">$ node whiletrue.js
+7 meses, R$ 1050
+</pre>
+
+<p>A condição <code>true</code> nunca fica falsa; quem encerra o laço é o <code>break</code>, quando o saldo chega à meta. Ele tem aula própria: <a href="break-continue.html">break e continue</a>.</p>
+
+<hr>
+
+<h2>6. <code>while</code> no modo interativo</h2>
+<p>Dá para escrever um laço direto no <code>&gt;</code> do Node (veja <a href="repl.html">O Modo Interativo do Node</a>). Depois da linha com o <code>{</code>, aparece a barrinha <code>|</code>: o Node está esperando o resto do laço. Ele só roda quando recebe a <code>}</code>:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; let n = 3;
+undefined
+&gt; while (n &gt; 0) {
+| console.log(n);
+| n--;
+| }
+3
+2
+1
+1
+&gt; n
+0
+&gt; .exit
+</pre>
+
+<p>A variável continua lá depois do laço: <code>n</code> terminou valendo 0, o valor que fez a condição <code>n &gt; 0</code> ficar falsa. E o <code>1</code> repetido, logo depois do <code>3</code>, <code>2</code>, <code>1</code>? Os três primeiros vieram do <code>console.log</code>. O último é o "valor" da última coisa que o laço calculou: o <code>n--</code> da última volta, que vale o número <strong>antes</strong> de diminuir (1). No modo interativo o Node mostra esse valor; num arquivo, ele não aparece.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Contar de 1 a 5 pode ser escrito com três laços:</p>
+
+<pre class="file" data-file="formas.js">let a = 1;
+while (a &lt;= 5) {
+  a++;
+}
+
+let b = 1;
+do {
+  b++;
+} while (b &lt;= 5);
+
+for (let c = 1; c &lt;= 5; c++) {
+  // o for junta início, condição e passo numa linha
+}
+
+console.log(a, b);
+</pre>
+
+<pre class="term">$ node formas.js
+6 6
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Não se sabe quantas voltas vão ser (até a meta, até a resposta ser válida)</td><td><code>while (condição) { … }</code></td></tr>
+<tr><td>O bloco tem de rodar pelo menos uma vez</td><td><code>do { … } while (condição);</code> (aula <a href="do-while.html">do … while</a>)</td></tr>
+<tr><td>A saída fica no meio do bloco</td><td><code>while (true)</code> com <code>break</code> (aula <a href="break-continue.html">break e continue</a>)</td></tr>
+<tr><td>Contar um número conhecido de voltas</td><td><code>for</code> (aula <a href="for.html">for</a>)</td></tr>
+<tr><td>Passar por cada item de uma lista</td><td><code>for … of</code> (aula <a href="for-of.html">Percorrendo com for … of</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O contador criado com <code>const</code></strong>
+<pre class="file" data-file="constcontador.js">const contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+<pre class="term">$ node constcontador.js
+Volta 1
+/home/ana/constcontador.js:5
+  contador++;
+          ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constcontador.js:5:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Volta 1</dt><dd>A primeira volta começou normalmente: o erro só acontece quando o programa chega ao <code>contador++</code>.</dd>
+  <dt>/home/ana/constcontador.js:5</dt><dd>O erro aconteceu na linha 5.</dd>
+  <dt>contador++;</dt><dd>A linha 5, com a setinha embaixo.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Atribuição a uma variável constante". Uma <code>const</code> não pode mudar de valor (veja <a href="const.html">Constantes</a>), e o <code>++</code> tenta mudar.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/constcontador.js:5:11)</dt><dd>Linha 5, coluna 11 do seu arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> contadores e acumuladores mudam: crie com <code>let</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável não existia antes do laço</strong>
+<pre class="file" data-file="seminicio.js">while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+<pre class="term">$ node seminicio.js
+/home/ana/seminicio.js:1
+while (contador &lt;= 5) {
+                ^
+
+ReferenceError: contador is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/seminicio.js:1:17)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"<code>contador</code> não está definido". Para testar a condição pela primeira vez, o Node precisa saber quanto vale o <code>contador</code>, e ninguém criou essa variável. <strong>Como consertar:</strong> crie a variável <strong>antes</strong> do <code>while</code>: <code>let contador = 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo ficou fora do laço: laço infinito</strong>
+<p>Este é mais traiçoeiro, porque o Node não reclama de nada:</p>
+<pre class="file" data-file="fora.js">let contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+}
+contador++;
+</pre>
+<p>O <code>contador++</code> está <strong>depois</strong> da <code>}</code>, então está fora do laço: só rodaria depois que o laço terminasse, e o laço nunca termina. O resultado é o mesmo da seção 5: <code>Volta 1</code> sem parar, até o <kbd>Ctrl</kbd>+<kbd>C</kbd>. <strong>Como consertar:</strong> ponha o passo antes da <code>}</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto e vírgula depois do <code>while</code></strong>
+<pre class="file" data-file="pontoevirgula.js">let contador = 1;
+
+while (contador &lt;= 5); {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+<pre class="term">$ node pontoevirgula.js
+^C
+</pre>
+<p>Nada aparece, nem a <code>Volta 1</code>, e o programa não termina: a Ana teve de apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>. O <code>;</code> logo depois do <code>)</code> é um laço com corpo <strong>vazio</strong>: "enquanto o contador for até 5, não faça nada". Como nada muda o contador, ele repete esse "nada" para sempre, e o bloco de baixo nunca chega a rodar. É a mesma armadilha do <code>if</code> com ponto e vírgula (aula <a href="if.html">if</a>), só que aqui ela trava o programa. <strong>Como consertar:</strong> nunca ponha <code>;</code> entre o <code>)</code> e o <code>{</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo andou para o lado errado</strong>
+<pre class="file" data-file="ladoerrado.js">let segundos = 5;
+
+while (segundos &gt; 0) {
+  console.log(`${segundos}...`);
+  segundos++;
+}
+</pre>
+<p>A Ana escreveu <code>++</code> numa contagem regressiva: 5, 6, 7, 8… o valor só cresce, e <code>segundos &gt; 0</code> nunca fica falso. Mais um laço infinito sem mensagem nenhuma. <strong>Como consertar:</strong> confira se o passo leva o valor <strong>na direção</strong> de deixar a condição falsa: aqui, <code>segundos--</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Volta 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois erros. Rode, leia a mensagem, conserte, e rode de novo até aparecer <code>Volta 5</code> sem erro.</p>
+<pre class="script" data-file="main.js">const contador = 1;
+
+while contador &lt;= 5 {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+<pre class="solucao" data-file="main.js">let contador = 1;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>while (condição) { … }</code></td><td>Repete o bloco enquanto a condição for verdadeira; testa <strong>antes</strong> de cada volta</td></tr>
+<tr><td><code>let contador = 1;</code> … <code>contador++;</code></td><td>Início e passo de um laço com contador</td></tr>
+<tr><td><code>contador--;</code></td><td>Passo para contar para trás</td></tr>
+<tr><td><code>soma += valor;</code></td><td>Acumular: juntar um valor a cada volta</td></tr>
+<tr><td><code>while (true) { … if (…) { break; } }</code></td><td>Laço "infinito" de propósito, com saída no meio</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>No terminal, interrompe o programa (código de saída 130)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Contador criado com <code>const</code></td></tr>
+<tr><td><code>ReferenceError: contador is not defined</code></td><td>A variável não foi criada antes do laço</td></tr>
+<tr><td><code>SyntaxError: Unexpected identifier …</code> na linha do <code>while</code></td><td>Faltaram os parênteses da condição</td></tr>
+<tr><td>A mesma linha sem parar</td><td>Laço infinito: faltou o passo, ele ficou depois da <code>}</code>, ou anda para o lado errado</td></tr>
+<tr><td>O programa "trava" sem mostrar nada</td><td><code>;</code> depois do <code>while (…)</code>, ou um laço infinito sem <code>console.log</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<p>Complete para o programa mostrar os números de 1 a 3:</p>
+<div class="ex-code"><input data-answer="let" aria-label="palavra-chave da variável"> n = 1;<br><input data-answer="while" aria-label="palavra-chave do laço"> (n &lt;= 3) {<br>&nbsp;&nbsp;console.log(n);<br>&nbsp;&nbsp;n<input data-answer="++" aria-label="operador">;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes?</h3>
+<p>Quantas vezes este laço mostra <code>Oi</code>? Responda com um número.</p>
+<pre class="file" data-file="oi.js">let x = 10;
+while (x &gt; 4) {
+  console.log("Oi");
+  x -= 2;
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="3" aria-label="número de vezes"> vezes.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é o valor de <code>contador</code> depois deste trecho? <code>let contador = 1; while (contador &lt;= 5) { contador++; }</code></p>
+<label><input type="radio" name="q3"> 5</label>
+<label><input type="radio" name="q3"> 6</label>
+<label><input type="radio" name="q3"> 1</label>
+<label><input type="radio" name="q3"> O laço nunca termina</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>let saldo = 2000; while (saldo &lt; 1000) { saldo += 150; }</code>. Quantas voltas esse laço dá?</p>
+<label><input type="radio" name="q4"> Nenhuma: a condição já é falsa no primeiro teste</label>
+<label><input type="radio" name="q4"> Uma: o <code>while</code> sempre roda pelo menos uma vez</label>
+<label><input type="radio" name="q4"> Infinitas</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Um programa com <code>while</code> fica "travado", sem mostrar nada. Qual destas <strong>não</strong> é uma causa provável?</p>
+<label><input type="radio" name="q5"> Um <code>;</code> logo depois do <code>while (…)</code></label>
+<label><input type="radio" name="q5"> O passo ficou fora do laço</label>
+<label><input type="radio" name="q5"> O passo anda para o lado errado</label>
+<label><input type="radio" name="q5"> O contador foi criado com <code>const</code></label>
+</div>
+
+<h3>Missão final: o dinheiro que dobra</h3>
+
+<div class="tryjs" data-goal="out:em 10 dias: R$ 1024;;src:\bwhile\b">
+<p class="try-task"><strong>Missão:</strong> a Ana leu uma história: alguém começa com R$ 1 e, a cada dia, o dinheiro <strong>dobra</strong>. Em quantos dias passa de R$ 1000? Escreva o <code>while</code> no lugar do comentário: enquanto o <code>valor</code> for menor ou igual a 1000, dobre o valor (<code>valor *= 2</code>) e some 1 em <code>dias</code>.</p>
+<pre class="script" data-file="main.js">let valor = 1;
+let dias = 0;
+
+// escreva o while aqui
+
+console.log(`Passou de R$ 1000 em ${dias} dias: R$ ${valor}`);
+</pre>
+<pre class="solucao" data-file="main.js">let valor = 1;
+let dias = 0;
+
+while (valor &lt;= 1000) {
+  valor *= 2;
+  dias++;
+}
+
+console.log(`Passou de R$ 1000 em ${dias} dias: R$ ${valor}`);
+</pre>
+</div>
+
+<p>A resposta é <strong>10 dias</strong>, com R$ 1024. No lab, saiu <code>Passou de R$ 1000 em 10 dias: R$ 1024</code>. Experimente trocar o 1000 da condição por um milhão (<code>1000000</code>): bastam mais 10 dias (no lab, deu <code>20 dias: R$ 1048576</code>). É a força de dobrar.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>while (condição) { … }</code> ("enquanto") repete o bloco enquanto a condição for verdadeira. A condição é testada <strong>antes</strong> de cada volta; se for falsa logo de cara, o bloco não roda nenhuma vez.</li>
+  <li>Laço com contador tem três peças: <strong>início</strong> (antes do laço, com <code>let</code>), <strong>condição</strong> e <strong>passo</strong> (dentro do bloco, andando na direção certa).</li>
+  <li>O <code>while</code> é a escolha quando não se sabe quantas voltas vão ser. Acumuladores começam em 0 e recebem <code>+=</code> a cada volta.</li>
+  <li>Sem o passo, o laço é infinito. No terminal, <kbd>Ctrl</kbd>+<kbd>C</kbd> para o programa; no editor, o botão ■ Parar.</li>
+  <li><code>while (true)</code> é um laço infinito de propósito; ele precisa de um <code>break</code> para sair.</li>
+  <li>Nunca ponha <code>;</code> depois do <code>while (…)</code>: o laço fica com corpo vazio e trava.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
