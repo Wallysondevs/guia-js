@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript get e set — propriedades calculadas e protegidas | Guia JavaScript</title>
+<meta name="description" content="get e set em JavaScript para quem nunca programou: propriedades calculadas com get (total, quantidade), conversão com get e set (Celsius e Fahrenheit), validar valores com set e throw, o campo de apoio _preco, getters em objetos literais ([Getter]), get × método e os erros reais (is not a function, only a getter, Maximum call stack size exceeded).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">get</span> e <span class="hl">set</span></h1>
+
+<p class="intro">Na aula <a href="classes.html">Classes</a>, a comanda tinha um método <code>total()</code>, chamado com parênteses. Mas "o total da comanda" parece mais um <strong>dado</strong> do que uma <strong>ação</strong>: seria natural escrever <code>comanda.total</code>, como se lê <code>comanda.cliente</code>. E o preço de um produto parece um dado simples, mas ninguém deveria conseguir pôr <code>-2</code> nele. O <code>get</code> e o <code>set</code> resolvem as duas coisas: são propriedades que, por baixo, rodam uma função. Funcionam igual no Node e no navegador.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <strong>getter</strong> (<code>get</code>): uma propriedade calculada na hora em que é lida.</li>
+  <li>O que é um <strong>setter</strong> (<code>set</code>): uma função que roda quando alguém dá um valor à propriedade.</li>
+  <li>Como usar os dois juntos para converter (Celsius e Fahrenheit) e para <strong>validar</strong> (preço negativo, nota acima de 10).</li>
+  <li>O "campo de apoio" (<code>_preco</code>), e por que o setter não pode gravar nele mesmo.</li>
+  <li>Getters e setters em objetos literais, e como o <code>console.log</code> os mostra.</li>
+  <li>Quando usar <code>get</code> e quando usar um método comum.</li>
+  <li>Os erros reais: parênteses no getter, getter sem parênteses quando era método, atribuir a um getter, e o setter que chama a si mesmo.</li>
+</ul>
+</div>
+
+<p>Todos os programas rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta <code>/home/ana/getset</code>.</p>
+
+<hr>
+
+<h2>A ideia: o balcão da padaria</h2>
+<p>O cliente não entra na cozinha. Ele fala com o atendente, no balcão:</p>
+<ul>
+  <li>"<em>Quanto deu?</em>" — o atendente não tem o número decorado: ele <strong>soma na hora</strong> o que está na comanda e responde. É o <strong>get</strong> ("pegar"): parece que você está lendo um valor, mas por trás alguém calculou.</li>
+  <li>"<em>Põe o preço do sonho em -2.</em>" — o atendente <strong>confere</strong> antes de mudar a etiqueta, e recusa o que não faz sentido. É o <strong>set</strong> ("definir"): parece que você está guardando um valor, mas por trás alguém verificou.</li>
+</ul>
+<p>Para quem usa o objeto, nada muda: lê-se <code>comanda.total</code> e escreve-se <code>produto.preco = 4</code>, como em qualquer propriedade. A diferença está dentro da classe.</p>
+
+<hr>
+
+<h2>1. <code>get</code>: a propriedade calculada</h2>
+
+<pre class="file" data-file="comanda.js">class Comanda {
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.itens = [];
+  }
+
+  adicionar(nome, preco) {
+    this.itens.push({ nome, preco });
+  }
+
+  get total() {
+    let soma = 0;
+    for (const item of this.itens) {
+      soma += item.preco;
+    }
+    return soma;
+  }
+
+  get quantidade() {
+    return this.itens.length;
+  }
+}
+
+const comanda = new Comanda("Bia");
+console.log(comanda.total, comanda.quantidade);
+comanda.adicionar("sonho", 3.5);
+comanda.adicionar("café", 6);
+console.log(comanda.total, comanda.quantidade);
+console.log(`Total da ${comanda.cliente}: R$ ${comanda.total.toFixed(2)}`);
+console.log(comanda);
+</pre>
+
+<dl class="anatomy">
+  <dt>get total() { … }</dt><dd>Parece um método, com a palavra <code>get</code> na frente. Não recebe parâmetros e precisa <strong>devolver</strong> (<code>return</code>) um valor: é ele que aparece quando alguém lê <code>comanda.total</code>.</dd>
+  <dt>comanda.total</dt><dd>Lido <strong>sem parênteses</strong>, como uma propriedade comum. Cada leitura roda a função de novo, então o valor está sempre atualizado.</dd>
+  <dt>get quantidade()</dt><dd>Um getter pode ser bem curto: aqui, só o tamanho da lista.</dd>
+  <dt>comanda.total.toFixed(2)</dt><dd>Como <code>comanda.total</code> já é um número, dá para emendar um método de número nele.</dd>
+</dl>
+
+<pre class="term">$ node comanda.js
+0 0
+9.5 2
+Total da Bia: R$ 9.50
+Comanda {
+  cliente: 'Bia',
+  itens: [ { nome: 'sonho', preco: 3.5 }, { nome: 'café', preco: 6 } ]
+}
+</pre>
+
+<p>Com a comanda vazia, <code>total</code> e <code>quantidade</code> deram 0; depois de dois itens, 9.5 e 2, sem ninguém "atualizar" nada: o valor é calculado a cada leitura. E repare no último <code>console.log</code>: o <code>total</code> e a <code>quantidade</code> <strong>não aparecem</strong> no objeto. Eles não são dados guardados; são funções da classe (como os métodos), que só rodam quando alguém as lê.</p>
+
+<div class="tip">
+<strong>Por que não guardar o total numa propriedade?</strong>
+<p>Daria para ter <code>this.total = 0</code> e somar a cada <code>adicionar</code>. Mas aí são <strong>dois</strong> lugares para manter em dia: se alguém tirar um item da lista e esquecer de descontar do total, os dois discordam. Com o <code>get</code>, o total vem sempre da lista, e não há como discordar.</p>
+</div>
+
+<div class="tryjs" data-goal="out:2 itens;;src:get\s+quantidade">
+<p class="try-task"><strong>Missão:</strong> acrescente à classe um getter <code>quantidade</code>, que devolve quantos itens há na comanda, para o programa mostrar <code>2 itens, R$ 9.50</code>.</p>
+<pre class="script" data-file="main.js">class Comanda {
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.itens = [];
+  }
+
+  adicionar(nome, preco) {
+    this.itens.push({ nome, preco });
+  }
+
+  get total() {
+    let soma = 0;
+    for (const item of this.itens) {
+      soma += item.preco;
+    }
+    return soma;
+  }
+}
+
+const comanda = new Comanda("Bia");
+comanda.adicionar("sonho", 3.5);
+comanda.adicionar("café", 6);
+console.log(`${comanda.quantidade} itens, R$ ${comanda.total.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Comanda {
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.itens = [];
+  }
+
+  adicionar(nome, preco) {
+    this.itens.push({ nome, preco });
+  }
+
+  get total() {
+    let soma = 0;
+    for (const item of this.itens) {
+      soma += item.preco;
+    }
+    return soma;
+  }
+
+  get quantidade() {
+    return this.itens.length;
+  }
+}
+
+const comanda = new Comanda("Bia");
+comanda.adicionar("sonho", 3.5);
+comanda.adicionar("café", 6);
+console.log(`${comanda.quantidade} itens, R$ ${comanda.total.toFixed(2)}`);
+</pre>
+</div>
+
+<p>Sem o getter, o programa mostra <code>undefined itens, R$ 9.50</code>: ler uma propriedade que não existe dá <code>undefined</code>. No lab, a solução mostrou <code>2 itens, R$ 9.50</code>.</p>
+
+<hr>
+
+<h2>2. <code>get</code> e <code>set</code> juntos: o forno em Celsius e Fahrenheit</h2>
+<p>O forno da padaria guarda a temperatura em graus Celsius. Uma receita americana vem em Fahrenheit. Com um par <code>get</code>/<code>set</code>, o forno "fala" as duas unidades, mas guarda <strong>uma só</strong>:</p>
+
+<pre class="file" data-file="forno.js">class Forno {
+  constructor() {
+    this.celsius = 180;
+  }
+
+  get fahrenheit() {
+    return this.celsius * 9 / 5 + 32;
+  }
+
+  set fahrenheit(valor) {
+    this.celsius = (valor - 32) * 5 / 9;
+  }
+}
+
+const forno = new Forno();
+console.log(`${forno.celsius} °C = ${forno.fahrenheit} °F`);
+forno.fahrenheit = 400;
+console.log(`${forno.celsius.toFixed(1)} °C = ${forno.fahrenheit} °F`);
+forno.celsius = 200;
+console.log(`${forno.celsius} °C = ${forno.fahrenheit} °F`);
+</pre>
+
+<dl class="anatomy">
+  <dt>get fahrenheit()</dt><dd>Quando alguém <strong>lê</strong> <code>forno.fahrenheit</code>, converte o Celsius guardado.</dd>
+  <dt>set fahrenheit(valor)</dt><dd>Quando alguém <strong>escreve</strong> <code>forno.fahrenheit = 400</code>, essa função roda com <code>valor</code> = 400. Ela converte e guarda em <code>celsius</code>. Um setter recebe exatamente <strong>um</strong> parâmetro: o valor depois do <code>=</code>.</dd>
+  <dt>mesmo nome nos dois</dt><dd>O <code>get</code> e o <code>set</code> de <code>fahrenheit</code> formam uma propriedade só, que se lê e se escreve.</dd>
+</dl>
+
+<pre class="term">$ node forno.js
+180 °C = 356 °F
+204.4 °C = 400 °F
+200 °C = 392 °F
+</pre>
+
+<p>Mudar o Fahrenheit mudou o Celsius, e mudar o Celsius mudou o Fahrenheit: as duas "propriedades" nunca discordam, porque só uma é guardada de verdade.</p>
+
+<hr>
+
+<h2>3. <code>set</code> para validar: o preço que não pode ser negativo</h2>
+<p>O uso mais comum do <code>set</code> é <strong>proteger</strong> um dado: conferir o valor antes de guardar e recusar o que não presta, com um erro (veja <a href="throw.html">throw</a>).</p>
+
+<pre class="file" data-file="preco.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  get preco() {
+    return this._preco;
+  }
+
+  set preco(valor) {
+    if (typeof valor !== "number" || Number.isNaN(valor) || valor &lt; 0) {
+      throw new RangeError(`Preço inválido para ${this.nome}: ${valor}`);
+    }
+    this._preco = valor;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho.preco);
+sonho.preco = 4;
+console.log(sonho.preco);
+console.log(sonho);
+try {
+  sonho.preco = -2;
+} catch (erro) {
+  console.log(`${erro.name}: ${erro.message}`);
+}
+console.log(sonho.preco);
+const broa = new Produto("broa", "barato");
+</pre>
+
+<dl class="anatomy">
+  <dt>this.preco = preco; (no constructor)</dt><dd>Esta linha já passa pelo <strong>setter</strong>! Toda atribuição a <code>preco</code>, inclusive a do construtor, é conferida. Assim, nem na criação entra um preço inválido.</dd>
+  <dt>set preco(valor) { … this._preco = valor; }</dt><dd>Confere: tem de ser número, não pode ser <code>NaN</code> nem negativo. Se passar, guarda em <code>_preco</code>, o <strong>campo de apoio</strong>.</dd>
+  <dt>_preco</dt><dd>Onde o valor mora de verdade. O sublinhado no começo é só um <strong>costume</strong> que quer dizer "isto é interno, não mexa". (Não pode ser <code>this.preco</code>, que chamaria o próprio setter de novo; veja <a href="#errado">Quando dá errado</a>.)</dd>
+  <dt>get preco() { return this._preco; }</dt><dd>Quem lê <code>sonho.preco</code> recebe o valor do campo de apoio.</dd>
+  <dt>throw new RangeError(…)</dt><dd>Lança um erro do tipo <code>RangeError</code> ("fora da faixa"). Quem atribuiu um preço errado pode tratá-lo com <a href="try-catch.html">try … catch</a>.</dd>
+</dl>
+
+<pre class="term">$ node preco.js
+3.5
+4
+Produto { nome: 'sonho', _preco: 4 }
+RangeError: Preço inválido para sonho: -2
+4
+/home/ana/getset/preco.js:13
+      throw new RangeError(`Preço inválido para ${this.nome}: ${valor}`);
+      ^
+
+RangeError: Preço inválido para broa: barato
+    at set preco (/home/ana/getset/preco.js:13:13)
+    at new Produto (/home/ana/getset/preco.js:4:16)
+    at Object.&lt;anonymous&gt; (/home/ana/getset/preco.js:30:14)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+
+<p>Passo a passo:</p>
+<ol class="passo">
+  <li><code>3.5</code> e <code>4</code>: o preço inicial e o novo passaram pela conferência.</li>
+  <li><code>Produto { nome: 'sonho', _preco: 4 }</code>: o <code>console.log</code> mostra o campo de apoio, <code>_preco</code>; o <code>preco</code> não aparece, porque é um par get/set da classe.</li>
+  <li><code>RangeError: Preço inválido para sonho: -2</code>: o <code>-2</code> foi recusado; o <code>catch</code> mostrou a mensagem.</li>
+  <li><code>4</code>: o preço continuou o antigo. O valor errado nunca entrou.</li>
+  <li>A broa com preço <code>"barato"</code> foi recusada <strong>no construtor</strong>, e, sem <code>try</code>, o erro derrubou o programa. Leia as linhas <code>at</code> de cima para baixo: o erro nasceu em <code>set preco</code> (linha 13), que foi chamado por <code>new Produto</code> (linha 4, o <code>this.preco = preco</code>), que foi chamado pela linha 30, a do <code>new Produto("broa", "barato")</code>.</li>
+</ol>
+
+<div class="note">
+<strong>O sublinhado não tranca nada</strong>
+<p>O <code>_preco</code> é só um aviso entre programadores: quem quiser ainda escreve <code>sonho._preco = -2</code>, e o setter não fica sabendo. Para trancar de verdade, o JavaScript tem os <strong>campos privados</strong>, com <code>#</code> (<code>#preco</code>), que de fora da classe nem podem ser lidos. É o assunto de <a href="campos-privados.html">Campos Privados (#)</a>, e o par <code>get</code>/<code>set</code> com <code>#</code> é o jeito moderno de proteger um dado.</p>
+</div>
+
+<hr>
+
+<h2>4. Em objetos literais</h2>
+<p><code>get</code> e <code>set</code> também funcionam num objeto escrito à mão, sem classe (veja <a href="objetos-metodos.html">Métodos e this</a>):</p>
+
+<pre class="file" data-file="literal.js">const pedido = {
+  itens: [3.5, 6, 2],
+  taxa: 5,
+  get total() {
+    return this.itens.reduce((soma, preco) =&gt; soma + preco, 0) + this.taxa;
+  },
+  set adicionar(preco) {
+    this.itens.push(preco);
+  },
+};
+
+console.log(pedido.total);
+pedido.adicionar = 4;
+console.log(pedido.itens, pedido.total);
+console.log(pedido);
+</pre>
+
+<pre class="term">$ node literal.js
+16.5
+[ 3.5, 6, 2, 4 ] 20.5
+{
+  itens: [ 3.5, 6, 2, 4 ],
+  taxa: 5,
+  total: [Getter],
+  adicionar: [Setter]
+}
+</pre>
+
+<p>No objeto literal, as partes se separam com vírgula (inclusive depois do getter e do setter), e o <code>console.log</code> mostra <code>[Getter]</code> e <code>[Setter]</code> no lugar dos valores (um par dos dois apareceria como <code>[Getter/Setter]</code>). Só para mostrar, este <code>set adicionar</code> funciona, mas é um mau uso: "adicionar" é uma <strong>ação</strong>, e <code>pedido.adicionar = 4</code> engana quem lê. Para ações, use um método: <code>pedido.adicionar(4)</code>.</p>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th><th>Por quê</th></tr>
+<tr><td>Um valor que se <strong>calcula</strong> a partir de outros (total, quantidade, média, idade)</td><td><code>get total()</code></td><td>Lê-se como dado e está sempre atualizado</td></tr>
+<tr><td>Um dado que precisa ser <strong>conferido</strong> antes de mudar</td><td><code>get</code> + <code>set</code> com um campo de apoio (<code>_preco</code> ou <code>#preco</code>)</td><td>Ninguém põe um valor inválido</td></tr>
+<tr><td>Uma <strong>ação</strong> (vender, adicionar, imprimir) ou algo que precisa de parâmetros</td><td>Um método: <code>vender(qtd)</code></td><td>Ações leem-se como verbos, com parênteses</td></tr>
+<tr><td>Um cálculo <strong>demorado</strong> (ler um arquivo, buscar na internet)</td><td>Um método</td><td>Quem lê <code>obj.x</code> espera uma resposta imediata</td></tr>
+<tr><td>Um dado simples, sem regra</td><td>Propriedade comum: <code>this.nome = nome</code></td><td>Não complique o que é simples</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. Parênteses num getter: <code>is not a function</code></h3>
+<pre class="file" data-file="parenteses.js">class Comanda {
+  itens = [3.5, 6];
+
+  get total() {
+    return this.itens.reduce((soma, preco) =&gt; soma + preco, 0);
+  }
+}
+
+const comanda = new Comanda();
+console.log(comanda.total());
+</pre>
+<pre class="term">$ node parenteses.js
+/home/ana/getset/parenteses.js:10
+console.log(comanda.total());
+                    ^
+
+TypeError: comanda.total is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/getset/parenteses.js:10:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/getset/parenteses.js:10</dt><dd>O arquivo e a linha: 10.</dd>
+  <dt>a linha e o ^</dt><dd>O <code>^</code> aponta para o <code>total</code>.</dd>
+  <dt>TypeError: comanda.total is not a function</dt><dd>"<code>comanda.total</code> não é uma função". O getter <strong>já rodou</strong> ao ler <code>comanda.total</code> e devolveu <code>9.5</code>; os parênteses tentaram chamar o <code>9.5</code> como função.</dd>
+</dl>
+<p><strong>Conserto:</strong> sem parênteses: <code>comanda.total</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>2. O contrário: método sem parênteses</h3>
+<p>Se <code>total</code> for um método comum (sem <code>get</code>) e você esquecer os parênteses, não há erro: aparece a <strong>função</strong> no lugar do valor.</p>
+<pre class="file" data-file="semparenteses.js">class Comanda {
+  itens = [3.5, 6];
+
+  total() {
+    return this.itens.reduce((soma, preco) =&gt; soma + preco, 0);
+  }
+}
+
+const comanda = new Comanda();
+console.log(comanda.total);
+console.log(`Total: ${comanda.total}`);
+</pre>
+<pre class="term">$ node semparenteses.js
+[Function: total]
+Total: total() {
+    return this.itens.reduce((soma, preco) =&gt; soma + preco, 0);
+  }
+</pre>
+<p>No template, a função virou o seu próprio <strong>código-fonte</strong>. Se aparecer <code>[Function: …]</code> ou um pedaço de código onde deveria haver um valor, faltaram os parênteses. <strong>Conserto:</strong> <code>comanda.total()</code>, ou transformar o método num <code>get</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>3. Atribuir a um getter sem setter</h3>
+<pre class="file" data-file="sogetter.js">class Comanda {
+  itens = [3.5, 6];
+
+  get total() {
+    return this.itens.reduce((soma, preco) =&gt; soma + preco, 0);
+  }
+}
+
+const comanda = new Comanda();
+comanda.total = 100;
+console.log(comanda.total);
+</pre>
+<pre class="term">$ node sogetter.js
+9.5
+$ cp sogetter.js sogetter.mjs
+$ node sogetter.mjs
+file:///home/ana/getset/sogetter.mjs:10
+comanda.total = 100;
+              ^
+
+TypeError: Cannot set property total of #&lt;Comanda&gt; which has only a getter
+    at file:///home/ana/getset/sogetter.mjs:10:15
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0
+</pre>
+<p>O <strong>mesmo código</strong> deu dois resultados. No <code>.js</code> comum (CommonJS), a atribuição foi <strong>ignorada em silêncio</strong>: o total continuou 9.5, sem aviso, o que é traiçoeiro. No <code>.mjs</code> (módulo ES, que liga sozinho o <a href="strict-mode.html">modo estrito</a>), o Node reclamou: "não dá para definir a propriedade <code>total</code> de um <code>Comanda</code>, que só tem getter". <strong>Conserto:</strong> não atribua a um valor calculado; mude os dados de onde ele sai (os itens). Se a atribuição fizer sentido, escreva um <code>set</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>4. O setter que chama a si mesmo: <code>Maximum call stack size exceeded</code></h3>
+<pre class="file" data-file="loop.js">class Produto {
+  constructor(preco) {
+    this.preco = preco;
+  }
+
+  set preco(valor) {
+    this.preco = valor;
+  }
+}
+
+const sonho = new Produto(3.5);
+</pre>
+<pre class="term">$ node loop.js
+/home/ana/getset/loop.js:7
+    this.preco = valor;
+    ^
+
+RangeError: Maximum call stack size exceeded
+    at set preco (/home/ana/getset/loop.js:7:5)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+    at set preco (/home/ana/getset/loop.js:7:16)
+
+Node.js v24.22.0
+</pre>
+<p>Dentro do <code>set preco</code>, a linha <code>this.preco = valor</code> é… uma atribuição a <code>preco</code>, que chama o <code>set preco</code> de novo, que faz outra atribuição, que chama de novo… para sempre. O Node desiste quando a pilha de chamadas enche: "tamanho máximo da pilha de chamadas excedido" (o mesmo erro da <a href="recursao.html">recursão</a> sem fim). As linhas <code>at set preco</code> repetidas são a pista: a função chamando a si mesma. <strong>Conserto:</strong> guardar num campo de apoio com outro nome, <code>this._preco = valor</code> (ou <code>this.#preco</code>), e ler dele no <code>get</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>get nome() { return …; }</code></td><td>Roda quando alguém lê <code>obj.nome</code>; devolve o valor</td></tr>
+<tr><td><code>set nome(valor) { … }</code></td><td>Roda quando alguém faz <code>obj.nome = valor</code>; recebe um parâmetro</td></tr>
+<tr><td><code>obj.nome</code></td><td>Lê pelo getter (sem parênteses)</td></tr>
+<tr><td><code>obj.nome = 5</code></td><td>Escreve pelo setter</td></tr>
+<tr><td><code>this._nome</code></td><td>Campo de apoio: onde o valor mora (o <code>_</code> é só costume)</td></tr>
+<tr><td><code>throw new RangeError("…")</code> no setter</td><td>Recusa um valor inválido</td></tr>
+<tr><td><code>{ get x() { … }, set x(v) { … } }</code></td><td>O mesmo, num objeto literal (com vírgulas)</td></tr>
+<tr><td><code>[Getter]</code>, <code>[Setter]</code>, <code>[Getter/Setter]</code></td><td>Como o <code>console.log</code> mostra essas propriedades num objeto literal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o getter</h3>
+<p>Complete para que <code>turma.media</code> devolva a média das notas:</p>
+<div class="ex-code"><input data-answer="get" aria-label="palavra-chave"> media() {<br>&nbsp;&nbsp;const soma = this.notas.reduce((a, b) =&gt; a + b, 0);<br>&nbsp;&nbsp;<input data-answer="return" aria-label="palavra-chave"> soma / this.notas.length;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Como se lê?</h3>
+<p>A classe tem <code>get media()</code>. Complete a linha que mostra a média do objeto <code>turma</code>:</p>
+<div class="ex-code">console.log(turma.<input data-answer="media" aria-label="leitura do getter">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Quando roda a função de um <code>set preco(valor)</code>?</p>
+<label><input type="radio" name="q3"> Quando alguém lê <code>produto.preco</code></label>
+<label><input type="radio" name="q3"> Só uma vez, no <code>new</code></label>
+<label><input type="radio" name="q3"> Quando alguém faz <code>produto.preco = algumValor</code> (inclusive dentro do constructor)</label>
+<label><input type="radio" name="q3"> Nunca: setters são só enfeite</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Por que o setter guarda em <code>this._preco</code> e não em <code>this.preco</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>this.preco = valor</code> chamaria o próprio setter de novo, sem fim</label>
+<label><input type="radio" name="q4"> Porque o sublinhado tranca o campo</label>
+<label><input type="radio" name="q4"> Porque <code>this.preco</code> não existe em classes</label>
+<label><input type="radio" name="q4"> Por nada: tanto faz</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual destes faz mais sentido como <code>get</code>, e não como método?</p>
+<label><input type="radio" name="q5"> <code>vender(quantidade)</code></label>
+<label><input type="radio" name="q5"> <code>quantidadeEmEstoque</code>, calculada a partir das entradas e saídas</label>
+<label><input type="radio" name="q5"> <code>imprimirNota()</code></label>
+<label><input type="radio" name="q5"> <code>baixarCardapioDaInternet()</code></label>
+</div>
+
+<h3>Missão final: a nota que não passa de 10</h3>
+
+<div class="tryjs" data-goal="out:Nota inválida: 11;;out:Nota da Ana: 9;;src:set\s+nota">
+<p class="try-task"><strong>Missão:</strong> hoje a classe aceita qualquer nota, e o programa termina com <code>Nota da Ana: 11</code>. Escreva um <code>get nota()</code> e um <code>set nota(valor)</code>: o setter lança <code>new RangeError(`Nota inválida: ${valor}`)</code> se a nota for menor que 0 ou maior que 10 e, senão, guarda em <code>this._nota</code>. A saída deve ser <code>Nota inválida: 11</code> e <code>Nota da Ana: 9</code>.</p>
+<pre class="script" data-file="main.js">class Aluno {
+  constructor(nome, nota) {
+    this.nome = nome;
+    this.nota = nota;
+  }
+
+  // escreva aqui o get nota() e o set nota(valor)
+}
+
+const ana = new Aluno("Ana", 9);
+try {
+  ana.nota = 11;
+} catch (erro) {
+  console.log(erro.message);
+}
+console.log(`Nota da ${ana.nome}: ${ana.nota}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Aluno {
+  constructor(nome, nota) {
+    this.nome = nome;
+    this.nota = nota;
+  }
+
+  get nota() {
+    return this._nota;
+  }
+
+  set nota(valor) {
+    if (valor &lt; 0 || valor &gt; 10) {
+      throw new RangeError(`Nota inválida: ${valor}`);
+    }
+    this._nota = valor;
+  }
+}
+
+const ana = new Aluno("Ana", 9);
+try {
+  ana.nota = 11;
+} catch (erro) {
+  console.log(erro.message);
+}
+console.log(`Nota da ${ana.nome}: ${ana.nota}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Nota inválida: 11</code> e <code>Nota da Ana: 9</code>: o 11 foi recusado e a nota antiga ficou.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>get nome() { return …; }</code> cria uma propriedade <strong>calculada</strong>: lida sem parênteses (<code>obj.nome</code>), roda a função a cada leitura e está sempre atualizada.</li>
+  <li><code>set nome(valor) { … }</code> roda quando alguém atribui (<code>obj.nome = valor</code>), inclusive no <code>constructor</code>. Serve para converter e, principalmente, para <strong>validar</strong>, lançando um erro quando o valor não presta.</li>
+  <li>O valor de verdade mora num campo de apoio com outro nome (<code>_preco</code>, ou o privado <code>#preco</code>). Gravar em <code>this.preco</code> dentro do <code>set preco</code> dá <code>Maximum call stack size exceeded</code>.</li>
+  <li>Getters e setters não aparecem no <code>console.log</code> de uma instância; num objeto literal, aparecem como <code>[Getter]</code>/<code>[Setter]</code>.</li>
+  <li><code>get</code> para valores calculados e rápidos; métodos para ações e para o que recebe parâmetros.</li>
+  <li>Erros comuns: <code>is not a function</code> (parênteses num getter), <code>[Function: …]</code> (faltaram parênteses num método), atribuir a um getter sem setter (ignorado no CommonJS, <code>TypeError</code> em módulos).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
