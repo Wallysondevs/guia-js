@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Funções — dar um nome a um pedaço de código | Guia JavaScript</title>
+<meta name="description" content="Funções no JavaScript para quem nunca programou: o que é uma função, como criar com function e chamar com (), o caminho que o programa faz ao chamar, uma função chamando outra, função dentro de um laço, chamar antes de declarar, function × const × arrow e os erros reais do Node.js 24 (is not defined, is not a function, Unexpected end of input, Cannot access before initialization).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Funções</span></h1>
+
+<p class="intro">Uma <strong>função</strong> (em inglês, <em>function</em>) é um pedaço de código com um <strong>nome</strong>. Você escreve as instruções uma vez, dá um nome a elas e, depois, sempre que precisar, só chama pelo nome. Você já usa funções desde o primeiro programa: o <code>console.log</code> é uma função que alguém escreveu para você. Nesta aula, você vai criar as suas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Para que serve uma função: não repetir código e dar nome às tarefas.</li>
+  <li>Como <strong>criar</strong> (declarar) uma função com <code>function</code> e como <strong>chamar</strong> com <code>()</code>.</li>
+  <li>O caminho que o programa faz quando chama uma função: entra, roda, volta.</li>
+  <li>Uma função chamando outra, e uma função chamada dentro de um laço.</li>
+  <li>As outras formas de escrever uma função (<code>const … = function</code> e a arrow <code>=&gt;</code>).</li>
+  <li>Os erros reais mais comuns: nome errado, chamar o que não é função, a chave que faltou.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a receita com nome</h2>
+<p>Num caderno de receitas, a Ana escreveu uma vez, com todos os passos, a receita de "massa básica". Nas outras receitas (pizza, esfiha, pão de alho), ela não copia tudo de novo: escreve só "faça a <strong>massa básica</strong>". Isso tem duas vantagens:</p>
+<ul>
+  <li><strong>Menos repetição:</strong> os passos ficam num lugar só.</li>
+  <li><strong>Mudar fica fácil:</strong> se ela descobrir que a massa fica melhor com mais sal, corrige num lugar só, e todas as receitas que usam a massa ficam certas.</li>
+</ul>
+<p>Uma função é a "massa básica" do programa: escrever os passos e dar um nome é <strong>declarar</strong> a função; dizer "faça a massa básica" é <strong>chamar</strong> a função.</p>
+
+<hr>
+
+<h2>1. O problema: código repetido</h2>
+<p>O recibo da padaria tem uma linha tracejada em três lugares:</p>
+
+<pre class="file" data-file="repetido.js">console.log("------------------------------");
+console.log("Padaria do Bairro");
+console.log("------------------------------");
+console.log("Pão francês ........ R$ 0,80");
+console.log("Café ............... R$ 4,50");
+console.log("------------------------------");
+</pre>
+
+<pre class="term">$ node repetido.js
+------------------------------
+Padaria do Bairro
+------------------------------
+Pão francês ........ R$ 0,80
+Café ............... R$ 4,50
+------------------------------
+</pre>
+
+<p>Funciona. Mas se o dono da padaria pedir uma linha de <code>=</code> em vez de <code>-</code>, a Ana tem de mudar três linhas (e, num programa grande, seriam trinta, e ela esqueceria alguma).</p>
+
+<hr>
+
+<h2>2. Criando e chamando a primeira função</h2>
+
+<pre class="file" data-file="recibo.js">function mostrarLinha() {
+  console.log("------------------------------");
+}
+
+mostrarLinha();
+console.log("Padaria do Bairro");
+mostrarLinha();
+console.log("Pão francês ........ R$ 0,80");
+console.log("Café ............... R$ 4,50");
+mostrarLinha();
+</pre>
+
+<pre class="term">$ node recibo.js
+------------------------------
+Padaria do Bairro
+------------------------------
+Pão francês ........ R$ 0,80
+Café ............... R$ 4,50
+------------------------------
+</pre>
+
+<p>A mesma saída. As três primeiras linhas do arquivo <strong>declaram</strong> a função; cada <code>mostrarLinha();</code> a <strong>chama</strong>.</p>
+
+<dl class="anatomy">
+  <dt>function</dt><dd>A palavra-chave que avisa: "vou criar uma função".</dd>
+  <dt>mostrarLinha</dt><dd>O <strong>nome</strong> da função. Segue as regras dos nomes de variáveis (veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>): <code>camelCase</code>, sem espaço, sem acento. Como uma função <strong>faz</strong> algo, o costume é começar com um verbo: <code>mostrarLinha</code>, <code>calcularTotal</code>, <code>abrirLoja</code>.</dd>
+  <dt>()</dt><dd>Os parênteses, aqui vazios. É neles que a função recebe informações de fora, os <strong>parâmetros</strong>: o assunto da próxima aula, <a href="parametros.html">Parâmetros e Argumentos</a>.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong> da função: as instruções que rodam a cada chamada, com 2 espaços de recuo.</dd>
+  <dt>mostrarLinha();</dt><dd>A <strong>chamada</strong>: o nome, os parênteses (obrigatórios, mesmo vazios) e o ponto e vírgula. É só aqui que o corpo roda.</dd>
+</dl>
+
+<p>Agora, para trocar o tracejado por <code>=</code>, basta mudar <strong>uma</strong> linha, dentro da função:</p>
+
+<pre class="term">$ node recibo2.js
+==============================
+Padaria do Bairro
+==============================
+Pão francês ........ R$ 0,80
+Café ............... R$ 4,50
+==============================
+</pre>
+
+<div class="tip">
+<strong>Declarar não é rodar</strong>
+<p>Um arquivo só com a declaração não mostra nada. A Ana salvou só isto em <code>sochama.js</code>: <code>function saudar() { console.log("Olá!"); }</code>, e rodou:</p>
+<pre class="term">$ node sochama.js
+</pre>
+<p>Nenhuma linha: a receita foi escrita no caderno, mas ninguém mandou fazer. Sem uma chamada, <code>saudar()</code>, o corpo nunca roda.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:^(?:Loja fechando em 5 minutos!\n){3}$;;src:function\s+mostrarAviso">
+<p class="try-task"><strong>Missão:</strong> a função <code>mostrarAviso</code> já existe e é chamada uma vez. Chame-a mais duas vezes, para o aviso aparecer <strong>3 vezes</strong> (não copie o <code>console.log</code>: chame a função).</p>
+<pre class="script" data-file="main.js">function mostrarAviso() {
+  console.log("Loja fechando em 5 minutos!");
+}
+
+mostrarAviso();
+</pre>
+<pre class="solucao" data-file="main.js">function mostrarAviso() {
+  console.log("Loja fechando em 5 minutos!");
+}
+
+mostrarAviso();
+mostrarAviso();
+mostrarAviso();
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O caminho do programa: entra, roda, volta</h2>
+<p>O JavaScript lê o programa de cima para baixo. Quando encontra uma chamada, ele <strong>pula</strong> para dentro da função, roda o corpo inteiro e <strong>volta</strong> para a linha seguinte à chamada:</p>
+
+<pre class="file" data-file="ordem.js">function saudar() {
+  console.log("  (dentro da função) Olá!");
+  console.log("  (dentro da função) Bem-vinda à padaria!");
+}
+
+console.log("1. Antes de chamar");
+saudar();
+console.log("2. Entre as chamadas");
+saudar();
+console.log("3. Depois de chamar");
+</pre>
+
+<pre class="term">$ node ordem.js
+1. Antes de chamar
+  (dentro da função) Olá!
+  (dentro da função) Bem-vinda à padaria!
+2. Entre as chamadas
+  (dentro da função) Olá!
+  (dentro da função) Bem-vinda à padaria!
+3. Depois de chamar
+</pre>
+
+<ol class="passo">
+  <li>As linhas 1 a 4 só <strong>registram</strong> a função <code>saudar</code>; nada aparece.</li>
+  <li>A linha 6 mostra <code>1. Antes de chamar</code>.</li>
+  <li>A linha 7 chama <code>saudar()</code>: o programa entra na função, mostra as duas linhas dela e volta.</li>
+  <li>A linha 8 mostra <code>2. Entre as chamadas</code>; a linha 9 chama de novo (entra, roda, volta).</li>
+  <li>A linha 10 mostra <code>3. Depois de chamar</code>, e o programa acaba.</li>
+</ol>
+
+<hr>
+
+<h2>4. Uma função chamando outra</h2>
+<p>O corpo de uma função pode ter qualquer instrução, inclusive a chamada de outra função:</p>
+
+<pre class="file" data-file="outra.js">function mostrarLinha() {
+  console.log("------------------------------");
+}
+
+function abrirLoja() {
+  mostrarLinha();
+  console.log("A padaria está aberta!");
+  mostrarLinha();
+}
+
+abrirLoja();
+</pre>
+
+<pre class="term">$ node outra.js
+------------------------------
+A padaria está aberta!
+------------------------------
+</pre>
+
+<p>A única chamada "de fora" é <code>abrirLoja()</code>. Lá dentro, ela chama <code>mostrarLinha()</code> duas vezes. É assim que programas grandes se organizam: tarefas grandes chamam tarefas menores, cada uma com um nome que explica o que faz.</p>
+
+<h3>Função dentro de um laço</h3>
+<p>Uma chamada dentro de um <a href="for.html">for</a> roda a função a cada volta:</p>
+
+<pre class="file" data-file="laco.js">function mostrarEstrelas() {
+  console.log("* * * * *");
+}
+
+for (let i = 1; i &lt;= 3; i++) {
+  mostrarEstrelas();
+}
+</pre>
+
+<pre class="term">$ node laco.js
+* * * * *
+* * * * *
+* * * * *
+</pre>
+
+<h3>No modo interativo</h3>
+<p>No <code>&gt;</code> do Node (veja <a href="repl.html">O Modo Interativo</a>), depois da linha com <code>{</code>, o prompt vira <code>|</code> até você fechar a chave:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; function saudar() {
+|   console.log("Olá, Ana!");
+| }
+undefined
+&gt; saudar()
+Olá, Ana!
+undefined
+&gt; saudar
+[Function: saudar]
+&gt; typeof saudar
+'function'
+&gt; .exit
+</pre>
+
+<p>Repare em três coisas: declarar a função responde <code>undefined</code> (não é erro: declarar não produz valor); <code>saudar()</code>, <strong>com</strong> parênteses, roda a função; e <code>saudar</code>, <strong>sem</strong> parênteses, não roda nada: o Node só mostra que ali existe uma função chamada <code>saudar</code> (<code>[Function: saudar]</code>). O <a href="typeof.html">typeof</a> confirma: uma função é um valor do tipo <code>'function'</code>. (O <code>undefined</code> depois de <code>Olá, Ana!</code> é o resultado da chamada; ele vai fazer sentido na aula <a href="return.html">return</a>.)</p>
+
+<hr>
+
+<h2>5. Chamar antes de declarar</h2>
+<p>Uma função criada com <code>function</code> pode ser chamada <strong>antes</strong> da linha em que foi declarada:</p>
+
+<pre class="file" data-file="antes.js">saudar();
+
+function saudar() {
+  console.log("Olá!");
+}
+</pre>
+
+<pre class="term">$ node antes.js
+Olá!
+</pre>
+
+<p>Antes de rodar a primeira linha, o JavaScript passa pelo arquivo e registra todas as declarações <code>function</code>. Esse comportamento se chama <strong>hoisting</strong> ("içamento", como quem iça uma bandeira para o alto) e tem aula própria: <a href="hoisting.html">Hoisting</a>. Muita gente aproveita isso para deixar o "programa principal" no alto do arquivo e as funções embaixo; outros preferem declarar tudo antes de usar. Os dois jeitos funcionam com <code>function</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Existem três jeitos comuns de criar uma função. Os três programas abaixo mostram <code>Olá!</code>.</p>
+
+<p><strong>1. Declaração</strong> (o que você viu até aqui):</p>
+<pre class="file" data-file="declaracao.js">function saudar() {
+  console.log("Olá!");
+}
+</pre>
+
+<p><strong>2. Expressão de função</strong>: uma função sem nome guardada numa constante. Repare no <code>;</code> depois da <code>}</code>: é o fim da instrução <code>const</code>.</p>
+<pre class="file" data-file="expressao.js">const saudar = function () {
+  console.log("Olá!");
+};
+
+saudar();
+</pre>
+<pre class="term">$ node expressao.js
+Olá!
+</pre>
+
+<p><strong>3. Arrow function</strong> (função "flecha", por causa do <code>=&gt;</code>): a forma curta, muito usada no JavaScript moderno. Tem aula própria: <a href="arrow-functions.html">Arrow Functions</a>.</p>
+<pre class="file" data-file="seta.js">const saudar = () =&gt; {
+  console.log("Olá!");
+};
+
+saudar();
+</pre>
+<pre class="term">$ node seta.js
+Olá!
+</pre>
+
+<p>A chamada é igual nos três: <code>saudar()</code>. A diferença que aparece logo é a do <a href="hoisting.html">hoisting</a>: as formas 2 e 3 são constantes, e uma constante não pode ser usada antes da linha que a cria (veja em <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>function nome() { … }</code></td><td>As funções principais do programa; o jeito mais claro para quem está começando, e o desta parte do guia</td></tr>
+<tr><td><code>const nome = () =&gt; { … };</code></td><td>Funções curtas, e funções passadas para outras (você vai ver em <a href="funcoes-valores.html">Funções como Valores</a> e em <a href="map.html">map</a>)</td></tr>
+<tr><td><code>const nome = function () { … };</code></td><td>Aparece bastante em código mais antigo; hoje, quase sempre se usa a arrow no lugar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Nome escrito diferente</strong>
+<pre class="file" data-file="digitou.js">function mostrarLinha() {
+  console.log("------------------------------");
+}
+
+mostrarlinha();
+</pre>
+<pre class="term">$ node digitou.js
+/home/ana/digitou.js:5
+mostrarlinha();
+^
+
+ReferenceError: mostrarlinha is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/digitou.js:5:1)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/digitou.js:5</dt><dd>O arquivo e a linha do problema: a 5, a da chamada.</dd>
+  <dt>mostrarlinha(); e o ^</dt><dd>A linha do código, com o <code>^</code> apontando o começo do nome.</dd>
+  <dt>ReferenceError: mostrarlinha is not defined</dt><dd>"<code>mostrarlinha</code> não está definida". A função se chama <code>mostrarLinha</code>, com <strong>L maiúsculo</strong>. Para o JavaScript, maiúsculas e minúsculas fazem diferença: são dois nomes diferentes, e o segundo não existe.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/digitou.js:5:1)</dt><dd>Onde o erro aconteceu: linha 5, coluna 1. As outras linhas <code>at</code> são do próprio Node.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> copie o nome exatamente como foi declarado. Nos editores de código, o autocompletar ajuda muito.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamar o que não é função</strong>
+<pre class="file" data-file="naofuncao.js">const preco = 10;
+preco();
+</pre>
+<pre class="term">$ node naofuncao.js
+/home/ana/naofuncao.js:2
+preco();
+^
+
+TypeError: preco is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/naofuncao.js:2:1)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>preco</code> não é uma função". Agora o nome existe, mas guarda um número, e um número não pode ser chamado com <code>()</code>. Isso acontece quando uma variável e uma função têm o mesmo nome, ou quando se põe <code>()</code> onde não devia. <strong>Como consertar:</strong> confira o que o nome guarda (<code>typeof preco</code> responde <code>'number'</code>) e use nomes diferentes para valores e funções (<code>preco</code> e <code>calcularPreco</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Faltou fechar a chave</strong>
+<pre class="file" data-file="semfecha.js">function mostrarLinha() {
+  console.log("------------------------------");
+
+mostrarLinha();
+</pre>
+<pre class="term">$ node semfecha.js
+/home/ana/semfecha.js:5
+
+
+
+SyntaxError: Unexpected end of input
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Fim inesperado da entrada": o arquivo acabou com a função ainda aberta. O Node aponta a linha 5, depois da última, e por isso não há código nem <code>^</code> para mostrar (as linhas em branco). Repare também que a chamada da linha 4 ficou <strong>dentro</strong> da função, e nada rodou: é erro de sintaxe. <strong>Como consertar:</strong> feche a chave do corpo antes da chamada. A indentação ajuda a ver: toda <code>{</code> no fim de uma linha tem uma <code>}</code> na mesma coluna em que a linha começou.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="semparenteses.js">function saudar() {
+  console.log("Olá!");
+}
+
+saudar;
+console.log(saudar);
+</pre>
+<pre class="term">$ node semparenteses.js
+[Function: saudar]
+</pre>
+<p>Nenhum erro, e nenhum <code>Olá!</code>. A linha 5, <code>saudar;</code>, só "menciona" a função, sem chamar. A linha 6 mostra a própria função, não o resultado dela. <strong>Como consertar:</strong> para rodar, os parênteses são obrigatórios: <code>saudar();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamar uma função <code>const</code> antes da linha que a cria</strong>
+<pre class="file" data-file="expressao_antes.js">saudar();
+
+const saudar = function () {
+  console.log("Olá!");
+};
+</pre>
+<pre class="term">$ node expressao_antes.js
+/home/ana/expressao_antes.js:1
+saudar();
+^
+
+ReferenceError: Cannot access 'saudar' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/expressao_antes.js:1:1)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível acessar <code>saudar</code> antes da inicialização". Com <code>function saudar()</code> isso funcionaria (seção 5), mas aqui <code>saudar</code> é uma <strong>constante</strong>, e ela só ganha valor na linha 3. O mesmo vale para a arrow. <strong>Como consertar:</strong> mova a chamada para depois da criação, ou use <code>function saudar()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usar fora da função uma variável criada dentro dela</strong>
+<pre class="file" data-file="localvar.js">function calcularTroco() {
+  const troco = 20 - 12.5;
+  console.log(`Troco: R$ ${troco}`);
+}
+
+calcularTroco();
+console.log(troco);
+</pre>
+<pre class="term">$ node localvar.js
+Troco: R$ 7.5
+/home/ana/localvar.js:7
+console.log(troco);
+            ^
+
+ReferenceError: troco is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/localvar.js:7:13)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A chamada funcionou (<code>Troco: R$ 7.5</code>), mas a variável <code>troco</code> só existe <strong>dentro</strong> da função, como o <code>i</code> de um <code>for</code> só existe dentro do laço. Isso é bom: cada função tem as suas variáveis, sem atrapalhar as outras. <strong>Como consertar:</strong> para levar um valor de dentro para fora, a função o <strong>devolve</strong> com <code>return</code> (aula <a href="return.html">return</a>). Mais detalhes em <a href="escopo.html">Escopo</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>function nome() { … }</code></td><td>Declara (cria) a função; o corpo ainda não roda</td></tr>
+<tr><td><code>nome();</code></td><td>Chama a função: roda o corpo e volta para a linha seguinte</td></tr>
+<tr><td><code>nome</code> (sem parênteses)</td><td>A própria função, como valor; não roda nada</td></tr>
+<tr><td><code>const nome = function () { … };</code></td><td>Expressão de função (só pode ser chamada depois desta linha)</td></tr>
+<tr><td><code>const nome = () =&gt; { … };</code></td><td>Arrow function (aula <a href="arrow-functions.html">Arrow Functions</a>)</td></tr>
+<tr><td><code>typeof nome</code></td><td><code>'function'</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: x is not defined</code> na chamada</td><td>Nome diferente do declarado (maiúscula/minúscula, letra trocada)</td></tr>
+<tr><td><code>TypeError: x is not a function</code></td><td>O nome guarda outra coisa (um número, um texto)</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>Faltou fechar uma <code>}</code></td></tr>
+<tr><td><code>ReferenceError: Cannot access 'x' before initialization</code></td><td>Função <code>const</code>/arrow chamada antes da linha que a cria</td></tr>
+<tr><td>Nada acontece</td><td>A função foi declarada, mas não chamada (ou faltaram os parênteses)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para declarar a função <code>tocarSino</code> e chamá-la:</p>
+<div class="ex-code"><input data-answer="function" aria-label="palavra-chave"> tocarSino() {<br>&nbsp;&nbsp;console.log("Blém!");<br>}<br>tocarSino<input data-answer="();|()" aria-label="chamada"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas linhas?</h3>
+<p>Quantas vezes <code>Blém!</code> aparece?</p>
+<pre class="file" data-file="sino.js">function tocarSino() {
+  console.log("Blém!");
+}
+
+function abrirPorta() {
+  tocarSino();
+  tocarSino();
+}
+
+abrirPorta();
+tocarSino();
+</pre>
+<div class="ex-code">Aparece <input data-answer="3" aria-label="número de vezes"> vezes.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Um arquivo tem só a declaração <code>function saudar() { console.log("Oi"); }</code>. O que <code>node</code> mostra ao rodar?</p>
+<label><input type="radio" name="q3"> <code>Oi</code></label>
+<label><input type="radio" name="q3"> <code>[Function: saudar]</code></label>
+<label><input type="radio" name="q3"> Nada: a função não foi chamada</label>
+<label><input type="radio" name="q3"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Depois de rodar o corpo de uma função, para onde o programa vai?</p>
+<label><input type="radio" name="q4"> Para a instrução seguinte à chamada</label>
+<label><input type="radio" name="q4"> Para o fim do arquivo</label>
+<label><input type="radio" name="q4"> Para a linha seguinte à declaração</label>
+<label><input type="radio" name="q4"> Volta para o começo do arquivo</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>calcular</code> foi declarada como <code>function calcular() {…}</code>, mas o programa chama <code>Calcular()</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Funciona: o JavaScript ignora maiúsculas</label>
+<label><input type="radio" name="q5"> <code>ReferenceError: Calcular is not defined</code></label>
+<label><input type="radio" name="q5"> <code>TypeError: Calcular is not a function</code></label>
+<label><input type="radio" name="q5"> Nada acontece</label>
+</div>
+
+<h3>Missão final: o cardápio do dia</h3>
+
+<div class="tryjs" data-goal="out:Pão de queijo;;src:\bfunction\s+mostrarCardapio\s*\(;;src:^mostrarCardapio\(\)">
+<p class="try-task"><strong>Missão:</strong> crie uma função chamada <code>mostrarCardapio</code> que mostre três linhas: <code>Pão de queijo</code>, <code>Coxinha</code> e <code>Suco de laranja</code>. Depois, chame a função (fora dela, no começo de uma linha).</p>
+<pre class="script" data-file="main.js">// crie aqui a função mostrarCardapio
+
+// e chame a função aqui
+</pre>
+<pre class="solucao" data-file="main.js">function mostrarCardapio() {
+  console.log("Pão de queijo");
+  console.log("Coxinha");
+  console.log("Suco de laranja");
+}
+
+mostrarCardapio();
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma função é um pedaço de código com nome: escrito uma vez, usado quantas vezes quiser. Mudou? Muda num lugar só.</li>
+  <li><code>function nome() { … }</code> <strong>declara</strong>; <code>nome();</code> <strong>chama</strong>. Sem a chamada, o corpo nunca roda.</li>
+  <li>Na chamada, o programa entra na função, roda o corpo inteiro e volta para a instrução seguinte.</li>
+  <li>Funções podem chamar outras funções e ser chamadas dentro de laços.</li>
+  <li>Nomes de função: verbo + <code>camelCase</code>, e maiúsculas fazem diferença.</li>
+  <li>Variáveis criadas dentro da função só existem lá dentro. Para mandar informação para dentro, use <a href="parametros.html">parâmetros</a>; para trazer de volta, <a href="return.html">return</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
