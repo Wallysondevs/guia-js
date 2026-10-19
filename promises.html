@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Promises — then, catch, finally e new Promise | Guia JavaScript</title>
+<meta name="description" content="Promises no JavaScript para quem está começando: o vale de um resultado que ainda vai chegar, os três estados (pending, fulfilled, rejected), then, catch e finally, criar uma Promise com new Promise(resolve, reject), encadear passos sem a pirâmide de callbacks, como os valores e os erros andam pela corrente, e os erros reais do Node.js 24 (rejeição sem catch, then sem return, Promise sem new).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Promises</span></h1>
+
+<p class="intro">Na aula <a href="callbacks.html">Callbacks Assíncronos</a>, você viu o problema: cada passo que depende do anterior vai <strong>dentro</strong> do callback anterior, o código vira uma pirâmide e o tratamento de erro se repete em cada nível. A <strong>Promise</strong> ("promessa") resolve isso com uma ideia simples: em vez de entregar um callback e esperar a ligação, a função assíncrona te devolve, <strong>na hora</strong>, um objeto que representa o resultado que ainda vai chegar. Com esse objeto na mão, você diz o que fazer quando der certo (<code>.then</code>) e quando der errado (<code>.catch</code>), e encadeia os passos um embaixo do outro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma Promise e os seus três estados: <strong>pendente</strong>, <strong>cumprida</strong> e <strong>rejeitada</strong>.</li>
+  <li>Como usar uma Promise com <code>.then</code>, <code>.catch</code> e <code>.finally</code>.</li>
+  <li>Como criar a sua própria Promise com <code>new Promise((resolve, reject) =&gt; { … })</code>.</li>
+  <li>Como <strong>encadear</strong> passos: a pirâmide da aula passada vira uma lista reta.</li>
+  <li>Como os valores e os erros andam pela corrente de <code>.then</code>.</li>
+  <li>Os erros reais: a Promise rejeitada sem <code>catch</code>, o <code>.then</code> sem <code>return</code>, o <code>new</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Os arquivos <code>cardapio.txt</code> e <code>pedido.txt</code> são os mesmos da aula <a href="callbacks.html">Callbacks Assíncronos</a>, e de novo não existe nenhum <code>estoque.txt</code>. Promises são <span class="versao">ES2015</span> e existem igualzinhas no navegador.</p>
+
+<hr>
+
+<h2>A ideia: a senha da lanchonete</h2>
+<p>Na lanchonete, a Ana pede um sanduíche e o caixa entrega, <strong>na hora</strong>, um papelzinho com a senha 42. Ela ainda não tem o sanduíche, mas tem uma <strong>promessa</strong> de sanduíche. Com a senha na mão, ela pode ir sentar, conversar, pegar um guardanapo. A senha sempre está num destes três estados:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estado da senha</th><th>Nome em inglês (o que o Node mostra)</th><th>Quer dizer</th></tr>
+<tr><td><strong>Pendente</strong></td><td><em>pending</em></td><td>O sanduíche ainda está sendo feito</td></tr>
+<tr><td><strong>Cumprida</strong></td><td><em>fulfilled</em></td><td>Chamaram o 42: o sanduíche (o <strong>valor</strong>) está pronto</td></tr>
+<tr><td><strong>Rejeitada</strong></td><td><em>rejected</em></td><td>Chamaram o 42 para avisar que acabou o pão: veio um <strong>erro</strong></td></tr>
+</table>
+</div>
+<p>Duas regras: a senha começa pendente e muda <strong>uma vez só</strong> (para cumprida ou rejeitada) e, depois que mudou, nunca mais muda. Quando ela já não está pendente, diz-se que foi <strong>resolvida</strong> (em inglês, <em>settled</em>).</p>
+<p>A diferença para o callback: lá, a Ana deixava o telefone dela com a lanchonete. Aqui, a lanchonete dá a senha para a Ana, e é <strong>ela</strong> quem decide o que fazer quando chamarem.</p>
+
+<hr>
+
+<h2>1. A Promise por dentro: os estados</h2>
+<p>O módulo <code>node:fs/promises</code> tem as mesmas funções do <code>fs</code>, só que, em vez de receber callback, elas devolvem uma Promise. Olhe as Promises logo depois de pedir, e 100 ms depois:</p>
+
+<pre class="file" data-file="estados.js">const fsp = require("node:fs/promises");
+
+const vale1 = fsp.readFile("cardapio.txt", "utf8");
+const vale2 = fsp.readFile("estoque.txt", "utf8");
+vale2.catch(() =&gt; {});
+console.log(vale1);
+console.log(vale2);
+
+setTimeout(() =&gt; {
+  console.log(vale1);
+  console.log(vale2);
+}, 100);
+</pre>
+
+<pre class="term">$ node estados.js
+Promise { &lt;pending&gt; }
+Promise { &lt;pending&gt; }
+Promise { 'Pão francês\nPão de queijo\nBolo de cenoura\n' }
+Promise {
+  &lt;rejected&gt; Error: ENOENT: no such file or directory, open 'estoque.txt'
+      at async open (node:internal/fs/promises:1345:25)
+      at async Object.readFile (node:internal/fs/promises:2003:14) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'estoque.txt'
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Promise { &lt;pending&gt; }</dt><dd>Logo depois do pedido, as duas estão <strong>pendentes</strong>: o disco ainda não respondeu.</dd>
+  <dt>Promise { 'Pão francês\n…' }</dt><dd>100 ms depois, a primeira foi <strong>cumprida</strong>: o Node mostra o valor dentro dela, o texto do arquivo (com os <code>\n</code> das quebras de linha).</dd>
+  <dt>Promise { &lt;rejected&gt; Error: ENOENT… }</dt><dd>A segunda foi <strong>rejeitada</strong>, com o erro de arquivo inexistente dentro.</dd>
+  <dt>vale2.catch(() =&gt; {});</dt><dd>Uma linha só para esta demonstração: diz "eu sei que esta pode dar erro". Sem ela, o Node encerraria o programa ao ver uma Promise rejeitada que ninguém tratou (é o primeiro erro da seção <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<p>Você quase nunca vai mostrar uma Promise com <code>console.log</code>. Mas quando aparecer um <code>Promise { &lt;pending&gt; }</code> na sua saída, agora você sabe: você mostrou a <strong>senha</strong>, não o sanduíche.</p>
+
+<hr>
+
+<h2>2. Usando uma Promise: <code>.then</code>, <code>.catch</code> e <code>.finally</code></h2>
+
+<pre class="file" data-file="then.js">const fsp = require("node:fs/promises");
+
+console.log("Pedi o cardápio.");
+fsp.readFile("cardapio.txt", "utf8")
+  .then((texto) =&gt; {
+    console.log("Chegou o cardápio:");
+    console.log(texto.trim());
+  })
+  .catch((erro) =&gt; {
+    console.log("Deu problema:", erro.message);
+  })
+  .finally(() =&gt; {
+    console.log("Fim da leitura (com ou sem erro).");
+  });
+console.log("Segui em frente.");
+</pre>
+
+<pre class="term">$ node then.js
+Pedi o cardápio.
+Segui em frente.
+Chegou o cardápio:
+Pão francês
+Pão de queijo
+Bolo de cenoura
+Fim da leitura (com ou sem erro).
+</pre>
+
+<dl class="anatomy">
+  <dt>fsp.readFile("cardapio.txt", "utf8")</dt><dd>Devolve a Promise na hora. Repare: <strong>não</strong> tem callback no fim.</dd>
+  <dt>.then((texto) =&gt; { … })</dt><dd>"<strong>Então</strong>, quando cumprir, rode isto." A função recebe o <strong>valor</strong> da Promise: aqui, o texto do arquivo.</dd>
+  <dt>.catch((erro) =&gt; { … })</dt><dd>"Se for rejeitada, rode isto." Recebe o <strong>erro</strong>. É o <code>catch</code> do <a href="try-catch.html">try … catch</a>, em versão assíncrona.</dd>
+  <dt>.finally(() =&gt; { … })</dt><dd>"<strong>No fim</strong>, dando certo ou errado, rode isto." Não recebe nada. Bom para "fechar a loja": esconder um "carregando…", fechar uma conexão.</dd>
+  <dt>"Segui em frente." antes do cardápio</dt><dd>Como todo código assíncrono: o programa pediu e continuou.</dd>
+</dl>
+
+<p>E com o arquivo que não existe, o <code>.then</code> é pulado e o <code>.catch</code> entra em ação:</p>
+
+<pre class="file" data-file="catch.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("estoque.txt", "utf8")
+  .then((texto) =&gt; {
+    console.log("Estoque:", texto);
+  })
+  .catch((erro) =&gt; {
+    console.log("Deu problema:", erro.message);
+  })
+  .finally(() =&gt; {
+    console.log("Fim da leitura (com ou sem erro).");
+  });
+</pre>
+
+<pre class="term">$ node catch.js
+Deu problema: ENOENT: no such file or directory, open 'estoque.txt'
+Fim da leitura (com ou sem erro).
+</pre>
+
+<p>Compare com o callback "erro primeiro": lá, o erro e o resultado chegavam juntos na mesma função, e era você quem tinha de lembrar do <code>if (erro)</code>. Aqui, cada um tem o seu lugar.</p>
+
+<div class="tryjs" data-goal="out:Problema: ENOENT;;semerro;;src:\.catch\s*\(">
+<p class="try-task"><strong>Missão:</strong> este programa pede um <code>estoque.txt</code> que não existe e não trata o erro, então o programa quebra. Acrescente um <code>.catch((erro) =&gt; { … })</code> depois do <code>.then</code> que mostre <code>Problema:</code> e o código do erro (<code>erro.code</code>). A saída deve ser <code>Problema: ENOENT</code>.</p>
+<pre class="script" data-file="main.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("estoque.txt", "utf8")
+  .then((texto) =&gt; {
+    console.log(texto);
+  });
+</pre>
+<pre class="solucao" data-file="main.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("estoque.txt", "utf8")
+  .then((texto) =&gt; {
+    console.log(texto);
+  })
+  .catch((erro) =&gt; {
+    console.log("Problema:", erro.code);
+  });
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Criando a sua Promise: <code>new Promise</code></h2>
+<p>As funções do Node já devolvem Promises prontas. Para transformar uma tarefa sua em Promise, use <code>new Promise</code>. A máquina de café da aula passada, agora sem callback:</p>
+
+<pre class="file" data-file="criar.js">function prepararCafe(tamanho) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      const tamanhos = ["pequeno", "médio", "grande"];
+      if (!tamanhos.includes(tamanho)) {
+        reject(new Error(`tamanho desconhecido: ${tamanho}`));
+        return;
+      }
+      resolve(`Café ${tamanho} pronto`);
+    }, 1000);
+  });
+}
+
+const pedido = prepararCafe("médio");
+console.log(pedido);
+
+pedido.then((cafe) =&gt; {
+  console.log(cafe);
+  console.log(pedido);
+});
+
+prepararCafe("gigante").catch((erro) =&gt; {
+  console.log("Erro:", erro.message);
+});
+</pre>
+
+<pre class="term">$ node criar.js
+Promise { &lt;pending&gt; }
+Café médio pronto
+Promise { 'Café médio pronto' }
+Erro: tamanho desconhecido: gigante
+</pre>
+
+<dl class="anatomy">
+  <dt>return new Promise(…)</dt><dd>A função cria a Promise e a <strong>devolve</strong> na hora (é a "senha").</dd>
+  <dt>(resolve, reject) =&gt; { … }</dt><dd>A função que você entrega ao <code>new Promise</code> roda <strong>imediatamente</strong> e recebe duas "alavancas" prontas: <code>resolve</code> ("resolver") cumpre a Promise; <code>reject</code> ("rejeitar") a rejeita. É dentro dela que fica o trabalho demorado.</dd>
+  <dt>reject(new Error(…)); return;</dt><dd>Deu errado: rejeita com um objeto de erro. Vai parar no <code>.catch</code> de quem usar a função.</dd>
+  <dt>resolve(`Café ${tamanho} pronto`)</dt><dd>Deu certo: cumpre com esse valor. Vai parar no <code>.then</code>.</dd>
+  <dt>Promise { &lt;pending&gt; } … Promise { 'Café médio pronto' }</dt><dd>A mesma Promise, antes e depois do <code>resolve</code>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Callback "erro primeiro"</th><th>Promise</th></tr>
+<tr><td><code>function prepararCafe(tamanho, callback)</code></td><td><code>function prepararCafe(tamanho)</code> que <code>return new Promise(…)</code></td></tr>
+<tr><td><code>callback(new Error("…"))</code></td><td><code>reject(new Error("…"))</code></td></tr>
+<tr><td><code>callback(null, resultado)</code></td><td><code>resolve(resultado)</code></td></tr>
+<tr><td><code>prepararCafe("médio", (erro, cafe) =&gt; { if (erro) … })</code></td><td><code>prepararCafe("médio").then((cafe) =&gt; …).catch((erro) =&gt; …)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>4. Encadeando: adeus, pirâmide</h2>
+<p>A grande vantagem: <strong>todo <code>.then</code> devolve uma Promise nova</strong>. Então dá para pendurar outro <code>.then</code> nele, e outro, e outro. E se um <code>.then</code> devolve (<code>return</code>) uma Promise, o próximo <strong>espera</strong> ela terminar. A pirâmide do recibo, da aula passada, vira uma lista reta:</p>
+
+<pre class="file" data-file="corrente.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("pedido.txt", "utf8")
+  .then((texto) =&gt; {
+    const linhas = texto.trim().split("\n");
+    let total = 0;
+    for (const linha of linhas) {
+      const [, quantidade, preco] = linha.split(";");
+      total = total + Number(quantidade) * Number(preco);
+    }
+    const recibo = `Itens: ${linhas.length}\nTotal: R$ ${total.toFixed(2)}\n`;
+    return fsp.writeFile("recibo.txt", recibo);
+  })
+  .then(() =&gt; {
+    return fsp.readFile("recibo.txt", "utf8");
+  })
+  .then((conferido) =&gt; {
+    console.log("Recibo salvo:");
+    console.log(conferido);
+  })
+  .catch((erro) =&gt; {
+    console.log("Algo deu errado:", erro.message);
+  });
+</pre>
+
+<pre class="term">$ node corrente.js
+Recibo salvo:
+Itens: 3
+Total: R$ 40.00
+
+</pre>
+
+<p>Os mesmos três passos e o mesmo resultado, mas agora:</p>
+<ul>
+  <li>os passos ficam <strong>um embaixo do outro</strong>, na ordem em que acontecem, sem empurrar o código para a direita;</li>
+  <li><code>return fsp.writeFile(…)</code>: o próximo <code>.then</code> só roda quando a gravação terminar;</li>
+  <li><strong>um único</strong> <code>.catch</code>, no fim, pega o erro de <strong>qualquer</strong> passo. Na versão com callbacks eram três <code>if (erro)</code>.</li>
+</ul>
+
+<h3>Como os valores e os erros andam pela corrente</h3>
+
+<pre class="file" data-file="passa-valor.js">Promise.resolve(10)
+  .then((valor) =&gt; {
+    console.log("1º then recebeu", valor);
+    return valor * 2;
+  })
+  .then((valor) =&gt; {
+    console.log("2º then recebeu", valor);
+    throw new Error("o forno desligou");
+  })
+  .then((valor) =&gt; {
+    console.log("3º then recebeu", valor);
+  })
+  .catch((erro) =&gt; {
+    console.log("catch recebeu:", erro.message);
+    return "pão de ontem";
+  })
+  .then((valor) =&gt; {
+    console.log("depois do catch:", valor);
+  });
+</pre>
+
+<pre class="term">$ node passa-valor.js
+1º then recebeu 10
+2º then recebeu 20
+catch recebeu: o forno desligou
+depois do catch: pão de ontem
+</pre>
+
+<ol class="passo">
+  <li><code>Promise.resolve(10)</code> cria uma Promise <strong>já cumprida</strong> com 10 (um atalho; existe também <code>Promise.reject(erro)</code>).</li>
+  <li>O que um <code>.then</code> <strong>devolve</strong> com <code>return</code> é o que o próximo <strong>recebe</strong>: 10 virou 20.</li>
+  <li>Um <code>throw</code> dentro de um <code>.then</code> <strong>rejeita</strong> a corrente: o 3º <code>.then</code> foi <strong>pulado</strong> e o erro foi direto para o <code>.catch</code>.</li>
+  <li>O <code>.catch</code> tratou o erro e devolveu um valor: a corrente voltou ao normal, e o <code>.then</code> seguinte recebeu <code>pão de ontem</code>.</li>
+</ol>
+
+<div class="note">
+<strong>O <code>.then</code> nunca roda na hora</strong>
+<p>Mesmo com uma Promise já cumprida, o <code>.then</code> espera o código "de agora" terminar:</p>
+<pre class="file" data-file="ordem.js">const pronta = Promise.resolve("já estava pronta");
+pronta.then((valor) =&gt; console.log("then:", valor));
+console.log("Esta linha vem primeiro");
+</pre>
+<pre class="term">$ node ordem.js
+Esta linha vem primeiro
+then: já estava pronta
+</pre>
+<p>É a mesma regra do <code>setTimeout</code> de 0 ms: um callback nunca interrompe o código que está rodando. Quem organiza essa fila é o <a href="event-loop.html">Event Loop</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A mesma leitura, nos três estilos do grupo "Assíncrono" (são trechos para comparar: os <code>require</code> de <code>fs</code> e <code>fsp</code> ficaram de fora):</p>
+
+<pre class="file" data-file="formas.js">// 1. callback "erro primeiro" (aula Callbacks Assíncronos)
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  if (erro) { console.log(erro.message); return; }
+  console.log(texto);
+});
+
+// 2. Promise com then/catch (esta aula)
+fsp.readFile("cardapio.txt", "utf8")
+  .then((texto) =&gt; console.log(texto))
+  .catch((erro) =&gt; console.log(erro.message));
+
+// 3. async/await (próxima aula): a mesma Promise, esperada com await
+async function ler() {
+  try {
+    const texto = await fsp.readFile("cardapio.txt", "utf8");
+    console.log(texto);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+}
+</pre>
+
+<p>O <code>async</code>/<code>await</code> não substitui as Promises: ele é um jeito mais confortável de <strong>esperar</strong> por elas. Tudo o que você aprendeu aqui (estados, <code>resolve</code>/<code>reject</code>, rejeição sem tratamento) continua valendo lá.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Código novo, passos em sequência</td><td><code>async</code>/<code>await</code> (aula <a href="async-await.html">async e await</a>)</td></tr>
+<tr><td>Uma operação só, ou uma corrente curta</td><td><code>.then</code>/<code>.catch</code> fica bem</td></tr>
+<tr><td>Transformar uma tarefa sua (timer, callback antigo) em Promise</td><td><code>new Promise((resolve, reject) =&gt; …)</code></td></tr>
+<tr><td>Esperar várias Promises ao mesmo tempo</td><td><code>Promise.all</code> e companhia (aula <a href="promise-all.html">Várias Promises</a>)</td></tr>
+<tr><td>Eventos que se repetem (cliques, "tics")</td><td>Callback: uma Promise só se resolve uma vez</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Promise rejeitada sem <code>.catch</code></strong>
+<pre class="file" data-file="sem-catch.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("estoque.txt", "utf8").then((texto) =&gt; {
+  console.log(texto);
+});
+console.log("Pedi o estoque.");
+</pre>
+<pre class="term">$ node sem-catch.js
+Pedi o estoque.
+node:internal/fs/promises:1345
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open 'estoque.txt'
+    at async open (node:internal/fs/promises:1345:25)
+    at async Object.readFile (node:internal/fs/promises:2003:14) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'estoque.txt'
+}
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Pedi o estoque.</dt><dd>O programa rodou normalmente até o fim do código "de agora".</dd>
+  <dt>node:internal/fs/promises:1345 e a linha de código com o ^</dt><dd>O lugar onde a Promise foi rejeitada: dentro do próprio Node (a linha mostrada é código interno do <code>fs/promises</code>, não sua).</dd>
+  <dt>Error: ENOENT: no such file or directory, open 'estoque.txt'</dt><dd>O motivo: o arquivo não existe.</dd>
+  <dt>at async open … at async Object.readFile</dt><dd>A pilha só tem linhas do Node. A palavra <code>async</code> na frente indica que são passos assíncronos. Nenhuma linha <code>/home/ana/…</code>: procure no seu código quem chamou <code>readFile("estoque.txt")</code>.</dd>
+  <dt>{ errno: -2, code: 'ENOENT', syscall: 'open', path: 'estoque.txt' }</dt><dd>As propriedades do erro: o código, a operação do sistema que falhou (<code>open</code>, abrir) e o arquivo.</dd>
+</dl>
+<p>No Node 24, uma Promise rejeitada que ninguém trata <strong>derruba o programa</strong> (com código de saída 1), como um <code>throw</code> sem <code>catch</code>. <strong>Como consertar:</strong> toda corrente de Promises termina com um <code>.catch</code> (a missão da seção 2).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code> dentro do <code>.then</code></strong>
+<pre class="file" data-file="sem-return.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("cardapio.txt", "utf8")
+  .then((texto) =&gt; {
+    texto.trim().split("\n");
+  })
+  .then((itens) =&gt; {
+    console.log("Itens:", itens);
+  });
+</pre>
+<pre class="term">$ node sem-return.js
+Itens: undefined
+</pre>
+<p>O primeiro <code>.then</code> calculou a lista de itens e… jogou fora. Uma função com chaves <code>{ }</code> que não tem <code>return</code> devolve <code>undefined</code> (aula <a href="return.html">return</a>), e é isso que o próximo <code>.then</code> recebe. Com uma Promise, é pior: sem o <code>return fsp.writeFile(…)</code>, o próximo passo <strong>não esperaria</strong> a gravação terminar. <strong>Como consertar:</strong> <code>return texto.trim().split("\n");</code>, ou a arrow sem chaves, que devolve sozinha: <code>.then((texto) =&gt; texto.trim().split("\n"))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>new</code>, ou a função do <code>new Promise</code></strong>
+<pre class="file" data-file="sem-new.js">const pedido = Promise((resolve) =&gt; {
+  resolve("café");
+});
+</pre>
+<pre class="term">$ node sem-new.js
+/home/ana/sem-new.js:1
+const pedido = Promise((resolve) =&gt; {
+               ^
+
+TypeError: Promise constructor cannot be invoked without 'new'
+    at Promise (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/sem-new.js:1:16)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O construtor <code>Promise</code> não pode ser chamado sem <code>new</code>". <strong>Como consertar:</strong> <code>new Promise(…)</code>. E se o <code>new</code> estiver lá mas faltar a função (<code>new Promise()</code>), a mensagem é <code>TypeError: Promise resolver undefined is not a function</code>: "a função que resolve a Promise é <code>undefined</code>, não uma função". O <code>new Promise</code> precisa sempre da função com <code>(resolve, reject)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou a função dentro do <code>.then</code> em vez de entregá-la</strong>
+<pre class="file" data-file="then-chamou.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("cardapio.txt", "utf8").then(console.log("Chegou!"));
+console.log("Pedi o cardápio.");
+</pre>
+<pre class="term">$ node then-chamou.js
+Chegou!
+Pedi o cardápio.
+</pre>
+<p>"Chegou!" apareceu <strong>antes</strong> do pedido, e o cardápio não apareceu. O <code>console.log("Chegou!")</code> rodou na hora, e o <code>.then</code> recebeu o resultado dele (<code>undefined</code>); o JavaScript não reclama, só ignora um <code>.then</code> que não recebe função. É o mesmo engano do <code>setTimeout(f(), 1000)</code>. <strong>Como consertar:</strong> entregue uma função: <code>.then(() =&gt; console.log("Chegou!"))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou <code>resolve</code> ou <code>reject</code> mais de uma vez</strong>
+<pre class="file" data-file="duas.js">const pedido = new Promise((resolve, reject) =&gt; {
+  resolve("café pronto");
+  reject(new Error("acabou o café"));
+  resolve("chá pronto");
+});
+
+pedido
+  .then((valor) =&gt; console.log("then:", valor))
+  .catch((erro) =&gt; console.log("catch:", erro.message));
+</pre>
+<pre class="term">$ node duas.js
+then: café pronto
+</pre>
+<p>Só a primeira chamada vale: depois de resolvida, a Promise <strong>não muda mais</strong>, e as outras são ignoradas em silêncio. Isso evita o problema do "callback chamado duas vezes" da aula passada, mas pode esconder um engano: se a sua Promise está cumprindo com o valor errado, procure um <code>resolve</code> que roda antes da hora (e lembre-se do <code>return</code> depois do <code>reject</code>, como no exemplo do café).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>promessa.then((valor) =&gt; …)</code></td><td>Roda quando a Promise é cumprida; recebe o valor; devolve uma Promise nova</td></tr>
+<tr><td><code>promessa.catch((erro) =&gt; …)</code></td><td>Roda quando a Promise (ou qualquer passo antes dela na corrente) é rejeitada</td></tr>
+<tr><td><code>promessa.finally(() =&gt; …)</code></td><td>Roda no fim, dando certo ou errado</td></tr>
+<tr><td><code>new Promise((resolve, reject) =&gt; { … })</code></td><td>Cria uma Promise; <code>resolve(valor)</code> cumpre, <code>reject(erro)</code> rejeita</td></tr>
+<tr><td><code>return</code> dentro do <code>.then</code></td><td>O valor vai para o próximo <code>.then</code>; se for uma Promise, o próximo espera por ela</td></tr>
+<tr><td><code>throw</code> dentro do <code>.then</code></td><td>Rejeita: pula os <code>.then</code> seguintes até o <code>.catch</code></td></tr>
+<tr><td><code>Promise.resolve(v)</code> / <code>Promise.reject(e)</code></td><td>Promise já cumprida / já rejeitada</td></tr>
+<tr><td><code>require("node:fs/promises")</code></td><td>As funções do <code>fs</code> que devolvem Promises (Node)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Promise { &lt;pending&gt; }</code> na saída</td><td>Mostrou a Promise em vez de esperar o valor (<code>.then</code> ou <code>await</code>)</td></tr>
+<tr><td>O programa cai com o erro de uma Promise</td><td>Faltou o <code>.catch</code> no fim da corrente</td></tr>
+<tr><td>O próximo <code>.then</code> recebe <code>undefined</code></td><td>Faltou <code>return</code> no <code>.then</code> anterior</td></tr>
+<tr><td>Algo do <code>.then</code> roda na hora, antes do resultado</td><td><code>.then(f())</code> em vez de <code>.then(() =&gt; f())</code></td></tr>
+<tr><td><code>TypeError: Promise constructor cannot be invoked without 'new'</code></td><td>Escreveu <code>Promise(…)</code> sem <code>new</code></td></tr>
+<tr><td><code>TypeError: Promise resolver undefined is not a function</code></td><td><code>new Promise()</code> sem a função <code>(resolve, reject) =&gt; …</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete a corrente: o primeiro trecho trata o resultado; o segundo, o erro; o terceiro roda sempre no fim.</p>
+<div class="ex-code">fsp.readFile("notas.txt", "utf8")<br>&nbsp;&nbsp;.<input data-answer="then" aria-label="resultado">((texto) =&gt; console.log(texto))<br>&nbsp;&nbsp;.<input data-answer="catch" aria-label="erro">((erro) =&gt; console.log(erro.message))<br>&nbsp;&nbsp;.<input data-answer="finally" aria-label="sempre">(() =&gt; console.log("fim"));</div>
+</div>
+
+<div class="exercise">
+<h3>2. Os estados</h3>
+<p>Como o Node mostra uma Promise que ainda não terminou? (Escreva o que aparece entre os sinais <code>&lt;</code> e <code>&gt;</code>.)</p>
+<div class="ex-code">Promise { &lt;<input data-answer="pending" aria-label="estado">&gt; }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que este programa mostra? <code>Promise.resolve(5).then((v) =&gt; v + 1).then((v) =&gt; console.log(v));</code></p>
+<label><input type="radio" name="q3"> 5</label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+<label><input type="radio" name="q3"> 6</label>
+<label><input type="radio" name="q3"> <code>Promise { 6 }</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa corrente <code>.then(a).then(b).then(c).catch(d)</code>, o passo <code>a</code> lança um erro. O que roda depois?</p>
+<label><input type="radio" name="q4"> <code>b</code> e <code>c</code>, e depois <code>d</code></label>
+<label><input type="radio" name="q4"> Só o <code>d</code>: os <code>.then</code> no caminho são pulados</label>
+<label><input type="radio" name="q4"> Nada: o programa para</label>
+<label><input type="radio" name="q4"> <code>b</code>, com o erro como valor</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Dentro de <code>new Promise((resolve, reject) =&gt; { … })</code>, o que faz o <code>reject(new Error("x"))</code>?</p>
+<label><input type="radio" name="q5"> Lança o erro na hora e para o programa</label>
+<label><input type="radio" name="q5"> Cumpre a Promise com o texto "x"</label>
+<label><input type="radio" name="q5"> Nada, se o <code>resolve</code> não for chamado</label>
+<label><input type="radio" name="q5"> Rejeita a Promise: o erro vai para o <code>.catch</code> de quem a usar</label>
+</div>
+
+<h3>Missão final: a máquina de café com Promise</h3>
+
+<div class="tryjs" data-goal="out:Café grande pronto;;out:Erro: tamanho desconhecido: gigante;;src:new\s+Promise\s*\(;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete a <code>prepararCafe(tamanho)</code> para ela <strong>devolver uma Promise</strong>: <code>return new Promise((resolve, reject) =&gt; { … })</code>. Dentro, com um <code>setTimeout</code> de 1000 ms, rejeite com <code>new Error(`tamanho desconhecido: ${tamanho}`)</code> se o tamanho não estiver na lista, ou cumpra com <code>`Café ${tamanho} pronto`</code>. O resto do programa já usa <code>.then</code> e <code>.catch</code>. A saída deve ter <code>Café grande pronto</code> e <code>Erro: tamanho desconhecido: gigante</code>.</p>
+<pre class="script" data-file="main.js">function prepararCafe(tamanho) {
+  const tamanhos = ["pequeno", "médio", "grande"];
+  // devolva aqui uma new Promise
+}
+
+prepararCafe("grande")
+  .then((cafe) =&gt; console.log(cafe))
+  .catch((erro) =&gt; console.log(`Erro: ${erro.message}`));
+
+prepararCafe("gigante")
+  .then((cafe) =&gt; console.log(cafe))
+  .catch((erro) =&gt; console.log(`Erro: ${erro.message}`));
+</pre>
+<pre class="solucao" data-file="main.js">function prepararCafe(tamanho) {
+  const tamanhos = ["pequeno", "médio", "grande"];
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (!tamanhos.includes(tamanho)) {
+        reject(new Error(`tamanho desconhecido: ${tamanho}`));
+        return;
+      }
+      resolve(`Café ${tamanho} pronto`);
+    }, 1000);
+  });
+}
+
+prepararCafe("grande")
+  .then((cafe) =&gt; console.log(cafe))
+  .catch((erro) =&gt; console.log(`Erro: ${erro.message}`));
+
+prepararCafe("gigante")
+  .then((cafe) =&gt; console.log(cafe))
+  .catch((erro) =&gt; console.log(`Erro: ${erro.message}`));
+</pre>
+</div>
+
+<p>Rode o programa inicial antes de mexer: como a função ainda não devolve nada, aparece <code>TypeError: Cannot read properties of undefined (reading 'then')</code>, porque não dá para pendurar um <code>.then</code> em <code>undefined</code>. É o erro que você vai ver sempre que esquecer o <code>return</code> da Promise.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>Promise</strong> é um objeto que representa um resultado que ainda vai chegar (a "senha" da lanchonete). Ela está <strong>pendente</strong>, <strong>cumprida</strong> (com um valor) ou <strong>rejeitada</strong> (com um erro), e só muda de estado uma vez.</li>
+  <li><code>.then(valor =&gt; …)</code> trata o resultado, <code>.catch(erro =&gt; …)</code> trata o erro, <code>.finally(() =&gt; …)</code> roda no fim de qualquer jeito. Toda corrente termina com <code>.catch</code>: no Node 24, uma rejeição sem tratamento derruba o programa.</li>
+  <li><code>new Promise((resolve, reject) =&gt; { … })</code> transforma uma tarefa sua em Promise: <code>resolve(valor)</code> cumpre, <code>reject(new Error(…))</code> rejeita.</li>
+  <li>Todo <code>.then</code> devolve uma Promise nova. O que você der <code>return</code> vai para o próximo passo (e, se for uma Promise, ele espera). Um <code>throw</code> pula direto para o <code>.catch</code>. Assim, a pirâmide de callbacks vira uma lista reta, com um só tratamento de erro.</li>
+  <li>Próxima aula: <a href="async-await.html">async e await</a>, o jeito mais confortável de esperar uma Promise.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
