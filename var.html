@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript var — o jeito antigo de criar variáveis (e por que evitar) | Guia JavaScript</title>
+<meta name="description" content="O var do JavaScript para quem nunca programou: como ele funciona, por que o código antigo está cheio dele e os três problemas que fizeram o let e o const nascerem em 2015: criar duas vezes sem erro, usar antes de criar (undefined) e escapar do bloco { } e do for. Saídas reais do Node.js 24 e como trocar var por const ou let.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">var: o Jeito Antigo</span></h1>
+
+<p class="intro">Nas duas últimas aulas você criou variáveis com <code>let</code> e <code>const</code>. Mas, se abrir um tutorial antigo, um livro de 2010 ou o código de um site que existe há anos, vai encontrar outra palavra em todo lugar: <code>var</code> (de <em>variable</em>, "variável"). Durante os primeiros vinte anos do JavaScript, ela era <strong>a única</strong> forma de criar variáveis. Esta aula mostra como ela funciona, para você <strong>reconhecer</strong> o <code>var</code> quando o encontrar, e os problemas que fizeram os programadores <strong>pararem de usá-lo</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um <code>var</code> e por que ele parece igual ao <code>let</code>.</li>
+  <li>Problema 1: o <code>var</code> deixa criar a mesma variável duas vezes, sem aviso.</li>
+  <li>Problema 2: dá para usar a variável <strong>antes</strong> do <code>var</code>, e ela vale <code>undefined</code> em vez de dar erro.</li>
+  <li>Problema 3: o <code>var</code> "vaza" para fora do bloco <code>{ }</code> e do laço <code>for</code>.</li>
+  <li>Como trocar <code>var</code> por <code>const</code> ou <code>let</code> num código antigo.</li>
+</ul>
+</div>
+
+<div class="warning">
+<strong>Regra deste guia: nunca use <code>var</code> em código novo</strong>
+<p>Use <code>const</code> por padrão e <code>let</code> quando o valor muda. O <code>var</code> aparece aqui só para você entender código antigo. Todos os programas da aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>).</p>
+</div>
+
+<hr>
+
+<h2>Um pouco de história</h2>
+<p>O JavaScript nasceu em 1995, com o <code>var</code>. Em 2015, a versão da linguagem chamada <strong>ES2015</strong> (também conhecida como ES6) trouxe o <code>let</code> e o <code>const</code>, criados justamente para consertar os problemas do <code>var</code>. O <code>var</code> não foi removido: se fosse, milhões de sites antigos parariam de funcionar. Ele continua lá, funcionando do mesmo jeito estranho de sempre.</p>
+<p>É como uma tomada antiga de dois pinos numa casa reformada: ainda funciona, você vai encontrá-la por aí, mas ninguém instala uma nova.</p>
+
+<hr>
+
+<h2>1. Como se escreve</h2>
+<p>À primeira vista, o <code>var</code> é igualzinho ao <code>let</code>:</p>
+
+<pre class="file" data-file="antigo.js">var cliente = "Ana";
+var pontos = 10;
+pontos = pontos + 5;
+console.log(cliente, "tem", pontos, "pontos.");
+</pre>
+
+<pre class="term">$ node antigo.js
+Ana tem 15 pontos.
+</pre>
+
+<dl class="anatomy">
+  <dt>var</dt><dd>Cria a variável, no mesmo lugar onde iria o <code>let</code> ou o <code>const</code>.</dd>
+  <dt>cliente = "Ana"</dt><dd>Nome e valor, como sempre.</dd>
+  <dt>pontos = pontos + 5;</dt><dd>Como no <code>let</code>, o valor pode mudar. Não existe "<code>var</code> constante".</dd>
+</dl>
+
+<p>Num programa curto assim, não há diferença nenhuma. Os problemas aparecem em programas maiores, em três situações.</p>
+
+<hr>
+
+<h2>2. Problema 1: criar duas vezes, sem aviso</h2>
+<p>Num programa de 300 linhas, a Ana criou um <code>total</code> lá em cima. Duzentas linhas depois, esqueceu e criou outro <code>total</code>, para outra coisa:</p>
+
+<pre class="file" data-file="duas.js">var total = 50;
+console.log("Total da compra:", total);
+var total = 0;
+console.log("Total da compra:", total);
+</pre>
+
+<pre class="term">$ node duas.js
+Total da compra: 50
+Total da compra: 0
+</pre>
+
+<p>Nenhum erro: o segundo <code>var total</code> simplesmente <strong>passou por cima</strong> do primeiro, e o valor da compra se perdeu. Num programa grande, esse defeito pode levar horas para ser encontrado. Agora o mesmo programa com <code>let</code>:</p>
+
+<pre class="file" data-file="duaslet.js">let total = 50;
+console.log("Total da compra:", total);
+let total = 0;
+console.log("Total da compra:", total);
+</pre>
+
+<pre class="term">$ node duaslet.js
+/home/ana/duaslet.js:3
+let total = 0;
+    ^
+
+SyntaxError: Identifier 'total' has already been declared
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>let</code> <strong>reclama</strong>: "o identificador <code>total</code> já foi declarado", apontando a linha 3. Ele nem deixa o programa começar. Um erro que aparece na hora, com o número da linha, é muito melhor que um defeito silencioso.</p>
+
+<hr>
+
+<h2>3. Problema 2: usar antes de criar dá <code>undefined</code></h2>
+
+<pre class="file" data-file="antes.js">console.log("Pães:", paes);
+var paes = 6;
+console.log("Pães:", paes);
+</pre>
+
+<pre class="term">$ node antes.js
+Pães: undefined
+Pães: 6
+</pre>
+
+<p>A linha 1 usa <code>paes</code> antes de o <code>var</code> criá-la, e mesmo assim não deu erro: mostrou <code>undefined</code>. Isso acontece porque, antes de rodar o programa, o JavaScript "puxa para o topo" a <strong>criação</strong> de todas as variáveis <code>var</code> (sem o valor). É como se o programa fosse:</p>
+
+<pre class="file" data-file="antes-como-o-js-ve.js">var paes;                     // a criação "subiu" para o topo, vazia
+console.log("Pães:", paes);   // undefined
+paes = 6;                     // o valor fica onde estava
+console.log("Pães:", paes);   // 6
+</pre>
+
+<p>Esse "puxar para o topo" tem nome: <strong>hoisting</strong> ("içamento", como içar uma bandeira); a aula <a href="hoisting.html">Hoisting</a> conta tudo. O problema é que um <code>undefined</code> silencioso no lugar de um número pode virar um defeito bem longe dali. Com <code>let</code>, o mesmo programa para na linha 1:</p>
+
+<pre class="term">$ node antes2.js
+/home/ana/antes2.js:1
+console.log("Pães:", paes);
+                     ^
+
+ReferenceError: Cannot access 'paes' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/antes2.js:1:22)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<hr>
+
+<h2>4. Problema 3: o <code>var</code> escapa do bloco</h2>
+<p>Na aula <a href="variaveis.html">Variáveis (let)</a> você viu que uma variável <code>let</code> criada dentro de um bloco <code>{ }</code> só existe lá dentro. O <code>var</code> <strong>ignora</strong> os blocos:</p>
+
+<pre class="file" data-file="bloco.js">var mensagem = "Bom dia";
+{
+  var mensagem = "Promoção!";
+  console.log("Dentro:", mensagem);
+}
+console.log("Fora:", mensagem);
+</pre>
+
+<pre class="term">$ node bloco.js
+Dentro: Promoção!
+Fora: Promoção!
+</pre>
+
+<p>A intenção era ter uma mensagem só para dentro do bloco. Mas, para o <code>var</code>, o bloco não é uma "sala separada": o <code>var mensagem</code> de dentro é <strong>a mesma</strong> variável de fora, e o "Bom dia" foi perdido. Com <code>let</code>, cada bloco tem as suas:</p>
+
+<pre class="file" data-file="blocolet.js">let mensagem = "Bom dia";
+{
+  let mensagem = "Promoção!";
+  console.log("Dentro:", mensagem);
+}
+console.log("Fora:", mensagem);
+</pre>
+
+<pre class="term">$ node blocolet.js
+Dentro: Promoção!
+Fora: Bom dia
+</pre>
+
+<h3>O caso mais comum: o contador do <code>for</code></h3>
+<p>Isso aparece muito com o laço <code>for</code>, que repete um trecho contando as voltas (ele tem aula própria: <a href="for.html">for</a>; aqui basta saber que o <code>i</code> é o contador). Com <code>var</code>, o contador continua existindo depois do laço:</p>
+
+<pre class="file" data-file="laco.js">for (var i = 1; i &lt;= 3; i++) {
+  console.log("Volta", i);
+}
+console.log("Depois do laço, i vale", i);
+</pre>
+
+<pre class="term">$ node laco.js
+Volta 1
+Volta 2
+Volta 3
+Depois do laço, i vale 4
+</pre>
+
+<p>Com <code>let</code>, o <code>i</code> pertence ao laço e some quando ele termina:</p>
+
+<pre class="term">$ node lacolet.js
+Volta 1
+Volta 2
+Volta 3
+/home/ana/lacolet.js:4
+console.log("Depois do laço, i vale", i);
+                                      ^
+
+ReferenceError: i is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/lacolet.js:4:39)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>O erro aqui é bom: ele mostra que o <code>i</code> não sobrou "solto" no programa, onde poderia ser usado por engano.</p>
+
+<div class="note">
+<strong>A única "sala" que o <code>var</code> respeita: a função</strong>
+<p>O <code>var</code> ignora blocos <code>{ }</code>, <code>if</code> e <code>for</code>, mas respeita as <strong>funções</strong> (trechos de código com nome, assunto de <a href="funcoes.html">Funções</a>). Um <code>var</code> criado dentro de uma função não existe fora dela:</p>
+<pre class="file" data-file="funcao.js">function calcular() {
+  var desconto = 10;
+  console.log("Dentro da função:", desconto);
+}
+calcular();
+console.log("Fora da função:", desconto);
+</pre>
+<pre class="term">$ node funcao.js
+Dentro da função: 10
+/home/ana/funcao.js:6
+console.log("Fora da função:", desconto);
+                               ^
+
+ReferenceError: desconto is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/funcao.js:6:32)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Por isso se diz que o <code>var</code> tem <strong>escopo de função</strong>, e o <code>let</code>/<code>const</code> têm <strong>escopo de bloco</strong> (veja <a href="escopo.html">Escopo</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Fora: Bom dia;;out:Dentro: Promoção!;;semerro">
+<p class="try-task"><strong>Missão:</strong> por causa do <code>var</code>, a mensagem de fora foi estragada pelo bloco. Troque os dois <code>var</code> por <code>let</code> e rode: tem de aparecer <code>Dentro: Promoção!</code> e <code>Fora: Bom dia</code>.</p>
+<pre class="script" data-file="main.js">var mensagem = "Bom dia";
+{
+  var mensagem = "Promoção!";
+  console.log("Dentro:", mensagem);
+}
+console.log("Fora:", mensagem);
+</pre>
+<pre class="solucao" data-file="main.js">let mensagem = "Bom dia";
+{
+  let mensagem = "Promoção!";
+  console.log("Dentro:", mensagem);
+}
+console.log("Fora:", mensagem);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Trocando <code>var</code> por <code>const</code> ou <code>let</code></h2>
+<p>Quando você encontrar <code>var</code> num código que vai mexer, a troca é simples. Para cada <code>var</code>, pergunte: "esse valor muda depois?"</p>
+<ol class="passo">
+  <li><strong>Não muda</strong> → troque por <code>const</code>.</li>
+  <li><strong>Muda</strong> (recebe outro valor mais adiante, ou é contador de laço) → troque por <code>let</code>.</li>
+  <li>Rode o programa. Se aparecer <code>has already been declared</code> ou <code>is not defined</code>, ótimo: você achou um dos problemas que o <code>var</code> escondia. Conserte (renomeie a segunda variável, ou crie a variável fora do bloco).</li>
+</ol>
+
+<p>O programa da seção 1, modernizado:</p>
+
+<pre class="file" data-file="mudado.js">const cliente = "Ana";
+let pontos = 10;
+pontos = pontos + 5;
+console.log(cliente, "tem", pontos, "pontos.");
+</pre>
+
+<pre class="term">$ node mudado.js
+Ana tem 15 pontos.
+</pre>
+
+<p>A saída é a mesma; o código agora diz que o <code>cliente</code> não muda e que os <code>pontos</code> mudam.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>var</code></th><th><code>let</code></th><th><code>const</code></th></tr>
+<tr><td>Desde</td><td>1995</td><td>ES2015</td><td>ES2015</td></tr>
+<tr><td>Pode mudar o valor?</td><td>Sim</td><td>Sim</td><td>Não</td></tr>
+<tr><td>Criar duas vezes com o mesmo nome</td><td>Aceita, em silêncio</td><td><code>SyntaxError</code></td><td><code>SyntaxError</code></td></tr>
+<tr><td>Usar antes de criar</td><td>Vale <code>undefined</code></td><td><code>ReferenceError</code></td><td><code>ReferenceError</code></td></tr>
+<tr><td>Respeita o bloco <code>{ }</code>, <code>if</code>, <code>for</code>?</td><td>Não (só a função)</td><td>Sim</td><td>Sim</td></tr>
+<tr><td>Usar em código novo?</td><td><strong>Nunca</strong></td><td>Quando o valor muda</td><td><strong>Por padrão</strong></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E no navegador?</strong>
+<p>No navegador, um <code>var</code> criado fora de qualquer função, num <code>&lt;script&gt;</code> comum, vira também uma propriedade do objeto <code>window</code> (a janela), visível para todos os scripts da página: mais um jeito de dois scripts estragarem as variáveis um do outro. O <code>let</code> e o <code>const</code> não fazem isso. O <code>window</code> aparece na aula <a href="dom.html">O que é o DOM</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>A maior parte dos problemas do <code>var</code> <strong>não</strong> dá erro: é exatamente esse o perigo. Os cenários abaixo resumem os sintomas.</p>
+
+<div class="cenario">
+<strong>Um valor "sumiu" e foi trocado por outro</strong>
+<p>Sintoma: a variável tem um valor que você não pôs ali. Causa provável: dois <code>var</code> com o mesmo nome (seção 2), ou um <code>var</code> dentro de um bloco que passou por cima do de fora (seção 4). <strong>Como consertar:</strong> troque por <code>let</code>/<code>const</code>; o Node vai apontar a linha repetida com <code>SyntaxError: Identifier '…' has already been declared</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Apareceu <code>undefined</code> onde devia ter um número</strong>
+<p>Sintoma: <code>Pães: undefined</code>. Causa provável: a variável foi usada numa linha acima do <code>var</code> dela (seção 3). <strong>Como consertar:</strong> crie a variável antes de usar; com <code>let</code>/<code>const</code>, esse engano vira <code>ReferenceError: Cannot access '…' before initialization</code>, que aponta a linha.</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou <code>let</code> e <code>var</code> com o mesmo nome</strong>
+<pre class="file" data-file="mistura.js">let nome = "Ana";
+var nome = "Bia";
+</pre>
+<pre class="term">$ node mistura.js
+/home/ana/mistura.js:2
+var nome = "Bia";
+    ^
+
+SyntaxError: Identifier 'nome' has already been declared
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Quando um dos dois é <code>let</code> (ou <code>const</code>), a repetição vira erro, mesmo que o outro seja <code>var</code>. Isso costuma acontecer quando se moderniza um código pela metade. <strong>Como consertar:</strong> termine a troca: nenhum <code>var</code>, e um nome para cada coisa.</p>
+</div>
+
+<div class="cenario">
+<strong>Trocou <code>var</code> por <code>const</code> numa variável que muda</strong>
+<p>Sintoma: depois da troca, <code>TypeError: Assignment to constant variable.</code> Causa: aquele valor recebe outro mais adiante (veja <a href="const.html">Constantes</a>). <strong>Como consertar:</strong> use <code>let</code> nela.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 10.5;;out:Itens: 3;;semerro;;src:\bconst\s+PRECO\b">
+<p class="try-task"><strong>Missão:</strong> modernize este programa antigo. Troque cada <code>var</code> por <code>const</code> (o que não muda) ou <code>let</code> (o que muda). O <code>PRECO</code> não muda; o <code>itens</code> e o <code>total</code> mudam. A saída tem de continuar a mesma.</p>
+<pre class="script" data-file="main.js">var PRECO = 3.5;
+var itens = 0;
+var total = 0;
+itens = itens + 3;
+total = itens * PRECO;
+console.log("Itens:", itens);
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const PRECO = 3.5;
+let itens = 0;
+let total = 0;
+itens = itens + 3;
+total = itens * PRECO;
+console.log("Itens:", itens);
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código antigo</th><th>O que acontece</th><th>Em código novo</th></tr>
+<tr><td><code>var x = 1;</code></td><td>Cria a variável (pode mudar)</td><td><code>const x = 1;</code> ou <code>let x = 1;</code></td></tr>
+<tr><td><code>var x = 1; var x = 2;</code></td><td>A segunda passa por cima, sem erro</td><td>Um nome para cada coisa</td></tr>
+<tr><td><code>console.log(x); var x = 1;</code></td><td>Mostra <code>undefined</code></td><td>Crie antes de usar</td></tr>
+<tr><td><code>{ var x = 1; }</code></td><td><code>x</code> existe fora do bloco</td><td><code>{ let x = 1; }</code></td></tr>
+<tr><td><code>for (var i = 0; …)</code></td><td><code>i</code> sobra depois do laço</td><td><code>for (let i = 0; …)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Modernize</h3>
+<p>O valor não muda em nenhum lugar do programa. Troque o <code>var</code>:</p>
+<div class="ex-code">var nomePadaria = "Bom Grão"; &nbsp;→&nbsp; <input data-answer="const" aria-label="palavra nova"> nomePadaria = "Bom Grão";</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p><code>console.log(x);</code> / <code>var x = 5;</code></p>
+<div class="ex-code">Aparece <input data-answer="undefined" aria-label="o que aparece"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>var a = 1;</code> / <code>{ var a = 2; }</code> / <code>console.log(a);</code> mostra:</p>
+<label><input type="radio" name="q3"> <code>1</code></label>
+<label><input type="radio" name="q3"> <code>2</code></label>
+<label><input type="radio" name="q3"> <code>SyntaxError: Identifier 'a' has already been declared</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. E com <code>let</code>? <code>let a = 1;</code> / <code>{ let a = 2; }</code> / <code>console.log(a);</code> mostra:</p>
+<label><input type="radio" name="q4"> <code>2</code></label>
+<label><input type="radio" name="q4"> <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que o <code>var</code> ainda existe, se tem tantos problemas?</p>
+<label><input type="radio" name="q5"> Porque ele é mais rápido que o <code>let</code></label>
+<label><input type="radio" name="q5"> Porque o Node só aceita <code>var</code></label>
+<label><input type="radio" name="q5"> Porque o <code>const</code> não funciona em navegadores</label>
+<label><input type="radio" name="q5"> Porque removê-lo quebraria milhões de sites e programas antigos</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Num código antigo, <code>var contador = 0;</code> é seguido de <code>contador = contador + 1;</code>. Por qual palavra trocar o <code>var</code>?</p>
+<label><input type="radio" name="q6"> <code>let</code>, porque o valor muda</label>
+<label><input type="radio" name="q6"> <code>const</code>, porque é o padrão</label>
+<label><input type="radio" name="q6"> Por nada: <code>var</code> é melhor para contadores</label>
+<label><input type="radio" name="q6"> <code>let</code> na primeira linha e <code>var</code> na segunda</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>var</code> é a forma antiga (1995) de criar variáveis. O <code>let</code> e o <code>const</code> chegaram no ES2015 para consertar os problemas dele.</li>
+  <li>Com <code>var</code>, criar a mesma variável duas vezes não dá erro: a segunda passa por cima.</li>
+  <li>Com <code>var</code>, usar a variável antes de criá-la dá <code>undefined</code> (o hoisting), em vez de erro.</li>
+  <li>O <code>var</code> ignora os blocos <code>{ }</code>, o <code>if</code> e o <code>for</code>: só respeita as funções.</li>
+  <li>Os três problemas <strong>não dão erro</strong>; viram defeitos silenciosos. O <code>let</code> e o <code>const</code> transformam cada um num erro com o número da linha.</li>
+  <li>Em código novo: <strong>nunca <code>var</code></strong>. Em código antigo: troque por <code>const</code> (não muda) ou <code>let</code> (muda).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
