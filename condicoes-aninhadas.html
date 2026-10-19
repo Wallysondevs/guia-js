@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Condições Aninhadas — um if dentro do outro | Guia JavaScript</title>
+<meta name="description" content="Condições aninhadas em JavaScript para quem nunca programou: if dentro de if, if dentro de else, como a indentação mostra quem está dentro de quem, quando trocar o aninhamento por && ou por else if, a pirâmide de ifs, o else que vai para o if errado e os erros reais do Node.js 24 (chave a mais, variável que só existe dentro do bloco).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Condições Aninhadas</span></h1>
+
+<p class="intro">Dentro do bloco de um <code>if</code> pode ir qualquer código, inclusive <strong>outro <code>if</code></strong>. Isso se chama <strong>aninhar</strong> (como uma boneca russa: uma dentro da outra). Serve para as decisões que só fazem sentido <strong>depois</strong> de outra: só adianta perguntar a senha se o usuário existe; só adianta perguntar a idade se a pessoa tem ingresso.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como pôr um <code>if</code> dentro de outro, e um <code>if</code> dentro de um <code>else</code>.</li>
+  <li>Como a indentação mostra quem está dentro de quem.</li>
+  <li>Quando um aninhamento pode virar um <code>&amp;&amp;</code> ou um <code>else if</code>, e quando não pode.</li>
+  <li>Por que uma "pirâmide" de <code>if</code> é difícil de ler, e como achatá-la.</li>
+  <li>As armadilhas reais: o <code>else</code> que vai para o <code>if</code> errado, a chave a mais e a variável que só existe dentro do bloco.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a portaria do cinema</h2>
+<p>O porteiro do cinema do bairro segue duas regras, uma depois da outra:</p>
+<ol class="passo">
+  <li>Primeiro, ele pergunta: <strong>você tem ingresso?</strong> Se não tem, nem adianta conversar: "vá até a bilheteria".</li>
+  <li>Só se a pessoa <strong>tem</strong> ingresso, ele faz a segunda pergunta: <strong>tem 16 anos ou mais?</strong> Se tem, entra. Se não tem, precisa de um adulto junto.</li>
+</ol>
+<p>A segunda pergunta está <strong>dentro</strong> do "sim" da primeira. Quem não tem ingresso nunca ouve a pergunta da idade. É isso que uma condição aninhada faz.</p>
+
+<hr>
+
+<h2>1. Um <code>if</code> dentro do outro</h2>
+
+<pre class="file" data-file="cinema.js">const temIngresso = true;
+const idade = 14;
+
+if (temIngresso) {
+  if (idade &gt;= 16) {
+    console.log("Pode entrar. Bom filme!");
+  } else {
+    console.log("Só pode entrar com um adulto.");
+  }
+} else {
+  console.log("Vá até a bilheteria comprar o ingresso.");
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>if (temIngresso) {</dt><dd>A pergunta de <strong>fora</strong>. <code>temIngresso</code> já é um booleano, então vai sozinho na condição.</dd>
+  <dt>if (idade &gt;= 16) { … } else { … }</dt><dd>A pergunta de <strong>dentro</strong>: um <code>if … else</code> inteiro, morando no bloco do primeiro <code>if</code>. Ele tem <strong>4 espaços</strong> a mais de recuo nas linhas de dentro: 2 por estar no <code>if</code> de fora, mais 2 por estar no de dentro.</dd>
+  <dt>} else {</dt><dd>Este <code>else</code> está no nível de fora (2 espaços a menos): ele é o "senão" do <code>temIngresso</code>, não da idade.</dd>
+</dl>
+
+<pre class="term">$ node cinema.js
+Só pode entrar com um adulto.
+</pre>
+
+<p>O caminho que o Node fez: <code>temIngresso</code> é <code>true</code>, então entrou no bloco de fora. Lá dentro, <code>14 &gt;= 16</code> é <code>false</code>, então rodou o <code>else</code> de dentro. O <code>else</code> de fora foi pulado.</p>
+
+<p>Todas as combinações possíveis:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>temIngresso</code></th><th><code>idade</code></th><th>Mensagem</th></tr>
+<tr><td><code>true</code></td><td>20</td><td>Pode entrar. Bom filme!</td></tr>
+<tr><td><code>true</code></td><td>14</td><td>Só pode entrar com um adulto.</td></tr>
+<tr><td><code>false</code></td><td>20</td><td>Vá até a bilheteria comprar o ingresso.</td></tr>
+<tr><td><code>false</code></td><td>14</td><td>Vá até a bilheteria comprar o ingresso.</td></tr>
+</table>
+</div>
+
+<p>Repare nas duas últimas linhas: sem ingresso, a idade nem é olhada.</p>
+
+<div class="tryjs" data-goal="out:Vá até a bilheteria comprar o ingresso.;;src:const temIngresso = false">
+<p class="try-task"><strong>Missão:</strong> mude <code>temIngresso</code> para <code>false</code> e rode. Depois experimente as outras linhas da tabela, mudando também a idade.</p>
+<pre class="script" data-file="main.js">const temIngresso = true;
+const idade = 14;
+
+if (temIngresso) {
+  if (idade &gt;= 16) {
+    console.log("Pode entrar. Bom filme!");
+  } else {
+    console.log("Só pode entrar com um adulto.");
+  }
+} else {
+  console.log("Vá até a bilheteria comprar o ingresso.");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const temIngresso = false;
+const idade = 14;
+
+if (temIngresso) {
+  if (idade &gt;= 16) {
+    console.log("Pode entrar. Bom filme!");
+  } else {
+    console.log("Só pode entrar com um adulto.");
+  }
+} else {
+  console.log("Vá até a bilheteria comprar o ingresso.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Aninhar para evitar um erro</h2>
+<p>Às vezes o aninhamento não é só organização: ele <strong>protege</strong> a segunda pergunta. A Ana guarda o apelido do cliente, mas nem todo cliente tem um; para esses, a variável fica <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>). Ela quer saudar com o apelido, se ele for curto:</p>
+
+<pre class="file" data-file="apelido.js">const apelido = undefined;
+
+if (apelido !== undefined) {
+  if (apelido.length &lt;= 6) {
+    console.log(`Oi, ${apelido}!`);
+  } else {
+    console.log("Oi! Que apelido comprido.");
+  }
+} else {
+  console.log("Oi! Você ainda não tem apelido.");
+}
+</pre>
+
+<pre class="term">$ node apelido.js
+Oi! Você ainda não tem apelido.
+</pre>
+
+<p>A pergunta de dentro usa <code>apelido.length</code> (o tamanho do texto; veja <a href="strings.html">Strings</a>). Se ela fosse feita com <code>apelido</code> valendo <code>undefined</code>, o programa pararia com <code>TypeError: Cannot read properties of undefined (reading 'length')</code>. O <code>if</code> de fora garante que a de dentro só é feita quando o apelido existe.</p>
+
+<hr>
+
+<h2>3. Um <code>if</code> dentro de um <code>else</code></h2>
+<p>O <code>if</code> de dentro também pode morar no bloco do <code>else</code>. A Ana confere o pagamento: se foi no Pix, está pago; senão, ela quer saber se foi no cartão ou em dinheiro:</p>
+
+<pre class="file" data-file="pagamento.js">const forma = "cartão";
+
+if (forma === "pix") {
+  console.log("Pago na hora.");
+} else {
+  if (forma === "cartão") {
+    console.log("Aguardando a maquininha.");
+  } else {
+    console.log("Conferir o troco.");
+  }
+}
+</pre>
+
+<pre class="term">$ node pagamento.js
+Aguardando a maquininha.
+</pre>
+
+<p>Funciona, mas olhe bem: um <code>else</code> cujo bloco tem <strong>só</strong> um <code>if … else</code> dentro é exatamente o que o <code>else if</code> da aula <a href="if-else.html">else e else if</a> faz, com menos recuo e menos chaves:</p>
+
+<pre class="file" data-file="pagamento2.js">const forma = "cartão";
+
+if (forma === "pix") {
+  console.log("Pago na hora.");
+} else if (forma === "cartão") {
+  console.log("Aguardando a maquininha.");
+} else {
+  console.log("Conferir o troco.");
+}
+</pre>
+
+<pre class="term">$ node pagamento2.js
+Aguardando a maquininha.
+</pre>
+
+<p>Mesma saída, mais fácil de ler. Na verdade, o <code>else if</code> <strong>é</strong> isso: um <code>else</code> cujo bloco é outro <code>if</code>, escrito sem as chaves do meio.</p>
+
+<hr>
+
+<h2>4. Quando o aninhamento vira um <code>&amp;&amp;</code></h2>
+<p>Se o <code>if</code> de dentro não tem <code>else</code>, e o de fora também não, os dois podem virar um só, com o "e" (<code>&amp;&amp;</code>; veja <a href="operadores-logicos.html">Operadores Lógicos</a>):</p>
+
+<pre class="file" data-file="cupom.js">const total = 150;
+const temCupom = true;
+
+// aninhado
+if (total &gt;= 100) {
+  if (temCupom) {
+    console.log("Desconto de 20% (aninhado)");
+  }
+}
+
+// com &amp;&amp;
+if (total &gt;= 100 &amp;&amp; temCupom) {
+  console.log("Desconto de 20% (com &amp;&amp;)");
+}
+</pre>
+
+<pre class="term">$ node cupom.js
+Desconto de 20% (aninhado)
+Desconto de 20% (com &amp;&amp;)
+</pre>
+
+<p>Os dois dizem a mesma coisa: "se a compra passou de 100 <strong>e</strong> tem cupom". A versão com <code>&amp;&amp;</code> é mais curta. E o <code>&amp;&amp;</code> também protege como o aninhamento da seção 2: ele só olha o lado direito se o esquerdo for verdadeiro, então <code>apelido !== undefined &amp;&amp; apelido.length &lt;= 6</code> nunca dá erro.</p>
+
+<div class="warning">
+<strong>Quando NÃO dá para trocar</strong>
+<p>Se algum dos <code>if</code> tem <code>else</code>, cuidado. No cinema da seção 1, quem não tem ingresso ouve "vá à bilheteria" e quem tem ingresso mas é menor ouve "só com um adulto": são <strong>respostas diferentes</strong> para cada "não". Um único <code>if (temIngresso &amp;&amp; idade &gt;= 16) … else …</code> juntaria os dois "não" numa mensagem só.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Entrega grátis!;;src:&amp;&amp;">
+<p class="try-task"><strong>Missão:</strong> junte os dois <code>if</code> num só, usando <code>&amp;&amp;</code>. A mensagem tem de continuar aparecendo uma vez.</p>
+<pre class="script" data-file="main.js">const bairro = "Centro";
+const total = 80;
+
+if (bairro === "Centro") {
+  if (total &gt;= 50) {
+    console.log("Entrega grátis!");
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.js">const bairro = "Centro";
+const total = 80;
+
+if (bairro === "Centro" &amp;&amp; total &gt;= 50) {
+  console.log("Entrega grátis!");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. A pirâmide de <code>if</code></h2>
+<p>Dá para aninhar quantos níveis quiser, mas cada nível empurra o código mais para a direita. Este é o cadastro de uma senha na lojinha:</p>
+
+<pre class="file" data-file="piramide.js">const senha = "abacaxi2026";
+
+if (senha.length &gt;= 8) {
+  if (senha !== "12345678") {
+    if (senha.includes("2")) {
+      console.log("Senha aceita.");
+    } else {
+      console.log("A senha precisa de um número 2.");
+    }
+  } else {
+    console.log("Essa senha é fácil demais.");
+  }
+} else {
+  console.log("A senha precisa de 8 caracteres ou mais.");
+}
+</pre>
+
+<pre class="term">$ node piramide.js
+Senha aceita.
+</pre>
+
+<p>Funciona, mas cada mensagem de erro fica longe da pergunta que a causou: o "8 caracteres" está lá embaixo, a 12 linhas do <code>if</code> dele. Esse formato tem até apelido: <strong>pirâmide</strong> (ou "código seta", pelo formato <code>&gt;</code> que o recuo desenha). Dá para achatar <strong>invertendo</strong> as perguntas: teste primeiro o que está <strong>errado</strong>, com <code>else if</code>, e deixe o "deu tudo certo" para o <code>else</code> final:</p>
+
+<pre class="file" data-file="achatada.js">const senha = "abacaxi2026";
+
+if (senha.length &lt; 8) {
+  console.log("A senha precisa de 8 caracteres ou mais.");
+} else if (senha === "12345678") {
+  console.log("Essa senha é fácil demais.");
+} else if (!senha.includes("2")) {
+  console.log("A senha precisa de um número 2.");
+} else {
+  console.log("Senha aceita.");
+}
+</pre>
+
+<pre class="term">$ node achatada.js
+Senha aceita.
+</pre>
+
+<p>Cada problema fica ao lado da sua mensagem, e o código não entorta. O <code>!</code> é o "não" (veja <a href="operadores-logicos.html">Operadores Lógicos</a>) e o <code>includes</code> procura um pedaço no texto (veja <a href="strings-buscar.html">Procurando em Strings</a>). Quando você aprender <a href="funcoes.html">funções</a>, vai ver outro jeito de achatar: sair da função assim que encontrar um problema.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você tem…</th><th>Pode escrever como…</th><th>Quando preferir</th></tr>
+<tr><td><code>if (a) { if (b) { X } }</code>, sem nenhum <code>else</code></td><td><code>if (a &amp;&amp; b) { X }</code></td><td>Quase sempre: mais curto</td></tr>
+<tr><td><code>else { if (b) { … } else { … } }</code>, com o <code>if</code> sozinho no <code>else</code></td><td><code>else if (b) { … } else { … }</code></td><td>Sempre</td></tr>
+<tr><td>Cada "não" tem uma resposta diferente</td><td>Aninhado, ou uma cadeia que testa primeiro os problemas</td><td>A cadeia, quando ficar mais plana</td></tr>
+<tr><td>Três níveis ou mais</td><td>Uma cadeia de <code>else if</code> com as condições invertidas</td><td>Para ler sem se perder</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>else</code> foi para o <code>if</code> errado</strong>
+<p>Sem chaves, um <code>else</code> sempre pertence ao <code>if</code> <strong>mais próximo</strong>, não importa como você indentou. A Ana quer a mensagem da bilheteria para quem não tem ingresso:</p>
+<pre class="file" data-file="elseerrado.js">const temIngresso = false;
+const idade = 20;
+
+if (temIngresso)
+  if (idade &gt;= 16)
+    console.log("Pode entrar.");
+else
+  console.log("Vá até a bilheteria.");
+
+console.log("Próximo!");
+</pre>
+<pre class="term">$ node elseerrado.js
+Próximo!
+</pre>
+<p>A mensagem da bilheteria não apareceu! Pela indentação, o <code>else</code> parece ser do <code>temIngresso</code>, mas o Node não olha os espaços: ele ligou o <code>else</code> ao <code>if (idade &gt;= 16)</code>, o mais próximo. Como <code>temIngresso</code> é <code>false</code>, o Node pulou o <code>if</code> de dentro <strong>com o seu <code>else</code> junto</strong>. <strong>Como consertar:</strong> use chaves sempre; com elas, fica explícito de quem é cada <code>else</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma chave a mais</strong>
+<pre class="file" data-file="chaveamais.js">const temIngresso = true;
+const idade = 20;
+
+if (temIngresso) {
+  if (idade &gt;= 16) {
+    console.log("Pode entrar.");
+  }
+  }
+} else {
+  console.log("Vá até a bilheteria.");
+}
+</pre>
+<pre class="term">$ node chaveamais.js
+/home/ana/chaveamais.js:9
+} else {
+^
+
+SyntaxError: Unexpected token '}'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/chaveamais.js:9</dt><dd>O problema foi percebido na linha 9.</dd>
+  <dt>} else {</dt><dd>A linha 9, com a setinha embaixo da <code>}</code>.</dd>
+  <dt>SyntaxError: Unexpected token '}'</dt><dd>"Chave inesperada". A chave da linha 8 já fechou o <code>if (temIngresso)</code>; então a da linha 9 está fechando… nada. Sobrou uma.</dd>
+</dl>
+<p>Com várias chaves empilhadas, é fácil perder a conta. <strong>Como consertar:</strong> confira os pares: cada <code>{</code> tem a sua <code>}</code> <strong>na mesma coluna</strong> da linha que abriu o bloco. Aqui, apague a <code>}</code> da linha 8. A maioria dos editores de código destaca o par de uma chave quando você põe o cursor nela.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável criada no bloco de dentro</strong>
+<pre class="file" data-file="escopo.js">const total = 150;
+const temCupom = true;
+
+if (total &gt;= 100) {
+  if (temCupom) {
+    const desconto = total * 0.2;
+  }
+}
+console.log(`Desconto: R$ ${desconto}`);
+</pre>
+<pre class="term">$ node escopo.js
+/home/ana/escopo.js:9
+console.log(`Desconto: R$ ${desconto}`);
+                            ^
+
+ReferenceError: desconto is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/escopo.js:9:29)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"<code>desconto</code> não está definido". A constante <code>desconto</code> nasceu no bloco do <code>if (temCupom)</code> e deixou de existir na <code>}</code> que fecha esse bloco. Lá fora, na linha 9, o Node não a conhece. <strong>Como consertar:</strong> crie a variável com <code>let</code> <strong>antes</strong> dos <code>if</code>, com um valor inicial, e só mude o valor dentro deles: <code>let desconto = 0;</code> lá em cima e <code>desconto = total * 0.2;</code> dentro. A regra completa está em <a href="escopo.html">Escopo</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Desconto: R$ 30;;semerro">
+<p class="try-task"><strong>Missão:</strong> conserte o programa do cenário acima: ele deve mostrar <code>Desconto: R$ 30</code> sem erro.</p>
+<pre class="script" data-file="main.js">const total = 150;
+const temCupom = true;
+
+if (total &gt;= 100) {
+  if (temCupom) {
+    const desconto = total * 0.2;
+  }
+}
+console.log(`Desconto: R$ ${desconto}`);
+</pre>
+<pre class="solucao" data-file="main.js">const total = 150;
+const temCupom = true;
+let desconto = 0;
+
+if (total &gt;= 100) {
+  if (temCupom) {
+    desconto = total * 0.2;
+  }
+}
+console.log(`Desconto: R$ ${desconto}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>if (a) { if (b) { … } }</code></td><td>A pergunta <code>b</code> só é feita se <code>a</code> for verdadeira</td></tr>
+<tr><td><code>if (a) { if (b) { … } else { … } } else { … }</code></td><td>Cada "não" tem a sua resposta</td></tr>
+<tr><td><code>if (a &amp;&amp; b) { … }</code></td><td>O mesmo que dois <code>if</code> aninhados sem <code>else</code></td></tr>
+<tr><td><code>else if (b)</code></td><td>O mesmo que <code>else { if (b) … }</code></td></tr>
+<tr><td>2 espaços por nível</td><td>Mostram quem está dentro de quem</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O <code>else</code> não roda quando deveria</td><td>Sem chaves, ele foi para o <code>if</code> mais próximo</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '}'</code></td><td>Uma chave a mais</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>Uma chave a menos (veja <a href="if.html">if</a>)</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code> depois dos <code>if</code></td><td>A variável foi criada dentro de um bloco</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual é a saída?</h3>
+<pre class="file" data-file="ex1.js">const chovendo = true;
+const temCarro = false;
+if (chovendo) {
+  if (temCarro) {
+    console.log("Vai de carro");
+  } else {
+    console.log("Leva guarda-chuva");
+  }
+} else {
+  console.log("Vai a pé");
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="Leva guarda-chuva" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Achate</h3>
+<p>Complete para ficar igual a <code>if (logado) { if (admin) { console.log("Painel"); } }</code>:</p>
+<div class="ex-code">if (logado <input data-answer="&amp;&amp;" aria-label="operador"> admin) { console.log("Painel"); }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Num código sem chaves, a qual <code>if</code> pertence um <code>else</code>?</p>
+<label><input type="radio" name="q3"> Ao primeiro <code>if</code> do arquivo</label>
+<label><input type="radio" name="q3"> Ao <code>if</code> que estiver na mesma coluna</label>
+<label><input type="radio" name="q3"> Ao <code>if</code> mais próximo, que ainda não tem <code>else</code></label>
+<label><input type="radio" name="q3"> Dá erro de sintaxe</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Quando <strong>não</strong> é possível trocar dois <code>if</code> aninhados por um só com <code>&amp;&amp;</code> sem mudar o que o programa faz?</p>
+<label><input type="radio" name="q4"> Quando as condições usam <code>===</code></label>
+<label><input type="radio" name="q4"> Quando cada "não" tem uma resposta diferente (há <code>else</code> nos dois níveis)</label>
+<label><input type="radio" name="q4"> Quando o <code>if</code> de dentro tem uma linha só</label>
+<label><input type="radio" name="q4"> Nunca: sempre dá para trocar</label>
+</div>
+
+<h3>Missão final: o caixa eletrônico</h3>
+
+<div class="tryjs" data-goal="out:Saldo insuficiente.;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete o caixa eletrônico. Se a senha estiver errada, ele já mostra <code>Senha incorreta.</code>. Se estiver certa, falta decidir: se o <code>saque</code> for menor ou igual ao <code>saldo</code>, mostre <code>Retire o seu dinheiro.</code>; senão, mostre <code>Saldo insuficiente.</code>. Com os valores do programa (saque de 500, saldo de 320), deve aparecer <code>Saldo insuficiente.</code>.</p>
+<pre class="script" data-file="main.js">const senhaDigitada = "4321";
+const senhaCerta = "4321";
+const saldo = 320;
+const saque = 500;
+
+if (senhaDigitada === senhaCerta) {
+  // escreva aqui o if … else do saldo
+} else {
+  console.log("Senha incorreta.");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const senhaDigitada = "4321";
+const senhaCerta = "4321";
+const saldo = 320;
+const saque = 500;
+
+if (senhaDigitada === senhaCerta) {
+  if (saque &lt;= saldo) {
+    console.log("Retire o seu dinheiro.");
+  } else {
+    console.log("Saldo insuficiente.");
+  }
+} else {
+  console.log("Senha incorreta.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Dentro do bloco de um <code>if</code> (ou de um <code>else</code>) pode ir outro <code>if</code>: a pergunta de dentro só é feita quando o caminho de fora é seguido.</li>
+  <li>Cada nível ganha 2 espaços de recuo; e use chaves sempre, porque sem elas o <code>else</code> vai para o <code>if</code> mais próximo, não importa a indentação.</li>
+  <li>Aninhar também protege: o <code>if</code> de fora pode garantir que a pergunta de dentro não dê erro.</li>
+  <li>Dois <code>if</code> aninhados sem <code>else</code> = um <code>if</code> com <code>&amp;&amp;</code>. Um <code>else</code> com só um <code>if</code> dentro = <code>else if</code>.</li>
+  <li>Pirâmides de três níveis ou mais ficam difíceis de ler: inverta as perguntas e use uma cadeia de <code>else if</code>.</li>
+  <li>Variáveis criadas dentro de um bloco não existem fora dele (<code>ReferenceError</code>): crie com <code>let</code> antes dos <code>if</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
