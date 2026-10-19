@@ -1,0 +1,1496 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Calculadora — teclado, Number, if/else if, while e funções passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo: uma calculadora de terminal em JavaScript (Node.js 24) que lê dois números e uma operação do teclado, converte com Number() (e descobre o NaN), escolhe a conta com if/else if, recusa a divisão por zero (que dá Infinity, sem erro), repete até você sair e, na versão final, valida o que foi digitado com funções async. Quatro versões com sessões reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Calculadora</span></h1>
+
+<p class="intro">Uma calculadora que roda no terminal: ela pede um número, a operação e outro número, mostra o resultado e pergunta se você quer fazer outra conta. A conta em si é a parte fácil: o JavaScript já sabe somar. O desafio é fazer o programa <strong>não responder bobagem</strong> quando alguém divide por zero, escolhe uma operação que não existe ou digita "seis" no lugar de um número. E, no JavaScript, há uma pegadinha logo no começo: o <code>+</code> pode <strong>juntar textos</strong> em vez de somar.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler o que a pessoa digita no Node (veja <a href="entrada-teclado.html">Lendo o Teclado no Node</a>) com <code>await</code> (veja <a href="async-await.html">async e await</a>).</li>
+  <li>Transformar o texto em número com <a href="conversao.html">Number()</a> (e descobrir o que ele faz com "seis": <a href="numeros-especiais.html">NaN</a>).</li>
+  <li>Escolher a conta com <a href="if-else.html">if e else if</a>.</li>
+  <li>Recusar a divisão por zero, que no JavaScript dá <code>Infinity</code>.</li>
+  <li>Repetir tudo com <a href="while.html">while</a> e sair com <a href="break-continue.html">break</a>.</li>
+  <li>Separar o programa em <a href="funcoes.html">funções</a> que devolvem valores com <a href="return.html">return</a>, e avisar um problema com <a href="throw.html">throw</a> e <a href="try-catch.html">try … catch</a>.</li>
+  <li>Limpar o texto com <code>trim</code>, <code>toLowerCase</code> e <code>replace</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>Esta é a calculadora pronta, rodando no computador da Ana (Node.js v24.22.0). <strong>O que aparece depois dos dois-pontos de cada pergunta foi digitado por ela</strong> (o <code>10</code>, o <code>+</code>, o <code>s</code>…); o resto foi o programa que escreveu:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 5
+10 + 5 = 15
+Outra conta? (s/n): s
+Primeiro número: seis
+"seis" não é um número. Tente de novo.          « texto no lugar de número
+Primeiro número: 6
+Operação (+ - * /): %
+Operação desconhecida: %                        « operação que não existe
+Operação (+ - * /): *
+Segundo número: 1.5
+6 * 1.5 = 9
+Outra conta? (s/n): S                           « maiúsculo também vale
+Primeiro número: 2,5                            « com vírgula também vale
+Operação (+ - * /): /
+Segundo número: 0
+Não dá para dividir por zero.                   « divisão por zero
+Outra conta? (s/n): s
+Primeiro número: 0.1
+Operação (+ - * /): +
+Segundo número: 0.2
+0.1 + 0.2 = 0.3
+Outra conta? (s/n): s
+Primeiro número:                                « só Enter
+"" não é um número. Tente de novo.
+Primeiro número: 10
+Operação (+ - * /): /
+Segundo número: 3
+10 / 3 = 3.3333333333
+Outra conta? (s/n):  n
+Até logo!</pre>
+
+<p>Vamos chegar lá em quatro versões. No fim de cada uma, o programa roda; cada versão acrescenta uma coisa só:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">Dois números e um operador</a> (<code>Number</code>, <code>if</code>/<code>else if</code>).</li>
+  <li><a href="#versao2">A divisão por zero</a> (que no JavaScript não dá erro: dá <code>Infinity</code>).</li>
+  <li><a href="#versao3">Repetir até a pessoa sair</a> (<code>while (true)</code> e <code>break</code>).</li>
+  <li><a href="#versao4">Funções e entrada validada</a> (<code>async function</code>, <code>return</code>, <code>Number.isNaN</code>, <code>throw</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Você precisa saber criar e rodar um arquivo <code>.js</code> (<a href="executar.html">Rodando um Programa</a>), usar <a href="variaveis.html">variáveis</a> com <a href="const.html">const</a> e montar frases com <a href="template-strings.html">template strings</a>. No seu computador, crie a pasta do projeto; o arquivo vai se chamar <code>calculadora.js</code>:</p>
+
+<pre class="term">$ mkdir -p projetos/calculadora
+$ cd projetos/calculadora</pre>
+
+<p>Em cada versão há também uma caixa <strong>Experimente</strong>, que roda o JavaScript de verdade aqui na página. Nas missões deste projeto, as respostas que o programa vai receber já estão prontas, uma por linha, como se alguém as digitasse (a missão diz quais são).</p>
+
+<hr>
+
+<h2>A peça que lê o teclado</h2>
+<p>O <code>console.log</code> escreve; para <strong>ler</strong> o que a pessoa digita, o Node tem o módulo <code>node:readline</code> ("ler linha"). Todas as versões da calculadora começam com as mesmas linhas, uma pequena receita que você pode copiar para qualquer programa que faz perguntas:</p>
+
+<pre class="file" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+// Mostra a pergunta e espera a pessoa digitar uma linha.
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import * as readline from "node:readline";</dt><dd>Traz o módulo <code>readline</code>, que vem junto com o Node (o <code>node:</code> na frente diz isso). Veja <a href="modulos.html">Módulos</a>.</dd>
+  <dt>readline.createInterface({ input: process.stdin })</dt><dd>Cria um "leitor de linhas" ligado à <strong>entrada padrão</strong> (<code>process.stdin</code>): o teclado, quando você roda o programa no terminal.</dd>
+  <dt>rl[Symbol.asyncIterator]()</dt><dd>Transforma o leitor numa fila de linhas: cada <code>linhas.next()</code> entrega a próxima linha digitada. Não precisa entender o <code>Symbol.asyncIterator</code> agora (ele aparece em <a href="iteradores.html">Iteradores</a>): é só o jeito de pedir "uma linha de cada vez".</dd>
+  <dt>process.stdout.write(pergunta)</dt><dd>Escreve a pergunta <strong>sem pular linha</strong> (o <code>console.log</code> pularia), para o que for digitado aparecer logo depois dos dois-pontos.</dd>
+  <dt>await linhas.next()</dt><dd>Espera a pessoa digitar e apertar <kbd>Enter</kbd>. O <code>await</code> ("aguardar") pausa a função até a linha chegar; por isso a função é <code>async</code>. O resultado é um objeto <code>{ value, done }</code>; o <code>{ value }</code> pega só o texto (veja <a href="desestruturacao.html">Desestruturação</a>).</dd>
+  <dt>return value;</dt><dd>Devolve a linha digitada, como <strong>texto</strong>, sem o Enter. Se a entrada acabou (<kbd>Ctrl</kbd>+<kbd>D</kbd>), <code>value</code> é <code>undefined</code>.</dd>
+</dl>
+
+<p>No fim do programa vem um <code>rl.close()</code>, que fecha o leitor. Sem ele, o Node continua esperando o teclado e o programa não termina.</p>
+
+<div class="note">
+<strong>E o <code>rl.question()</code>?</strong>
+<p>Você vai encontrar muito o <code>await rl.question("Pergunta: ")</code>, do <code>node:readline/promises</code>. Ele funciona bem quando alguém digita, mas <strong>perde linhas</strong> quando as respostas chegam todas de uma vez, por exemplo de um arquivo ou de outro programa (o <code>|</code> do terminal). A Ana testou uma calculadora feita com <code>rl.question</code>, mandando as três respostas pelo <code>printf</code>:</p>
+<pre class="term" data-cwd="~/projetos/calculadora">$ printf "10\n+\n5\n" | node perguntaq.js
+=== Calculadora da Ana ===
+Primeiro número: Operação (+ - * /): Warning: Detected unsettled top-level await at file:///home/ana/projetos/calculadora/perguntaq.js:7
+const op = await rl.question("Operação (+ - * /): ");
+           ^
+
+
+
+$ echo $?
+13</pre>
+<p>As três linhas chegaram juntas; a primeira pergunta pegou o <code>10</code> e as outras duas linhas passaram enquanto ninguém perguntava. A segunda pergunta ficou esperando para sempre, a entrada acabou, e o Node avisou: "um <code>await</code> do nível de cima ficou sem resposta" (código de saída 13). A receita com <code>linhas.next()</code> guarda as linhas numa fila e não perde nenhuma:</p>
+<pre class="term" data-cwd="~/projetos/calculadora">$ printf "10\n+\n5\ns\n3\n*\n4\nn\n" | node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: Operação (+ - * /): Segundo número: 10 + 5 = 15
+Outra conta? (s/n): Primeiro número: Operação (+ - * /): Segundo número: 3 * 4 = 12
+Outra conta? (s/n): Até logo!</pre>
+<p>(As respostas não aparecem na tela porque ninguém as digitou: vieram do <code>printf</code>. É a calculadora da versão 3.)</p>
+</div>
+
+<hr>
+
+<h2>Antes da versão 1: o <code>+</code> que junta textos</h2>
+<p>O jeito mais curto de pedir dois números e somar seria este (a receita de cima fica no começo do arquivo; daqui para a frente ela aparece sempre):</p>
+
+<pre class="file" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+// Mostra a pergunta e espera a pessoa digitar uma linha.
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = await perguntar("Primeiro número: ");
+const b = await perguntar("Segundo número: ");
+console.log(`${a} + ${b} = ${a + b}`);
+
+rl.close();
+</pre>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Segundo número: 5
+10 + 5 = 105</pre>
+
+<p><strong>105!</strong> O programa não deu erro, mas a resposta está errada. O que a pessoa digita chega sempre como <strong>texto</strong> (uma string), mesmo que sejam só algarismos: <code>a</code> vale <code>"10"</code> e <code>b</code> vale <code>"5"</code>. E o <code>+</code> do JavaScript tem dois trabalhos: com números, <strong>soma</strong>; com textos, <strong>junta</strong> (concatena). <code>"10" + "5"</code> é <code>"105"</code>. Conferindo no modo interativo:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "10" + "5"
+'105'
+&gt; "10" * "5"
+50
+&gt; .exit</pre>
+
+<p>Repare que o <code>*</code> converteu sozinho e deu <code>50</code>: só o <code>+</code> tem esse duplo sentido (veja <a href="conversao-automatica.html">Conversão Automática</a>). Por isso a calculadora converte o que foi digitado <strong>logo na entrada</strong>, com <code>Number()</code>, e passa a trabalhar só com números. É o primeiro passo da versão 1.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Dois números e um operador</h2>
+<p>A calculadora pede o primeiro número, a operação e o segundo número. Os números passam pelo <code>Number()</code>, que transforma o texto num número. A operação fica como texto mesmo: <code>"+"</code>, <code>"-"</code>, <code>"*"</code> ou <code>"/"</code>. Para escolher a conta, uma escada de <a href="if-else.html">if e else if</a>.</p>
+
+<pre class="file" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+// Mostra a pergunta e espera a pessoa digitar uma linha.
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+const b = Number(await perguntar("Segundo número: "));
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "-") {
+  console.log(`${a} - ${b} = ${a - b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  console.log(`${a} / ${b} = ${a / b}`);
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+rl.close();
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>console.log("=== Calculadora da Ana ===");</code></td><td>O título, para a pessoa saber que programa está rodando.</td></tr>
+<tr><td><code>Number(await perguntar("Primeiro número: "))</code></td><td>Primeiro o de dentro: o <code>await perguntar(…)</code> mostra a pergunta e espera a linha. Depois o de fora: o <code>Number(…)</code> converte o texto em número: <code>"10"</code> vira <code>10</code>, <code>"7.5"</code> vira <code>7.5</code>. Se o texto não for um número, dá <code>NaN</code> ("não é um número").</td></tr>
+<tr><td><code>const op = await perguntar(…)</code></td><td>A operação, sem conversão: <code>"+"</code> é um texto e assim fica.</td></tr>
+<tr><td><code>if (op === "+") {</code></td><td>"Se a operação for igual a <code>"+"</code>…". O <code>===</code> compara (um <code>=</code> só guarda valor numa variável; veja <a href="operadores-comparacao.html">Comparação</a>).</td></tr>
+<tr><td><code>} else if (op === "-") {</code></td><td>"Senão, se…": só é testado quando o <code>if</code> de cima deu falso. O JavaScript testa de cima para baixo e faz <strong>só o primeiro</strong> que combinar.</td></tr>
+<tr><td><code>} else {</code></td><td>Pega tudo o que não combinou com nenhum dos de cima: <code>x</code>, <code>%</code>, uma palavra qualquer.</td></tr>
+<tr><td><code>`${a} + ${b} = ${a + b}`</code></td><td>Monta a frase com uma template string: cada <code>${…}</code> vira o valor de dentro. Agora <code>a</code> e <code>b</code> são números, e <code>a + b</code> soma.</td></tr>
+<tr><td><code>rl.close();</code></td><td>Fecha o leitor do teclado, e o programa pode terminar.</td></tr>
+</table>
+</div>
+
+<p>Rodando no terminal da Ana, três vezes:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 5
+10 + 5 = 15
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 7.5
+Operação (+ - * /): /
+Segundo número: 2
+7.5 / 2 = 3.75
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 3
+Operação (+ - * /): x
+Segundo número: 4
+Operação desconhecida: x</pre>
+
+<p>A soma agora dá 15. E uma operação que não existe cai no <code>else</code>. Conferindo no modo interativo o que o <code>Number</code> faz com cada texto:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; Number("10")
+10
+&gt; Number("7.5")
+7.5
+&gt; Number("2,5")
+NaN
+&gt; Number("seis")
+NaN
+&gt; Number("  8  ")
+8
+&gt; Number("")
+0
+&gt; .exit</pre>
+
+<p>Espaços nas pontas não atrapalham (<code>"  8  "</code> vira <code>8</code>). Mas <code>"2,5"</code>, com vírgula, dá <code>NaN</code>: para o JavaScript, o decimal é com <strong>ponto</strong>. E repare no último: o texto vazio vira <strong>zero</strong>, sem aviso nenhum. Guarde isso para a versão 4.</p>
+
+<div class="warning">
+<strong>0.1 + 0.2 não dá exatamente 0.3</strong>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 0.1
+Operação (+ - * /): +
+Segundo número: 0.2
+0.1 + 0.2 = 0.30000000000000004</pre>
+<p>Não é defeito da calculadora nem do JavaScript: o computador guarda os números com casas decimais em binário, e alguns, como <code>0.1</code>, não têm representação exata (como 1/3 não tem em decimal: 0,3333…). Sobra um erro minúsculo na 17ª casa. Quase toda linguagem de programação dá o mesmo resultado (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Na versão 4, a calculadora arredonda na hora de mostrar.</p>
+</div>
+
+<h3>Quando dá errado na versão 1</h3>
+
+<div class="cenario">
+<strong>Texto no lugar de número: <code>NaN</code>, sem erro nenhum</strong>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: seis
+Operação (+ - * /): +
+Segundo número: 5
+NaN + 5 = NaN
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 2,5
+Operação (+ - * /): *
+Segundo número: 2
+NaN * 2 = NaN</pre>
+<p>O <code>Number("seis")</code> não para o programa: ele devolve <code>NaN</code> (<em>Not a Number</em>, "não é um número"), que é, curiosamente, do tipo <code>number</code>. Qualquer conta com <code>NaN</code> dá <code>NaN</code>, e o programa segue em frente mostrando bobagem. Em muitas linguagens isso daria um erro; no JavaScript, o problema passa calado, e é você quem precisa conferir. A versão 4 conserta isso: pergunta de novo enquanto não vier um número.</p>
+</div>
+
+<div class="tryjs" data-stdin="10\n-\n4" data-goal="out:10 - 4 = 6">
+<p class="try-task"><strong>Missão (versão 1):</strong> o programa ainda não pede o segundo número e não sabe subtrair. Onde está o comentário, peça e leia <code>b</code> (com <code>Number(await perguntar("Segundo número: "))</code>) e acrescente um <code>else if</code> para a operação <code>"-"</code>. As respostas da missão são <code>10</code>, <code>-</code>, <code>4</code>: o resultado deve ser <code>10 - 4 = 6</code>.</p>
+<pre class="script" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+// peça e leia o segundo número
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  console.log(`${a} / ${b} = ${a / b}`);
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+rl.close();
+</pre>
+<pre class="solucao" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+const b = Number(await perguntar("Segundo número: "));
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "-") {
+  console.log(`${a} - ${b} = ${a - b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  console.log(`${a} / ${b} = ${a / b}`);
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · A divisão por zero</h2>
+<p>Em muitas linguagens, dividir por zero para o programa com um erro. No JavaScript, <strong>não</strong>: o resultado é um valor especial. Veja a versão 1 recebendo um zero:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 1
+Operação (+ - * /): /
+Segundo número: 0
+1 / 0 = Infinity
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: -1
+Operação (+ - * /): /
+Segundo número: 0
+-1 / 0 = -Infinity
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 0
+Operação (+ - * /): /
+Segundo número: 0
+0 / 0 = NaN</pre>
+
+<p><code>Infinity</code> é "infinito" e <code>NaN</code>, de novo, "não é um número". O programa não quebrou, mas a resposta não serve para a Ana. Na matemática, dividir por zero não tem resposta: a calculadora deve <strong>avisar</strong>. A mudança é um <code>if</code> dentro do caso da divisão (o resto do arquivo fica igual):</p>
+
+<pre class="file" data-file="calculadora.js">} else if (op === "/") {
+  if (b === 0) {
+    console.log("Não dá para dividir por zero.");
+  } else {
+    console.log(`${a} / ${b} = ${a / b}`);
+  }
+} else {
+</pre>
+
+<dl class="anatomy">
+  <dt>} else if (op === "/") {</dt><dd>O caso da divisão continua o mesmo; o que mudou é o que está dentro dele.</dd>
+  <dt>if (b === 0) {</dt><dd>Um <code>if</code> comum, dentro do caso: se o divisor for zero, avisa em vez de dividir. Um bloco pode ter qualquer coisa dentro, inclusive outro <code>if</code> (veja <a href="condicoes-aninhadas.html">Condições Aninhadas</a>).</dd>
+  <dt>} else { … }</dt><dd>Senão, faz a conta como antes. As chaves <code>{ }</code> e a indentação de 2 espaços mostram qual <code>}</code> fecha o quê.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 1
+Operação (+ - * /): /
+Segundo número: 0
+Não dá para dividir por zero.
+$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 9
+Operação (+ - * /): -
+Segundo número: 12
+9 - 12 = -3</pre>
+
+<p>Em vez de <code>Infinity</code>, uma frase que a Ana entende. Isso é <strong>prevenir</strong>: o programa confere antes de fazer a conta perigosa.</p>
+
+<div class="tip">
+<strong>Por que o <code>Number</code> é importante aqui</strong>
+<p>Sem o <code>Number</code>, o <code>b</code> seria o texto <code>"0"</code>, e <code>"0" === 0</code> dá <code>false</code>: o <code>===</code> nunca converte, um texto nunca é igual a um número. O <code>if</code> não pegaria o zero e a calculadora mostraria <code>Infinity</code> do mesmo jeito. Por isso: converta na entrada.</p>
+</div>
+
+<div class="tryjs" data-stdin="1\n/\n0" data-goal="out:Não dá para dividir por zero.;;semerro">
+<p class="try-task"><strong>Missão (versão 2):</strong> o caso da divisão ainda divide sem olhar, e as respostas da missão (<code>1</code>, <code>/</code>, <code>0</code>) mostram <code>1 / 0 = Infinity</code>. Dentro do caso <code>"/"</code>, confira se <code>b === 0</code>: se for, mostre <code>Não dá para dividir por zero.</code>; senão, faça a conta.</p>
+<pre class="script" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+const b = Number(await perguntar("Segundo número: "));
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "-") {
+  console.log(`${a} - ${b} = ${a - b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  console.log(`${a} / ${b} = ${a / b}`);
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+rl.close();
+</pre>
+<pre class="solucao" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+const b = Number(await perguntar("Segundo número: "));
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "-") {
+  console.log(`${a} - ${b} = ${a - b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  if (b === 0) {
+    console.log("Não dá para dividir por zero.");
+  } else {
+    console.log(`${a} / ${b} = ${a / b}`);
+  }
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Repetir até a pessoa sair</h2>
+<p>Até agora, cada conta exige rodar o programa de novo. A Ana quer fazer várias contas seguidas. A solução é colocar tudo dentro de um laço <a href="while.html">while</a> ("enquanto") e, no fim de cada volta, perguntar se ela quer continuar. A receita do teclado continua no começo do arquivo; daqui para baixo, muda isto:</p>
+
+<pre class="file" data-file="calculadora.js">console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = Number(await perguntar("Primeiro número: "));
+  const op = await perguntar("Operação (+ - * /): ");
+  const b = Number(await perguntar("Segundo número: "));
+
+  if (op === "+") {
+    console.log(`${a} + ${b} = ${a + b}`);
+  } else if (op === "-") {
+    console.log(`${a} - ${b} = ${a - b}`);
+  } else if (op === "*") {
+    console.log(`${a} * ${b} = ${a * b}`);
+  } else if (op === "/") {
+    if (b === 0) {
+      console.log("Não dá para dividir por zero.");
+    } else {
+      console.log(`${a} / ${b} = ${a / b}`);
+    }
+  } else {
+    console.log(`Operação desconhecida: ${op}`);
+  }
+
+  const continuar = await perguntar("Outra conta? (s/n): ");
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+
+<dl class="anatomy">
+  <dt>while (true) {</dt><dd>"Enquanto verdadeiro": um laço que, sozinho, nunca termina. Tudo o que está entre as chaves se repete. Quem decide a hora de parar é o <code>break</code> lá dentro.</dd>
+  <dt>(o bloco inteiro andou 2 espaços)</dt><dd>As perguntas e o <code>if</code> agora estão <strong>dentro</strong> do <code>while</code>. Para o JavaScript, quem marca o que é do laço são as chaves; a indentação deixa isso visível para você.</dd>
+  <dt>const a = …</dt><dd>Pode ser <code>const</code> mesmo repetindo: a cada volta nasce uma variável <code>a</code> nova, que some no fim da volta (veja <a href="escopo.html">Escopo</a>).</dd>
+  <dt>if (continuar !== "s")</dt><dd>"Se a resposta for diferente de <code>s</code>". Qualquer outra coisa (<code>n</code>, <code>não</code>, só <kbd>Enter</kbd>) encerra.</dd>
+  <dt>break;</dt><dd>"Quebrar": sai do laço na hora. O programa continua na primeira linha <strong>depois</strong> da <code>}</code> do <code>while</code> (veja <a href="break-continue.html">break e continue</a>).</dd>
+  <dt>console.log("Até logo!");</dt><dd>Fora do laço: roda uma vez só, quando o <code>break</code> acontece.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 5
+10 + 5 = 15
+Outra conta? (s/n): s
+Primeiro número: 100
+Operação (+ - * /): /
+Segundo número: 8
+100 / 8 = 12.5
+Outra conta? (s/n): n
+Até logo!</pre>
+
+<p>E um tropeço que a Ana encontrou logo no segundo uso:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 5
+10 + 5 = 15
+Outra conta? (s/n): s
+Primeiro número: 3
+Operação (+ - * /): *
+Segundo número: 4
+3 * 4 = 12
+Outra conta? (s/n): S                « maiúsculo: o programa terminou!
+Até logo!</pre>
+
+<p>Ela queria continuar, mas digitou <code>S</code> maiúsculo, e <code>"S" !== "s"</code> é verdadeiro: para o JavaScript, maiúscula e minúscula são letras diferentes. Na versão 4, a resposta passa por <code>toLowerCase()</code> ("para minúsculas") antes de comparar.</p>
+
+<div class="cenario">
+<strong>Sair no meio com <kbd>Ctrl</kbd>+<kbd>C</kbd> ou <kbd>Ctrl</kbd>+<kbd>D</kbd></strong>
+<p>Se a Ana desistir no meio de uma conta e apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>, que interrompe qualquer programa no terminal:</p>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): ^C
+$ echo $?
+130</pre>
+<p>O <code>^C</code> é o terminal mostrando a tecla. O Node para na hora, sem mensagem, e o código de saída 130 (o <code>echo $?</code>) quer dizer "interrompido pelo <kbd>Ctrl</kbd>+<kbd>C</kbd>". Não é defeito: é o jeito normal de interromper.</p>
+<p>Já o <kbd>Ctrl</kbd>+<kbd>D</kbd> quer dizer "acabou a entrada". Aí não há linha nenhuma para entregar, e o <code>perguntar</code> devolve <code>undefined</code>:</p>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 10 + NaN = NaN
+Outra conta? (s/n): Até logo!</pre>
+<p>A Ana apertou <kbd>Ctrl</kbd>+<kbd>D</kbd> no segundo número: <code>Number(undefined)</code> dá <code>NaN</code>, e a conta sai na mesma linha (ninguém apertou <kbd>Enter</kbd>). A pergunta "Outra conta?" também recebe <code>undefined</code>, que é diferente de <code>"s"</code>, e o programa termina. Não quebrou, mas ficou feio. A versão 4 trata esse caso.</p>
+</div>
+
+<div class="tryjs" data-stdin="10\n+\n5\ns\n3\n*\n4\nn" data-goal="out:3 * 4 = 12;;out:Até logo!;;src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão (versão 3):</strong> o programa faz uma conta, pergunta "Outra conta?", mas não repete. Coloque as perguntas, o <code>if</code> e a pergunta "Outra conta?" dentro de um <code>while (true) { … }</code> e saia com <code>break</code> quando a resposta não for <code>s</code>. As respostas da missão fazem <code>10 + 5</code>, respondem <code>s</code>, fazem <code>3 * 4</code> e respondem <code>n</code>.</p>
+<pre class="script" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+
+const a = Number(await perguntar("Primeiro número: "));
+const op = await perguntar("Operação (+ - * /): ");
+const b = Number(await perguntar("Segundo número: "));
+
+if (op === "+") {
+  console.log(`${a} + ${b} = ${a + b}`);
+} else if (op === "-") {
+  console.log(`${a} - ${b} = ${a - b}`);
+} else if (op === "*") {
+  console.log(`${a} * ${b} = ${a * b}`);
+} else if (op === "/") {
+  if (b === 0) {
+    console.log("Não dá para dividir por zero.");
+  } else {
+    console.log(`${a} / ${b} = ${a / b}`);
+  }
+} else {
+  console.log(`Operação desconhecida: ${op}`);
+}
+
+const continuar = await perguntar("Outra conta? (s/n): ");
+
+console.log("Até logo!");
+rl.close();
+</pre>
+<pre class="solucao" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = Number(await perguntar("Primeiro número: "));
+  const op = await perguntar("Operação (+ - * /): ");
+  const b = Number(await perguntar("Segundo número: "));
+
+  if (op === "+") {
+    console.log(`${a} + ${b} = ${a + b}`);
+  } else if (op === "-") {
+    console.log(`${a} - ${b} = ${a - b}`);
+  } else if (op === "*") {
+    console.log(`${a} * ${b} = ${a * b}`);
+  } else if (op === "/") {
+    if (b === 0) {
+      console.log("Não dá para dividir por zero.");
+    } else {
+      console.log(`${a} / ${b} = ${a / b}`);
+    }
+  } else {
+    console.log(`Operação desconhecida: ${op}`);
+  }
+
+  const continuar = await perguntar("Outra conta? (s/n): ");
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Funções e entrada validada</h2>
+<p>A versão 3 já faz várias contas, mas ainda responde <code>NaN</code> para <code>seis</code> e para <code>2,5</code>, aceita o Enter vazio como zero, fica feia com o <kbd>Ctrl</kbd>+<kbd>D</kbd> e não aceita o <code>S</code> maiúsculo. E o programa ficou comprido: está tudo misturado num bloco só. A versão 4 resolve as duas coisas de uma vez: cada tarefa vira uma <a href="funcoes.html">função</a> com nome, e a função que lê números <strong>insiste</strong> até receber um número de verdade.</p>
+
+<pre class="file" data-file="calculadora.js">// Calculadora da Ana, versão 4: funções e entrada validada
+import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+// Mostra a pergunta e espera a pessoa digitar uma linha.
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+// Pergunta e devolve o que a pessoa digitou, sem espaços nas pontas.
+async function ler(pergunta) {
+  const texto = await perguntar(pergunta);
+  if (texto === undefined) {   // a entrada acabou (Ctrl+D)
+    console.log();
+    console.log("Até logo!");
+    process.exit(0);
+  }
+  return texto.trim();
+}
+
+// Pergunta até a pessoa digitar um número; aceita vírgula ou ponto.
+async function lerNumero(pergunta) {
+  while (true) {
+    const texto = await ler(pergunta);
+    const numero = Number(texto.replace(",", "."));
+    if (texto !== "" &amp;&amp; !Number.isNaN(numero)) {
+      return numero;
+    }
+    console.log(`"${texto}" não é um número. Tente de novo.`);
+  }
+}
+
+// Pergunta até a pessoa digitar uma das quatro operações.
+async function lerOperacao() {
+  while (true) {
+    const op = await ler("Operação (+ - * /): ");
+    if (op === "+" || op === "-" || op === "*" || op === "/") {
+      return op;
+    }
+    console.log(`Operação desconhecida: ${op}`);
+  }
+}
+
+// Mostra 0.3 em vez de 0.30000000000000004 (no máximo 10 casas).
+function formatar(numero) {
+  return String(Number(numero.toFixed(10)));
+}
+
+// Faz a conta. Se não der, lança um erro com o motivo.
+function calcular(a, op, b) {
+  if (op === "+") {
+    return a + b;
+  } else if (op === "-") {
+    return a - b;
+  } else if (op === "*") {
+    return a * b;
+  } else if (op === "/") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a / b;
+  }
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = await lerNumero("Primeiro número: ");
+  const op = await lerOperacao();
+  const b = await lerNumero("Segundo número: ");
+
+  try {
+    const resultado = calcular(a, op, b);
+    console.log(`${formatar(a)} ${op} ${formatar(b)} = ${formatar(resultado)}`);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+
+  const continuar = (await ler("Outra conta? (s/n): ")).toLowerCase();
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+
+<p>Parece muito código novo, mas o "programa principal" (do <code>console.log</code> do título até o fim) ficou <strong>mais curto</strong> e mais fácil de ler do que na versão 3: ele só chama funções com nomes que dizem o que fazem. Vamos às peças.</p>
+
+<h3>As funções, uma por uma</h3>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>async function ler(pergunta)</code></td><td>Todas as perguntas do programa passam por ela. É <code>async</code> porque usa <code>await</code> lá dentro (veja <a href="async-await.html">async e await</a>), e por isso quem a chama também escreve <code>await ler(…)</code>.</td></tr>
+<tr><td><code>if (texto === undefined)</code> … <code>process.exit(0)</code></td><td>Se a entrada acabou (<kbd>Ctrl</kbd>+<kbd>D</kbd>), pula uma linha, despede-se e encerra o programa com o código 0, "tudo certo" (veja <a href="process-env.html">process.exit</a>).</td></tr>
+<tr><td><code>texto.trim()</code></td><td>Devolve o texto sem os espaços das pontas: <code>" n"</code> vira <code>"n"</code>.</td></tr>
+<tr><td><code>texto.replace(",", ".")</code></td><td>Troca a vírgula pelo ponto: <code>"2,5"</code> vira <code>"2.5"</code>, que o <code>Number</code> entende (veja <a href="strings-substituir.html">replace</a>).</td></tr>
+<tr><td><code>texto !== "" &amp;&amp; !Number.isNaN(numero)</code></td><td>É número de verdade se o texto <strong>não estiver vazio</strong> (lembre: <code>Number("")</code> dá 0) <strong>e</strong> a conversão <strong>não</strong> der <code>NaN</code>. O <code>&amp;&amp;</code> é "e"; o <code>!</code> é "não" (veja <a href="operadores-logicos.html">Operadores Lógicos</a>).</td></tr>
+<tr><td><code>return numero;</code></td><td>Se deu certo, devolve o número e <strong>sai da função</strong> (e, com ela, do <code>while</code>). Se não deu, mostra o aviso e o <code>while (true)</code> pergunta de novo.</td></tr>
+<tr><td><code>op === "+" || op === "-" || …</code></td><td>A operação tem de ser uma das quatro. Com <code>||</code> ("ou"), basta uma comparação dar verdadeiro.</td></tr>
+<tr><td><code>numero.toFixed(10)</code></td><td>Arredonda para 10 casas e devolve um <strong>texto</strong>: <code>0.30000000000000004</code> vira <code>"0.3000000000"</code>. O <code>Number(…)</code> em volta tira os zeros que sobram (<code>0.3</code>) e o <code>String(…)</code> devolve o texto final (veja <a href="numeros-formatar.html">Formatando Números</a>).</td></tr>
+<tr><td><code>throw new Error("Não dá…")</code></td><td>"Lançar" um erro: a função para ali e avisa quem a chamou (veja <a href="throw.html">throw</a>).</td></tr>
+<tr><td><code>try { … } catch (erro) { … }</code></td><td>"Tente; se der erro, pegue". Se o <code>calcular</code> lançar o erro, o programa não quebra: cai no <code>catch</code>, que mostra o motivo guardado em <code>erro.message</code> (veja <a href="try-catch.html">try … catch</a>).</td></tr>
+<tr><td><code>(await ler("Outra conta? (s/n): ")).toLowerCase()</code></td><td>Lê, apara os espaços e passa para minúsculas: <code>S</code>, <code>s</code> e <code>" s "</code> viram todos <code>"s"</code>. Os parênteses em volta do <code>await</code> fazem a espera acontecer <strong>antes</strong> do <code>.toLowerCase()</code>.</td></tr>
+</table>
+</div>
+
+<p>Conferindo no modo interativo as peças novas:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "2,5".replace(",", ".")
+'2.5'
+&gt; (0.1 + 0.2).toFixed(10)
+'0.3000000000'
+&gt; Number((0.1 + 0.2).toFixed(10))
+0.3
+&gt; Number((10 / 3).toFixed(10))
+3.3333333333
+&gt; Number.isNaN(Number("seis"))
+true
+&gt; Number("seis") === NaN
+false
+&gt; .exit</pre>
+
+<p>O último é uma pegadinha famosa: <code>NaN</code> não é igual a nada, <strong>nem a ele mesmo</strong>. Por isso a calculadora confere com <code>Number.isNaN(numero)</code>, e não com <code>numero === NaN</code> (que sempre dá <code>false</code>).</p>
+
+<p>Agora a sessão completa:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /): +
+Segundo número: 5
+10 + 5 = 15
+Outra conta? (s/n): s
+Primeiro número: seis
+"seis" não é um número. Tente de novo.
+Primeiro número: 6
+Operação (+ - * /): %
+Operação desconhecida: %
+Operação (+ - * /): *
+Segundo número: 1.5
+6 * 1.5 = 9
+Outra conta? (s/n): S
+Primeiro número: 2,5
+Operação (+ - * /): /
+Segundo número: 0
+Não dá para dividir por zero.
+Outra conta? (s/n): s
+Primeiro número: 0.1
+Operação (+ - * /): +
+Segundo número: 0.2
+0.1 + 0.2 = 0.3
+Outra conta? (s/n): s
+Primeiro número:
+"" não é um número. Tente de novo.
+Primeiro número: 10
+Operação (+ - * /): /
+Segundo número: 3
+10 / 3 = 3.3333333333
+Outra conta? (s/n):  n
+Até logo!</pre>
+
+<p>É a sessão do começo da página. Tudo o que dava bobagem na versão 1 agora tem resposta. E o <kbd>Ctrl</kbd>+<kbd>D</kbd> no meio de uma pergunta:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * /):
+Até logo!</pre>
+
+<div class="cenario">
+<strong>Esquecer o <code>async</code>: <code>SyntaxError: Unexpected reserved word</code></strong>
+<p>A Ana escreveu a função <code>perguntar</code> sem o <code>async</code> na frente (programa encurtado):</p>
+<pre class="file" data-file="semasync.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+console.log("=== Calculadora da Ana ===");
+const a = await perguntar("Primeiro número: ");
+rl.close();
+</pre>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node semasync.js
+file:///home/ana/projetos/calculadora/semasync.js:8
+  const { value } = await linhas.next();
+                    ^^^^^
+
+SyntaxError: Unexpected reserved word
+    at compileSourceTextModule (node:internal/modules/esm/utils:319:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:89:18)
+    «  mais 8 linhas "at …" internas do Node, cortadas aqui
+
+Node.js v24.22.0</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>file:///home/ana/projetos/calculadora/semasync.js:8</dt><dd>Em que arquivo e em que <strong>linha</strong> (a 8). O <code>file://</code> aparece porque o arquivo tem <code>import</code>: o Node o tratou como um <strong>módulo</strong> (veja <a href="modulos.html">Módulos</a>).</dd>
+  <dt>const { value } = await linhas.next();</dt><dd>A linha do código, copiada.</dd>
+  <dt>^^^^^</dt><dd>As setinhas apontam a palavra culpada: o <code>await</code>.</dd>
+  <dt>SyntaxError: Unexpected reserved word</dt><dd>"Erro de sintaxe: palavra reservada inesperada". O <code>await</code> é uma <a href="ref-palavras-reservadas.html">palavra reservada</a> e só pode aparecer dentro de uma função <code>async</code> (ou fora de qualquer função, no nível de cima de um módulo, como na linha 13). Dentro de uma função comum, o Node nem começa a rodar o programa: repare que o título "=== Calculadora da Ana ===" não apareceu.</dd>
+  <dt>at …</dt><dd>Por onde o Node passou ao ler o arquivo: tudo dentro do próprio Node (<code>node:internal/…</code>), nenhuma linha sua.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que deu o erro.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>async function perguntar(pergunta)</code>. A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> mostra mais mensagens como esta.</p>
+</div>
+
+<div class="cenario">
+<strong>Esquecer o <code>await</code> na chamada: <code>NaN + NaN = NaN</code></strong>
+<p>Agora o contrário: a função <code>perguntar</code> está certa (com <code>async</code>), mas a Ana esqueceu o <code>await</code> ao chamá-la. O trecho que mudou:</p>
+<pre class="file" data-file="semawait.js">const a = Number(perguntar("Primeiro número: "));
+const b = Number(perguntar("Segundo número: "));
+console.log(`${a} + ${b} = ${a + b}`);
+</pre>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node semawait.js
+=== Calculadora da Ana ===
+Primeiro número: Segundo número: NaN + NaN = NaN</pre>
+<p>As duas perguntas saíram juntas e o programa nem esperou a Ana digitar. Sem <code>await</code>, uma função <code>async</code> devolve na hora uma <strong>promessa</strong> (uma <a href="promises.html">Promise</a>, "o valor vai chegar depois"), e não o texto. <code>Number(promessa)</code> dá <code>NaN</code>. Nenhum erro aparece: só a resposta errada. Toda chamada de <code>perguntar</code>, <code>ler</code>, <code>lerNumero</code> e <code>lerOperacao</code> precisa do <code>await</code>.</p>
+</div>
+
+<div class="tryjs" data-stdin="abc\n10\n+\n5\nn" data-goal="out:&quot;abc&quot; não é um número. Tente de novo.;;out:10 + 5 = 15;;semerro">
+<p class="try-task"><strong>Missão (versão 4):</strong> a função <code>lerNumero</code> ainda não insiste: com as respostas da missão (<code>abc</code>, <code>10</code>, <code>+</code>, <code>5</code>, <code>n</code>), o <code>abc</code> vira <code>NaN</code> e tudo desanda. Ponha a leitura dentro de um <code>while (true) { … }</code>: se o texto não estiver vazio e o número não for <code>NaN</code>, devolva com <code>return</code>; senão, mostre <code>"abc" não é um número. Tente de novo.</code> (com o texto que a pessoa digitou) e deixe o laço perguntar de novo.</p>
+<pre class="script" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+async function ler(pergunta) {
+  const texto = await perguntar(pergunta);
+  if (texto === undefined) {
+    console.log();
+    console.log("Até logo!");
+    process.exit(0);
+  }
+  return texto.trim();
+}
+
+async function lerNumero(pergunta) {
+  const texto = await ler(pergunta);
+  return Number(texto.replace(",", "."));
+}
+
+async function lerOperacao() {
+  while (true) {
+    const op = await ler("Operação (+ - * /): ");
+    if (op === "+" || op === "-" || op === "*" || op === "/") {
+      return op;
+    }
+    console.log(`Operação desconhecida: ${op}`);
+  }
+}
+
+function formatar(numero) {
+  return String(Number(numero.toFixed(10)));
+}
+
+function calcular(a, op, b) {
+  if (op === "+") {
+    return a + b;
+  } else if (op === "-") {
+    return a - b;
+  } else if (op === "*") {
+    return a * b;
+  } else if (op === "/") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a / b;
+  }
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = await lerNumero("Primeiro número: ");
+  const op = await lerOperacao();
+  const b = await lerNumero("Segundo número: ");
+
+  try {
+    const resultado = calcular(a, op, b);
+    console.log(`${formatar(a)} ${op} ${formatar(b)} = ${formatar(resultado)}`);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+
+  const continuar = (await ler("Outra conta? (s/n): ")).toLowerCase();
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+<pre class="solucao" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+async function ler(pergunta) {
+  const texto = await perguntar(pergunta);
+  if (texto === undefined) {
+    console.log();
+    console.log("Até logo!");
+    process.exit(0);
+  }
+  return texto.trim();
+}
+
+async function lerNumero(pergunta) {
+  while (true) {
+    const texto = await ler(pergunta);
+    const numero = Number(texto.replace(",", "."));
+    if (texto !== "" &amp;&amp; !Number.isNaN(numero)) {
+      return numero;
+    }
+    console.log(`"${texto}" não é um número. Tente de novo.`);
+  }
+}
+
+async function lerOperacao() {
+  while (true) {
+    const op = await ler("Operação (+ - * /): ");
+    if (op === "+" || op === "-" || op === "*" || op === "/") {
+      return op;
+    }
+    console.log(`Operação desconhecida: ${op}`);
+  }
+}
+
+function formatar(numero) {
+  return String(Number(numero.toFixed(10)));
+}
+
+function calcular(a, op, b) {
+  if (op === "+") {
+    return a + b;
+  } else if (op === "-") {
+    return a - b;
+  } else if (op === "*") {
+    return a * b;
+  } else if (op === "/") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a / b;
+  }
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = await lerNumero("Primeiro número: ");
+  const op = await lerOperacao();
+  const b = await lerNumero("Segundo número: ");
+
+  try {
+    const resultado = calcular(a, op, b);
+    console.log(`${formatar(a)} ${op} ${formatar(b)} = ${formatar(resultado)}`);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+
+  const continuar = (await ler("Outra conta? (s/n): ")).toLowerCase();
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de escolher a conta</h2>
+<p>A calculadora usou uma escada de <code>if</code>/<code>else if</code>. O JavaScript tem mais duas formas comuns de escolher entre vários valores: o <a href="switch.html">switch</a> e um <a href="objetos.html">objeto</a> que liga cada símbolo a uma função. Esta última funciona porque, no JavaScript, <a href="funcoes-valores.html">funções são valores</a>: dá para guardá-las num objeto como se fossem números.</p>
+
+<pre class="file" data-file="formas.js">const a = 10;
+const op = "*";
+const b = 3;
+
+// Forma 1: if / else if
+if (op === "+") {
+  console.log("if/else if:", a + b);
+} else if (op === "*") {
+  console.log("if/else if:", a * b);
+}
+
+// Forma 2: switch
+switch (op) {
+  case "+":
+    console.log("switch:", a + b);
+    break;
+  case "*":
+    console.log("switch:", a * b);
+    break;
+  default:
+    console.log("switch: operação desconhecida");
+}
+
+// Forma 3: um objeto de funções
+const contas = {
+  "+": (x, y) =&gt; x + y,
+  "-": (x, y) =&gt; x - y,
+  "*": (x, y) =&gt; x * y,
+  "/": (x, y) =&gt; x / y,
+};
+console.log("objeto:", contas[op](a, b));
+console.log("existe '%'?", contas["%"]);
+</pre>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node formas.js
+if/else if: 30
+switch: 30
+objeto: 30
+existe '%'? undefined</pre>
+
+<p>Na forma 3, <code>contas[op]</code> busca no objeto a função guardada na chave <code>"*"</code>, e o <code>(a, b)</code> logo depois a chama com os dois números. Uma operação que não existe dá <code>undefined</code>: <code>if (contas[op] === undefined)</code> faz o papel do <code>else</code>. As funções são <a href="arrow-functions.html">arrow functions</a>: <code>(x, y) =&gt; x + y</code> quer dizer "recebe <code>x</code> e <code>y</code> e devolve <code>x + y</code>".</p>
+
+<div class="cenario">
+<strong>Chamar a função que não existe: <code>TypeError: contas[op] is not a function</code></strong>
+<pre class="file" data-file="erro-objeto.js">const contas = {
+  "+": (x, y) =&gt; x + y,
+  "*": (x, y) =&gt; x * y,
+};
+const op = "%";
+console.log(contas[op](10, 3));
+</pre>
+<pre class="term" data-cwd="~/projetos/calculadora">$ node erro-objeto.js
+/home/ana/projetos/calculadora/erro-objeto.js:6
+console.log(contas[op](10, 3));
+                      ^
+
+TypeError: contas[op] is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/projetos/calculadora/erro-objeto.js:6:23)
+    «  mais 7 linhas "at …" internas do Node, cortadas aqui
+
+Node.js v24.22.0</pre>
+<p>"Erro de tipo: <code>contas[op]</code> não é uma função". Não existe a chave <code>"%"</code>, então <code>contas[op]</code> é <code>undefined</code>, e não dá para chamar <code>undefined</code> com <code>(10, 3)</code>. O <code>^</code> aponta para o parêntese da chamada, e o <code>erro-objeto.js:6:23</code> diz: linha 6, coluna 23. <strong>Como consertar:</strong> confira se a operação existe antes de chamar.</p>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>if</code> / <code>else if</code></td><td>Poucas opções, ou condições diferentes entre si (<code>op === "/" &amp;&amp; b === 0</code>). É o mais fácil de ler no começo.</td></tr>
+<tr><td><code>switch</code></td><td>Comparar <strong>uma</strong> variável com vários valores fixos. Cuidado com o <code>break</code> de cada <code>case</code>: sem ele, o programa "cai" no caso de baixo.</td></tr>
+<tr><td>Objeto de funções</td><td>Muitas opções que fazem coisas do mesmo formato. Acrescentar uma operação é acrescentar uma linha no objeto, e <code>contas[op]</code> já serve para validar a operação.</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>E o <code>eval()</code>?</strong>
+<p>Na internet você vai achar calculadoras de uma linha só, com <code>eval</code>, que transforma um texto em código JavaScript e o executa:</p>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; eval("10 + 5")
+15
+&gt; eval("2,5")
+5
+&gt; .exit</pre>
+<p>Parece prático, mas repare no segundo: <code>2,5</code> não deu erro nem 2.5; deu <strong>5</strong> (para o JavaScript, a vírgula ali separa duas expressões, e vale a última). E o pior: o <code>eval</code> executa <strong>qualquer</strong> código que a pessoa digitar, inclusive um que apaga arquivos. Nunca rode com <code>eval</code> um texto que veio do teclado, de um arquivo ou da internet. A calculadora da Ana é mais longa, mas ela sabe exatamente o que aceita.</p>
+</div>
+
+<hr>
+
+<h2>Desafio extra: resto e potência</h2>
+<p>A Ana quer mais duas operações: o resto da divisão (<code>%</code>) e a potência (<code>**</code>, "elevado a"), que você conhece da aula <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>. O resto por zero também não dá erro no JavaScript: <code>7 % 0</code> dá <code>NaN</code>. Então o caso <code>"%"</code> precisa recusar o zero, como a divisão. Com as mudanças da missão abaixo, a Ana testou assim:</p>
+
+<pre class="term" data-cwd="~/projetos/calculadora">$ node calculadora.js
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+ - * / % **): %
+Segundo número: 3
+10 % 3 = 1
+Outra conta? (s/n): s
+Primeiro número: 2
+Operação (+ - * / % **): **
+Segundo número: 10
+2 ** 10 = 1024
+Outra conta? (s/n): s
+Primeiro número: 7
+Operação (+ - * / % **): %
+Segundo número: 0
+Não dá para dividir por zero.
+Outra conta? (s/n): n
+Até logo!</pre>
+
+<div class="tryjs" data-stdin="10\n%\n3\ns\n2\n**\n10\ns\n7\n%\n0\nn" data-goal="out:10 % 3 = 1;;out:2 ** 10 = 1024;;out:Não dá para dividir por zero.;;semerro">
+<p class="try-task"><strong>Desafio no editor:</strong> acrescente <code>%</code> e <code>**</code> à calculadora. Mude dois lugares: em <code>lerOperacao</code>, aceite também <code>op === "%"</code> e <code>op === "**"</code> (e mude a pergunta para <code>"Operação (+ - * / % **): "</code>); em <code>calcular</code>, acrescente um <code>else if (op === "%")</code> (recusando o zero, como a divisão) e um <code>else if (op === "**")</code>. Com as respostas da missão, deve aparecer <code>10 % 3 = 1</code>, <code>2 ** 10 = 1024</code> e a recusa de <code>7 % 0</code>.</p>
+<pre class="script" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+async function ler(pergunta) {
+  const texto = await perguntar(pergunta);
+  if (texto === undefined) {
+    console.log();
+    console.log("Até logo!");
+    process.exit(0);
+  }
+  return texto.trim();
+}
+
+async function lerNumero(pergunta) {
+  while (true) {
+    const texto = await ler(pergunta);
+    const numero = Number(texto.replace(",", "."));
+    if (texto !== "" &amp;&amp; !Number.isNaN(numero)) {
+      return numero;
+    }
+    console.log(`"${texto}" não é um número. Tente de novo.`);
+  }
+}
+
+async function lerOperacao() {
+  while (true) {
+    const op = await ler("Operação (+ - * /): ");
+    if (op === "+" || op === "-" || op === "*" || op === "/") {
+      return op;
+    }
+    console.log(`Operação desconhecida: ${op}`);
+  }
+}
+
+function formatar(numero) {
+  return String(Number(numero.toFixed(10)));
+}
+
+function calcular(a, op, b) {
+  if (op === "+") {
+    return a + b;
+  } else if (op === "-") {
+    return a - b;
+  } else if (op === "*") {
+    return a * b;
+  } else if (op === "/") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a / b;
+  }
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = await lerNumero("Primeiro número: ");
+  const op = await lerOperacao();
+  const b = await lerNumero("Segundo número: ");
+
+  try {
+    const resultado = calcular(a, op, b);
+    console.log(`${formatar(a)} ${op} ${formatar(b)} = ${formatar(resultado)}`);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+
+  const continuar = (await ler("Outra conta? (s/n): ")).toLowerCase();
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+<pre class="solucao" data-file="calculadora.js">import * as readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+const linhas = rl[Symbol.asyncIterator]();
+
+async function perguntar(pergunta) {
+  process.stdout.write(pergunta);
+  const { value } = await linhas.next();
+  return value;
+}
+
+async function ler(pergunta) {
+  const texto = await perguntar(pergunta);
+  if (texto === undefined) {
+    console.log();
+    console.log("Até logo!");
+    process.exit(0);
+  }
+  return texto.trim();
+}
+
+async function lerNumero(pergunta) {
+  while (true) {
+    const texto = await ler(pergunta);
+    const numero = Number(texto.replace(",", "."));
+    if (texto !== "" &amp;&amp; !Number.isNaN(numero)) {
+      return numero;
+    }
+    console.log(`"${texto}" não é um número. Tente de novo.`);
+  }
+}
+
+async function lerOperacao() {
+  while (true) {
+    const op = await ler("Operação (+ - * / % **): ");
+    if (op === "+" || op === "-" || op === "*" || op === "/" || op === "%" || op === "**") {
+      return op;
+    }
+    console.log(`Operação desconhecida: ${op}`);
+  }
+}
+
+function formatar(numero) {
+  return String(Number(numero.toFixed(10)));
+}
+
+function calcular(a, op, b) {
+  if (op === "+") {
+    return a + b;
+  } else if (op === "-") {
+    return a - b;
+  } else if (op === "*") {
+    return a * b;
+  } else if (op === "/") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a / b;
+  } else if (op === "%") {
+    if (b === 0) {
+      throw new Error("Não dá para dividir por zero.");
+    }
+    return a % b;
+  } else if (op === "**") {
+    return a ** b;
+  }
+}
+
+console.log("=== Calculadora da Ana ===");
+
+while (true) {
+  const a = await lerNumero("Primeiro número: ");
+  const op = await lerOperacao();
+  const b = await lerNumero("Segundo número: ");
+
+  try {
+    const resultado = calcular(a, op, b);
+    console.log(`${formatar(a)} ${op} ${formatar(b)} = ${formatar(resultado)}`);
+  } catch (erro) {
+    console.log(erro.message);
+  }
+
+  const continuar = (await ler("Outra conta? (s/n): ")).toLowerCase();
+  if (continuar !== "s") {
+    break;
+  }
+}
+
+console.log("Até logo!");
+rl.close();
+</pre>
+</div>
+
+<p>Outras ideias para continuar sozinho: trocar a escada de <code>calcular</code> pelo objeto de funções (e usar <code>contas[op]</code> para validar em <code>lerOperacao</code>); guardar cada conta num <a href="arrays.html">array</a> e mostrar o histórico quando a Ana sair; aceitar a conta inteira numa linha só (<code>10 + 5</code>), separando as partes com <a href="strings-split.html">split</a>.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>await perguntar("…")</code></td><td>Perguntar sem pular linha e ler a resposta (sempre texto, ou <code>undefined</code> no fim da entrada)</td></tr>
+<tr><td><code>Number(texto)</code></td><td>Converter o texto em número; dá <code>NaN</code> se não for número e <code>0</code> se for vazio</td></tr>
+<tr><td><code>if</code> / <code>else if</code> / <code>else</code></td><td>Escolher a conta (versão 1)</td></tr>
+<tr><td><code>if (b === 0)</code></td><td>Prevenir a divisão por zero, que daria <code>Infinity</code> ou <code>NaN</code> (versão 2)</td></tr>
+<tr><td><code>while (true) { … break; … }</code></td><td>Repetir até a pessoa pedir para sair (versão 3)</td></tr>
+<tr><td><code>texto.trim()</code></td><td>Tirar os espaços das pontas</td></tr>
+<tr><td><code>texto.toLowerCase()</code></td><td>Aceitar <code>S</code> e <code>s</code> como a mesma resposta</td></tr>
+<tr><td><code>texto.replace(",", ".")</code></td><td>Aceitar o decimal com vírgula</td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td>Descobrir se a conversão falhou (<code>x === NaN</code> nunca funciona)</td></tr>
+<tr><td><code>async function</code> / <code>return</code></td><td>Separar o programa em tarefas com nome (versão 4)</td></tr>
+<tr><td><code>throw new Error("motivo")</code> + <code>try … catch</code></td><td>Avisar que não deu, e por quê, sem derrubar o programa</td></tr>
+<tr><td><code>Number(x.toFixed(10))</code></td><td>Mostrar <code>0.3</code> em vez de <code>0.30000000000000004</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>10 + 5 = 105</code></td><td>Faltou o <code>Number</code>: o <code>+</code> juntou dois textos</td></tr>
+<tr><td><code>NaN + 5 = NaN</code></td><td>O <code>Number</code> deu <code>NaN</code> (texto, vírgula, <kbd>Ctrl</kbd>+<kbd>D</kbd>) e o programa fez conta mesmo assim</td></tr>
+<tr><td><code>1 / 0 = Infinity</code> ou <code>0 / 0 = NaN</code></td><td>Divisão por zero: confira o divisor antes</td></tr>
+<tr><td>O zero passa pelo <code>if (b === 0)</code></td><td><code>b</code> é o texto <code>"0"</code>: o <code>===</code> não converte. Use <code>Number</code></td></tr>
+<tr><td>As perguntas saem todas juntas e dá <code>NaN</code></td><td>Faltou o <code>await</code> na chamada</td></tr>
+<tr><td><code>SyntaxError: Unexpected reserved word</code> no <code>await</code></td><td>Faltou o <code>async</code> na função</td></tr>
+<tr><td>O programa não termina depois da última resposta</td><td>Faltou o <code>rl.close()</code></td></tr>
+<tr><td><code>Warning: Detected unsettled top-level await</code></td><td><code>rl.question</code> com as respostas vindas de um arquivo ou de um <code>|</code>: use a receita com <code>linhas.next()</code></td></tr>
+<tr><td><code>TypeError: contas[op] is not a function</code></td><td>A operação não existe no objeto de funções</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A conversão</h3>
+<p>Complete para que <code>a</code> guarde um número, e não um texto:</p>
+<div class="ex-code">const a = <input data-answer="Number" aria-label="função">(await perguntar("Primeiro número: "));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O próximo caso</h3>
+<p>Complete as palavras que testam mais um caso na escada, depois do <code>if</code>:</p>
+<div class="ex-code">} <input data-answer="else if" aria-label="palavras-chave"> (op === "-") {</div>
+</div>
+
+<div class="exercise">
+<h3>3. Sair do laço</h3>
+<p>Complete a palavra que encerra o <code>while (true)</code>:</p>
+<div class="ex-code">if (continuar !== "s") {<br>&nbsp;&nbsp;<input data-answer="break" aria-label="palavra-chave">;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>4. O resultado</h3>
+<p>Sem rodar: o que o Node mostra para <code>console.log("10" + "5");</code>?</p>
+<div class="ex-code"><input data-answer="105" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Sem <code>Number</code>, a Ana digitou <code>1</code>, <code>/</code> e <code>0</code>, e a versão 2 mostrou <code>1 / 0 = Infinity</code> em vez do aviso. Por quê?</p>
+<label><input type="radio" name="q5"> O <code>if (b === 0)</code> está no lugar errado</label>
+<label><input type="radio" name="q5"> <code>b</code> era o texto <code>"0"</code>, e <code>"0" === 0</code> dá <code>false</code>: o <code>===</code> não converte</label>
+<label><input type="radio" name="q5"> O JavaScript não sabe comparar com zero</label>
+<label><input type="radio" name="q5"> Faltou um <code>else</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Na versão 4, o que acontece quando a Ana digita <code>seis</code> no primeiro número?</p>
+<label><input type="radio" name="q6"> O programa para com um <code>TypeError</code></label>
+<label><input type="radio" name="q6"> O número vira 0 e a conta continua</label>
+<label><input type="radio" name="q6"> O <code>Number</code> dá <code>NaN</code>, a função mostra o aviso e o <code>while (true)</code> pergunta de novo</label>
+<label><input type="radio" name="q6"> O programa pula para a pergunta da operação</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Por que a versão 4 confere <code>texto !== ""</code> além do <code>Number.isNaN</code>?</p>
+<label><input type="radio" name="q7"> Porque <code>Number("")</code> dá <code>0</code>, e um Enter vazio passaria como o número zero</label>
+<label><input type="radio" name="q7"> Porque <code>Number("")</code> dá erro</label>
+<label><input type="radio" name="q7"> Para o programa ficar mais rápido</label>
+<label><input type="radio" name="q7"> Porque o <code>trim</code> não funciona com texto vazio</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O que a pessoa digita chega sempre como <strong>texto</strong> (ou <code>undefined</code> quando a entrada acaba). Converta na entrada com <code>Number()</code>: com textos, o <code>+</code> junta (<code>"10" + "5"</code> é <code>"105"</code>) e o <code>===</code> nunca é igual a um número.</li>
+  <li><code>Number</code> devolve <code>NaN</code> para o que não é número (<code>"seis"</code>, <code>"2,5"</code>) e <code>0</code> para o texto vazio: confira com <code>Number.isNaN</code> antes de fazer conta.</li>
+  <li><code>if</code>/<code>else if</code>/<code>else</code> escolhem a conta; o <code>switch</code> e o objeto de funções são as alternativas.</li>
+  <li>Dividir por zero não dá erro no JavaScript: dá <code>Infinity</code> ou <code>NaN</code>. <strong>Previna</strong> com <code>if (b === 0)</code>.</li>
+  <li><code>while (true)</code> com <code>break</code> repete até a pessoa pedir para sair; <code>trim</code> e <code>toLowerCase</code> deixam a resposta tolerante.</li>
+  <li>Função que usa <code>await</code> precisa de <code>async</code>; quem a chama precisa de <code>await</code>. E o <code>rl.close()</code> no fim deixa o programa terminar.</li>
+  <li><code>throw</code> + <code>try … catch</code> avisam "não deu" sem derrubar o programa.</li>
+  <li>Nunca rode com <code>eval</code> o que a pessoa digita.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
