@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Lista de Compras na Página — formulário, DOM, total em reais e localStorage passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo no navegador: uma lista de compras numa página web com JavaScript. Formulário com submit e preventDefault, itens criados com createElement, quantidade e preço com total em reais (toLocaleString), marcar como comprado e remover, e a lista guardada no localStorage com JSON. Quatro versões, erros reais do Chrome e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Lista de Compras</span> na Página</h1>
+
+<p class="intro">Os projetos anteriores rodavam no terminal. Este roda no <strong>navegador</strong>: uma página com um campo, um botão e a lista da feira, que a Ana pode abrir no celular no mercado. Ela digita o item, a quantidade e o preço; a página soma quanto falta gastar, risca o que já foi para o carrinho e, quando ela fecha e abre de novo, a lista continua lá.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Pegar elementos da página com <a href="dom-selecionar.html">querySelector</a>.</li>
+  <li>Reagir ao envio de um <a href="formularios.html">formulário</a> com <code>submit</code> e <code>preventDefault</code>.</li>
+  <li>Criar e remover elementos com <a href="dom-criar.html">createElement, append e replaceChildren</a>.</li>
+  <li>Guardar os dados num array de objetos e <strong>redesenhar</strong> a lista a partir dele.</li>
+  <li>Mostrar dinheiro com <a href="numeros-formatar.html">toLocaleString</a> e mudar o estilo com <a href="dom-estilo.html">classList</a>.</li>
+  <li>Guardar a lista no navegador com <a href="localstorage.html">localStorage</a> e <a href="json.html">JSON</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>A página pronta tem um formulário (item, quantidade e preço), a lista e o total. Cada item tem uma caixinha para marcar quando já está no carrinho (ele fica riscado e sai do "Falta comprar") e um botão ✕ para remover. Testada no Chromium do computador da Ana, depois de adicionar 2 leites a R$ 4,99, 10 pães a R$ 0,75 e 1 café a R$ 18,90, e marcar o leite, a Ana conferiu no Console (<kbd>F12</kbd>):</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#lista li")].map((li) =&gt; li.className + " |" + li.textContent)
+(3) ['comprado | 2 × Leite: R$ 9,98✕', ' | 10 × Pão francês: R$ 7,50✕', ' | 1 × Café: R$ 18,90✕']</pre>
+
+<p>E o parágrafo do total mostrava <strong>Falta comprar: R$ 26,40</strong> (o pão e o café). Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">O formulário e a lista</a> (<code>submit</code>, <code>preventDefault</code>, <code>createElement</code>).</li>
+  <li><a href="#versao2">Quantidade, preço e total</a> (array de objetos, <code>desenhar()</code>, <code>toLocaleString</code>).</li>
+  <li><a href="#versao3">Marcar como comprado e remover</a> (caixinha, botão ✕, <code>classList</code>).</li>
+  <li><a href="#versao4">Guardar no navegador</a> (<code>localStorage</code> e JSON).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Uma página com JavaScript tem três arquivos, numa pasta: o <code>index.html</code> (o conteúdo), o <code>style.css</code> (a aparência) e o <code>script.js</code> (o comportamento). Crie a pasta <code>compras</code>, salve os três e abra o <code>index.html</code> com dois cliques: ele abre no navegador. Depois de mudar um arquivo, salve e aperte <kbd>F5</kbd> para recarregar (veja <a href="script-na-pagina.html">JavaScript na Página</a>).</p>
+
+<p>Nas caixas <strong>Experimente</strong>, os três arquivos são abas. <strong>Rodar</strong> abre a página no quadro <strong>Resultado</strong>, onde você digita e clica de verdade; embaixo fica o <strong>Console</strong>, com os erros. A missão de cada caixa diz o que digitar.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · O formulário e a lista</h2>
+<p>A página começa com um campo, um botão e uma lista vazia. O campo e o botão ficam dentro de um <code>&lt;form&gt;</code> (formulário): assim, apertar <kbd>Enter</kbd> no campo funciona igual a clicar no botão, sem nenhuma linha a mais de código.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+</pre>
+
+<pre class="file" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campo = document.querySelector("#item");
+const lista = document.querySelector("#lista");
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campo.value.trim();
+  if (nome === "") {
+    return;
+  }
+  const li = document.createElement("li");
+  li.textContent = nome;
+  lista.append(li);
+  campo.value = "";
+  campo.focus();
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;script src="script.js"&gt;&lt;/script&gt;</dt><dd>No <strong>fim</strong> do <code>&lt;body&gt;</code>: quando o script roda, o formulário e a lista já existem. (Veja o que acontece se ele estiver no <code>&lt;head&gt;</code>, logo abaixo.)</dd>
+  <dt>document.querySelector("#formulario")</dt><dd>Acha o elemento com <code>id="formulario"</code>. O <code>#</code> quer dizer "id", como no CSS.</dd>
+  <dt>formulario.addEventListener("submit", (evento) =&gt; { … })</dt><dd>"Quando o formulário for enviado, rode esta função." O envio acontece com o clique no botão ou com o <kbd>Enter</kbd> no campo (veja <a href="eventos.html">Eventos</a>).</dd>
+  <dt>evento.preventDefault();</dt><dd>"Impeça o comportamento padrão." O padrão de um formulário é mandar os dados e <strong>recarregar a página</strong>, o que apagaria a lista. Esta linha cancela isso.</dd>
+  <dt>campo.value.trim()</dt><dd>O que está digitado no campo, sem os espaços das pontas. Se ficou vazio, o <code>return</code> sai da função sem fazer nada.</dd>
+  <dt>document.createElement("li")</dt><dd>Fabrica um item de lista novo, ainda fora da página.</dd>
+  <dt>li.textContent = nome;</dt><dd>Põe o texto dentro do item, <strong>como texto</strong> (veja o perigo do <code>innerHTML</code> abaixo).</dd>
+  <dt>lista.append(li);</dt><dd>Coloca o item no fim da lista: agora ele aparece.</dd>
+  <dt>campo.value = ""; campo.focus();</dt><dd>Limpa o campo e devolve o cursor para ele, pronto para o próximo item.</dd>
+</dl>
+
+<p>A Ana digitou <code>Pão</code> e apertou <kbd>Enter</kbd>, digitou <code>Leite</code> e clicou em <strong>Adicionar</strong>, e depois tentou adicionar só espaços. Na página ficaram dois itens, <strong>Pão</strong> e <strong>Leite</strong>: os espaços foram ignorados.</p>
+
+<div class="cenario">
+<strong>Sem o <code>preventDefault</code>: o item aparece e some</strong>
+<p>Sem a linha <code>evento.preventDefault();</code>, a Ana digitou <code>Pão</code>, apertou <kbd>Enter</kbd> e viu o item piscar e sumir. No Console:</p>
+<pre class="devtools">&gt; document.querySelectorAll("#lista li").length
+0
+&gt; location.href
+'file:///home/ana/compras/index.html?'</pre>
+<p>A lista está vazia, e o endereço da página ganhou um <code>?</code> no fim. O formulário fez o que formulários fazem: enviou os dados para o endereço da página, que foi <strong>carregada de novo</strong>, do zero. O item foi criado, sim, mas numa página que deixou de existir um instante depois. Não aparece erro nenhum: só o <code>?</code> denuncia.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>&lt;script&gt;</code> no <code>&lt;head&gt;</code>: <code>Cannot read properties of null</code></strong>
+<p>A Ana moveu a linha do <code>&lt;script src="script.js"&gt;</code> para o <code>&lt;head&gt;</code>, logo abaixo do <code>&lt;link&gt;</code>. Ao abrir a página, o Console mostrou:</p>
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at script.js:5:12
+&gt; document.querySelector("#formulario")
+&lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;</pre>
+<p>"Erro de tipo não capturado: não dá para ler propriedades de <code>null</code> (lendo <code>'addEventListener'</code>)", em <code>script.js</code>, linha 5, coluna 12. O navegador lê o HTML de cima para baixo e roda o script assim que o encontra. No <code>&lt;head&gt;</code>, o formulário ainda não tinha sido lido: o <code>querySelector("#formulario")</code> devolveu <code>null</code>, e <code>null.addEventListener</code> é impossível. Repare que, digitado no Console <strong>depois</strong>, o mesmo <code>querySelector</code> acha o formulário: quando a página terminou de carregar, ele já existia. <strong>Como consertar:</strong> o <code>&lt;script&gt;</code> no fim do <code>&lt;body&gt;</code> (ou <code>&lt;script src="script.js" defer&gt;</code> no <code>&lt;head&gt;</code>; veja <a href="script-na-pagina.html">JavaScript na Página</a>).</p>
+</div>
+
+<div class="warning">
+<strong>Por que <code>textContent</code>, e não <code>innerHTML</code></strong>
+<p>O <code>innerHTML</code> também põe texto num elemento, mas ele <strong>interpreta o texto como HTML</strong>. Com <code>li.innerHTML = nome;</code>, a Ana adicionou dois itens: <code>&lt;b&gt;Pão&lt;/b&gt; francês</code> e <code>&lt;img src="x" onerror="alert(1)"&gt;</code>. O primeiro apareceu com "Pão" em negrito; no segundo, a página mostrou um <strong>alerta com o número 1</strong>: o texto digitado virou uma imagem quebrada, e o código do <code>onerror</code> rodou. Pedindo o HTML da lista no Console:</p>
+<pre class="devtools">&gt; document.querySelector("#lista").outerHTML
+'&lt;ul id="lista"&gt;&lt;li&gt;&lt;b&gt;Pão&lt;/b&gt; francês&lt;/li&gt;&lt;li&gt;&lt;img src="x" onerror="alert(1)"&gt;&lt;/li&gt;&lt;/ul&gt;'</pre>
+<p>Numa lista só sua, é uma curiosidade. Num site em que o texto de uma pessoa aparece para outras (comentários, chat), é uma porta para alguém rodar código no navegador dos outros. Para texto que veio de uma pessoa, use sempre <code>textContent</code>: ele mostra <code>&lt;b&gt;</code> como os caracteres <code>&lt;b&gt;</code>, sem interpretar.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#lista~Pão;;texto:#lista~Leite;;semerro" data-acoes="digitar #item Pão;;tecla #item Enter;;digitar #item Leite;;tecla #item Enter">
+<p class="try-task"><strong>Missão (versão 1):</strong> o formulário já impede o recarregamento, mas não faz mais nada. Onde está o comentário, crie um <code>&lt;li&gt;</code> com o texto do campo (sem espaços nas pontas), coloque-o na lista e limpe o campo. Rode, digite <code>Pão</code> e aperte <kbd>Enter</kbd>, depois <code>Leite</code> e <kbd>Enter</kbd>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campo = document.querySelector("#item");
+const lista = document.querySelector("#lista");
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  // crie um &lt;li&gt; com o texto do campo e coloque na lista
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campo = document.querySelector("#item");
+const lista = document.querySelector("#lista");
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campo.value.trim();
+  if (nome === "") {
+    return;
+  }
+  const li = document.createElement("li");
+  li.textContent = nome;
+  lista.append(li);
+  campo.value = "";
+  campo.focus();
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Quantidade, preço e total</h2>
+<p>Para somar o total, a página precisa <strong>lembrar</strong> de cada item: nome, quantidade e preço. Ler isso de volta dos <code>&lt;li&gt;</code> seria complicado (eles só têm texto). A ideia que organiza o projeto daqui em diante: os dados ficam num <strong>array de objetos</strong>, e uma função <code>desenhar()</code> apaga a lista da página e a <strong>monta de novo</strong> a partir do array, junto com o total. Mudou alguma coisa? Muda o array e chama <code>desenhar()</code>.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;input id="quantidade" type="number" min="1" value="1"&gt;
+    &lt;input id="preco" placeholder="Preço (R$)"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p id="aviso"&gt;&lt;/p&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;p id="total"&gt;Total: R$ 0,00&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+// 12.5 vira "R$ 12,50"
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Redesenha a lista e o total a partir do array itens
+function desenhar() {
+  lista.replaceChildren();
+  for (const item of itens) {
+    const li = document.createElement("li");
+    li.textContent = `${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+    lista.append(li);
+  }
+  const soma = itens.reduce((acumulado, item) =&gt; acumulado + item.quantidade * item.preco, 0);
+  total.textContent = `Total: ${real(soma)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>&lt;input id="quantidade" type="number" min="1" value="1"&gt;</code></td><td>Um campo de número, com setinhas, que começa em 1. Mesmo assim, o <code>.value</code> dele é um <strong>texto</strong> (<code>'1'</code>): por isso o <code>Number(…)</code>.</td></tr>
+<tr><td><code>const itens = [];</code></td><td>Os dados da lista. É <code>const</code> porque a variável aponta sempre para o mesmo array; o que muda é o conteúdo (veja <a href="objetos-referencia.html">Objetos são Referências</a>).</td></tr>
+<tr><td><code>function real(valor)</code></td><td>Formata em reais: <code>valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code> transforma <code>9.98</code> em <code>'R$ 9,98'</code>, com vírgula e o símbolo certo.</td></tr>
+<tr><td><code>lista.replaceChildren();</code></td><td>Sem nada entre os parênteses, apaga todos os filhos da lista: começa em branco antes de redesenhar.</td></tr>
+<tr><td><code>itens.reduce(…, 0)</code></td><td>Soma <code>quantidade * preco</code> de todos os itens (veja <a href="reduce.html">reduce</a>).</td></tr>
+<tr><td><code>campoPreco.value.replace(",", ".")</code></td><td>Aceita o preço com vírgula, como todo brasileiro digita: <code>"4,99"</code> vira <code>"4.99"</code>.</td></tr>
+<tr><td><code>!(quantidade &gt;= 1)</code></td><td>"Não é pelo menos 1". Escrito assim, pega também o <code>NaN</code>: <code>NaN &gt;= 1</code> é falso.</td></tr>
+<tr><td><code>itens.push({ nome, quantidade, preco });</code></td><td>Guarda o item novo no array (a forma curta de <code>{ nome: nome, … }</code>).</td></tr>
+<tr><td><code>formulario.reset();</code></td><td>Volta todos os campos do formulário ao valor inicial: o item e o preço vazios, a quantidade em 1.</td></tr>
+</table>
+</div>
+
+<p>A Ana adicionou 2 leites a <code>4,99</code> e 1 pão francês a <code>0.75</code>, e tentou um café com o preço <code>dezoito</code>. A lista ficou com <strong>2 × Leite: R$ 9,98</strong> e <strong>1 × Pão francês: R$ 0,75</strong>, o total com <strong>Total: R$ 10,73</strong>, e o café não entrou: apareceu em vermelho o aviso <strong>Preencha o item, a quantidade e o preço (ex.: 4,99).</strong> As peças, conferidas no Console da página:</p>
+
+<pre class="devtools">&gt; real(9.98)
+'R$ 9,98'
+&gt; Number("4,99")
+NaN
+&gt; Number("4.99")
+4.99
+&gt; Number("")
+0
+&gt; document.querySelector("#quantidade").value
+'1'
+&gt; typeof document.querySelector("#quantidade").value
+'string'</pre>
+
+<p>O <code>Number("")</code> dá 0, sem reclamar (a mesma pegadinha da <a href="projeto-calculadora.html">calculadora</a>): por isso o teste confere <code>campoPreco.value === ""</code> separadamente. Sem ele, um preço em branco viraria um item de graça.</p>
+
+<div class="cenario">
+<strong>Sem o <code>replace</code> e sem o aviso: <code>R$ NaN</code></strong>
+<p>Na primeira tentativa, a Ana não tinha o <code>replace(",", ".")</code> nem o <code>if</code> do aviso. Com os mesmos três itens (o leite a <code>4,99</code>, o pão a <code>0.75</code> e o café a <code>dezoito</code>), a página mostrou <strong>2 × Leite: R$ NaN</strong>, <strong>1 × Pão francês: R$ 0,75</strong>, <strong>1 × Café: R$ NaN</strong> e <strong>Total: R$ NaN</strong>. O <code>Number("4,99")</code> e o <code>Number("dezoito")</code> são <code>NaN</code>, e um único <code>NaN</code> na soma contamina o total inteiro. Nenhum erro no Console: só a página mostrando bobagem.</p>
+</div>
+
+<div class="tip">
+<strong>O espaço do <code>R$ 9,98</code> não é um espaço comum</strong>
+<pre class="devtools">&gt; real(9.98) === "R$ 9,98"
+false
+&gt; real(9.98).charCodeAt(2)
+160</pre>
+<p>O <code>toLocaleString</code> põe entre o <code>R$</code> e o número um <strong>espaço inquebrável</strong> (o caractere 160, que impede a quebra de linha ali), e não o espaço comum (32). Na tela, é igual. Mas, se você comparar o texto com <code>===</code> ou procurar por <code>"R$ 9,98"</code>, não vai achar. Compare os números, não os textos formatados.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#total~23,89;;semerro" data-acoes="digitar #item Leite;;digitar #preco 4,99;;tecla #preco Enter;;digitar #item Café;;digitar #preco 18,90;;tecla #preco Enter">
+<p class="try-task"><strong>Missão (versão 2):</strong> o preço com vírgula ainda não é aceito, e o aviso aparece. Faça a linha do <code>preco</code> trocar a vírgula por ponto antes de converter. Rode e adicione <code>Leite</code> a <code>4,99</code> e <code>Café</code> a <code>18,90</code> (quantidade 1): o total deve ser <code>R$ 23,89</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;input id="quantidade" type="number" min="1" value="1"&gt;
+    &lt;input id="preco" placeholder="Preço (R$)"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p id="aviso"&gt;&lt;/p&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;p id="total"&gt;Total: R$ 0,00&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+// 12.5 vira "R$ 12,50"
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Redesenha a lista e o total a partir do array itens
+function desenhar() {
+  lista.replaceChildren();
+  for (const item of itens) {
+    const li = document.createElement("li");
+    li.textContent = `${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+    lista.append(li);
+  }
+  const soma = itens.reduce((acumulado, item) =&gt; acumulado + item.quantidade * item.preco, 0);
+  total.textContent = `Total: ${real(soma)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value);
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+
+input {
+  width: 110px;
+}
+
+#quantidade {
+  width: 50px;
+}
+
+#aviso {
+  color: crimson;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+// 12.5 vira "R$ 12,50"
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Redesenha a lista e o total a partir do array itens
+function desenhar() {
+  lista.replaceChildren();
+  for (const item of itens) {
+    const li = document.createElement("li");
+    li.textContent = `${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+    lista.append(li);
+  }
+  const soma = itens.reduce((acumulado, item) =&gt; acumulado + item.quantidade * item.preco, 0);
+  total.textContent = `Total: ${real(soma)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Marcar como comprado e remover</h2>
+<p>No mercado, a Ana quer marcar o que já pôs no carrinho e apagar o que desistiu de comprar. Cada objeto ganha a propriedade <code>comprado</code> (<code>true</code> ou <code>false</code>), e cada linha da lista ganha uma caixinha e um botão ✕. O total passa a mostrar só o que <strong>falta</strong> comprar. No HTML, só muda o texto inicial do total (<code>Falta comprar: R$ 0,00</code>); no CSS, entra a classe que risca o item:</p>
+
+<pre class="file" data-file="style.css">.comprado {
+  text-decoration: line-through;
+  color: gray;
+}
+
+li button {
+  margin-left: 8px;
+}
+</pre>
+
+<pre class="file" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>function criarLinha(item, posicao)</dt><dd>Monta o <code>&lt;li&gt;</code> de um item. Recebe o objeto e a posição dele no array (o <code>map</code> passa os dois).</dd>
+  <dt>li.classList.toggle("comprado", item.comprado)</dt><dd>Põe a classe <code>comprado</code> se o segundo valor for <code>true</code>, tira se for <code>false</code>. O CSS faz o resto: risca e deixa cinza (veja <a href="dom-estilo.html">classList</a>).</dd>
+  <dt>caixa.type = "checkbox"; caixa.checked = item.comprado;</dt><dd>Um <code>&lt;input&gt;</code> de caixinha, já marcado se o item estiver comprado.</dd>
+  <dt>caixa.addEventListener("change", …)</dt><dd>Quando a Ana marca ou desmarca: copia o estado da caixinha para o objeto e redesenha. A função "lembra" de qual <code>item</code> e qual <code>caixa</code> são dela (veja <a href="closures.html">Closures</a>).</dd>
+  <dt>itens.splice(posicao, 1)</dt><dd>O ✕ tira o item do array (veja <a href="arrays-splice.html">splice</a>) e redesenha.</dd>
+  <dt>li.append(caixa, texto, remover)</dt><dd>O <code>append</code> aceita vários elementos de uma vez, na ordem.</dd>
+  <dt>lista.replaceChildren(...itens.map(criarLinha))</dt><dd>Transforma cada item num <code>&lt;li&gt;</code> e troca o conteúdo da lista por todos eles (os <code>...</code> espalham o array em argumentos; veja <a href="spread-rest.html">Spread</a>).</dd>
+  <dt>.filter((item) =&gt; !item.comprado).reduce(…)</dt><dd>Soma só os que ainda não foram comprados.</dd>
+</dl>
+
+<p>Com 2 leites a R$ 4,99, 10 pães a R$ 0,75 e 1 café a R$ 18,90, a página mostrou <strong>Falta comprar: R$ 36,38</strong>. A Ana marcou a caixinha do leite: ele ficou riscado e o total foi para <strong>Falta comprar: R$ 26,40</strong>. Ela conferiu as classes no Console (é a saída do começo da página), clicou no ✕ do pão e conferiu de novo:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#lista li")].map((li) =&gt; li.textContent)
+(2) [' 2 × Leite: R$ 9,98✕', ' 1 × Café: R$ 18,90✕']</pre>
+
+<p>O total ficou em <strong>Falta comprar: R$ 18,90</strong>, só o café. (O <code>✕</code> aparece no <code>textContent</code> porque é o texto do botão, que também está dentro do <code>&lt;li&gt;</code>.)</p>
+
+<div class="note">
+<strong>Por que redesenhar tudo a cada mudança?</strong>
+<p>Dava para, ao marcar a caixinha, mexer só naquele <code>&lt;li&gt;</code> e recalcular o total à parte. Funciona, mas cada ação precisa lembrar de atualizar <strong>tudo</strong> o que depende dela, e um esquecimento deixa a tela mentindo. Com um <code>desenhar()</code> só, a página é sempre um retrato fiel do array. Para uma lista de compras, redesenhar algumas dezenas de itens é instantâneo. É a mesma ideia de bibliotecas como o React (veja <a href="js-no-mundo.html">JavaScript no Mundo</a>).</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#total~18,90;;dom:#lista li.comprado;;semerro" data-acoes="digitar #item Leite;;digitar #preco 4,99;;tecla #preco Enter;;digitar #item Café;;digitar #preco 18,90;;tecla #preco Enter;;clicar #lista li:nth-child(1) input">
+<p class="try-task"><strong>Missão (versão 3):</strong> a caixinha aparece, mas marcá-la não muda nada. Em <code>criarLinha</code>, depois do <code>caixa.checked = item.comprado;</code>, faça a caixinha reagir ao evento <code>"change"</code>: copie <code>caixa.checked</code> para <code>item.comprado</code> e chame <code>desenhar()</code>. Rode, adicione <code>Leite</code> a <code>4,99</code> e <code>Café</code> a <code>18,90</code>, e marque o leite: ele deve ficar riscado, e o total, <code>R$ 18,90</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;input id="quantidade" type="number" min="1" value="1"&gt;
+    &lt;input id="preco" placeholder="Preço (R$)"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p id="aviso"&gt;&lt;/p&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;p id="total"&gt;Falta comprar: R$ 0,00&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+
+input {
+  width: 110px;
+}
+
+#quantidade {
+  width: 50px;
+}
+
+#aviso {
+  color: crimson;
+}
+
+.comprado {
+  text-decoration: line-through;
+  color: gray;
+}
+
+li button {
+  margin-left: 8px;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const itens = [];
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Guardar no navegador</h2>
+<p>Se a Ana fecha a aba ou aperta <kbd>F5</kbd>, a lista some: o array <code>itens</code> vive na memória da página, e ela é apagada a cada carregamento. O navegador tem um cantinho para guardar textos de cada site: o <a href="localstorage.html">localStorage</a>. Ele só guarda <strong>texto</strong>, então o array vai como JSON, como no <a href="projeto-tarefas.html">projeto da lista de tarefas</a> (lá num arquivo; aqui no navegador). Mudam só três pontos do <code>script.js</code>:</p>
+
+<pre class="file" data-file="script.js">const CHAVE = "lista-de-compras";
+
+// Lê a lista guardada no navegador (ou [] na primeira vez)
+function carregar() {
+  const texto = localStorage.getItem(CHAVE);
+  if (texto === null) {
+    return [];
+  }
+  return JSON.parse(texto);
+}
+
+// Guarda a lista no navegador, como texto JSON
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(itens));
+}
+
+const itens = carregar();
+
+// … real e criarLinha como na versão 3 …
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+  salvar();
+}
+
+// … o submit como na versão 3 …
+
+desenhar();
+</pre>
+
+<dl class="anatomy">
+  <dt>localStorage.getItem(CHAVE)</dt><dd>Lê o texto guardado com a etiqueta <code>"lista-de-compras"</code>. Na primeira visita, não há nada, e ele devolve <code>null</code>.</dd>
+  <dt>JSON.parse(texto)</dt><dd>Texto → array de objetos.</dd>
+  <dt>localStorage.setItem(CHAVE, JSON.stringify(itens))</dt><dd>Array → texto, guardado com a etiqueta. Substitui o que havia.</dd>
+  <dt>salvar(); no fim do desenhar()</dt><dd>Toda mudança passa pelo <code>desenhar()</code>; salvando ali, nenhuma mudança fica sem salvar.</dd>
+  <dt>desenhar(); na última linha</dt><dd>Mostra a lista carregada assim que a página abre.</dd>
+</dl>
+
+<p>A Ana adicionou o leite (R$ 4,99) e o café (R$ 18,90), marcou o leite e espiou o que ficou guardado; depois recarregou a página (<code>location.reload()</code> é o <kbd>F5</kbd> pelo Console) e conferiu:</p>
+
+<pre class="devtools">&gt; localStorage.getItem("lista-de-compras")
+'[{"nome":"Leite","quantidade":1,"preco":4.99,"comprado":true},{"nome":"Café","quantidade":1,"preco":18.9,"comprado":false}]'
+&gt; location.reload()
+undefined
+&gt; [...document.querySelectorAll("#lista li")].map((li) =&gt; li.textContent)
+(2) [' 1 × Leite: R$ 4,99✕', ' 1 × Café: R$ 18,90✕']</pre>
+
+<p>Depois do recarregamento, a lista voltou inteira, com o leite ainda riscado, e o total em <strong>Falta comprar: R$ 18,90</strong>. Os dados ficam no navegador da Ana, naquele computador: abrindo a página em outro navegador ou no celular, a lista começa vazia. Na aba <strong>Application</strong> do <kbd>F12</kbd> (veja <a href="localstorage.html">localStorage</a>) dá para ver e apagar a chave.</p>
+
+<div class="cenario">
+<strong>A primeira visita: <code>Cannot read properties of null (reading 'map')</code></strong>
+<p>A Ana tentou o atalho de uma linha, sem a função <code>carregar</code>:</p>
+<pre class="file" data-file="script.js">const itens = JSON.parse(localStorage.getItem(CHAVE));
+</pre>
+<p>Funcionou no computador dela, que já tinha uma lista guardada. Mas, numa visita nova (sem nada no <code>localStorage</code>), o Console mostrou, ao abrir a página e ao adicionar o leite:</p>
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'map')
+    at desenhar (script.js:50:34)
+    at script.js:76:1
+Uncaught TypeError: Cannot read properties of null (reading 'push')
+    at script.js:70:9</pre>
+<p>O <code>getItem</code> devolveu <code>null</code>, e <code>JSON.parse(null)</code> devolve… <code>null</code>, sem erro. O erro só estourou adiante, quando o <code>desenhar</code> (linha 50) tentou <code>itens.map</code>. As duas linhas <code>at</code> mostram o caminho: o erro aconteceu dentro da função <code>desenhar</code>, que foi chamada na linha 76 (a última). Depois, cada clique em Adicionar deu o mesmo problema no <code>push</code> da linha 70. <strong>Como consertar:</strong> tratar o <code>null</code>, como a função <code>carregar</code>, ou com <code>JSON.parse(localStorage.getItem(CHAVE) ?? "[]")</code>. Teste sempre o seu site "como visitante novo": no <kbd>F12</kbd>, aba Application, apague a chave e recarregue.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#lista~Leite;;semerro" data-acoes="digitar #item Leite;;digitar #preco 4,99;;tecla #preco Enter">
+<p class="try-task"><strong>Missão (versão 4):</strong> na primeira vez que você roda esta caixa, não há nada guardado, e a página quebra ao abrir (veja o Console). Troque a linha <code>const itens = JSON.parse(localStorage.getItem(CHAVE));</code> por uma que comece com <code>[]</code> quando não houver nada guardado. Rode e adicione <code>Leite</code> a <code>4,99</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;input id="quantidade" type="number" min="1" value="1"&gt;
+    &lt;input id="preco" placeholder="Preço (R$)"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p id="aviso"&gt;&lt;/p&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;p id="total"&gt;Falta comprar: R$ 0,00&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const CHAVE = "lista-de-compras";
+
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(itens));
+}
+
+const itens = JSON.parse(localStorage.getItem(CHAVE));
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+  salvar();
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+
+desenhar();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+
+input {
+  width: 110px;
+}
+
+#quantidade {
+  width: 50px;
+}
+
+#aviso {
+  color: crimson;
+}
+
+.comprado {
+  text-decoration: line-through;
+  color: gray;
+}
+
+li button {
+  margin-left: 8px;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const CHAVE = "lista-de-compras";
+
+// Lê a lista guardada no navegador (ou [] na primeira vez)
+function carregar() {
+  const texto = localStorage.getItem(CHAVE);
+  if (texto === null) {
+    return [];
+  }
+  return JSON.parse(texto);
+}
+
+// Guarda a lista no navegador, como texto JSON
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(itens));
+}
+
+const itens = carregar();
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+  salvar();
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+
+desenhar();
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escolha</th><th>Opções</th><th>Qual usar</th></tr>
+<tr><td>Reagir ao Adicionar</td><td><code>submit</code> no <code>&lt;form&gt;</code> × <code>click</code> no botão</td><td>O <code>submit</code>: pega o clique <strong>e</strong> o <kbd>Enter</kbd>. Com <code>click</code>, o <kbd>Enter</kbd> no campo não faria nada (sem <code>&lt;form&gt;</code>) ou recarregaria a página (com <code>&lt;form&gt;</code>).</td></tr>
+<tr><td>Pôr texto no elemento</td><td><code>textContent</code> × <code>innerHTML</code></td><td><code>textContent</code> para texto que veio de uma pessoa. <code>innerHTML</code> só para HTML que você mesmo escreveu.</td></tr>
+<tr><td>Atualizar a tela</td><td>redesenhar tudo × mexer só no que mudou</td><td>Redesenhar tudo é mais simples e não esquece nada; só com milhares de itens vale a pena otimizar.</td></tr>
+<tr><td>Dinheiro</td><td><code>toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code> × <code>"R$ " + valor.toFixed(2)</code></td><td>O <code>toLocaleString</code> já põe a vírgula e o ponto dos milhares (<code>R$ 1.234,50</code>); o <code>toFixed</code> daria <code>R$ 1234.50</code>.</td></tr>
+<tr><td>Guardar</td><td><code>localStorage</code> × <code>sessionStorage</code></td><td>O <code>sessionStorage</code> funciona igual, mas é apagado quando a aba é fechada: bom para um rascunho; para a lista de compras, <code>localStorage</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Desafio extra: limpar os comprados</h2>
+<p>Depois do mercado, a lista fica cheia de itens riscados. A Ana quer um botão <strong>Limpar comprados</strong>, embaixo do total: <code>&lt;button id="limpar" type="button"&gt;Limpar comprados&lt;/button&gt;</code>. O <code>type="button"</code> é importante: um botão sem ele, dentro de um formulário, enviaria o formulário; este está fora, mas o costume evita surpresas. A dica: troque o <code>const itens</code> por <code>let itens</code> e, no clique, faça <code>itens = itens.filter(…)</code> ficando só com os não comprados, e chame <code>desenhar()</code> (que também salva).</p>
+
+<p>Com o leite marcado, a Ana clicou em Limpar comprados:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#lista li")].map((li) =&gt; li.textContent)
+(1) [' 1 × Café: R$ 18,90✕']</pre>
+
+<p>Se esquecer de trocar o <code>const</code> por <code>let</code>, o clique dá, no Console:</p>
+
+<pre class="devtools">Uncaught TypeError: Assignment to constant variable.
+    at script.js:89:9</pre>
+
+<p>"Atribuição a uma variável constante": o <code>const</code> não deixa a variável apontar para outro array, e o <code>filter</code> cria um array novo (veja <a href="const.html">Constantes</a>).</p>
+
+<div class="tryweb" data-goal="texto:#lista li:last-child~Leite;;semerro" data-acoes="digitar #item Leite;;digitar #preco 4,99;;tecla #preco Enter;;digitar #item Café;;digitar #preco 18,90;;tecla #preco Enter;;clicar #lista li:last-child input;;clicar #limpar">
+<p class="try-task"><strong>Desafio no editor:</strong> o botão <strong>Limpar comprados</strong> já está no <code>index.html</code>, mas não faz nada. No fim do <code>script.js</code>, faça o clique nele tirar do array os itens comprados e redesenhar (lembre do <code>let</code>). Rode, adicione <code>Leite</code> a <code>4,99</code> e <code>Café</code> a <code>18,90</code>, marque o café (o último da lista) e clique em Limpar comprados: o café sai, e o leite passa a ser o último. (A lista desta caixa fica guardada no seu navegador, como na versão 4: se você já rodou antes, os itens antigos aparecem em cima.)</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Lista de Compras&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Lista de Compras&lt;/h1&gt;
+  &lt;form id="formulario"&gt;
+    &lt;input id="item" placeholder="O que comprar?"&gt;
+    &lt;input id="quantidade" type="number" min="1" value="1"&gt;
+    &lt;input id="preco" placeholder="Preço (R$)"&gt;
+    &lt;button&gt;Adicionar&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p id="aviso"&gt;&lt;/p&gt;
+  &lt;ul id="lista"&gt;&lt;/ul&gt;
+  &lt;p id="total"&gt;Falta comprar: R$ 0,00&lt;/p&gt;
+  &lt;button id="limpar" type="button"&gt;Limpar comprados&lt;/button&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const CHAVE = "lista-de-compras";
+
+// Lê a lista guardada no navegador (ou [] na primeira vez)
+function carregar() {
+  const texto = localStorage.getItem(CHAVE);
+  if (texto === null) {
+    return [];
+  }
+  return JSON.parse(texto);
+}
+
+// Guarda a lista no navegador, como texto JSON
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(itens));
+}
+
+const itens = carregar();
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+  salvar();
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+
+desenhar();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 420px;
+  margin: 20px auto;
+}
+
+li {
+  padding: 4px 0;
+}
+
+input {
+  width: 110px;
+}
+
+#quantidade {
+  width: 50px;
+}
+
+#aviso {
+  color: crimson;
+}
+
+.comprado {
+  text-decoration: line-through;
+  color: gray;
+}
+
+li button {
+  margin-left: 8px;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const formulario = document.querySelector("#formulario");
+const campoItem = document.querySelector("#item");
+const campoQuantidade = document.querySelector("#quantidade");
+const campoPreco = document.querySelector("#preco");
+const aviso = document.querySelector("#aviso");
+const lista = document.querySelector("#lista");
+const total = document.querySelector("#total");
+
+const CHAVE = "lista-de-compras";
+
+// Lê a lista guardada no navegador (ou [] na primeira vez)
+function carregar() {
+  const texto = localStorage.getItem(CHAVE);
+  if (texto === null) {
+    return [];
+  }
+  return JSON.parse(texto);
+}
+
+// Guarda a lista no navegador, como texto JSON
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(itens));
+}
+
+let itens = carregar();
+
+function real(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// Cria o &lt;li&gt; de um item: caixinha, texto e botão de remover
+function criarLinha(item, posicao) {
+  const li = document.createElement("li");
+  li.classList.toggle("comprado", item.comprado);
+
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.checked = item.comprado;
+  caixa.addEventListener("change", () =&gt; {
+    item.comprado = caixa.checked;
+    desenhar();
+  });
+
+  const texto = document.createElement("span");
+  texto.textContent = ` ${item.quantidade} × ${item.nome}: ${real(item.quantidade * item.preco)}`;
+
+  const remover = document.createElement("button");
+  remover.textContent = "✕";
+  remover.title = "Remover";
+  remover.addEventListener("click", () =&gt; {
+    itens.splice(posicao, 1);
+    desenhar();
+  });
+
+  li.append(caixa, texto, remover);
+  return li;
+}
+
+function desenhar() {
+  lista.replaceChildren(...itens.map(criarLinha));
+  const falta = itens
+    .filter((item) =&gt; !item.comprado)
+    .reduce((soma, item) =&gt; soma + item.quantidade * item.preco, 0);
+  total.textContent = `Falta comprar: ${real(falta)}`;
+  salvar();
+}
+
+formulario.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = campoItem.value.trim();
+  const quantidade = Number(campoQuantidade.value);
+  const preco = Number(campoPreco.value.replace(",", "."));
+
+  if (nome === "" || !(quantidade &gt;= 1) || campoPreco.value === "" || Number.isNaN(preco)) {
+    aviso.textContent = "Preencha o item, a quantidade e o preço (ex.: 4,99).";
+    return;
+  }
+
+  aviso.textContent = "";
+  itens.push({ nome, quantidade, preco, comprado: false });
+  desenhar();
+  formulario.reset();
+  campoItem.focus();
+});
+
+desenhar();
+
+document.querySelector("#limpar").addEventListener("click", () =&gt; {
+  itens = itens.filter((item) =&gt; !item.comprado);
+  desenhar();
+});
+</pre>
+</div>
+
+<p>Outras ideias: mostrar "3 itens, 1 comprado"; ordenar a lista pelo nome com <a href="sort.html">toSorted</a> e <code>localeCompare</code>; editar a quantidade clicando no item.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>&lt;script src="script.js"&gt;</code> no fim do <code>&lt;body&gt;</code></td><td>O script roda quando os elementos já existem</td></tr>
+<tr><td><code>form.addEventListener("submit", (evento) =&gt; { evento.preventDefault(); … })</code></td><td>Reagir ao Adicionar (clique ou <kbd>Enter</kbd>) sem recarregar a página</td></tr>
+<tr><td><code>document.createElement("li")</code> + <code>textContent</code> + <code>append</code></td><td>Criar, preencher e pôr um item na lista</td></tr>
+<tr><td><code>lista.replaceChildren(...itens.map(criarLinha))</code></td><td>Redesenhar a lista a partir do array</td></tr>
+<tr><td><code>valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code></td><td>Mostrar <code>R$ 9,98</code></td></tr>
+<tr><td><code>Number(texto.replace(",", "."))</code></td><td>Aceitar preço com vírgula</td></tr>
+<tr><td><code>li.classList.toggle("comprado", item.comprado)</code></td><td>Riscar o item comprado (com o CSS)</td></tr>
+<tr><td><code>caixa.addEventListener("change", …)</code></td><td>Reagir à caixinha</td></tr>
+<tr><td><code>localStorage.setItem(chave, JSON.stringify(itens))</code></td><td>Guardar a lista no navegador</td></tr>
+<tr><td><code>JSON.parse(localStorage.getItem(chave) ?? "[]")</code></td><td>Carregar, com <code>[]</code> na primeira visita</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O item aparece e some; o endereço ganha um <code>?</code></td><td>Faltou o <code>evento.preventDefault()</code>: o formulário recarregou a página</td></tr>
+<tr><td><code>Cannot read properties of null (reading 'addEventListener')</code></td><td><code>&lt;script&gt;</code> no <code>&lt;head&gt;</code>, ou seletor escrito errado</td></tr>
+<tr><td><code>R$ NaN</code></td><td>Preço com vírgula sem o <code>replace</code>, ou campo inválido</td></tr>
+<tr><td>Texto com <code>&lt;b&gt;</code> aparece em negrito, ou um alerta estranho</td><td><code>innerHTML</code> com texto digitado: use <code>textContent</code></td></tr>
+<tr><td>A caixinha marca, mas o total não muda</td><td>Faltou o evento <code>change</code> atualizar o objeto e redesenhar</td></tr>
+<tr><td><code>Cannot read properties of null (reading 'map')</code> só em visitante novo</td><td><code>JSON.parse(null)</code>: trate a primeira visita</td></tr>
+<tr><td><code>Assignment to constant variable.</code></td><td>Reatribuiu uma variável <code>const</code>: use <code>let</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Sem recarregar</h3>
+<p>Complete o método que impede o formulário de recarregar a página:</p>
+<div class="ex-code">evento.<input data-answer="preventDefault" aria-label="método">();</div>
+</div>
+
+<div class="exercise">
+<h3>2. O evento do formulário</h3>
+<p>Complete o nome do evento que acontece com o clique no botão e com o Enter no campo:</p>
+<div class="ex-code">formulario.addEventListener("<input data-answer="submit" aria-label="evento">", (evento) =&gt; { … });</div>
+</div>
+
+<div class="exercise">
+<h3>3. Texto seguro</h3>
+<p>Complete a propriedade que põe o texto sem interpretar HTML:</p>
+<div class="ex-code">li.<input data-answer="textContent" aria-label="propriedade"> = nome;</div>
+</div>
+
+<div class="exercise">
+<h3>4. Guardar</h3>
+<p>Complete o método do <code>localStorage</code> que guarda um valor:</p>
+<div class="ex-code">localStorage.<input data-answer="setItem" aria-label="método">("lista-de-compras", JSON.stringify(itens));</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que a página guarda os itens num array e redesenha a lista inteira a cada mudança?</p>
+<label><input type="radio" name="q5"> Porque o navegador não deixa mudar um <code>&lt;li&gt;</code> que já está na página</label>
+<label><input type="radio" name="q5"> Para a tela ser sempre um retrato fiel dos dados, sem esquecer de atualizar nada (o total, as classes…)</label>
+<label><input type="radio" name="q5"> Porque o <code>localStorage</code> exige</label>
+<label><input type="radio" name="q5"> Para a página ficar mais rápida</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. O <code>.value</code> de um <code>&lt;input type="number"&gt;</code> é…</p>
+<label><input type="radio" name="q6"> um número</label>
+<label><input type="radio" name="q6"> <code>NaN</code> até alguém digitar</label>
+<label><input type="radio" name="q6"> um texto, como <code>'1'</code>: precisa de <code>Number()</code></label>
+<label><input type="radio" name="q6"> sempre <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Numa visita nova, o que <code>JSON.parse(localStorage.getItem("lista-de-compras"))</code> devolve?</p>
+<label><input type="radio" name="q7"> <code>null</code>, porque o <code>getItem</code> devolveu <code>null</code>; o erro só aparece depois, ao usar o <code>null</code></label>
+<label><input type="radio" name="q7"> Um array vazio</label>
+<label><input type="radio" name="q7"> Dá <code>SyntaxError</code> na hora</label>
+<label><input type="radio" name="q7"> <code>undefined</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma página com JavaScript tem <code>index.html</code>, <code>style.css</code> e <code>script.js</code>; o <code>&lt;script&gt;</code> vai no fim do <code>&lt;body&gt;</code>.</li>
+  <li>Use o evento <code>submit</code> do formulário (clique e <kbd>Enter</kbd>) e sempre <code>evento.preventDefault()</code>, ou a página recarrega.</li>
+  <li><code>createElement</code>, <code>textContent</code> e <code>append</code> criam itens; <code>textContent</code>, e não <code>innerHTML</code>, para texto digitado.</li>
+  <li>Guarde os dados num array de objetos e tenha um <code>desenhar()</code> que monta a tela a partir dele.</li>
+  <li>O <code>.value</code> dos campos é sempre texto: converta com <code>Number</code>, aceite a vírgula com <code>replace</code> e confira o vazio e o <code>NaN</code>.</li>
+  <li><code>toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code> mostra reais.</li>
+  <li><code>localStorage</code> guarda texto: <code>JSON.stringify</code> para salvar, <code>JSON.parse</code> para carregar, e trate o <code>null</code> da primeira visita.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
