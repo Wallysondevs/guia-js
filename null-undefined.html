@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript null e undefined — os dois jeitos de dizer &quot;não tem nada aqui&quot; | Guia JavaScript</title>
+<meta name="description" content="null e undefined no JavaScript para quem nunca programou: a variável sem valor, a propriedade que não existe, o null de propósito, typeof null que dá object, null == undefined × ===, o ?? para valor padrão, e os erros reais do Node.js 24 (Cannot read properties of undefined, is not defined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">null</span> e <span class="hl">undefined</span></h1>
+
+<p class="intro">Nem toda caixa tem alguma coisa dentro. Às vezes a variável ainda não recebeu valor, às vezes o dado procurado não existe, às vezes você quer dizer de propósito "aqui não tem nada". O JavaScript tem <strong>dois</strong> valores para representar o "nada": <code>undefined</code> ("indefinido") e <code>null</code> ("nulo"). Eles se parecem, mas não são a mesma coisa, e confundir os dois (ou esquecer que eles existem) causa o erro mais famoso do JavaScript: <code>Cannot read properties of undefined</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é <code>undefined</code> e onde ele aparece sozinho: variável sem valor, propriedade que não existe, posição vazia de uma lista.</li>
+  <li>O que é <code>null</code>: o "vazio" que <strong>você</strong> coloca de propósito.</li>
+  <li>A diferença entre "<code>undefined</code>" e "<code>is not defined</code>".</li>
+  <li>Como comparar: <code>null === undefined</code> × <code>null == undefined</code>, e a esquisitice do <code>typeof null</code>.</li>
+  <li>Como dar um valor padrão com <code>??</code>.</li>
+  <li>Os erros reais: <code>Cannot read properties of null</code> e <code>of undefined</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a ficha de cadastro</h2>
+<p>Imagine a ficha de cadastro da academia, em papel. Ela tem um campo "Segundo nome". Há duas situações em que esse campo fica sem nada escrito:</p>
+<ul>
+  <li><strong>Ninguém preencheu ainda.</strong> A ficha acabou de ser impressa; o campo está em branco porque ninguém chegou nele. Isso é o <code>undefined</code>: "ainda não tem valor", "não sei".</li>
+  <li><strong>A pessoa respondeu "não tenho".</strong> A Ana não tem segundo nome, e a atendente marcou um traço no campo: "—". Isso é o <code>null</code>: "a resposta é: nenhum". Foi alguém que decidiu.</li>
+</ul>
+<p>Na prática: o <strong>JavaScript</strong> põe <code>undefined</code> sozinho quando falta alguma coisa; <strong>você</strong> põe <code>null</code> quando quer dizer "vazio, de propósito".</p>
+
+<hr>
+
+<h2>1. <code>undefined</code>: a variável que ainda não tem valor</h2>
+
+<pre class="file" data-file="vazio.js">let apelido;
+console.log(apelido);
+console.log(typeof apelido);
+</pre>
+
+<dl class="anatomy">
+  <dt>let apelido;</dt><dd>Cria a variável <code>apelido</code> (veja <a href="variaveis.html">Variáveis</a>) <strong>sem</strong> o <code>=</code> e sem valor. A caixa existe, com etiqueta, mas está vazia.</dd>
+  <dt>console.log(apelido);</dt><dd>Mostra o que está na caixa: o JavaScript pôs lá, sozinho, o valor <code>undefined</code>.</dd>
+  <dt>typeof apelido</dt><dd>O tipo desse valor (veja <a href="typeof.html">Descobrindo o Tipo</a>): também se chama <code>undefined</code>. É um tipo com um valor só.</dd>
+</dl>
+
+<pre class="term">$ node vazio.js
+undefined
+undefined
+</pre>
+
+<p>Não houve erro. <code>undefined</code> é um valor de verdade, que o programa pode mostrar, guardar e comparar. Ele só diz: "esta caixa existe, mas ninguém pôs nada nela".</p>
+
+<div class="note">
+<strong>Com <code>const</code> não dá</strong>
+<p>Uma constante precisa nascer com valor, porque depois ela não pode mudar. <code>const apelido;</code> dá <code>SyntaxError: Missing initializer in const declaration</code> ("falta o valor inicial na declaração <code>const</code>"; veja <a href="const.html">Constantes</a>).</p>
+</div>
+
+<hr>
+
+<h2>2. Outros lugares onde o <code>undefined</code> aparece</h2>
+<p>Sempre que você pede ao JavaScript uma coisa que <strong>não existe</strong>, ele responde <code>undefined</code> em vez de dar erro. Três casos comuns (objetos, arrays e funções têm aulas próprias; aqui, olhe só o <code>undefined</code>):</p>
+
+<pre class="file" data-file="ondeaparece.js">const aluna = { nome: "Ana", idade: 30 };
+console.log(aluna.telefone);
+const frutas = ["maçã", "banana"];
+console.log(frutas[5]);
+function cumprimentar() {
+  console.log("Oi!");
+}
+const resposta = cumprimentar();
+console.log(resposta);
+</pre>
+
+<dl class="anatomy">
+  <dt>aluna.telefone</dt><dd>O objeto <code>aluna</code> (aula <a href="objetos.html">Objetos</a>) tem <code>nome</code> e <code>idade</code>, mas <strong>não</strong> tem <code>telefone</code>. Pedir uma propriedade que não existe dá <code>undefined</code>.</dd>
+  <dt>frutas[5]</dt><dd>A lista <code>frutas</code> (aula <a href="arrays.html">Arrays</a>) tem só 2 itens. A posição 5 está vazia: <code>undefined</code>.</dd>
+  <dt>const resposta = cumprimentar();</dt><dd>A função <code>cumprimentar</code> (aula <a href="funcoes.html">Funções</a>) mostra <code>Oi!</code>, mas não <strong>devolve</strong> nenhum valor (não tem <code>return</code>). Então o que chega em <code>resposta</code> é <code>undefined</code>.</dd>
+</dl>
+
+<pre class="term">$ node ondeaparece.js
+undefined
+undefined
+Oi!
+undefined
+</pre>
+
+<div class="tip">
+<strong>Viu um <code>undefined</code> inesperado na tela?</strong>
+<p>Ele é uma pista: alguma coisa que o programa procurou não estava lá. Os suspeitos de sempre são um <strong>nome escrito errado</strong> (<code>aluna.Nome</code> em vez de <code>aluna.nome</code>), uma <strong>posição que não existe</strong> na lista, ou uma função que <strong>esqueceu o <code>return</code></strong>.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>null</code>: o vazio de propósito</h2>
+<p>O <code>null</code> nunca aparece sozinho: é sempre o programador que o escreve. Ele quer dizer "aqui não tem nada, e eu sei disso". Na gincana da escola, ainda não há vencedor:</p>
+
+<pre class="file" data-file="nulo.js">let vencedor = null;
+console.log(vencedor);
+console.log(typeof vencedor);
+vencedor = "Bia";
+console.log(vencedor);
+</pre>
+
+<pre class="term">$ node nulo.js
+null
+object
+Bia
+</pre>
+
+<dl class="anatomy">
+  <dt>let vencedor = null;</dt><dd>A variável nasce com <code>null</code>: "ainda não tem vencedor", dito com todas as letras. Quem ler o código entende que o vazio foi intencional.</dd>
+  <dt>typeof vencedor → object</dt><dd>Uma <strong>esquisitice famosa</strong>: o <code>typeof null</code> diz <code>"object"</code>, embora o <code>null</code> não seja um objeto. É um erro da primeira versão do JavaScript, de 1995, que nunca foi consertado para não quebrar os sites antigos. Não use o <code>typeof</code> para reconhecer um <code>null</code>; use <code>valor === null</code> (seção 5).</dd>
+  <dt>vencedor = "Bia";</dt><dd>Quando a gincana termina, a variável recebe o valor de verdade.</dd>
+</dl>
+
+<p>Num objeto, os dois aparecem lado a lado, e o Node mostra cada um com o seu nome:</p>
+
+<pre class="file" data-file="objeto.js">const cadastro = { nome: "Ana", segundoNome: null, apelido: undefined };
+console.log(cadastro);
+console.log(cadastro.segundoNome);
+console.log(cadastro.apelido);
+console.log(cadastro.cidade);
+</pre>
+
+<pre class="term">$ node objeto.js
+{ nome: 'Ana', segundoNome: null, apelido: undefined }
+null
+undefined
+undefined
+</pre>
+
+<p>Repare nas duas últimas linhas: <code>apelido</code> existe no objeto com o valor <code>undefined</code>, e <code>cidade</code> nem existe, mas as duas leituras dão o mesmo <code>undefined</code>. Por isso a regra prática do guia: <strong>não escreva <code>undefined</code> à mão</strong>. Quando quiser dizer "vazio", escreva <code>null</code>; deixe o <code>undefined</code> para o JavaScript.</p>
+
+<div class="tryjs" data-goal="out:null;;src:=\s*null">
+<p class="try-task"><strong>Experimente:</strong> a variável <code>vencedor</code> foi criada sem valor e mostra <code>undefined</code>. Deixe claro que o vazio é de propósito: faça ela nascer com <code>null</code>. Depois, se quiser, dê a ela o nome de um vencedor e rode de novo.</p>
+<pre class="script" data-file="main.js">let vencedor;
+console.log(vencedor);
+</pre>
+<pre class="solucao" data-file="main.js">let vencedor = null;
+console.log(vencedor);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>undefined</code> não é "<code>is not defined</code>"</h2>
+<p>Os nomes são parecidos, mas são situações bem diferentes:</p>
+
+<pre class="file" data-file="naoexiste.js">console.log(telefone);
+</pre>
+
+<pre class="term">$ node naoexiste.js
+/home/ana/naoexiste.js:1
+console.log(telefone);
+            ^
+
+ReferenceError: telefone is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/naoexiste.js:1:13)
+    …  « mais 7 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que aconteceu</th><th>O que o JavaScript faz</th><th>Comparação com a ficha</th></tr>
+<tr><td>A variável <strong>foi criada</strong> sem valor (<code>let telefone;</code>)</td><td>Ela vale <code>undefined</code>; o programa segue</td><td>O campo existe na ficha, em branco</td></tr>
+<tr><td>A variável <strong>nunca foi criada</strong></td><td><code>ReferenceError: telefone is not defined</code>; o programa para</td><td>O campo nem existe na ficha</td></tr>
+</table>
+</div>
+
+<p>"Is not defined" quer dizer "não foi declarada": não existe <code>let</code>, <code>const</code> ou <code>var</code> com esse nome. Quase sempre é um nome escrito errado (<code>telefne</code>) ou uma variável criada em outro lugar. Essa mensagem tem explicação completa em <a href="erros.html">Lendo uma Mensagem de Erro</a>.</p>
+
+<hr>
+
+<h2>5. Comparando: <code>===</code> e <code>==</code></h2>
+
+<pre class="file" data-file="comparar.js">console.log(null === undefined);
+console.log(null == undefined);
+console.log(null === null);
+let x;
+console.log(x === undefined);
+console.log(null == 0);
+console.log(undefined == false);
+</pre>
+
+<pre class="term">$ node comparar.js
+false
+true
+true
+true
+false
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>null === undefined → false</dt><dd>O <code>===</code> (igualdade estrita) compara valor <strong>e tipo</strong>: são dois valores diferentes, de tipos diferentes.</dd>
+  <dt>null == undefined → true</dt><dd>O <code>==</code> (igualdade "frouxa") tem uma regra especial: <code>null</code> e <code>undefined</code> são iguais entre si.</dd>
+  <dt>null === null e x === undefined → true</dt><dd>É assim que se pergunta "este valor é <code>null</code>?" e "este valor é <code>undefined</code>?".</dd>
+  <dt>null == 0 e undefined == false → false</dt><dd>Mesmo com <code>==</code>, eles <strong>não</strong> são iguais a zero nem a <code>false</code>. Só um ao outro.</dd>
+</dl>
+
+<p>O guia recomenda sempre o <code>===</code> (a aula <a href="operadores-comparacao.html">Comparação</a> explica por quê). Para perguntar "tem valor ou não?", compare com os dois: <code>valor === null || valor === undefined</code>. Ou use o atalho da próxima seção.</p>
+
+<hr>
+
+<h2>6. Valor padrão com <code>??</code></h2>
+<p>O operador <code>??</code> (dois pontos de interrogação, chamado de <em>nullish coalescing</em>, algo como "junção do nulo") quer dizer: "use o valor da esquerda; se ele for <code>null</code> ou <code>undefined</code>, use o da direita".</p>
+
+<pre class="file" data-file="padrao.js">let apelido;
+console.log(apelido ?? "sem apelido");
+apelido = "Aninha";
+console.log(apelido ?? "sem apelido");
+const desconto = 0;
+console.log(desconto ?? 10);
+console.log(desconto || 10);
+</pre>
+
+<pre class="term">$ node padrao.js
+sem apelido
+Aninha
+0
+10
+</pre>
+
+<dl class="anatomy">
+  <dt>apelido ?? "sem apelido"</dt><dd>Na primeira vez, <code>apelido</code> é <code>undefined</code>, então vale o da direita: <code>sem apelido</code>. Na segunda, ele tem valor, e o valor é usado: <code>Aninha</code>.</dd>
+  <dt>desconto ?? 10 → 0</dt><dd>O <code>0</code> é um valor de verdade (desconto zero), não é <code>null</code> nem <code>undefined</code>: o <code>??</code> mantém o <code>0</code>.</dd>
+  <dt>desconto || 10 → 10</dt><dd>O <code>||</code> ("ou", da aula <a href="operadores-logicos.html">Operadores Lógicos</a>) é parecido, mas troca <strong>qualquer</strong> valor que conte como falso, inclusive o <code>0</code> e o texto vazio. Aqui, o desconto zero sumiu e virou 10: um erro de conta.</dd>
+</dl>
+
+<p>O <code>??</code> e o seu primo <code>?.</code> (que lê uma propriedade sem dar erro quando o valor é <code>null</code>/<code>undefined</code>) têm aula própria: <a href="optional-chaining.html">?. e ??</a>.</p>
+
+<div class="tryjs" data-goal="out:Olá, visitante!;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> quando ninguém fez login, <code>usuario</code> é <code>null</code> e o programa mostra <code>Olá, null!</code>. Use o <code>??</code> na segunda linha para mostrar <code>Olá, visitante!</code> nesse caso.</p>
+<pre class="script" data-file="main.js">const usuario = null;
+const nomeNaTela = usuario;
+console.log(`Olá, ${nomeNaTela}!`);
+</pre>
+<pre class="solucao" data-file="main.js">const usuario = null;
+const nomeNaTela = usuario ?? "visitante";
+console.log(`Olá, ${nomeNaTela}!`);
+</pre>
+</div>
+
+<hr>
+
+<h2>7. <code>null</code> e <code>undefined</code> em contas e textos</h2>
+
+<pre class="file" data-file="contas.js">console.log(null + 1);
+console.log(undefined + 1);
+console.log("Nome: " + null);
+console.log(`Nome: ${undefined}`);
+console.log(Number(null), Number(undefined));
+console.log(Boolean(null), Boolean(undefined));
+</pre>
+
+<pre class="term">$ node contas.js
+1
+NaN
+Nome: null
+Nome: undefined
+0 NaN
+false false
+</pre>
+
+<ul>
+  <li>Numa conta, <code>null</code> vira <code>0</code> (por isso <code>null + 1</code> dá <code>1</code>) e <code>undefined</code> vira <code>NaN</code>, o "não é um número" (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Um <code>NaN</code> no resultado de uma conta muitas vezes é um <code>undefined</code> escondido.</li>
+  <li>Num texto, eles aparecem escritos: <code>Nome: null</code>, <code>Nome: undefined</code>. Se isso aparecer para o usuário, faltou um valor padrão (seção 6).</li>
+  <li>Numa condição, os dois contam como <strong>falso</strong> (veja <a href="truthy-falsy.html">Truthy e Falsy</a>).</li>
+</ul>
+<p>Essas transformações automáticas estão reunidas em <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para perguntar "esta variável tem valor?", dá para escrever de vários jeitos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Verdadeira quando…</th><th>Quando usar</th></tr>
+<tr><td><code>valor === null</code></td><td>só quando é <code>null</code></td><td>Você quer saber exatamente se é o "vazio de propósito"</td></tr>
+<tr><td><code>valor === undefined</code></td><td>só quando é <code>undefined</code></td><td>Você quer saber se ficou sem valor</td></tr>
+<tr><td><code>valor === null || valor === undefined</code></td><td>quando é um dos dois</td><td>"Não tem valor", escrito por extenso (o mais claro)</td></tr>
+<tr><td><code>valor == null</code></td><td>quando é um dos dois</td><td>O mesmo, num atalho que aparece em código de outras pessoas; o guia prefere a forma por extenso</td></tr>
+<tr><td><code>valor ?? "padrão"</code></td><td>(não pergunta: já escolhe)</td><td>Quando a ideia é usar um valor padrão</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Uma variável que vai receber valor depois, e você quer deixar claro que está vazia</td><td><code>let vencedor = null;</code></td></tr>
+<tr><td>Um campo que a pessoa respondeu "não tenho"</td><td><code>null</code></td></tr>
+<tr><td>"Não sei", "ainda não chegou", "não existe"</td><td>Deixe o JavaScript pôr <code>undefined</code>; não escreva à mão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Leu uma propriedade de <code>undefined</code></strong>
+<p>O pedido da lojinha não tem endereço, e o programa tenta ler a rua do endereço:</p>
+<pre class="file" data-file="lerprop2.js">const pedido = { cliente: "Ana" };
+console.log(pedido.endereco.rua);
+</pre>
+<pre class="term">$ node lerprop2.js
+/home/ana/lerprop2.js:2
+console.log(pedido.endereco.rua);
+                            ^
+
+TypeError: Cannot read properties of undefined (reading 'rua')
+    at Object.&lt;anonymous&gt; (/home/ana/lerprop2.js:2:29)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/lerprop2.js:2</dt><dd>O arquivo e a linha: a 2.</dd>
+  <dt>console.log(pedido.endereco.rua); e o ^</dt><dd>O <code>^</code> aponta para o <code>rua</code>: foi ao tentar ler <code>.rua</code> que deu errado.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'rua')</dt><dd>"Erro de tipo: não dá para ler propriedades de <code>undefined</code> (lendo <code>'rua'</code>)". O <code>pedido.endereco</code> não existe e vale <code>undefined</code>; e o <code>undefined</code> não tem propriedade nenhuma, nem <code>rua</code>, nem qualquer outra. O culpado é o que está <strong>antes</strong> do <code>.rua</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/lerprop2.js:2:29)</dt><dd>Linha 2, coluna 29: a posição do <code>rua</code>.</dd>
+</dl>
+<p>Ler uma propriedade que não existe dá <code>undefined</code> sem erro (seção 2). O erro vem no passo <strong>seguinte</strong>, quando você tenta ler algo de dentro desse <code>undefined</code>. <strong>Como consertar:</strong> confira o nome (<code>endereco</code> está certo?) ou trate a falta: <code>pedido.endereco?.rua</code> dá <code>undefined</code> sem quebrar o programa (no lab, mostrou <code>undefined</code>; aula <a href="optional-chaining.html">?. e ??</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Leu uma propriedade de <code>null</code></strong>
+<pre class="file" data-file="lerprop.js">const cliente = null;
+console.log(cliente.nome);
+</pre>
+<pre class="term">$ node lerprop.js
+/home/ana/lerprop.js:2
+console.log(cliente.nome);
+                    ^
+
+TypeError: Cannot read properties of null (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/lerprop.js:2:21)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>A mesma coisa com <code>null</code>: o <code>null</code> também não tem propriedades. A mensagem diz qual dos dois era (<code>of null</code> ou <code>of undefined</code>) e qual propriedade você tentou ler (<code>reading 'nome'</code>). <strong>Como consertar:</strong> antes de ler, confira se o cliente existe: <code>if (cliente !== null) { … }</code>, ou use <code>cliente?.nome</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou uma variável que ficou sem valor</strong>
+<pre class="file" data-file="comprimento.js">let nome;
+console.log(nome.length);
+</pre>
+<pre class="term">$ node comprimento.js
+/home/ana/comprimento.js:2
+console.log(nome.length);
+                 ^
+
+TypeError: Cannot read properties of undefined (reading 'length')
+    at Object.&lt;anonymous&gt; (/home/ana/comprimento.js:2:18)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>O <code>.length</code> (o tamanho de um texto; veja <a href="strings.html">Strings</a>) foi pedido a uma variável que nunca recebeu valor. <strong>Como consertar:</strong> dê um valor antes de usar (<code>let nome = "";</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>Null</code> ou <code>Undefined</code> com maiúscula</strong>
+<pre class="file" data-file="maius.js">const x = Null;
+</pre>
+<pre class="term">$ node maius.js
+/home/ana/maius.js:1
+const x = Null;
+          ^
+
+ReferenceError: Null is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/maius.js:1:11)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Como o <code>true</code>, o <code>null</code> é uma palavra da linguagem e se escreve em minúsculas. <code>Null</code> vira o nome de uma variável que não existe. <strong>Como consertar:</strong> <code>const x = null;</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Rua não informada;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa quebra com <code>Cannot read properties of undefined</code>, porque o pedido não tem endereço. Conserte a segunda linha com <code>?.</code> e <code>??</code> para mostrar <code>Rua não informada</code> quando faltar o endereço.</p>
+<pre class="script" data-file="main.js">const pedido = { cliente: "Ana" };
+const rua = pedido.endereco.rua;
+console.log(rua);
+</pre>
+<pre class="solucao" data-file="main.js">const pedido = { cliente: "Ana" };
+const rua = pedido.endereco?.rua ?? "Rua não informada";
+console.log(rua);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que é</th></tr>
+<tr><td><code>let x;</code> → <code>x</code></td><td><code>undefined</code></td><td>Variável criada sem valor</td></tr>
+<tr><td><code>objeto.naoExiste</code> / <code>lista[99]</code></td><td><code>undefined</code></td><td>Propriedade ou posição que não existe</td></tr>
+<tr><td><code>let x = null;</code></td><td><code>null</code></td><td>Vazio de propósito</td></tr>
+<tr><td><code>typeof undefined</code> / <code>typeof null</code></td><td><code>"undefined"</code> / <code>"object"</code></td><td>O segundo é um erro histórico</td></tr>
+<tr><td><code>null === undefined</code> / <code>null == undefined</code></td><td><code>false</code> / <code>true</code></td><td>Tipos diferentes; o <code>==</code> os iguala</td></tr>
+<tr><td><code>valor ?? "padrão"</code></td><td><code>valor</code>, ou <code>"padrão"</code> se for <code>null</code>/<code>undefined</code></td><td>Valor padrão (mantém <code>0</code> e <code>""</code>)</td></tr>
+<tr><td><code>null + 1</code> / <code>undefined + 1</code></td><td><code>1</code> / <code>NaN</code></td><td>Conversão automática em contas</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>undefined</code> na tela</td><td>Nome escrito errado, posição que não existe, função sem <code>return</code>, variável sem valor</td></tr>
+<tr><td><code>Cannot read properties of undefined (reading 'x')</code></td><td>O que está antes do <code>.x</code> é <code>undefined</code></td></tr>
+<tr><td><code>Cannot read properties of null (reading 'x')</code></td><td>O que está antes do <code>.x</code> é <code>null</code></td></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>A variável nunca foi criada (ou o nome está errado)</td></tr>
+<tr><td><code>NaN</code> no resultado de uma conta</td><td>Um dos valores era <code>undefined</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<p>O que o Node mostra para <code>let cor; console.log(cor);</code>?</p>
+<div class="ex-code"><input data-answer="undefined" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para criar a variável <code>vencedor</code> vazia de propósito:</p>
+<div class="ex-code">let vencedor = <input data-answer="null" aria-label="valor vazio">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O tipo esquisito</h3>
+<p>O que <code>typeof null</code> devolve? (Escreva sem aspas.)</p>
+<div class="ex-code"><input data-answer="object" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Valor padrão</h3>
+<p>O que <code>console.log(undefined ?? "nada");</code> mostra?</p>
+<div class="ex-code"><input data-answer="nada" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual é a diferença entre <code>null</code> e <code>undefined</code>?</p>
+<label><input type="radio" name="q5"> Nenhuma: são o mesmo valor</label>
+<label><input type="radio" name="q5"> <code>undefined</code> o JavaScript põe sozinho quando falta valor; <code>null</code> o programador escreve para dizer "vazio, de propósito"</label>
+<label><input type="radio" name="q5"> <code>null</code> é um erro e <code>undefined</code> não</label>
+<label><input type="radio" name="q5"> <code>null</code> é um número e <code>undefined</code> é um texto</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. <code>const pedido = {};</code> O que acontece com <code>console.log(pedido.cliente.nome);</code>?</p>
+<label><input type="radio" name="q6"> Mostra <code>undefined</code></label>
+<label><input type="radio" name="q6"> Mostra <code>null</code></label>
+<label><input type="radio" name="q6"> <code>TypeError: Cannot read properties of undefined (reading 'nome')</code></label>
+<label><input type="radio" name="q6"> <code>ReferenceError: pedido is not defined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. O que <code>null === undefined</code> devolve?</p>
+<label><input type="radio" name="q7"> <code>false</code></label>
+<label><input type="radio" name="q7"> <code>true</code></label>
+<label><input type="radio" name="q7"> <code>undefined</code></label>
+<label><input type="radio" name="q7"> Um erro</label>
+</div>
+
+<h3>Missão final: a ficha da academia</h3>
+
+<div class="tryjs" data-goal="out:Segundo nome: (não tem);;out:Telefone: (não informado);;semerro">
+<p class="try-task"><strong>Missão:</strong> a ficha da Ana tem <code>segundoNome: null</code> (ela não tem) e nenhum telefone. O programa mostra <code>null</code> e <code>undefined</code> na tela, o que fica feio. Use o <code>??</code> nas duas linhas para mostrar <code>Segundo nome: (não tem)</code> e <code>Telefone: (não informado)</code>.</p>
+<pre class="script" data-file="main.js">const ficha = { nome: "Ana", segundoNome: null };
+console.log(`Nome: ${ficha.nome}`);
+console.log(`Segundo nome: ${ficha.segundoNome}`);
+console.log(`Telefone: ${ficha.telefone}`);
+</pre>
+<pre class="solucao" data-file="main.js">const ficha = { nome: "Ana", segundoNome: null };
+console.log(`Nome: ${ficha.nome}`);
+console.log(`Segundo nome: ${ficha.segundoNome ?? "(não tem)"}`);
+console.log(`Telefone: ${ficha.telefone ?? "(não informado)"}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>undefined</code> é o "ainda não tem valor" que o JavaScript põe sozinho: variável sem <code>=</code>, propriedade ou posição que não existe, função sem <code>return</code>.</li>
+  <li><code>null</code> é o "vazio de propósito" que <strong>você</strong> escreve. Prefira <code>null</code> e não escreva <code>undefined</code> à mão.</li>
+  <li><code>typeof null</code> dá <code>"object"</code> (erro histórico). Para reconhecer, use <code>=== null</code> e <code>=== undefined</code>; <code>null === undefined</code> é <code>false</code>.</li>
+  <li><code>valor ?? "padrão"</code> troca só <code>null</code> e <code>undefined</code> pelo padrão (o <code>0</code> e o <code>""</code> ficam).</li>
+  <li>Ler uma propriedade de <code>null</code> ou <code>undefined</code> dá <code>TypeError: Cannot read properties of …</code>: o culpado é o que vem antes do ponto. Já "<code>is not defined</code>" quer dizer que a variável nem existe.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
