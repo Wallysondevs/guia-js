@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript async e await — esperando uma Promise como se fosse código comum | Guia JavaScript</title>
+<meta name="description" content="async e await do JavaScript para quem nunca programou: a função async que devolve uma Promise, o await que espera o resultado, passos em sequência, try/catch/finally com await, await no topo do arquivo, arrow functions async, for … of × forEach e os erros reais do Node.js 24 (await fora de async, Promise { &lt;pending&gt; }, rejeição sem catch).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">async e await</span></h1>
+
+<p class="intro">Na aula <a href="promises.html">Promises</a>, você viu que uma tarefa demorada (esperar um tempo, ler um arquivo, buscar dados na internet) devolve uma <strong>Promise</strong>, a "promessa" de um resultado que vai chegar depois, e que o resultado se pega com <code>.then()</code>. Funciona, mas com vários passos seguidos o código vira uma escadinha de <code>.then(() =&gt; …)</code>. As palavras <code>async</code> ("assíncrono") e <code>await</code> ("aguardar") deixam você escrever o mesmo programa <strong>de cima para baixo</strong>, como se cada linha esperasse a anterior terminar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que a palavra <code>async</code> faz com uma função: ela passa a devolver <strong>sempre</strong> uma Promise.</li>
+  <li>O que o <code>await</code> faz: <strong>pausa</strong> a função até a Promise se resolver e entrega o valor.</li>
+  <li>Como escrever vários passos demorados em sequência, e como o mesmo programa fica com <code>.then()</code>.</li>
+  <li>Como tratar erros com <code>try … catch … finally</code> em volta do <code>await</code>.</li>
+  <li>O <code>await</code> no topo do arquivo, as arrow functions <code>async</code> e os métodos <code>async</code>.</li>
+  <li>Os erros reais mais comuns: <code>await</code> numa função sem <code>async</code>, o <code>await</code> esquecido (<code>Promise { &lt;pending&gt; }</code>), a rejeição sem <code>catch</code> e o <code>await</code> dentro do <code>forEach</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a senha da padaria</h2>
+<p>Na padaria do bairro, a Ana pede um bolo que ainda está no forno. A atendente entrega uma <strong>senha</strong>: "quando ficar pronto, a gente chama". A senha é a <strong>Promise</strong>: não é o bolo, é a promessa do bolo.</p>
+<p>Com a senha na mão, a Ana tem dois jeitos de se organizar:</p>
+<ol class="passo">
+  <li><strong>Jeito <code>.then()</code>:</strong> ela escreve num papel "quando chamarem a senha, pegue o bolo; depois, pague; depois, vá para casa", entrega o papel a alguém e vai fazer outra coisa.</li>
+  <li><strong>Jeito <code>await</code>:</strong> ela mesma <strong>aguarda</strong> no balcão. Quando chamam, pega o bolo e segue a lista na ordem: paga, vai para casa. A lista dela fica escrita de cima para baixo, do jeito que a gente pensa.</li>
+</ol>
+<p>O detalhe importante: enquanto a Ana aguarda o bolo, <strong>a padaria não para</strong>. Os outros clientes continuam sendo atendidos. No JavaScript é igual: o <code>await</code> pausa só <strong>a função</strong> que está esperando; o resto do programa continua rodando (você vai ver isso acontecer na seção 2).</p>
+
+<hr>
+
+<h2>1. A palavra <code>async</code>: a função passa a devolver uma Promise</h2>
+<p>Escreva <code>async</code> antes de <code>function</code> e a função vira uma <strong>função assíncrona</strong>. A primeira consequência é surpreendente:</p>
+
+<pre class="file" data-file="saudar.js">async function saudar() {
+  return "Olá, Ana!";
+}
+
+const resultado = saudar();
+console.log(resultado);
+resultado.then((texto) =&gt; console.log(texto));
+</pre>
+
+<pre class="term">$ node saudar.js
+Promise { 'Olá, Ana!' }
+Olá, Ana!
+</pre>
+
+<dl class="anatomy">
+  <dt>async function saudar()</dt><dd>Uma função comum com a palavra <code>async</code> na frente. Por dentro, ela pode ter tudo o que uma função normal tem, e ainda pode usar <code>await</code>.</dd>
+  <dt>return "Olá, Ana!";</dt><dd>Parece que devolve um texto, mas o <code>async</code> <strong>embrulha</strong> o valor numa Promise já resolvida.</dd>
+  <dt>console.log(resultado)</dt><dd>Mostra <code>Promise { 'Olá, Ana!' }</code>: uma Promise com o texto dentro. É assim que o Node mostra uma Promise que já tem o valor.</dd>
+  <dt>resultado.then(…)</dt><dd>Como é uma Promise, o valor se tira com <code>.then()</code>, igual na aula <a href="promises.html">Promises</a>. A seguir você vai ver o jeito mais curto: o <code>await</code>.</dd>
+</dl>
+
+<div class="tip">
+<strong>Regra de ouro</strong>
+<p>Uma função <code>async</code> <strong>sempre</strong> devolve uma Promise. Se ela fizer <code>return 10</code>, quem chamou recebe uma Promise que se resolve com <code>10</code>. Se ela lançar um erro com <code>throw</code>, quem chamou recebe uma Promise <strong>rejeitada</strong> (a seção 4 mostra isso).</p>
+</div>
+
+<hr>
+
+<h2>2. A palavra <code>await</code>: esperar o resultado</h2>
+<p>Dentro de uma função <code>async</code>, você pode escrever <code>await</code> antes de uma Promise. O <code>await</code> faz duas coisas:</p>
+<ul>
+  <li><strong>pausa</strong> a função naquela linha até a Promise se resolver;</li>
+  <li>entrega o <strong>valor</strong> que estava dentro dela, que você guarda numa variável.</li>
+</ul>
+<p>A Ana abre a padaria e precisa esperar os pães assarem. Para imitar o forno, a função <code>assarPaes</code> devolve uma Promise que só se resolve depois de 2 segundos (com o <code>setTimeout</code> da aula <a href="timers.html">setTimeout e setInterval</a>):</p>
+
+<pre class="file" data-file="padaria.js">function assarPaes(quantidade) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${quantidade} pães prontos`), 2000);
+  });
+}
+
+async function abrirPadaria() {
+  console.log("Ligando o forno...");
+  const paes = await assarPaes(12);
+  console.log(paes);
+  console.log("Padaria aberta!");
+}
+
+abrirPadaria();
+console.log("(enquanto isso, a Ana varre a calçada)");
+</pre>
+
+<pre class="term">$ node padaria.js
+Ligando o forno...
+(enquanto isso, a Ana varre a calçada)
+12 pães prontos           « estas duas linhas aparecem 2 segundos depois
+Padaria aberta!
+</pre>
+
+<dl class="anatomy">
+  <dt>function assarPaes(quantidade)</dt><dd>Uma função <strong>comum</strong> que devolve uma Promise. Ela representa uma tarefa demorada; no mundo real, seria ler um arquivo ou buscar dados na internet.</dd>
+  <dt>async function abrirPadaria()</dt><dd>Precisa do <code>async</code> porque vai usar <code>await</code> lá dentro.</dd>
+  <dt>const paes = await assarPaes(12);</dt><dd>"Aguarde os pães assarem e guarde o resultado em <code>paes</code>." Sem o <code>await</code>, <code>paes</code> seria a Promise (a senha); com ele, é o texto <code>"12 pães prontos"</code> (o bolo).</dd>
+  <dt>console.log(paes)</dt><dd>Só roda <strong>depois</strong> que a Promise se resolveu. O <code>await</code> garante a ordem.</dd>
+  <dt>abrirPadaria();</dt><dd>Chama a função. Ela roda até o primeiro <code>await</code>, mostra <code>Ligando o forno...</code> e <strong>pausa</strong>.</dd>
+  <dt>console.log("(enquanto isso…)")</dt><dd>Enquanto <code>abrirPadaria</code> está pausada, o programa continua: esta linha aparece <strong>antes</strong> dos pães.</dd>
+</dl>
+
+<h3>Passo a passo: a ordem das linhas</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th>O que acontece</th><th>Na tela</th></tr>
+<tr><td>0 s</td><td><code>abrirPadaria()</code> começa</td><td><code>Ligando o forno...</code></td></tr>
+<tr><td>0 s</td><td>Chega no <code>await</code>: a função pausa, o controle volta para quem a chamou</td><td>—</td></tr>
+<tr><td>0 s</td><td>A última linha do arquivo roda</td><td><code>(enquanto isso, a Ana varre a calçada)</code></td></tr>
+<tr><td>2 s</td><td>A Promise se resolve; a função continua de onde parou</td><td><code>12 pães prontos</code> e <code>Padaria aberta!</code></td></tr>
+</table>
+</div>
+
+<p>É a padaria que não para: a função esperou, o resto do programa não. Quem decide quando a função pausada volta a rodar é o <strong>event loop</strong>, o assunto da aula <a href="event-loop.html">O Event Loop</a>.</p>
+
+<div class="tryjs" data-goal="out:12 pães prontos;;src:\bawait\b">
+<p class="try-task"><strong>Missão:</strong> este programa esqueceu o <code>await</code>. Rode e veja o que aparece no lugar dos pães. Depois, acrescente <code>await</code> antes de <code>assarPaes(12)</code> e rode de novo.</p>
+<pre class="script" data-file="main.js">function assarPaes(quantidade) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${quantidade} pães prontos`), 1000);
+  });
+}
+
+async function abrirPadaria() {
+  console.log("Ligando o forno...");
+  const paes = assarPaes(12);
+  console.log(paes);
+  console.log("Padaria aberta!");
+}
+
+abrirPadaria();
+</pre>
+<pre class="solucao" data-file="main.js">function assarPaes(quantidade) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${quantidade} pães prontos`), 1000);
+  });
+}
+
+async function abrirPadaria() {
+  console.log("Ligando o forno...");
+  const paes = await assarPaes(12);
+  console.log(paes);
+  console.log("Padaria aberta!");
+}
+
+abrirPadaria();
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Vários passos em sequência</h2>
+<p>O <code>await</code> brilha quando há <strong>vários</strong> passos demorados, um depois do outro. Para não repetir o <code>new Promise</code> toda vez, a Ana escreveu uma função auxiliar, <code>esperar(ms)</code>, que devolve uma Promise resolvida depois de <code>ms</code> milissegundos (1000 ms = 1 segundo). Você vai ver essa função de 2 linhas em muitos programas de verdade:</p>
+
+<pre class="file" data-file="cafe.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+async function fazerCafe() {
+  console.log("1. Fervendo a água...");
+  await esperar(1000);
+  console.log("2. Passando o café...");
+  await esperar(1000);
+  console.log("3. Servindo na xícara.");
+  return "café pronto";
+}
+
+const resposta = await fazerCafe();
+console.log(`Resultado: ${resposta}`);
+</pre>
+
+<pre class="term">$ node cafe.js
+1. Fervendo a água...
+2. Passando o café...      « 1 segundo depois
+3. Servindo na xícara.     « mais 1 segundo
+Resultado: café pronto
+</pre>
+
+<p>Leia o corpo de <code>fazerCafe</code> em voz alta: "ferve a água, <strong>espera</strong> 1 segundo, passa o café, <strong>espera</strong> 1 segundo, serve". É uma receita, na ordem. E o <code>return "café pronto"</code> vira o valor da Promise que <code>fazerCafe()</code> devolve; quem chama pega esse valor com outro <code>await</code>.</p>
+
+<h3>O <code>await</code> no topo do arquivo</h3>
+<p>Repare na penúltima linha: <code>const resposta = await fazerCafe();</code> está <strong>fora</strong> de qualquer função. Isso se chama <strong>top-level await</strong> ("await no nível de cima"). Ele só é permitido em <strong>módulos</strong> (o formato de arquivo com <code>import</code>/<code>export</code>, da aula <a href="modulos.html">Módulos</a>). O Node 24 percebe sozinho o <code>await</code> solto e roda o arquivo como módulo: por isso <code>node cafe.js</code> funcionou, sem configuração nenhuma.</p>
+<p>Dentro de uma função, o <code>await</code> continua exigindo o <code>async</code> na função (a seção <a href="#errado">Quando dá errado</a> mostra a mensagem). Nos programas desta aula, as funções que esperam têm <code>async</code>, e as últimas linhas do arquivo usam o <code>await</code> do topo.</p>
+
+<div class="note">
+<strong>Em código antigo: a função <code>main</code></strong>
+<p>Antes do top-level await, era comum embrulhar o programa inteiro numa função e chamá-la no fim: <code>async function main() { … }</code> e depois <code>main();</code>. Ainda funciona e você vai encontrar isso em muitos projetos.</p>
+</div>
+
+<h3>O mesmo programa com <code>.then()</code></h3>
+<p>Para comparar, este é o café escrito só com Promises e <code>.then()</code>, do jeito da aula anterior. A saída é idêntica:</p>
+
+<pre class="file" data-file="cafe-then.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+function fazerCafe() {
+  console.log("1. Fervendo a água...");
+  return esperar(1000)
+    .then(() =&gt; {
+      console.log("2. Passando o café...");
+      return esperar(1000);
+    })
+    .then(() =&gt; {
+      console.log("3. Servindo na xícara.");
+      return "café pronto";
+    });
+}
+
+fazerCafe().then((resposta) =&gt; console.log(`Resultado: ${resposta}`));
+</pre>
+
+<pre class="term">$ node cafe-then.js
+1. Fervendo a água...
+2. Passando o café...
+3. Servindo na xícara.
+Resultado: café pronto
+</pre>
+
+<p>As duas versões fazem <strong>exatamente</strong> a mesma coisa: o <code>async</code>/<code>await</code> é outra forma de escrever Promises, não uma coisa diferente. A versão com <code>await</code> tem menos parênteses, menos <code>return</code> no meio do caminho e se lê como uma receita.</p>
+
+<div class="tryjs" data-goal="out:4. Bom apetite!;;src:await\s+esperar">
+<p class="try-task"><strong>Experimente:</strong> acrescente um quarto passo ao café: depois de servir, <strong>espere</strong> mais meio segundo (<code>await esperar(500);</code>) e mostre <code>4. Bom apetite!</code>.</p>
+<pre class="script" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+async function fazerCafe() {
+  console.log("1. Fervendo a água...");
+  await esperar(1000);
+  console.log("2. Passando o café...");
+  await esperar(1000);
+  console.log("3. Servindo na xícara.");
+  return "café pronto";
+}
+
+const resposta = await fazerCafe();
+console.log(`Resultado: ${resposta}`);
+</pre>
+<pre class="solucao" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+async function fazerCafe() {
+  console.log("1. Fervendo a água...");
+  await esperar(1000);
+  console.log("2. Passando o café...");
+  await esperar(1000);
+  console.log("3. Servindo na xícara.");
+  await esperar(500);
+  console.log("4. Bom apetite!");
+  return "café pronto";
+}
+
+const resposta = await fazerCafe();
+console.log(`Resultado: ${resposta}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Quando a Promise falha: <code>try … catch</code></h2>
+<p>Uma Promise pode ser <strong>rejeitada</strong> (o pedido não existe, o arquivo sumiu, a internet caiu). Com <code>.then()</code>, o erro se pega com <code>.catch()</code>. Com <code>await</code>, uma Promise rejeitada vira um erro comum, lançado <strong>na linha do <code>await</code></strong>, e se pega com o mesmo <code>try … catch … finally</code> da aula <a href="try-catch.html">try … catch … finally</a>.</p>
+<p>A Ana consulta encomendas no sistema da padaria. Só o pedido 7 existe:</p>
+
+<pre class="file" data-file="pedido.js">function buscarPedido(numero) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (numero === 7) {
+        resolve({ numero: 7, item: "bolo de cenoura" });
+      } else {
+        reject(new Error(`Pedido ${numero} não encontrado`));
+      }
+    }, 500);
+  });
+}
+
+async function mostrarPedido(numero) {
+  try {
+    const pedido = await buscarPedido(numero);
+    console.log(`Pedido ${pedido.numero}: ${pedido.item}`);
+  } catch (erro) {
+    console.log(`Problema: ${erro.message}`);
+  } finally {
+    console.log("Consulta encerrada.");
+  }
+}
+
+await mostrarPedido(7);
+await mostrarPedido(9);
+</pre>
+
+<pre class="term">$ node pedido.js
+Pedido 7: bolo de cenoura
+Consulta encerrada.
+Problema: Pedido 9 não encontrado
+Consulta encerrada.
+</pre>
+
+<dl class="anatomy">
+  <dt>reject(new Error(…))</dt><dd>Dentro de <code>buscarPedido</code>, o pedido que não existe <strong>rejeita</strong> a Promise com um objeto de erro.</dd>
+  <dt>try { const pedido = await … }</dt><dd>"Tente". Se a Promise se resolver, <code>pedido</code> recebe o objeto e a linha seguinte mostra o item.</dd>
+  <dt>catch (erro)</dt><dd>Se a Promise for <strong>rejeitada</strong>, o <code>await</code> lança o erro e o JavaScript pula direto para cá. A linha <code>console.log(`Pedido …`)</code> nem roda. O <code>erro.message</code> é o texto do <code>Error</code>.</dd>
+  <dt>finally</dt><dd>"Finalmente". Roda nos dois casos, com ou sem erro: bom para avisar que a consulta acabou.</dd>
+  <dt>await mostrarPedido(7); await mostrarPedido(9);</dt><dd>Os dois <code>await</code> no topo garantem a ordem: a consulta do 9 só começa depois que a do 7 terminou.</dd>
+</dl>
+
+<h3>O <code>throw</code> dentro de uma função <code>async</code></h3>
+<p>Do outro lado, um <code>throw</code> dentro de uma função <code>async</code> não derruba o programa na hora: vira uma Promise <strong>rejeitada</strong>, e o <code>return</code> vira uma Promise <strong>resolvida</strong>:</p>
+
+<pre class="file" data-file="retorno.js">async function dobrar(n) {
+  return n * 2;
+}
+async function falhar() {
+  throw new Error("deu ruim");
+}
+console.log(dobrar(5));
+console.log(await dobrar(5));
+falhar().catch((erro) =&gt; console.log("Pegou:", erro.message));
+</pre>
+
+<pre class="term">$ node retorno.js
+Promise { 10 }
+10
+Pegou: deu ruim
+</pre>
+
+<p>Os dois jeitos de pegar o erro se misturam sem problema: <code>await</code> dentro de <code>try … catch</code>, ou <code>.catch()</code> direto na Promise que a função devolveu.</p>
+
+<hr>
+
+<h2>5. Outras formas de escrever uma função <code>async</code></h2>
+<p>O <code>async</code> vai na frente de qualquer jeito de criar função: arrow functions (aula <a href="arrow-functions.html">Arrow Functions</a>) e métodos de objeto (aula <a href="objetos-metodos.html">Métodos e this</a>) também:</p>
+
+<pre class="file" data-file="arrow.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+const regar = async (planta) =&gt; {
+  await esperar(500);
+  return `${planta} regada`;
+};
+
+const jardim = {
+  async podar(planta) {
+    await esperar(500);
+    return `${planta} podada`;
+  },
+};
+
+console.log(await regar("samambaia"));
+console.log(await jardim.podar("roseira"));
+</pre>
+
+<pre class="term">$ node arrow.js
+samambaia regada
+roseira podada
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito de criar a função</th><th>Com <code>async</code></th></tr>
+<tr><td>Declaração</td><td><code>async function regar(planta) { … }</code></td></tr>
+<tr><td>Arrow function</td><td><code>const regar = async (planta) =&gt; { … };</code></td></tr>
+<tr><td>Arrow function de uma linha</td><td><code>const regar = async (planta) =&gt; `${planta} regada`;</code></td></tr>
+<tr><td>Método de objeto ou de classe</td><td><code>async podar(planta) { … }</code></td></tr>
+</table>
+</div>
+
+<p>E o <code>await</code> aceita qualquer valor, não só Promises: <code>await 42</code> simplesmente dá <code>42</code> (no lab, <code>const numero = await 42; console.log(numero);</code> mostrou <code>42</code>). Não é útil no dia a dia, mas explica por que um <code>await</code> a mais não quebra nada.</p>
+
+<hr>
+
+<h2>6. Repetindo com <code>await</code>: use <code>for … of</code></h2>
+<p>A Ana tem uma lista de tarefas de casa, e cada uma leva meio segundo. Com <code>for … of</code> (aula <a href="for-of.html">for … of</a>), o <code>await</code> dentro do laço espera cada tarefa terminar antes de começar a próxima:</p>
+
+<pre class="file" data-file="forof.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+const tarefas = ["varrer", "lavar a louça", "regar as plantas"];
+
+for (const tarefa of tarefas) {
+  await esperar(500);
+  console.log(`Feito: ${tarefa}`);
+}
+console.log("Terminei tudo!");
+</pre>
+
+<pre class="term">$ node forof.js
+Feito: varrer
+Feito: lavar a louça
+Feito: regar as plantas
+Terminei tudo!
+</pre>
+
+<p>O laço leva 1,5 segundo (3 × 0,5), e o <code>Terminei tudo!</code> só aparece no fim, como deve ser. Se as tarefas fossem independentes e pudessem andar <strong>ao mesmo tempo</strong>, daria para terminar em meio segundo: é o assunto da próxima aula, <a href="promise-all.html">Várias Promises</a>. Com o <code>forEach</code>, a ordem sai errada; veja em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Com <code>.then()</code></th><th>Com <code>async</code>/<code>await</code></th></tr>
+<tr><td>Pegar o resultado</td><td><code>buscar().then((x) =&gt; …)</code></td><td><code>const x = await buscar();</code></td></tr>
+<tr><td>Pegar o erro</td><td><code>.catch((erro) =&gt; …)</code></td><td><code>try { … } catch (erro) { … }</code></td></tr>
+<tr><td>Fazer algo no fim, com ou sem erro</td><td><code>.finally(() =&gt; …)</code></td><td><code>finally { … }</code></td></tr>
+<tr><td>Vários passos em sequência</td><td><code>.then().then().then()</code></td><td>Um <code>await</code> por linha</td></tr>
+<tr><td>Repetir uma tarefa demorada para cada item</td><td>difícil de escrever</td><td><code>for (const item of lista) { await … }</code></td></tr>
+</table>
+</div>
+
+<p><strong>Qual usar?</strong> No código novo, prefira <code>async</code>/<code>await</code>: é mais fácil de ler e de depurar. O <code>.then()</code> continua útil numa linha só, quando você não está dentro de uma função <code>async</code> (<code>falhar().catch(…)</code>, como na seção 4), e você vai encontrá-lo em todo código mais antigo.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>await</code> numa função sem <code>async</code></strong>
+<pre class="file" data-file="semasync.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+function fazerCafe() {
+  console.log("Fervendo a água...");
+  await esperar(1000);
+  console.log("Café pronto!");
+}
+
+fazerCafe();
+</pre>
+<pre class="term">$ node semasync.js
+/home/ana/semasync.js:7
+  await esperar(1000);
+  ^^^^^
+
+SyntaxError: await is only valid in async functions and the top level bodies of modules
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at Module._compile (node:internal/modules/cjs/loader:1903:20)
+    «  … mais 6 linhas "at" internas do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semasync.js:7</dt><dd>O arquivo e a linha do problema: a 7, a do <code>await</code>.</dd>
+  <dt>await esperar(1000); e ^^^^^</dt><dd>A linha copiada, com os <code>^</code> embaixo da palavra exata que o Node não aceitou: o <code>await</code>.</dd>
+  <dt>SyntaxError: await is only valid in async functions and the top level bodies of modules</dt><dd>"Erro de sintaxe: <code>await</code> só vale em funções <code>async</code> e no nível de cima de módulos." A função <code>fazerCafe</code> não tem <code>async</code>.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>As linhas <code>at</code> mostram por onde o Node passou dentro dele mesmo; aqui nenhuma é do seu arquivo, então dá para ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou.</dd>
+</dl>
+<p>Como é erro de <strong>sintaxe</strong>, nada rodou: nem o <code>Fervendo a água...</code> apareceu. <strong>Como consertar:</strong> <code>async function fazerCafe() {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code>: <code>Promise { &lt;pending&gt; }</code></strong>
+<pre class="file" data-file="esqueceu.js">function buscarPedido(numero) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve({ numero, item: "bolo de cenoura" }), 500);
+  });
+}
+
+const pedido = buscarPedido(7);
+console.log(pedido);
+console.log(pedido.item);
+</pre>
+<pre class="term">$ node esqueceu.js
+Promise { &lt;pending&gt; }
+undefined
+</pre>
+<p>Não aparece erro nenhum, e por isso esse é o engano mais traiçoeiro. Sem o <code>await</code>, <code>pedido</code> é a <strong>Promise</strong> (a senha), ainda <code>&lt;pending&gt;</code> ("pendente": o bolo não ficou pronto). E a senha não tem a propriedade <code>item</code>, então <code>pedido.item</code> dá <code>undefined</code>. <strong>Como consertar:</strong> <code>const pedido = await buscarPedido(7);</code>. Sempre que aparecer <code>Promise { &lt;pending&gt; }</code> ou um <code>undefined</code> inesperado perto de uma função assíncrona, procure o <code>await</code> que faltou.</p>
+</div>
+
+<div class="cenario">
+<strong>A Promise foi rejeitada e ninguém pegou o erro</strong>
+<pre class="file" data-file="pedido-semtry.js">function buscarPedido(numero) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (numero === 7) {
+        resolve({ numero: 7, item: "bolo de cenoura" });
+      } else {
+        reject(new Error(`Pedido ${numero} não encontrado`));
+      }
+    }, 500);
+  });
+}
+
+const pedido = await buscarPedido(9);
+console.log(`Pedido ${pedido.numero}: ${pedido.item}`);
+</pre>
+<pre class="term">$ node pedido-semtry.js
+file:///home/ana/pedido-semtry.js:7
+        reject(new Error(`Pedido ${numero} não encontrado`));
+               ^
+
+Error: Pedido 9 não encontrado
+    at Timeout._onTimeout (file:///home/ana/pedido-semtry.js:7:16)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+<p>Sem <code>try … catch</code>, a rejeição derruba o programa. Repare nos detalhes:</p>
+<ul>
+  <li><code>file:///home/ana/pedido-semtry.js:7</code>: o caminho começa com <code>file://</code> porque, com o <code>await</code> no topo, o Node rodou o arquivo como <strong>módulo</strong>, e módulos são identificados por endereço (URL).</li>
+  <li>A linha apontada é a <strong>7</strong>, onde o erro foi <strong>criado</strong> (<code>new Error</code>), e não a 13, onde estava o <code>await</code>.</li>
+  <li><code>Error: Pedido 9 não encontrado</code>: o tipo e a mensagem do erro.</li>
+  <li><code>at Timeout._onTimeout (…pedido-semtry.js:7:16)</code>: o erro nasceu dentro da função do <code>setTimeout</code> (linha 7, coluna 16).</li>
+  <li><code>echo $?</code> → <code>1</code>: o programa terminou com código de erro, e o <code>console.log</code> da última linha nunca rodou.</li>
+</ul>
+<p><strong>Como consertar:</strong> ponha o <code>await</code> dentro de um <code>try … catch</code>, como na seção 4.</p>
+</div>
+
+<div class="cenario">
+<strong><code>await</code> dentro do <code>forEach</code>: a ordem sai errada</strong>
+<pre class="file" data-file="foreach.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+const tarefas = ["varrer", "lavar a louça", "regar as plantas"];
+
+tarefas.forEach(async (tarefa) =&gt; {
+  await esperar(500);
+  console.log(`Feito: ${tarefa}`);
+});
+console.log("Terminei tudo!");
+</pre>
+<pre class="term">$ node foreach.js
+Terminei tudo!
+Feito: varrer
+Feito: lavar a louça
+Feito: regar as plantas
+</pre>
+<p>O <code>Terminei tudo!</code> saiu <strong>primeiro</strong>, e as três tarefas apareceram juntas meio segundo depois. O <code>forEach</code> chama a função <code>async</code> para cada item, recebe a Promise de volta e <strong>não espera</strong> nenhuma: o <code>await</code> pausa só a função de dentro, não o <code>forEach</code>. <strong>Como consertar:</strong> use <code>for (const tarefa of tarefas)</code>, como na seção 6.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Problema: Pedido 9 não encontrado;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa cai com <code>Error: Pedido 9 não encontrado</code>. Rode para ver, e depois coloque as duas últimas linhas dentro de um <code>try</code>, com um <code>catch (erro)</code> que mostre <code>Problema: </code> seguido de <code>erro.message</code>.</p>
+<pre class="script" data-file="main.js">function buscarPedido(numero) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (numero === 7) {
+        resolve({ numero: 7, item: "bolo de cenoura" });
+      } else {
+        reject(new Error(`Pedido ${numero} não encontrado`));
+      }
+    }, 500);
+  });
+}
+
+const pedido = await buscarPedido(9);
+console.log(`Pedido ${pedido.numero}: ${pedido.item}`);
+</pre>
+<pre class="solucao" data-file="main.js">function buscarPedido(numero) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (numero === 7) {
+        resolve({ numero: 7, item: "bolo de cenoura" });
+      } else {
+        reject(new Error(`Pedido ${numero} não encontrado`));
+      }
+    }, 500);
+  });
+}
+
+try {
+  const pedido = await buscarPedido(9);
+  console.log(`Pedido ${pedido.numero}: ${pedido.item}`);
+} catch (erro) {
+  console.log(`Problema: ${erro.message}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>async function nome() { … }</code></td><td>Cria uma função assíncrona: ela sempre devolve uma Promise e pode usar <code>await</code></td></tr>
+<tr><td><code>const f = async () =&gt; { … };</code></td><td>Arrow function assíncrona</td></tr>
+<tr><td><code>const x = await promessa;</code></td><td>Pausa a função até a Promise se resolver e guarda o valor em <code>x</code></td></tr>
+<tr><td><code>return valor</code> numa função <code>async</code></td><td>Resolve a Promise devolvida com <code>valor</code></td></tr>
+<tr><td><code>throw erro</code> numa função <code>async</code></td><td>Rejeita a Promise devolvida com <code>erro</code></td></tr>
+<tr><td><code>try { await … } catch (erro) { … }</code></td><td>Pega a rejeição de uma Promise como um erro comum</td></tr>
+<tr><td><code>await</code> fora de função</td><td>Top-level await: só em módulos (o Node 24 detecta sozinho num <code>.js</code>)</td></tr>
+<tr><td><code>function esperar(ms) { return new Promise((resolve) =&gt; setTimeout(resolve, ms)); }</code></td><td>A auxiliar clássica para "esperar <code>ms</code> milissegundos" com <code>await</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: await is only valid in async functions and the top level bodies of modules</code></td><td>Usou <code>await</code> numa função sem <code>async</code></td></tr>
+<tr><td><code>Promise { &lt;pending&gt; }</code> ou <code>undefined</code> onde devia vir o resultado</td><td>Faltou o <code>await</code></td></tr>
+<tr><td>O programa cai com o erro de um <code>reject</code></td><td>Promise rejeitada sem <code>try … catch</code> nem <code>.catch()</code></td></tr>
+<tr><td>A mensagem "terminei" aparece antes das tarefas</td><td><code>await</code> dentro de <code>forEach</code>: troque por <code>for … of</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete as palavras</h3>
+<p>Complete para a função esperar a Promise de <code>buscarPedido</code>:</p>
+<div class="ex-code"><input data-answer="async" aria-label="palavra antes de function"> function mostrar() {<br>&nbsp;&nbsp;const pedido = <input data-answer="await" aria-label="palavra antes da chamada"> buscarPedido(7);<br>&nbsp;&nbsp;console.log(pedido.item);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que o <code>console.log</code> mostra no Node? Escreva exatamente como no terminal.</p>
+<pre class="file" data-file="ex.js">async function nota() {
+  return 9;
+}
+console.log(nota());
+</pre>
+<div class="ex-code">Mostra <input data-answer="Promise { 9 }" aria-label="saída do console.log"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Em que ordem aparecem as linhas? <code>async function f() { console.log("A"); await esperar(100); console.log("B"); }</code> / <code>f();</code> / <code>console.log("C");</code></p>
+<label><input type="radio" name="q3"> A, B, C</label>
+<label><input type="radio" name="q3"> A, C, B</label>
+<label><input type="radio" name="q3"> C, A, B</label>
+<label><input type="radio" name="q3"> A e C; o B nunca aparece</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>await</code>, como se pega o erro de uma Promise rejeitada?</p>
+<label><input type="radio" name="q4"> Não dá: o <code>await</code> ignora rejeições</label>
+<label><input type="radio" name="q4"> Com um <code>if (erro)</code> depois do <code>await</code></label>
+<label><input type="radio" name="q4"> Pondo o <code>await</code> dentro de um <code>try … catch</code></label>
+<label><input type="radio" name="q4"> Trocando <code>await</code> por <code>async</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para repetir um <code>await</code> para cada item de uma lista, um de cada vez e na ordem, qual laço usar?</p>
+<label><input type="radio" name="q5"> <code>for (const item of lista) { await … }</code></label>
+<label><input type="radio" name="q5"> <code>lista.forEach(async (item) =&gt; { await … })</code></label>
+<label><input type="radio" name="q5"> Tanto faz: os dois esperam</label>
+<label><input type="radio" name="q5"> Nenhum: <code>await</code> não pode ficar dentro de laço</label>
+</div>
+
+<h3>Missão final: o dinheiro que dobra, devagar</h3>
+
+<div class="tryjs" data-goal="out:em 10 dias: R$ 1024;;src:await\s+dobrarDepois">
+<p class="try-task"><strong>Missão:</strong> a função <code>dobrarDepois</code> demora um pouco e devolve o valor dobrado (numa Promise). Escreva o <code>while</code> no lugar do comentário: enquanto <code>valor</code> for menor ou igual a 1000, guarde em <code>valor</code> o resultado de <strong><code>await dobrarDepois(valor)</code></strong> e some 1 em <code>dias</code>. (Se esquecer o <code>await</code>, o <code>valor</code> vira uma Promise e a conta não fecha.)</p>
+<pre class="script" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+async function dobrarDepois(valor) {
+  await esperar(200);
+  return valor * 2;
+}
+
+let valor = 1;
+let dias = 0;
+// escreva o while aqui
+
+console.log(`Passou de R$ 1000 em ${dias} dias: R$ ${valor}`);
+</pre>
+<pre class="solucao" data-file="main.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+async function dobrarDepois(valor) {
+  await esperar(200);
+  return valor * 2;
+}
+
+let valor = 1;
+let dias = 0;
+while (valor &lt;= 1000) {
+  valor = await dobrarDepois(valor);
+  dias++;
+}
+console.log(`Passou de R$ 1000 em ${dias} dias: R$ ${valor}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Passou de R$ 1000 em 10 dias: R$ 1024</code>, uns 2 segundos depois (10 voltas de 0,2 s).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>async</code> antes de uma função faz ela <strong>sempre</strong> devolver uma Promise: o <code>return</code> a resolve, o <code>throw</code> a rejeita.</li>
+  <li><code>await promessa</code> pausa a função até a Promise se resolver e entrega o valor. Só a função pausa; o resto do programa continua.</li>
+  <li>Vários <code>await</code> seguidos escrevem passos demorados em sequência, de cima para baixo, no lugar da escadinha de <code>.then()</code>.</li>
+  <li>Uma Promise rejeitada vira um erro na linha do <code>await</code>: pegue com <code>try … catch … finally</code>.</li>
+  <li>O <code>await</code> exige <code>async</code> na função em volta; fora de funções, só vale em módulos (o Node 24 detecta sozinho).</li>
+  <li>Para repetir com <code>await</code>, use <code>for … of</code>, nunca <code>forEach</code>. E <code>Promise { &lt;pending&gt; }</code> na tela quase sempre é um <code>await</code> esquecido.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
