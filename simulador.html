@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript O Editor do Guia — as caixas Experimente | Guia JavaScript</title>
+<meta name="description" content="Como funcionam as caixas Experimente do Guia JavaScript: o JavaScript do seu próprio navegador imitando o node main.js do Node.js 24, as partes da caixa (Rodar, Restaurar, Ver solução, o terminal e o código de saída), o teclado (readline), as abas, o modo interativo, as caixas de página com Resultado e Console, as missões e as diferenças para o Node.js do terminal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Editor do Guia</span></h1>
+
+<p class="intro">Em toda aula deste guia aparecem caixas <strong>Experimente</strong>: você escreve um programa em JavaScript, clica em <strong>Rodar</strong> e vê, logo embaixo, o que o programa fez. Quem roda o seu código é o <strong>JavaScript do seu próprio navegador</strong> (o Chrome, o Edge, o Firefox…), o mesmo que roda em qualquer site. Não precisa instalar nada. Nesta página você conhece os dois tipos de caixa, aprende a responder quando o programa pergunta alguma coisa, a parar um programa que não termina, e vê o que muda quando você roda o mesmo programa no Node.js, no terminal.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes da caixa de <strong>programa</strong>: o código, <strong>Rodar</strong>, o terminal da caixa, <strong>Restaurar</strong>, <strong>Ver solução</strong> e os atalhos do teclado.</li>
+  <li>Por que cada Rodar começa do zero.</li>
+  <li>Como responder quando o programa pergunta (o <code>readline</code>), as <strong>abas</strong> com vários arquivos e o <strong>modo interativo</strong>.</li>
+  <li>A caixa de <strong>página</strong>: o quadro <strong>Resultado</strong> e o <strong>Console</strong>.</li>
+  <li>Como aparecem os erros e como parar um programa que não termina.</li>
+  <li>Como funcionam as <strong>missões</strong> e o que muda no Node.js do terminal.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma bancada de treino dentro da página</h2>
+<p>Pense numa escola de culinária. O professor explica a receita no quadro, mas a aula só vale a pena quando cada aluno vai para a sua bancada e faz o bolo com as próprias mãos. Se o bolo desanda, tudo bem: a bancada é de treino, e no dia seguinte ela está limpa de novo.</p>
+<p>O editor do guia é essa bancada. Ele tem <strong>dois tipos de caixa</strong>, porque o JavaScript vive em dois lugares:</p>
+<div class="table-wrap"><table class="ref">
+<thead><tr><th>Caixa</th><th>Imita</th><th>Você vê</th><th>Usada em</th></tr></thead>
+<tbody>
+<tr><td><strong>Programa</strong></td><td>o comando <code>node main.js</code> no terminal da Ana</td><td>o terminal da caixa, com o que o programa escreveu</td><td>a linguagem (níveis 1 e 2) e o que é do Node (<code>fs</code>, <code>process</code>)</td></tr>
+<tr><td><strong>Página</strong></td><td>uma página aberta no navegador</td><td>o quadro <strong>Resultado</strong> e o <strong>Console</strong></td><td>"A Página Web": DOM, eventos, <code>localStorage</code>, <code>prompt</code></td></tr>
+</tbody>
+</table></div>
+<p>Tudo acontece no seu computador, dentro do navegador: o seu código não é enviado para lugar nenhum. E o programa roda separado da página (num <em>Web Worker</em>), então, mesmo que ele trave, a página do guia continua funcionando.</p>
+
+<hr>
+
+<h2>A caixa de programa</h2>
+<p>Esta é uma caixa livre, sem missão. Clique em <strong>▶ Rodar</strong>:</p>
+
+<div class="tryjs">
+<pre class="script" data-file="main.js">const nome = "Ana";
+console.log(`Olá, ${nome}!`);
+console.log("Bem-vinda ao JavaScript.");
+</pre>
+</div>
+
+<p>Aparece o <strong>terminal da caixa</strong>. Repare nas partes:</p>
+<dl class="anatomy">
+  <dt>ana@notebook:~$ node main.js</dt><dd>O comando que o editor "digitou" por você: rodar o arquivo <code>main.js</code> com o Node.js, na pasta da Ana (<code>~</code> = <code>/home/ana</code>). A Ana é a usuária das aulas, e o <code>notebook</code> é o computador dela.</dd>
+  <dt>Olá, Ana!</dt><dd>O que o programa escreveu com o <code>console.log</code>, uma linha por chamada.</dd>
+  <dt>[código de saída: 0]</dt><dd>Como o programa terminou: <strong>0</strong> quer dizer "terminou bem"; <strong>1</strong>, que terminou com um erro. É o número que o terminal guarda depois de cada programa.</dd>
+</dl>
+<p>No computador da Ana, com o Node.js instalado, o mesmo programa dá a mesma resposta:</p>
+<pre class="term">$ node main.js
+Olá, Ana!
+Bem-vinda ao JavaScript.
+</pre>
+
+<h3>Os botões e as teclas</h3>
+<div class="table-wrap"><table class="ref">
+<thead><tr><th>Botão ou tecla</th><th>O que faz</th></tr></thead>
+<tbody>
+<tr><td><strong>▶ Rodar</strong> ou <kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>roda o programa (enquanto ele roda, o botão vira <strong>■ Parar</strong>)</td></tr>
+<tr><td><strong>Restaurar</strong></td><td>volta ao código original da aula</td></tr>
+<tr><td><strong>Ver solução</strong></td><td>nas missões: pergunta antes e troca o seu código pela resposta</td></tr>
+<tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>põe ou tira 2 espaços no começo da linha (ou das linhas selecionadas)</td></tr>
+<tr><td><kbd>Enter</kbd> depois de <code>{</code>, <code>(</code>, <code>[</code> ou <code>=&gt;</code></td><td>a linha nova já entra 2 espaços; e o <code>}</code> numa linha vazia volta 2</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>sai do código (para o <kbd>Tab</kbd> voltar a pular entre os botões)</td></tr>
+</tbody>
+</table></div>
+
+<p>O <code>console.log</code> mostra objetos e listas do jeito do Node.js: textos dentro de um objeto aparecem com aspas simples, e há espaços dentro das chaves e dos colchetes. Rode:</p>
+
+<div class="tryjs">
+<pre class="script" data-file="main.js">const produto = { nome: "Pão de queijo", preco: 4.5, tags: ["salgado", "quente"] };
+console.log(produto);
+</pre>
+</div>
+
+<pre class="term">$ node main.js
+{ nome: 'Pão de queijo', preco: 4.5, tags: [ 'salgado', 'quente' ] }
+</pre>
+
+<hr>
+
+<h2>Cada Rodar começa do zero</h2>
+<p>Cada clique em <strong>Rodar</strong> é um <code>node main.js</code> novo, numa pasta <code>/home/ana</code> nova, só com os arquivos das abas da caixa. Uma variável do Rodar anterior não existe mais, e um arquivo que o programa gravou com o <code>fs</code> some quando você roda de novo. É a bancada limpa: nada do que você fez numa caixa atrapalha outra caixa, nem a próxima vez.</p>
+
+<hr>
+
+<h2>Quando o programa pergunta</h2>
+<p>Um programa pode pedir uma resposta com o módulo <code>readline</code> (aula <a href="entrada-teclado.html">Entrada pelo teclado</a>). No editor, quando o programa pergunta, aparece um <strong>campo dentro do terminal da caixa</strong>: digite a resposta e tecle <kbd>Enter</kbd>. Experimente:</p>
+
+<div class="tryjs" data-digitar="Bia">
+<pre class="script" data-file="main.js">import * as readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+
+const rl = readline.createInterface({ input, output });
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+rl.close();
+</pre>
+</div>
+
+<div class="table-wrap"><table class="ref">
+<thead><tr><th>No campo do terminal</th><th>O que acontece</th></tr></thead>
+<tbody>
+<tr><td><kbd>Enter</kbd></td><td>manda a linha para o programa (o que você digitou fica no terminal, em cinza)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>"fim da entrada": não há mais nada para ler (como no terminal de verdade)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> ou <strong>■ Parar</strong></td><td>interrompe o programa</td></tr>
+</tbody>
+</table></div>
+<p>Em algumas caixas há um campo <strong>Entrada</strong> embaixo do código: o que estiver nele vai para o programa de uma vez, como se viesse de um arquivo (<code>node main.js &lt; entrada.txt</code>). E o campo <strong>Argumentos</strong>, quando aparece, é o que vem depois do nome do arquivo no comando: chega no programa em <code>process.argv[2]</code>, <code>process.argv[3]</code>…</p>
+
+<hr>
+
+<h2>Vários arquivos: as abas</h2>
+<p>Quando a caixa tem mais de um arquivo, eles aparecem como <strong>abas</strong> em cima do código. A primeira (<code>main.js</code>) é a que roda; as outras ficam na mesma pasta, e o programa pode importá-las ou lê-las:</p>
+
+<div class="tryjs">
+<pre class="script" data-file="main.js">import { soma } from "./contas.js";
+
+console.log("2 + 3 =", soma(2, 3));
+</pre>
+<pre class="script" data-file="contas.js">export function soma(a, b) {
+  return a + b;
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O modo interativo</h2>
+<p>Algumas caixas têm o botão <strong>▶ Abrir o node</strong>: é o <strong>modo interativo</strong> do Node.js (o <em>REPL</em>), que você abre no terminal digitando só <code>node</code>. Ele mostra o sinal <code>&gt; </code> e espera uma linha de JavaScript; tecle <kbd>Enter</kbd> e ele mostra o resultado. Uma linha que ficou "aberta" (um <code>{</code> sem o <code>}</code>) continua na próxima, com o sinal <code>| </code>. Para sair: <code>.exit</code> ou <kbd>Ctrl</kbd>+<kbd>D</kbd>.</p>
+
+<div class="tryjs" data-repl data-digitar="2 + 3\nconst nome = &quot;Ana&quot;\nnome.toUpperCase()\n.exit">
+</div>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 2 + 3
+5
+&gt; const nome = "Ana"
+undefined
+&gt; nome.toUpperCase()
+'ANA'
+&gt; .exit
+</pre>
+
+<hr>
+
+<h2>A caixa de página</h2>
+<p>Nas aulas sobre páginas web, a caixa tem as abas <code>index.html</code> (a página), <code>script.js</code> e às vezes <code>style.css</code>. <strong>Rodar</strong> abre a página no quadro <strong>Resultado</strong>, e embaixo dele aparece o <strong>Console</strong>: o que o <code>console.log</code> escreveu e os erros. Clique em Rodar e depois no botão do Resultado:</p>
+
+<div class="tryweb">
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;button id="botao"&gt;Quantos pães?&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const botao = document.querySelector("#botao");
+let paes = 0;
+
+botao.addEventListener("click", () =&gt; {
+  paes = paes + 12;
+  document.querySelector("#saida").textContent = `Pães no forno: ${paes}`;
+  console.log("Mais uma fornada:", { paes });
+});
+</pre>
+</div>
+
+<p>O Console do editor mostra o mesmo que o <strong>Console do navegador</strong> (a tecla <kbd>F12</kbd>, aula <a href="console-navegador.html">O Console do Navegador</a>), no jeito do Chrome: <code>{paes: 12}</code>, sem os espaços que o Node.js põe. Erros aparecem em vermelho, com o arquivo e a linha (<code>script.js:3:7</code>). Na caixa de página <strong>não existe nada do Node</strong>: lá não há <code>process</code>, <code>require</code> nem <code>fs</code>, como num site de verdade. Já o <code>prompt</code>, o <code>alert</code> e o <code>localStorage</code> funcionam.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Erros fazem parte. Quando o programa tem um erro que ninguém tratou, o editor mostra a mensagem <strong>do jeito que o Node.js mostra</strong>, em vermelho, e o código de saída vira 1. Rode:</p>
+
+<div class="tryjs">
+<pre class="script" data-file="main.js">const preco = 4.5;
+const quantidade = 3;
+console.log("Total:", preco * quantidade);
+console.log(totl);
+</pre>
+</div>
+
+<div class="cenario">
+<p><strong>O que o Node.js responde</strong> (no terminal da Ana, igual ao editor):</p>
+<pre class="term">$ node main.js
+Total: 13.5
+/home/ana/main.js:4
+console.log(totl);
+            ^
+
+ReferenceError: totl is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/main.js:4:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/main.js:4</dt><dd>Onde: o arquivo e a <strong>linha 4</strong>.</dd>
+  <dt>console.log(totl);</dt><dd>A linha do erro, copiada do seu código.</dd>
+  <dt>^</dt><dd>A setinha aponta a coluna exata: o <code>totl</code>.</dd>
+  <dt>ReferenceError: totl is not defined</dt><dd>O que aconteceu, em inglês: "erro de referência: <code>totl</code> não está definido". Faltou uma letra: o certo é <code>total</code>… e a variável nem existe! As mensagens do Node.js saem sempre em inglês; as aulas traduzem cada uma.</dd>
+  <dt>at …</dt><dd>O caminho até o erro: a primeira linha <code>at</code> é o seu código (<code>main.js:4:13</code> = linha 4, coluna 13); as outras, com <code>node:internal</code>, são o Node.js por dentro e podem ser ignoradas.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.js que rodou o programa.</dd>
+</dl>
+<p>Repare que o <code>Total: 13.5</code> saiu: o programa rodou até a linha 4 e parou ali.</p>
+</div>
+
+<div class="note"><strong>Num navegador que não é o Chrome ou o Edge</strong> (Firefox, Safari), o programa roda igual, mas o <strong>texto</strong> das mensagens de erro pode sair com outras palavras, porque esses navegadores têm outro motor de JavaScript. O Node.js usa o motor do Chrome (o V8). Nesses navegadores, a caixa avisa embaixo do código.</div>
+
+<h3>Um programa que não termina</h3>
+<p>Um laço sem fim (aula <a href="while.html">while</a>) não trava a página: clique em <strong>■ Parar</strong>. Se você não clicar, o editor para o programa sozinho depois de <strong>10 segundos</strong> rodando (o tempo em que o programa espera você digitar não conta). Experimente e clique em Parar:</p>
+
+<div class="tryjs" data-sem-fim>
+<pre class="script" data-file="main.js">let voltas = 0;
+while (true) {
+  voltas++;
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O que o editor não faz</h2>
+<ul>
+  <li><strong>Módulos do Node que precisam do computador de verdade</strong>: servidor web (<code>node:http</code>), rodar outros programas (<code>child_process</code>), rede (<code>net</code>). O editor avisa: <code>O editor do guia não tem o módulo node:http</code>. As aulas mostram esses com a saída do terminal.</li>
+  <li><strong><code>npm install</code></strong> e pacotes de fora (<code>require("lodash")</code> dá <code>Cannot find module 'lodash'</code>, como num computador sem o pacote).</li>
+  <li><strong>Guardar arquivos</strong>: o <code>fs</code> funciona, mas numa pasta de mentira, que some no próximo Rodar.</li>
+  <li><strong>O relógio da Ana</strong>: <code>new Date()</code> mostra a hora do <strong>seu</strong> computador. Os números e datas saem no jeito brasileiro (<code>1.234,5</code>, <code>31/12/2026</code>), como no computador da Ana.</li>
+</ul>
+
+<hr>
+
+<h2>As missões</h2>
+<p>Muitas caixas têm uma <strong>Missão</strong>: um pedido, como "mude o programa para mostrar <code>Olá, Ana!</code>". Quando você roda, o editor confere o resultado e escreve, embaixo da caixa, <strong>✔ Missão cumprida!</strong> ou uma dica do que ainda falta. Na caixa de página, a missão é conferida de novo a cada clique e tecla no Resultado. Experimente:</p>
+
+<div class="tryjs" data-goal="out:Olá, Ana!">
+<p class="try-task"><strong>Missão:</strong> troque <code>"mundo"</code> por <code>"Ana"</code> e clique em Rodar.</p>
+<pre class="script" data-file="main.js">console.log("Olá, mundo!");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Olá, Ana!");
+</pre>
+</div>
+
+<p>Travou? <strong>Ver solução</strong> mostra uma resposta (há sempre mais de um jeito certo). Antes de olhar, releia a mensagem de erro: ela quase sempre diz a linha do problema.</p>
+
+<hr>
+
+<h2 id="terminal">O mesmo programa no terminal</h2>
+<p>Quando você instalar o Node.js (aula <a href="instalar.html">Instalando o Node.js</a>), o mesmo programa roda no terminal: salve o código num arquivo <code>main.js</code> e digite <code>node main.js</code>. A saída é a mesma do editor, inclusive as mensagens de erro. O que muda:</p>
+<div class="table-wrap"><table class="ref">
+<thead><tr><th>Assunto</th><th>No editor</th><th>No terminal</th></tr></thead>
+<tbody>
+<tr><td>Arquivos gravados com <code>fs</code></td><td>somem no próximo Rodar</td><td>ficam na pasta, de verdade</td></tr>
+<tr><td><code>Math.random()</code>, <code>new Date()</code></td><td>mudam a cada Rodar</td><td>mudam a cada vez também</td></tr>
+<tr><td>Mensagens de erro</td><td>iguais (no Chrome/Edge)</td><td>as do Node.js</td></tr>
+<tr><td><code>http</code>, <code>child_process</code>, <code>npm</code></td><td>não funcionam</td><td>funcionam</td></tr>
+<tr><td>O fim do programa</td><td>parado em 10 s se não terminar</td><td>roda até você apertar <kbd>Ctrl</kbd>+<kbd>C</kbd></td></tr>
+</tbody>
+</table></div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A tecla</h3>
+<p>Qual tecla, junto com <kbd>Ctrl</kbd>, roda o programa da caixa?</p>
+<div class="ex-code">Ctrl + <input data-answer="Enter|enter" aria-label="tecla"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O código de saída</h3>
+<p>Que código de saída aparece quando o programa termina com um erro não tratado?</p>
+<div class="ex-code">[código de saída: <input data-answer="1" aria-label="código">]</div>
+</div>
+
+<div class="exercise">
+<h3>3. O nome do arquivo</h3>
+<p>Com que nome o editor grava o código da primeira aba de uma caixa de programa?</p>
+<div class="ex-code"><input data-answer="main.js" aria-label="nome do arquivo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Um programa cria o arquivo <code>lista.txt</code> com o <code>fs</code>. Você clica em Rodar de novo. O que acontece com o arquivo?</p>
+<label><input type="radio" name="q4"> Continua lá, com o conteúdo da vez anterior.</label>
+<label><input type="radio" name="q4"> É salvo no seu computador, na pasta Downloads.</label>
+<label><input type="radio" name="q4"> Sumiu: cada Rodar começa com uma pasta nova, só com os arquivos das abas.</label>
+<label><input type="radio" name="q4"> O editor dá erro, porque o arquivo já existe.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O terminal da caixa mostrou <code>Qual é o seu nome?</code> e um campo para digitar. O que fazer?</p>
+<label><input type="radio" name="q5"> Clicar em Rodar de novo.</label>
+<label><input type="radio" name="q5"> Digitar a resposta no campo e teclar <kbd>Enter</kbd>.</label>
+<label><input type="radio" name="q5"> Escrever a resposta dentro do código.</label>
+<label><input type="radio" name="q5"> Esperar 10 segundos.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Numa caixa de <strong>página</strong>, <code>console.log(typeof process)</code> mostrou <code>undefined</code>. Por quê?</p>
+<label><input type="radio" name="q6"> O editor está quebrado.</label>
+<label><input type="radio" name="q6"> Faltou instalar o <code>process</code> com o npm.</label>
+<label><input type="radio" name="q6"> O <code>process</code> não existe no JavaScript moderno.</label>
+<label><input type="radio" name="q6"> O <code>process</code> é do Node.js; uma página no navegador não tem.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Um laço não para nunca. O que o editor faz?</p>
+<label><input type="radio" name="q7"> Você pode clicar em <strong>■ Parar</strong>; se não clicar, ele para sozinho depois de 10 segundos.</label>
+<label><input type="radio" name="q7"> A página trava, e é preciso fechar o navegador.</label>
+<label><input type="radio" name="q7"> O laço roda para sempre, escondido.</label>
+<label><input type="radio" name="q7"> O editor apaga o seu código.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>As caixas Experimente rodam o <strong>JavaScript do seu navegador</strong>; o seu código não sai do seu computador.</li>
+  <li>A <strong>caixa de programa</strong> imita o <code>node main.js</code> do Node.js v24.22.0: o terminal da caixa mostra o comando, a saída, os erros em vermelho (iguais aos do Node) e o <strong>código de saída</strong>. Cada Rodar começa do zero.</li>
+  <li><strong>Restaurar</strong> volta ao código original; <strong>Ver solução</strong> (nas missões) pergunta antes de trocar o seu código. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> roda.</li>
+  <li>Quando o programa pergunta, digite no campo do terminal e tecle <kbd>Enter</kbd> (<kbd>Ctrl</kbd>+<kbd>D</kbd> = fim da entrada). As abas são vários arquivos; <strong>Abrir o node</strong> é o modo interativo.</li>
+  <li>A <strong>caixa de página</strong> abre o <code>index.html</code> no quadro <strong>Resultado</strong> e mostra o <strong>Console</strong> do jeito do Chrome. Lá não existe nada do Node.</li>
+  <li>Um laço sem fim para com <strong>■ Parar</strong> ou sozinho, em 10 segundos.</li>
+  <li>As missões conferem o resultado: <strong>✔ Missão cumprida!</strong> quando dá certo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
