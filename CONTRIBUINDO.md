@@ -61,7 +61,7 @@ Olá, Ana!
 ```
 
 ### Console do navegador (`pre.devtools`)
-Para mostrar o que aparece no Console do navegador (F12): linhas que começam com `> ` são o que a pessoa digitou; as outras, a resposta. Use só nas aulas do navegador; a saída vem do Chromium do lab (veja `COMO-USAR.md` do lab) ou fica marcada como ilustrativa.
+Para mostrar o que aparece no Console do navegador (F12): linhas que começam com `> ` são o que a pessoa digitou; as outras, a resposta. O site desenha uma janela "Console" no jeito do Chrome: o `>` azul na entrada; a **última linha antes da próxima entrada** é o valor devolvido (cinza, com `←`; as linhas antes dela são o que o `console.log` escreveu); linhas que começam com `Uncaught`, `…Error` ou `    at ` ficam vermelhas; com `⚠` ou `Warning`, amarelas. Escreva os objetos como o Chrome mostra (`{nome: 'Ana', idade: 30}`, `(3) [1, 2, 3]`). Use só nas aulas do navegador; a saída vem do Chromium do lab (veja `COMO-USAR.md` do lab) ou fica marcada como ilustrativa.
 
 ### Editor "Experimente" de programa (`.tryjs`): imita o `node main.js`
 ```html

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial JavaScript — aprenda a programar do zero, como numa escola | Guia JavaScript</title>
+<meta name="description" content="Curso de JavaScript do zero ao avançado, em português, para quem nunca programou: console.log, variáveis, if, for, funções, arrays, objetos, classes, async/await, o DOM e eventos, com o Node.js 24 e o navegador, um editor que roda o JavaScript de verdade, missões, projetos e exercícios. Saídas e mensagens de erro conferidas no Node.js real.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="hero">
+<h1>Tutorial JavaScript</h1>
+<p>Aprenda a <strong>programar do zero</strong> com JavaScript, como numa escola: cada comando é explicado pedaço por pedaço, você vê o que o programa responde de verdade e pratica num editor aqui mesmo na página. Quem roda os seus programas é o <strong>JavaScript do seu próprio navegador</strong>, imitando o <strong>Node.js 24</strong>, o JavaScript do terminal. Você não precisa instalar nada para começar, em qualquer sistema: Windows, macOS, Linux ou até um Chromebook.</p>
+<a class="btn btn-lg" href="introducao.html">Comece pelo Nível 1 &#10095;</a>
+</div>
+
+<div class="pager"></div>
+
+<h2>Experimente agora</h2>
+<p>A caixa abaixo é o editor <strong>Experimente</strong> do guia. Em cima fica o programa; clique em <strong>▶ Rodar</strong> e o que ele escreve aparece embaixo, num terminal. Pode mexer à vontade: nada que você fizer aqui estraga o guia.</p>
+
+<div class="tryjs" data-goal="out:Comprar: manteiga;;out:Total de itens: 4">
+<p class="try-task"><strong>Missão:</strong> rode o programa como está e veja a lista de compras da Ana. Depois, ela lembrou que acabou a manteiga: acrescente <code>"manteiga"</code> na lista da primeira linha (depois de <code>"café"</code>, com uma vírgula antes) e rode de novo.</p>
+<pre class="script" data-file="main.js">const compras = ["pão", "leite", "café"];
+for (const item of compras) {
+  console.log(`Comprar: ${item}`);
+}
+console.log(`Total de itens: ${compras.length}`);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["pão", "leite", "café", "manteiga"];
+for (const item of compras) {
+  console.log(`Comprar: ${item}`);
+}
+console.log(`Total de itens: ${compras.length}`);
+</pre>
+</div>
+
+<p>O que aconteceu: você escreveu um <strong>programa</strong>, uma lista de instruções que o computador segue na ordem. Lido em voz alta, ele diz: "a lista de compras é pão, leite, café e manteiga; <strong>para cada</strong> item da lista, escreva 'Comprar: ' e o item; no fim, escreva quantos itens a lista tem". O JavaScript seguiu as instruções e escreveu uma linha por item. Você não precisou mudar o resto do programa: ele se adaptou sozinho à lista maior.</p>
+
+<p>Se você esqueceu de fechar as aspas, viu uma mensagem em vermelho, em inglês: <code>SyntaxError: Invalid or unexpected token</code> ("erro de sintaxe: símbolo inválido ou inesperado"), com uma setinha <code>^^^</code> embaixo do texto que ficou sem fim. E se esqueceu a <strong>vírgula</strong>, a mensagem foi <code>SyntaxError: Unexpected string</code> ("texto inesperado"): o JavaScript esperava uma vírgula ou o <code>]</code> e encontrou outro texto colado no anterior. O computador não adivinha: ele diz exatamente onde não entendeu. Errar e ler o que ele responde é metade do aprendizado: todas as aulas mostram os erros mais comuns, com a mensagem real e o jeito de consertar.</p>
+
+<h3>Um programa que conversa</h3>
+<p>Programas também podem <strong>perguntar</strong>. Rode a caixa, digite o seu nome no terminal dela (no campo que aparece depois da pergunta) e tecle <kbd>Enter</kbd>:</p>
+
+<div class="tryjs" data-digitar="Ana">
+<pre class="script" data-file="main.js">import * as readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+
+const rl = readline.createInterface({ input, output });
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}! Bem-vinda ao JavaScript.`);
+rl.close();
+</pre>
+</div>
+
+<h3>E numa página</h3>
+<p>O JavaScript também é a língua das <strong>páginas web</strong>: é ele que faz um botão responder ao clique. Nesta caixa, clique em Rodar e depois no botão do <strong>Resultado</strong>:</p>
+
+<div class="tryweb">
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;button id="botao"&gt;Pedir um pão&lt;/button&gt;
+&lt;p id="saida"&gt;Nenhum pão ainda.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">let paes = 0;
+const botao = document.querySelector("#botao");
+
+botao.addEventListener("click", () =&gt; {
+  paes++;
+  document.querySelector("#saida").textContent = `Pães pedidos: ${paes}`;
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>O que é este guia</h2>
+<p>Um programa é uma receita que o computador segue. O <strong>JavaScript</strong> é uma língua para escrever essas receitas, criada em 1995 para dar vida às páginas web. Hoje ele está em <strong>todo navegador</strong> do mundo e, com o <strong>Node.js</strong>, também fora dele: em servidores, em ferramentas de linha de comando, em aplicativos de celular e de computador. A aula <a href="introducao.html">O que é JavaScript</a> conta essa história, e <a href="onde-roda.html">Onde o JavaScript Roda</a> explica a diferença entre o navegador e o Node.js.</p>
+
+<p>Quem aprende JavaScript consegue:</p>
+<ul>
+  <li>fazer o computador repetir tarefas e tomar decisões: "se a nota for 7 ou mais, aprovada; senão, recuperação";</li>
+  <li>guardar e organizar informações em <strong>arrays</strong> e <strong>objetos</strong>: o estoque da lojinha, a agenda de contatos, as notas da turma;</li>
+  <li>ler e gravar arquivos com o Node.js e trocar dados em <strong>JSON</strong>;</li>
+  <li>criar <strong>páginas interativas</strong>: botões, formulários, listas que crescem, dados guardados no navegador;</li>
+  <li>escrever programas grandes, divididos em funções, módulos e classes, e lidar com tarefas que demoram (<code>async</code>/<code>await</code>, <code>fetch</code>).</li>
+</ul>
+
+<p>O guia é para quem <strong>nunca programou</strong>. Ele começa do zero absoluto (o que é um programa? como se roda um?) e vai até classes, Promises, o DOM e os eventos. Cada aula ensina <strong>um assunto só</strong>, com calma. O JavaScript das aulas é o <strong>moderno</strong> (até o ECMAScript 2025), no <strong>Node.js 24 LTS</strong>; quando algo é antigo (o <code>var</code>, o <code>==</code>), a aula mostra para você reconhecer e explica por que evitar.</p>
+
+<hr>
+
+<h2>Como as aulas funcionam</h2>
+<p>Nenhum código aparece "seco". Toda aula segue o mesmo caminho:</p>
+<ol class="passo">
+  <li><strong>A ideia primeiro.</strong> Antes do código, você entende o problema que ele resolve, com uma comparação do dia a dia: uma receita de bolo, uma caixa com etiqueta, uma lista de compras.</li>
+  <li><strong>Anatomia.</strong> Cada parte de um comando novo é separada e explicada.</li>
+  <li><strong>A saída real.</strong> Depois de cada exemplo, o que o Node.js (ou o navegador) respondeu de verdade. Nenhuma saída foi inventada.</li>
+  <li><strong>Experimente.</strong> Pelo menos duas caixas por aula para você mudar o código e rodar, muitas com uma <strong>missão</strong> que confere sozinha se você acertou.</li>
+  <li><strong>Várias formas de fazer.</strong> Quase sempre há mais de um jeito de escrever a mesma coisa, e uma tabela "qual usar" mostra quando escolher cada um.</li>
+  <li><strong>Quando dá errado.</strong> O código com erro e a mensagem real (<code>/home/ana/main.js:3</code>, a setinha <code>^</code>, o <code>TypeError: …</code>), traduzida e explicada linha por linha.</li>
+  <li><strong>Exercícios e resumo.</strong> Perguntas com correção na hora e uma lista curta do que levar da aula.</li>
+</ol>
+
+<h3>Exemplo: a anatomia de um programa</h3>
+<p>Veja como as aulas desmontam um programa. Primeiro o código, num arquivo chamado <code>compras.js</code>:</p>
+
+<pre class="file" data-file="compras.js">const compras = ["pão", "leite", "café"];
+for (const item of compras) {
+  console.log(`Comprar: ${item}`);
+}
+console.log(`Total de itens: ${compras.length}`);
+</pre>
+
+<p>Agora cada parte:</p>
+
+<dl class="anatomy">
+  <dt>const compras = [...];</dt><dd>Uma <strong>constante</strong>: um nome (<code>compras</code>) que guarda um valor. Aqui o valor é um <strong>array</strong>, uma lista com três textos, entre colchetes. O <code>;</code> termina a instrução (aulas <a href="const.html">Constantes</a> e <a href="arrays.html">Arrays</a>).</dd>
+  <dt>for (const item of compras) {</dt><dd>"Para cada item de compras, faça": repete o bloco de baixo uma vez para cada elemento da lista. A chave <code>{</code> abre o bloco (aula <a href="for-of.html">for…of</a>).</dd>
+  <dt>  console.log(`Comprar: ${item}`);</dt><dd>O bloco que se repete. O <code>console.log</code> escreve uma linha; a crase e o <code>${}</code> põem o item no meio do texto (aulas <a href="console-log.html">console.log()</a> e <a href="template-strings.html">Template Strings</a>). Os 2 espaços no começo são para você enxergar que a linha está "dentro" do <code>for</code>.</dd>
+  <dt>}</dt><dd>Fecha o bloco do <code>for</code>.</dd>
+  <dt>console.log(`Total de itens: ${compras.length}`);</dt><dd>Depois do <code>}</code>: roda uma vez só. O <code>.length</code> conta os itens da lista.</dd>
+</dl>
+
+<h3>Exemplo: o terminal</h3>
+<p>Além do editor, as aulas mostram o <strong>terminal</strong> da máquina das aulas: um computador chamado <code>notebook</code>, da usuária <code>ana</code>, com o Node.js instalado. Lá, o programa fica no arquivo <code>compras.js</code>, e quem o roda é o comando <code>node</code>:</p>
+
+<pre class="term">$ node compras.js
+Comprar: pão
+Comprar: leite
+Comprar: café
+Total de itens: 3
+</pre>
+
+<p>E o programa que conversa, com a Ana digitando o nome dela:</p>
+
+<pre class="term">$ node conversa.mjs
+Qual é o seu nome? Ana
+Olá, Ana! Bem-vinda ao JavaScript.
+</pre>
+
+<p>A resposta é a mesma do editor. A aula <a href="simulador.html">O Editor do Guia</a> mostra tudo o que as caixas Experimente sabem fazer e o que muda no terminal, e <a href="instalar.html">Instalar o Node.js</a> ensina a pôr o Node.js no seu computador.</p>
+
+<hr>
+
+<h2>Escolha sua trilha</h2>
+<p>O guia tem três níveis, uma seção de projetos e uma de referência. Os níveis foram pensados para serem feitos em ordem: cada aula usa o que as anteriores ensinaram.</p>
+<div class="trilhas">
+  <div class="trilha n1">
+    <h3>Nível 1 · Iniciante</h3>
+    <p>JavaScript do zero.</p>
+    <ul>
+      <li><a href="introducao.html">Começando</a>: o que é JavaScript, onde ele roda, instalar o Node.js, rodar um programa, o modo interativo, o Console do navegador e o editor do guia</li>
+      <li><a href="console-log.html">Saída</a> e <a href="entrada-teclado.html">entrada</a>: <code>console.log()</code>, o <code>readline</code>, <code>prompt()</code></li>
+      <li><a href="variaveis.html">Variáveis e tipos</a>: <code>let</code>, <code>const</code>, números, textos, <code>true</code>/<code>false</code>, <code>null</code> e <code>undefined</code></li>
+      <li><a href="operadores-aritmeticos.html">Operadores</a> e <a href="strings.html">textos</a>: contas, <code>===</code>, <code>&amp;&amp;</code>, template strings e os métodos de string</li>
+      <li><a href="if.html">Decisões</a>, <a href="while.html">repetições</a> e <a href="funcoes.html">funções</a>: <code>if</code>, <code>switch</code>, <code>while</code>, <code>for</code>, <code>return</code> e arrow functions</li>
+    </ul>
+    <a class="btn" href="introducao.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha n2">
+    <h3>Nível 2 · Intermediário</h3>
+    <p>Arrays, objetos e o dia a dia.</p>
+    <ul>
+      <li><a href="arrays.html">Arrays</a>: acessar, adicionar, buscar, <code>for…of</code>, <code>map</code>, <code>filter</code>, <code>reduce</code> e <code>sort</code></li>
+      <li><a href="objetos.html">Objetos</a>: propriedades, métodos, desestruturação, spread, <code>?.</code> e JSON</li>
+      <li><a href="escopo.html">Mais sobre funções</a>: escopo, closures e recursão</li>
+      <li><a href="math.html">Objetos prontos</a> e <a href="erros.html">erros</a>: <code>Math</code>, datas, regex, <code>Set</code>, <code>Map</code>, <code>try</code>/<code>catch</code> e <code>throw</code></li>
+      <li><a href="modulos.html">Módulos e Node.js</a>: <code>import</code>/<code>export</code>, npm, <code>process.argv</code> e arquivos com <code>fs</code></li>
+    </ul>
+    <a class="btn" href="arrays.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha n3">
+    <h3>Nível 3 · Avançado</h3>
+    <p>Classes, assíncrono e a página web.</p>
+    <ul>
+      <li><a href="classes.html">Classes e protótipos</a>: herança, getters, campos privados e o <code>this</code></li>
+      <li><a href="assincrono.html">Assíncrono</a>: timers, callbacks, Promises, <code>async</code>/<code>await</code>, o event loop e o <code>fetch</code></li>
+      <li><a href="dom.html">A página web (DOM)</a>: selecionar, alterar e criar elementos, eventos, formulários e <code>localStorage</code></li>
+      <li><a href="iteradores.html">Recursos avançados</a> e <a href="estilo.html">boas práticas</a>: geradores, <code>Symbol</code>, testes, TypeScript e as versões</li>
+    </ul>
+    <a class="btn" href="classes.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha proj">
+    <h3>Projetos</h3>
+    <p>Programas completos, construídos passo a passo.</p>
+    <ul>
+      <li><a href="projeto-adivinhacao.html">Jogo de adivinhação</a>, <a href="projeto-calculadora.html">calculadora</a> e <a href="projeto-tarefas.html">lista de tarefas</a></li>
+      <li><a href="projeto-notas.html">Notas da turma</a> e <a href="projeto-palavras.html">contador de palavras</a></li>
+      <li>Na página: <a href="projeto-compras-web.html">lista de compras</a>, <a href="projeto-relogio-web.html">relógio</a>, <a href="projeto-quiz-web.html">quiz</a> e <a href="projeto-velha-web.html">jogo da velha</a></li>
+    </ul>
+    <a class="btn" href="projeto-adivinhacao.html">Ver projetos &#10095;</a>
+  </div>
+  <div class="trilha ref">
+    <h3>Referência</h3>
+    <p>Consulta rápida para quando você já sabe o que procura.</p>
+    <ul>
+      <li><a href="ref-palavras-reservadas.html">Palavras reservadas</a> e <a href="ref-operadores.html">operadores</a></li>
+      <li><a href="ref-string.html">String</a>, <a href="ref-array.html">Array</a>, <a href="ref-object.html">Object</a>, <a href="ref-math-number.html">Math e Number</a> e <a href="ref-date.html">Date</a></li>
+      <li><a href="ref-dom.html">DOM</a> e <a href="ref-node.html">Node.js</a></li>
+      <li><a href="ref-erros.html">Mensagens de erro comuns</a>, traduzidas</li>
+    </ul>
+    <a class="btn" href="ref-palavras-reservadas.html">Consultar &#10095;</a>
+  </div>
+</div>
+
+<hr>
+
+<h2>Como estudar</h2>
+<p>Programar se aprende programando, como quem aprende a cozinhar cozinhando. Para cada aula, siga estes quatro passos:</p>
+<ol class="passo">
+  <li><strong>Leia com calma.</strong> Leia a ideia, a anatomia e a saída. Não pule a parte "Quando dá errado": quem entende a mensagem de erro conserta o problema em segundos.</li>
+  <li><strong>Mexa nos exemplos.</strong> Em toda caixa Experimente, mude um número, troque um texto, apague um pedaço de propósito e veja o que o JavaScript responde. Não tem como estragar nada: cada Rodar começa do zero.</li>
+  <li><strong>Faça as missões.</strong> As caixas com <strong>Missão</strong> conferem sozinhas se você acertou. Tente de verdade antes de abrir a solução; se abrir, digite a solução você mesmo em vez de só olhar.</li>
+  <li><strong>Repita no seu computador.</strong> Quando chegar à aula <a href="instalar.html">Instalar o Node.js</a>, instale-o e refaça os programas no terminal. Algumas coisas (instalar pacotes com o npm, criar um servidor, guardar arquivos de verdade) só existem lá.</li>
+</ol>
+
+<div class="tip">
+<strong>A regra de ouro</strong>
+<p>Ler não basta: digite cada programa. Copiar e colar ensina pouco; digitar faz você reparar em cada aspa, cada chave e cada ponto e vírgula. Comece pela aula <a href="introducao.html">O que é JavaScript</a> e, antes de ir longe, dê uma olhada em <a href="simulador.html">O Editor do Guia</a>.</p>
+</div>
+
+<hr>
+
+<h2>Como ler este guia</h2>
+<div class="table-wrap">
+<table class="ref">
+<thead><tr><th>Elemento</th><th>O que significa</th></tr></thead>
+<tbody>
+<tr><td>Caixa com <code>compras.js</code> no canto</td><td>Um programa para ler. O nome no canto é o nome do arquivo (programas em JavaScript terminam em <code>.js</code>).</td></tr>
+<tr><td>Caixa <strong>Experimente</strong></td><td>Um programa (ou uma página) para você mudar e rodar. As com <strong>Missão</strong> conferem a sua resposta; as com <strong>Abrir o node</strong> são o modo interativo; as com <strong>Resultado</strong> e <strong>Console</strong> são páginas web.</td></tr>
+<tr><td>Caixa <strong>Quando dá errado</strong></td><td>Um programa com um erro colocado de propósito, com a mensagem real e a explicação.</td></tr>
+<tr><td><code>ana@notebook:~$</code></td><td>O prompt do terminal: usuária <code>ana</code>, no computador <code>notebook</code>, na pasta pessoal (<code>~</code>). O que vem depois é o comando digitado.</td></tr>
+<tr><td><code>&gt;</code> e <code>|</code></td><td>Os prompts do modo interativo do Node.js: ele espera uma linha de JavaScript e responde na hora; o <code>|</code> pede o resto de uma linha que ficou aberta (aula <a href="repl.html">O Modo Interativo do Node</a>).</td></tr>
+<tr><td>Janela <strong>Console</strong></td><td>O Console do navegador (a tecla <kbd>F12</kbd>): o <code>&gt;</code> azul é o que se digitou, a seta <code>←</code> é o valor devolvido, as linhas vermelhas são erros (aula <a href="console-navegador.html">O Console do Navegador</a>).</td></tr>
+<tr><td>Linhas sem prompt</td><td>A resposta do computador.</td></tr>
+<tr><td><span class="t-a">← etiqueta</span></td><td>Uma explicação do guia sobre aquela linha. Não aparece no terminal real.</td></tr>
+<tr><td><span class="versao">ES2025</span></td><td>Um recurso recente da linguagem, com o ano em que entrou no padrão (a lista está em <a href="novidades.html">Novidades</a>).</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+<strong>Versão de referência: Node.js 24 LTS</strong>
+<p>O guia ensina o <strong>JavaScript moderno</strong> com o <strong>Node.js 24 LTS</strong>. As saídas de terminal foram colhidas no Node.js <strong>v24.22.0</strong> oficial, num Ubuntu 26.04 em português do Brasil, e as do navegador num Chromium. O editor das aulas roda o JavaScript do <strong>seu</strong> navegador: no Chrome e no Edge, o motor é o mesmo do Node.js (o V8), e as respostas e mensagens de erro saem iguais; no Firefox e no Safari, o programa roda igual, mas o texto de algumas mensagens de erro muda. As mensagens saem em inglês, exatamente como o JavaScript as escreve, e as aulas as explicam em português. O Node.js 26 chega como LTS no fim de outubro de 2026: o que muda está em <a href="versoes.html">Versões</a>.</p>
+</div>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
