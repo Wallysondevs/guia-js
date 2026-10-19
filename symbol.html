@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Symbol — valores únicos e chaves escondidas | Guia JavaScript</title>
+<meta name="description" content="Symbol no JavaScript para quem nunca programou: o sétimo tipo primitivo, Symbol(&quot;descrição&quot;), por que dois símbolos nunca são iguais, description, símbolos como chave de objeto (que o Object.keys, o for … in e o JSON.stringify não mostram), evitar choque de nomes, Symbol.for, constantes de estado, os símbolos conhecidos (Symbol.iterator, Symbol.toPrimitive, Symbol.toStringTag) e os erros reais do Node.js 24 (Symbol is not a constructor, Cannot convert a Symbol value to a string).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Symbol</span></h1>
+
+<p class="intro">Na aula <a href="iteradores.html">Iteradores</a> apareceu um nome estranho entre colchetes: <code>[Symbol.iterator]</code>. Ele é um <strong>símbolo</strong>, um tipo de valor que você ainda não tinha visto. Um símbolo é um valor <strong>único</strong>: não existe outro igual a ele, nunca. Isso serve para uma coisa bem específica: criar nomes de propriedade que não se misturam com nenhum outro nome. Você vai usar símbolos poucas vezes, mas vai encontrá-los em código de bibliotecas e no próprio JavaScript.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o tipo <code>symbol</code> e como criar um com <code>Symbol("descrição")</code>.</li>
+  <li>Por que dois símbolos com a mesma descrição <strong>não</strong> são iguais.</li>
+  <li>Como usar um símbolo como chave de objeto, e por que essa chave fica "escondida" do <code>Object.keys</code>, do <code>for … in</code> e do <code>JSON.stringify</code>.</li>
+  <li>Para que isso serve: evitar choque de nomes, e criar constantes de estado.</li>
+  <li>O <code>Symbol.for</code> (o símbolo compartilhado) e os símbolos que o próprio JavaScript usa: <code>Symbol.iterator</code>, <code>Symbol.toPrimitive</code>, <code>Symbol.toStringTag</code>.</li>
+  <li>Os erros reais: <code>new Symbol</code> e o símbolo juntado num texto.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana, com <code>node arquivo.js</code>. Símbolos funcionam igual no navegador.</p>
+
+<hr>
+
+<h2>A ideia: a chave com número de série</h2>
+<p>Na portaria do prédio da Ana, cada morador tem uma etiqueta com o nome no claviculário: "Ana", "Bia", "Caio". Um dia chega outra Ana, nova moradora. Duas etiquetas "Ana": confusão na certa. O síndico resolve trocando as etiquetas de nome por <strong>chaves com número de série</strong> gravado de fábrica. Duas chaves podem até ter o mesmo chaveirinho escrito "Ana", mas o número de série é único: uma nunca abre a porta da outra.</p>
+<ul>
+  <li>Os nomes de propriedade comuns (<code>"nome"</code>, <code>"id"</code>) são as <strong>etiquetas</strong>: dois textos iguais são o mesmo nome.</li>
+  <li>Um <strong>símbolo</strong> é a chave com número de série. O chaveirinho (a <strong>descrição</strong>) é só para humanos lerem; quem decide a identidade é o número de série, que nunca se repete.</li>
+</ul>
+
+<hr>
+
+<h2>1. Criando um símbolo</h2>
+
+<pre class="file" data-file="primeiro.js">const a = Symbol("id");
+const b = Symbol("id");
+
+console.log(a);
+console.log(typeof a);
+console.log(a.description);
+console.log(a === b);
+console.log(a === a);
+console.log(String(a));
+</pre>
+
+<pre class="term">$ node primeiro.js
+Symbol(id)
+symbol
+id
+false
+true
+Symbol(id)
+</pre>
+
+<dl class="anatomy">
+  <dt>Symbol("id")</dt><dd>Cria um símbolo novo. O texto entre parênteses é a <strong>descrição</strong>, o chaveirinho: serve para você reconhecer o símbolo ao mostrá-lo. É opcional (<code>Symbol()</code> também funciona). Repare: sem <code>new</code> (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>Symbol(id)</dt><dd>É como o Node mostra o símbolo: a palavra <code>Symbol</code> e a descrição.</dd>
+  <dt>typeof a → symbol</dt><dd>Um tipo próprio, o sétimo tipo primitivo do JavaScript, ao lado de <code>string</code>, <code>number</code>, <code>bigint</code>, <code>boolean</code>, <code>undefined</code> e <code>null</code> (veja <a href="tipos-de-dados.html">Os Tipos de Dados</a>).</dd>
+  <dt>a.description → id</dt><dd>Lê a descrição, como texto.</dd>
+  <dt>a === b → false</dt><dd>O ponto central: <code>a</code> e <code>b</code> têm a mesma descrição, mas são <strong>dois símbolos diferentes</strong>. Cada chamada de <code>Symbol()</code> fabrica um valor que nunca existiu antes.</dd>
+  <dt>a === a → true</dt><dd>Um símbolo só é igual a ele mesmo. Para usar o "mesmo" símbolo em vários lugares, guarde-o numa variável e passe a variável adiante.</dd>
+  <dt>String(a) → Symbol(id)</dt><dd>Para transformar em texto, é preciso pedir com todas as letras: <code>String(a)</code> ou <code>a.toString()</code>. Juntar com <code>+</code> dá erro (veja <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>2. Símbolo como chave de objeto</h2>
+<p>O uso principal dos símbolos é servir de <strong>nome de propriedade</strong>. Para isso, use colchetes, tanto ao criar quanto ao ler:</p>
+
+<pre class="file" data-file="chave.js">const ID = Symbol("id");
+
+const cliente = {
+  nome: "Ana",
+  cidade: "Recife",
+  [ID]: 4521,
+};
+
+console.log(cliente);
+console.log(cliente[ID]);
+console.log(Object.keys(cliente));
+console.log(JSON.stringify(cliente));
+for (const chave in cliente) {
+  console.log(`for…in: ${chave}`);
+}
+console.log(Object.getOwnPropertySymbols(cliente));
+console.log(cliente.ID);
+console.log(cliente["id"]);
+</pre>
+
+<pre class="term">$ node chave.js
+{ nome: 'Ana', cidade: 'Recife', Symbol(id): 4521 }
+4521
+[ 'nome', 'cidade' ]
+{"nome":"Ana","cidade":"Recife"}
+for…in: nome
+for…in: cidade
+[ Symbol(id) ]
+undefined
+undefined
+</pre>
+
+<dl class="anatomy">
+  <dt>[ID]: 4521</dt><dd>Os colchetes dizem: "o nome desta propriedade é o <strong>valor</strong> da variável <code>ID</code>", ou seja, o símbolo (é a mesma escrita do <code>[Symbol.iterator]</code>). Sem colchetes, <code>ID: 4521</code> criaria uma propriedade comum chamada <code>"ID"</code>.</dd>
+  <dt>{ … Symbol(id): 4521 }</dt><dd>O <code>console.log</code> do Node mostra a propriedade de símbolo, com o nome <code>Symbol(id)</code>.</dd>
+  <dt>cliente[ID] → 4521</dt><dd>Para ler, colchetes com a <strong>mesma variável</strong>.</dd>
+  <dt>Object.keys, JSON.stringify, for … in</dt><dd>Os três <strong>ignoram</strong> as chaves de símbolo: só aparecem <code>nome</code> e <code>cidade</code>. A propriedade existe, mas não atrapalha quem percorre o objeto nem vai junto quando ele é transformado em JSON.</dd>
+  <dt>Object.getOwnPropertySymbols(cliente)</dt><dd>"Pegar os símbolos próprios do objeto": o jeito de listar justamente essas chaves. Elas não são secretas, só ficam fora do caminho.</dd>
+  <dt>cliente.ID e cliente["id"] → undefined</dt><dd>Com ponto, o nome é o texto <code>"ID"</code>; com <code>["id"]</code>, o texto <code>"id"</code>. Nenhum dos dois é o símbolo.</dd>
+</dl>
+
+<div class="warning">
+<strong>Escondido não é secreto</strong>
+<p>Uma chave de símbolo não aparece no <code>Object.keys</code>, mas qualquer código pode achá-la com <code>Object.getOwnPropertySymbols</code>, e o <code>console.log</code> mostra. Não use símbolos para esconder senhas. Para dados realmente privados numa classe, existem os <a href="campos-privados.html">campos privados (#)</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:{&quot;nome&quot;:&quot;Ana&quot;,&quot;cidade&quot;:&quot;Recife&quot;};;out:Código interno: 4521;;src:Symbol\(">
+<p class="try-task"><strong>Missão:</strong> o código interno do cliente não deve ir junto quando o cliente é transformado em JSON (para mandar ao site de entregas). Troque a propriedade <code>codigo</code> por uma chave de símbolo: crie <code>const CODIGO = Symbol("codigo");</code>, use <code>[CODIGO]: 4521</code> no objeto e <code>cliente[CODIGO]</code> na última linha.</p>
+<pre class="script" data-file="main.js">const cliente = {
+  nome: "Ana",
+  cidade: "Recife",
+  codigo: 4521,
+};
+
+console.log(JSON.stringify(cliente));
+console.log(`Código interno: ${cliente.codigo}`);
+</pre>
+<pre class="solucao" data-file="main.js">const CODIGO = Symbol("codigo");
+
+const cliente = {
+  nome: "Ana",
+  cidade: "Recife",
+  [CODIGO]: 4521,
+};
+
+console.log(JSON.stringify(cliente));
+console.log(`Código interno: ${cliente[CODIGO]}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Para que serve: nomes que não se chocam</h2>
+<p>Imagine que o objeto do pedido de pizza é usado por dois pedaços de código, escritos por pessoas diferentes: o seu, que usa <code>pedido.id</code> para o número do pedido, e uma biblioteca de entregas, que quer pendurar no pedido o código da entrega dela. Se a biblioteca escrevesse <code>pedido.id = "ENT-2091"</code>, apagaria o seu número sem ninguém perceber. Com um símbolo, não há como os nomes se chocarem:</p>
+
+<pre class="file" data-file="colisao.js">const pedido = { id: 7, sabor: "calabresa" };
+
+// uma "biblioteca" de entregas quer marcar o pedido sem estragar o id dele
+const ID_ENTREGA = Symbol("idEntrega");
+pedido[ID_ENTREGA] = "ENT-2091";
+
+// se ela tivesse usado o nome "id", teria apagado o número do pedido
+console.log(pedido.id);
+console.log(pedido[ID_ENTREGA]);
+console.log(pedido);
+</pre>
+
+<pre class="term">$ node colisao.js
+7
+ENT-2091
+{ id: 7, sabor: 'calabresa', Symbol(idEntrega): 'ENT-2091' }
+</pre>
+
+<p>O <code>id</code> continua 7. A propriedade da biblioteca só pode ser lida por quem tem a variável <code>ID_ENTREGA</code>, e não aparece no <code>Object.keys</code> nem no JSON do pedido. É exatamente por isso que o próprio JavaScript usa símbolos quando acrescenta recursos novos à linguagem: um nome como <code>Symbol.iterator</code> nunca vai bater com uma propriedade <code>"iterator"</code> que alguém já tenha criado num objeto antigo.</p>
+
+<h3>Constantes de estado</h3>
+<p>Outro uso: valores que só precisam ser <strong>diferentes uns dos outros</strong>, como os estados de um pedido:</p>
+
+<pre class="file" data-file="status.js">const Status = Object.freeze({
+  ABERTO: Symbol("aberto"),
+  NO_FORNO: Symbol("no forno"),
+  ENTREGUE: Symbol("entregue"),
+});
+
+let pedido = Status.NO_FORNO;
+
+if (pedido === Status.NO_FORNO) {
+  console.log("A pizza está assando.");
+}
+console.log(pedido === Symbol("no forno"));
+console.log(pedido.description);
+console.log(Status.ENTREGUE.toString());
+</pre>
+
+<pre class="term">$ node status.js
+A pizza está assando.
+false
+no forno
+Symbol(entregue)
+</pre>
+
+<p>Com textos (<code>"no forno"</code>), qualquer texto igual escrito em outro lugar passaria por um estado válido, e um erro de digitação (<code>"no-forno"</code>) passaria em silêncio. Com símbolos, só vale quem usa <code>Status.NO_FORNO</code>: até um <code>Symbol("no forno")</code> novo é diferente (o <code>false</code> da segunda linha). O <code>Object.freeze</code> impede que alguém troque as constantes depois (veja <a href="imutabilidade.html">Imutabilidade</a>). Na prática, muita gente usa textos mesmo, porque eles aparecem bem no JSON; os símbolos ficam para quando a garantia de "só este valor" importa.</p>
+
+<hr>
+
+<h2>4. O símbolo compartilhado: <code>Symbol.for</code></h2>
+<p>Às vezes você <strong>quer</strong> o mesmo símbolo em dois arquivos que não se conhecem. Para isso existe um "cartório" global de símbolos: <code>Symbol.for("nome")</code> procura no cartório um símbolo com esse nome; se não achar, cria e registra. Na segunda vez, devolve o mesmo:</p>
+
+<pre class="file" data-file="global.js">const x = Symbol.for("loja.cliente");
+const y = Symbol.for("loja.cliente");
+console.log(x === y);
+console.log(Symbol.keyFor(x));
+console.log(Symbol.keyFor(Symbol("solto")));
+</pre>
+
+<pre class="term">$ node global.js
+true
+loja.cliente
+undefined
+</pre>
+
+<p>Agora <code>x === y</code> dá <code>true</code>. O <code>Symbol.keyFor</code> devolve o nome com que o símbolo foi registrado; para um símbolo comum, que não passou pelo cartório, devolve <code>undefined</code>. Como o nome do cartório vale para o programa inteiro, use nomes compridos e específicos (<code>"loja.cliente"</code>, e não <code>"id"</code>), senão volta o problema do choque de nomes.</p>
+
+<hr>
+
+<h2>5. Os símbolos do próprio JavaScript</h2>
+<p>O JavaScript guarda alguns símbolos prontos como propriedades do <code>Symbol</code>. Eles são "ganchos": quando você dá a um objeto seu um método com um desses nomes, a linguagem passa a usar esse método em situações especiais.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Símbolo</th><th>O JavaScript usa quando…</th></tr>
+<tr><td><code>Symbol.iterator</code></td><td>o objeto vai num <code>for … of</code> ou num <code>...</code> (aulas <a href="iteradores.html">Iteradores</a> e <a href="geradores.html">Geradores</a>)</td></tr>
+<tr><td><code>Symbol.toPrimitive</code></td><td>o objeto precisa virar número ou texto (numa conta, num template)</td></tr>
+<tr><td><code>Symbol.toStringTag</code></td><td>o objeto é descrito como <code>[object Nome]</code></td></tr>
+<tr><td><code>Symbol.asyncIterator</code></td><td>o objeto vai num <code>for await … of</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="conhecidos.js">console.log(typeof Symbol.iterator);
+console.log(Symbol.iterator);
+
+const preco = {
+  valor: 7.5,
+  [Symbol.toPrimitive](tipo) {
+    if (tipo === "number") return this.valor;
+    return `R$ ${this.valor.toFixed(2)}`;
+  },
+};
+console.log(preco * 2);
+console.log(`Total: ${preco}`);
+console.log(+preco);
+
+class Carrinho {
+  get [Symbol.toStringTag]() {
+    return "Carrinho";
+  }
+}
+console.log(String(new Carrinho()));
+console.log(Object.prototype.toString.call([]));
+</pre>
+
+<pre class="term">$ node conhecidos.js
+symbol
+Symbol(Symbol.iterator)
+15
+Total: R$ 7.50
+7.5
+[object Carrinho]
+[object Array]
+</pre>
+
+<dl class="anatomy">
+  <dt>Symbol(Symbol.iterator)</dt><dd>O <code>Symbol.iterator</code> é um símbolo comum, com a descrição <code>"Symbol.iterator"</code>.</dd>
+  <dt>[Symbol.toPrimitive](tipo)</dt><dd>"Para primitivo". O JavaScript chama este método quando precisa transformar o objeto num valor simples, e avisa no parâmetro o que prefere: <code>"number"</code> (numa conta como <code>preco * 2</code> ou <code>+preco</code>), <code>"string"</code> (num template <code>`${preco}`</code>) ou <code>"default"</code> (no <code>+</code> com texto, no <code>==</code>).</dd>
+  <dt>15 e 7.5</dt><dd>Na conta, o método devolveu o número <code>7.5</code>.</dd>
+  <dt>Total: R$ 7.50</dt><dd>No template, devolveu o texto formatado (veja <a href="numeros-formatar.html">Formatando Números</a>). Sem esse método, apareceria <code>[object Object]</code>.</dd>
+  <dt>get [Symbol.toStringTag]()</dt><dd>Um <a href="getters-setters.html">getter</a> com o nome do símbolo. Muda o "Object" do <code>[object Object]</code> para <code>Carrinho</code>. É o mesmo mecanismo que faz os arrays serem descritos como <code>[object Array]</code>.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para dar a um objeto uma propriedade "extra", que não atrapalhe ninguém, há três caminhos:</p>
+<ul>
+  <li><strong>Um nome comum</strong> com um prefixo combinado (<code>_interno</code>, <code>__codigo</code>): simples, aparece em tudo (<code>Object.keys</code>, JSON) e pode chocar com outro nome igual.</li>
+  <li><strong>Um símbolo</strong> (<code>[CODIGO]</code>): não choca, fica fora do <code>Object.keys</code> e do JSON, mas qualquer um acha com <code>getOwnPropertySymbols</code>.</li>
+  <li><strong>Um campo privado</strong> de classe (<code>#codigo</code>): realmente inacessível de fora (aula <a href="campos-privados.html">Campos Privados</a>). Só existe dentro de classes.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Propriedade comum, que deve aparecer e ir para o JSON</td><td>Nome de texto</td></tr>
+<tr><td>Pendurar algo num objeto que não é seu, sem risco de choque</td><td><code>Symbol("descrição")</code></td></tr>
+<tr><td>Mesmo símbolo em arquivos diferentes</td><td><code>Symbol.for("nome.bem.especifico")</code></td></tr>
+<tr><td>Dado realmente privado, dentro de uma classe</td><td>Campo privado <code>#nome</code></td></tr>
+<tr><td>Objeto no <code>for … of</code>, ou com conversão própria</td><td><code>Symbol.iterator</code>, <code>Symbol.toPrimitive</code></td></tr>
+<tr><td>Estados que só precisam ser diferentes entre si</td><td>Símbolos num objeto congelado (ou textos, se precisarem ir para o JSON)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>new Symbol</code></strong>
+<pre class="file" data-file="novo.js">const id = new Symbol("id");
+</pre>
+<pre class="term">$ node novo.js
+/home/ana/novo.js:1
+const id = new Symbol("id");
+           ^
+
+TypeError: Symbol is not a constructor
+    at new Symbol (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/novo.js:1:12)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/novo.js:1 e o ^ embaixo do new</dt><dd>Linha 1, no <code>new</code>.</dd>
+  <dt>TypeError: Symbol is not a constructor</dt><dd>"<code>Symbol</code> não é um construtor". Construtor é o que se chama com <code>new</code> (como <code>new Map()</code> e <code>new Date()</code>; veja <a href="classes.html">Classes</a>). O <code>Symbol</code> é uma função comum, que se recusa a ser usada com <code>new</code>, porque o símbolo é um valor primitivo, e não um objeto.</dd>
+  <dt>at new Symbol (&lt;anonymous&gt;)</dt><dd>O erro nasceu dentro do próprio <code>Symbol</code>, que é código do motor do JavaScript (por isso "anônimo", sem arquivo). A linha seguinte mostra de onde ele foi chamado: o seu <code>novo.js</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> tire o <code>new</code>: <code>Symbol("id")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Juntou um símbolo num texto</strong>
+<pre class="file" data-file="juntar.js">const id = Symbol("id");
+console.log("A chave é " + id);
+</pre>
+<pre class="term">$ node juntar.js
+/home/ana/juntar.js:2
+console.log("A chave é " + id);
+                         ^
+
+TypeError: Cannot convert a Symbol value to a string
+    at Object.&lt;anonymous&gt; (/home/ana/juntar.js:2:26)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para converter um valor Symbol em string". Números e booleanos viram texto sozinhos no <code>+</code>; símbolos, não, de propósito: para ninguém transformar uma chave única num texto comum sem perceber. O template string dá o mesmo erro: <code>`A chave é ${id}`</code> sai com a mesma mensagem, apontando a coluna do <code>${id}</code>. <strong>Como consertar:</strong> converta você mesmo: <code>String(id)</code> (dá <code>Symbol(id)</code>) ou <code>id.description</code> (dá <code>id</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Leu a propriedade com ponto</strong>
+<p>Criou <code>[ID]: 4521</code> e leu <code>cliente.ID</code>: veio <code>undefined</code>, sem erro (seção 2). Com ponto, o nome é sempre o <strong>texto</strong> escrito depois dele. <strong>Como consertar:</strong> <code>cliente[ID]</code>, com colchetes e a mesma variável usada na criação.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou o símbolo de novo para ler</strong>
+<p><code>cliente[Symbol("id")]</code> também dá <code>undefined</code>: o <code>Symbol("id")</code> novo é <strong>outro</strong> símbolo, com o mesmo chaveirinho. <strong>Como consertar:</strong> crie o símbolo uma vez, numa constante, e use a constante em todo lugar (ou exporte-a de um <a href="modulos.html">módulo</a>; ou, se precisar mesmo de um símbolo por nome, <code>Symbol.for</code>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Status: no forno;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa quer mostrar <code>Status: no forno</code>, mas para com um erro. Rode, leia a mensagem e conserte usando a descrição do símbolo.</p>
+<pre class="script" data-file="main.js">const NO_FORNO = Symbol("no forno");
+const pedido = NO_FORNO;
+
+console.log(`Status: ${pedido}`);
+</pre>
+<pre class="solucao" data-file="main.js">const NO_FORNO = Symbol("no forno");
+const pedido = NO_FORNO;
+
+console.log(`Status: ${pedido.description}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Symbol("descrição")</code></td><td>Cria um símbolo novo, único (sem <code>new</code>)</td></tr>
+<tr><td><code>typeof s</code></td><td><code>"symbol"</code></td></tr>
+<tr><td><code>s.description</code></td><td>A descrição, como texto</td></tr>
+<tr><td><code>String(s)</code>, <code>s.toString()</code></td><td><code>"Symbol(descrição)"</code></td></tr>
+<tr><td><code>{ [s]: valor }</code>, <code>obj[s] = valor</code>, <code>obj[s]</code></td><td>Cria e lê uma propriedade de símbolo</td></tr>
+<tr><td><code>Object.getOwnPropertySymbols(obj)</code></td><td>Lista as chaves de símbolo do objeto</td></tr>
+<tr><td><code>Symbol.for("nome")</code> / <code>Symbol.keyFor(s)</code></td><td>Símbolo do registro global / o nome dele</td></tr>
+<tr><td><code>Symbol.iterator</code>, <code>Symbol.toPrimitive</code>, <code>Symbol.toStringTag</code></td><td>Ganchos que a linguagem usa (laços, conversões, descrição)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Symbol is not a constructor</code></td><td>Usou <code>new Symbol(…)</code></td></tr>
+<tr><td><code>TypeError: Cannot convert a Symbol value to a string</code></td><td>Juntou um símbolo num texto com <code>+</code> ou <code>${}</code></td></tr>
+<tr><td><code>undefined</code> ao ler a propriedade</td><td>Leu com ponto, ou com um <code>Symbol(…)</code> novo, e não com a mesma variável</td></tr>
+<tr><td>A propriedade sumiu do <code>Object.keys</code>/JSON</td><td>É de símbolo: é assim mesmo (use <code>getOwnPropertySymbols</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Verdadeiro ou falso?</h3>
+<p>Qual é o resultado de <code>Symbol("x") === Symbol("x")</code>?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O tipo</h3>
+<p>Complete: <code>typeof Symbol("id")</code> é <code>"<input data-answer="symbol" aria-label="tipo">"</code>.</p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>const ID = Symbol("id")</code> e <code>const o = { nome: "Ana", [ID]: 1 }</code>, o que mostra <code>Object.keys(o)</code>?</p>
+<label><input type="radio" name="q3"> <code>[ 'nome', 'ID' ]</code></label>
+<label><input type="radio" name="q3"> <code>[ 'nome', Symbol(id) ]</code></label>
+<label><input type="radio" name="q3"> <code>[ 'nome' ]</code></label>
+<label><input type="radio" name="q3"> <code>[]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Como mostrar um símbolo dentro de um texto sem erro?</p>
+<label><input type="radio" name="q4"> <code>`Chave: ${s.description}`</code></label>
+<label><input type="radio" name="q4"> <code>"Chave: " + s</code></label>
+<label><input type="radio" name="q4"> <code>`Chave: ${s}`</code></label>
+<label><input type="radio" name="q4"> <code>"Chave: " + new Symbol(s)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Para que serve o <code>Symbol.for("app.tema")</code>?</p>
+<label><input type="radio" name="q5"> Criar um símbolo novo a cada chamada</label>
+<label><input type="radio" name="q5"> Pegar (ou criar) o mesmo símbolo em qualquer parte do programa, pelo nome</label>
+<label><input type="radio" name="q5"> Transformar um símbolo em texto</label>
+<label><input type="radio" name="q5"> Esconder senhas</label>
+</div>
+
+<h3>Missão final: o preço que sabe se mostrar</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 7.50;;out:Três: 22.5;;src:Symbol\.toPrimitive;;semerro">
+<p class="try-task"><strong>Missão:</strong> o objeto <code>preco</code> sai como <code>[object Object]</code> no texto e como <code>NaN</code> na conta. Dê a ele um método <code>[Symbol.toPrimitive](tipo)</code> que devolva <code>this.valor</code> quando o <code>tipo</code> for <code>"number"</code> e, nos outros casos, o texto <code>`R$ ${this.valor.toFixed(2)}`</code>.</p>
+<pre class="script" data-file="main.js">const preco = {
+  valor: 7.5,
+};
+
+console.log(`Total: ${preco}`);
+console.log(`Três: ${preco * 3}`);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = {
+  valor: 7.5,
+  [Symbol.toPrimitive](tipo) {
+    if (tipo === "number") return this.valor;
+    return `R$ ${this.valor.toFixed(2)}`;
+  },
+};
+
+console.log(`Total: ${preco}`);
+console.log(`Três: ${preco * 3}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>symbol</code> é um tipo primitivo: <code>Symbol("descrição")</code> cria um valor <strong>único</strong>, que só é igual a ele mesmo. A descrição é só um rótulo (<code>.description</code>).</li>
+  <li>Símbolos servem de chave de objeto, sempre com colchetes: <code>{ [ID]: 1 }</code> e <code>obj[ID]</code>.</li>
+  <li>Chaves de símbolo ficam fora do <code>Object.keys</code>, do <code>for … in</code> e do <code>JSON.stringify</code>, mas não são secretas (<code>getOwnPropertySymbols</code>).</li>
+  <li>Usos: pendurar dados num objeto sem choque de nomes, e constantes que só precisam ser diferentes entre si.</li>
+  <li><code>Symbol.for("nome")</code> dá o mesmo símbolo em qualquer lugar do programa.</li>
+  <li><code>Symbol.iterator</code>, <code>Symbol.toPrimitive</code> e <code>Symbol.toStringTag</code> são ganchos para o seu objeto funcionar no <code>for … of</code>, nas conversões e na descrição.</li>
+  <li>Sem <code>new</code>, e sem <code>+</code> com texto: use <code>String(s)</code> ou <code>s.description</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
