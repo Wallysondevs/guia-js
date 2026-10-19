@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Template Strings — textos com ${} e várias linhas | Guia JavaScript</title>
+<meta name="description" content="Template strings do JavaScript para quem nunca programou: a crase, encaixar variáveis e contas com ${}, textos de várias linhas (a nota da padaria), a comparação com o +, o que sai quando o valor é um array ou um objeto, e os erros reais do Node.js 24 (aspas comuns com ${}, acento agudo no lugar da crase, variável que não existe, $() no lugar de ${}).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Template Strings</span></h1>
+
+<p class="intro">Na aula <a href="strings.html">Strings</a>, você montou frases emendando pedaços com <code>+</code>: <code>"Olá, " + nome + "! Você tem " + idade + " anos."</code>. Funciona, mas é fácil esquecer um espaço ou uma aspa no meio de tantos pedaços. O JavaScript tem um jeito mais confortável: o <strong>template string</strong> (em inglês, "texto-modelo"), escrito entre <strong>crases</strong>, em que as variáveis entram direto no meio do texto: <code>`Olá, ${nome}!`</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um template string com crase e encaixar valores com <code>${ }</code>.</li>
+  <li>Que dentro do <code>${ }</code> cabe qualquer <strong>expressão</strong>: contas, comparações, <code>.length</code>.</li>
+  <li>Como fazer um texto de <strong>várias linhas</strong> (a nota da padaria).</li>
+  <li>Quando usar crase e quando usar <code>+</code> ou aspas comuns.</li>
+  <li>O que aparece quando o valor encaixado é um array, um objeto, <code>null</code> ou <code>undefined</code>.</li>
+  <li>Os erros reais: <code>${}</code> dentro de aspas comuns, o acento agudo no lugar da crase, a variável que não existe e o <code>$( )</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o formulário com lacunas</h2>
+<p>Sabe aqueles recibos de papel que vêm prontos, só com os espaços em branco para preencher? <em>"Recebi de ________ a quantia de R$ ______ referente a ________."</em> O texto fixo já está impresso; você só completa as lacunas.</p>
+<p>Um template string é esse recibo. A crase marca o começo e o fim do modelo, e cada <code>${ }</code> é uma lacuna. Na hora de rodar, o JavaScript calcula o que está dentro de cada lacuna e encaixa o resultado no texto.</p>
+
+<hr>
+
+<h2>1. O primeiro template string</h2>
+
+<pre class="file" data-file="ola.js">const nome = "Ana";
+const idade = 30;
+
+const frase = `Olá, ${nome}! Você tem ${idade} anos.`;
+console.log(frase);
+</pre>
+
+<dl class="anatomy">
+  <dt>` … `</dt><dd>As <strong>crases</strong> (o acento grave sozinho; no teclado ABNT, <kbd>Shift</kbd> + a tecla à direita do <kbd>P</kbd>, e depois a barra de espaço). Elas abrem e fecham o template string. Não confunda com o apóstrofo <code>'</code> nem com o acento agudo <code>´</code>.</dd>
+  <dt>Olá, </dt><dd>Texto fixo, que sai como está, com o espaço depois da vírgula.</dd>
+  <dt>${nome}</dt><dd>Uma <strong>lacuna</strong>: cifrão, abre chave, a variável, fecha chave. O JavaScript troca tudo isso pelo valor de <code>nome</code>, <code>Ana</code>.</dd>
+  <dt>${idade}</dt><dd>Outra lacuna. O número 30 vira texto sozinho, sem você precisar converter.</dd>
+</dl>
+
+<pre class="term">$ node ola.js
+Olá, Ana! Você tem 30 anos.
+</pre>
+
+<p>Compare com a mesma frase usando <code>+</code>: <code>"Olá, " + nome + "! Você tem " + idade + " anos."</code>. São seis pedaços, cinco <code>+</code> e seis pares de aspas. No template string há um par de crases, e o texto se lê de corrido, do jeito que vai sair na tela.</p>
+
+<div class="tryjs" data-goal="out:A Bia comprou 3 pães.;;src:\$\{">
+<p class="try-task"><strong>Missão:</strong> reescreva a frase usando crase e <code>${ }</code> no lugar dos <code>+</code>, e troque os valores das variáveis para sair <code>A Bia comprou 3 pães.</code></p>
+<pre class="script" data-file="main.js">const cliente = "Ana";
+const quantidade = 5;
+const frase = "A " + cliente + " comprou " + quantidade + " pães.";
+console.log(frase);
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = "Bia";
+const quantidade = 3;
+const frase = `A ${cliente} comprou ${quantidade} pães.`;
+console.log(frase);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Dentro do <code>${ }</code> cabe uma conta</h2>
+<p>A lacuna não precisa ser só uma variável. Ela aceita qualquer <strong>expressão</strong>, isto é, qualquer pedaço de código que resulte num valor: uma conta, uma comparação, o tamanho de um texto.</p>
+
+<pre class="file" data-file="contas.js">const produto = "café";
+const preco = 4.5;
+const quantidade = 3;
+
+console.log(`${quantidade} x ${produto} = R$ ${preco * quantidade}`);
+console.log(`A palavra "${produto}" tem ${produto.length} letras.`);
+console.log(`Passou de R$ 10? ${preco * quantidade &gt; 10}`);
+console.log(`Total: ${2 + 3}`);
+</pre>
+
+<pre class="term">$ node contas.js
+3 x café = R$ 13.5
+A palavra "café" tem 4 letras.
+Passou de R$ 10? true
+Total: 5
+</pre>
+
+<p>Repare em três detalhes:</p>
+<ul>
+  <li>A conta <code>preco * quantidade</code> foi feita <strong>antes</strong> de virar texto: saiu <code>13.5</code>. Sem casas decimais fixas, porque o JavaScript mostra o número como ele é; para mostrar <code>13.50</code>, veja <a href="numeros-formatar.html">Formatando Números</a>.</li>
+  <li>Dentro da crase, as <strong>aspas duplas</strong> são letras comuns: <code>"${produto}"</code> mostrou <code>"café"</code> com aspas, sem nenhum erro. É uma vantagem da crase.</li>
+  <li><code>`Total: ${2 + 3}`</code> dá <code>Total: 5</code>. Com <code>+</code>, <code>"Total: " + 2 + 3</code> dá <code>Total: 23</code> (veja <a href="precedencia.html">Precedência</a>). Na lacuna, a conta fica isolada e não tem como se misturar com o texto.</li>
+</ul>
+
+<hr>
+
+<h2>3. Textos de várias linhas</h2>
+<p>Com aspas comuns, o texto tem de caber numa linha só. Com crase, você pode apertar <kbd>Enter</kbd> no meio do texto, e a quebra de linha faz parte dele. A Ana usa isso para imprimir a nota da padaria:</p>
+
+<pre class="file" data-file="nota.js">const cliente = "Caio";
+const paes = 6;
+const precoPao = 0.75;
+
+const nota = `PADARIA DO BAIRRO
+Cliente: ${cliente}
+Pães: ${paes} x R$ ${precoPao}
+Total: R$ ${paes * precoPao}
+Volte sempre!`;
+
+console.log(nota);
+</pre>
+
+<pre class="term">$ node nota.js
+PADARIA DO BAIRRO
+Cliente: Caio
+Pães: 6 x R$ 0.75
+Total: R$ 4.5
+Volte sempre!
+</pre>
+
+<p>O texto saiu com as quebras de linha exatamente onde estavam no código. O mesmo com aspas comuns precisaria do <code>\n</code> (o "pule linha", aula <a href="strings-escape.html">Caracteres Especiais</a>): <code>"PADARIA DO BAIRRO\nCliente: " + cliente + "\nPães: " …</code>.</p>
+
+<div class="warning">
+<strong>Os espaços da frente também entram</strong>
+<p>Num template de várias linhas, <strong>tudo</strong> o que está entre as crases faz parte do texto, inclusive os espaços que você põe no começo das linhas para o código ficar "bonito". Se você indentar as linhas de dentro, elas saem indentadas:</p>
+<pre class="file" data-file="recuo.js">const nota = `PADARIA
+    Cliente: Caio
+    Volte sempre!`;
+console.log(nota);
+</pre>
+<pre class="term">$ node recuo.js
+PADARIA
+    Cliente: Caio
+    Volte sempre!
+</pre>
+<p>Por isso, num template de várias linhas, comece as linhas de dentro <strong>encostadas na margem</strong>, como em <code>nota.js</code>.</p>
+</div>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> mude a quantidade de pães e o preço, acrescente uma linha <code>Café: ${cafes}</code> (criando a variável <code>cafes</code>) e veja a nota mudar.</p>
+<pre class="script" data-file="main.js">const cliente = "Caio";
+const paes = 6;
+const precoPao = 0.75;
+
+const nota = `PADARIA DO BAIRRO
+Cliente: ${cliente}
+Pães: ${paes} x R$ ${precoPao}
+Total: R$ ${paes * precoPao}
+Volte sempre!`;
+
+console.log(nota);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O que sai quando o valor não é texto nem número</h2>
+<p>A lacuna transforma qualquer valor em texto. Para números e booleanos, o resultado é o esperado. Para outros valores, nem sempre é o que você quer ver:</p>
+
+<pre class="file" data-file="valores.js">const compras = ["pão", "leite", "café"];
+const cliente = { nome: "Ana", idade: 30 };
+let apelido;
+
+console.log(`Lista: ${compras}`);
+console.log(`Cliente: ${cliente}`);
+console.log(`Nome: ${cliente.nome}`);
+console.log(`Apelido: ${apelido}`);
+console.log(`Vazio: ${null}`);
+</pre>
+
+<pre class="term">$ node valores.js
+Lista: pão,leite,café
+Cliente: [object Object]
+Nome: Ana
+Apelido: undefined
+Vazio: null
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor na lacuna</th><th>O que sai</th><th>Observação</th></tr>
+<tr><td>Um <a href="arrays.html">array</a> (lista)</td><td><code>pão,leite,café</code></td><td>Os itens separados por vírgula, sem espaço. Para escolher o separador, use <code>compras.join(", ")</code> (aula <a href="strings-split.html">Dividindo e Juntando</a>)</td></tr>
+<tr><td>Um <a href="objetos.html">objeto</a></td><td><code>[object Object]</code></td><td>Quase nunca é o que você quer. Encaixe uma propriedade (<code>${cliente.nome}</code>) ou use <code>JSON.stringify(cliente)</code> (aula <a href="json.html">JSON</a>)</td></tr>
+<tr><td>Uma variável sem valor</td><td><code>undefined</code></td><td>Sinal de que a variável não recebeu valor (aula <a href="null-undefined.html">null e undefined</a>)</td></tr>
+<tr><td><code>null</code></td><td><code>null</code></td><td></td></tr>
+</table>
+</div>
+
+<p>O <code>[object Object]</code> e o <code>undefined</code> no meio de uma frase são sintomas clássicos: quando eles aparecerem na tela, confira o que está dentro da lacuna.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>As três linhas abaixo montam o mesmo texto:</p>
+
+<pre class="file" data-file="formas.js">const item = "leite";
+const preco = 6;
+
+console.log("O " + item + " custa R$ " + preco + ".");
+console.log(`O ${item} custa R$ ${preco}.`);
+console.log("O", item, "custa R$", preco + ".");
+</pre>
+
+<pre class="term">$ node formas.js
+O leite custa R$ 6.
+O leite custa R$ 6.
+O leite custa R$ 6.
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto fixo, sem nada para encaixar</td><td>Aspas duplas: <code>"Bom dia"</code></td></tr>
+<tr><td>Texto com uma ou mais variáveis ou contas no meio</td><td>Crase: <code>`O ${item} custa R$ ${preco}.`</code></td></tr>
+<tr><td>Texto de várias linhas</td><td>Crase (ou <code>\n</code> entre aspas comuns)</td></tr>
+<tr><td>Texto com aspas duplas e simples dentro</td><td>Crase: <code>`Ele disse "pode ir" e ela respondeu 'já vou'`</code></td></tr>
+<tr><td>Emendar um texto que já existe com outro</td><td><code>+</code> ou <code>+=</code>: <code>lista += ", café"</code></td></tr>
+<tr><td>Só mostrar vários valores, sem guardar a frase</td><td>Vírgulas no <code>console.log</code></td></tr>
+</table>
+</div>
+
+<p>Os templates são do <span class="versao">ES2015</span>, a grande atualização do JavaScript de 2015. Em código mais antigo você vai ver muito <code>+</code>; em código moderno, a crase é o jeito preferido sempre que há algo para encaixar.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou aspas comuns com <code>${ }</code></strong>
+<pre class="file" data-file="aspas.js">const nome = "Ana";
+console.log("Olá, ${nome}!");
+console.log('Olá, ${nome}!');
+console.log(`Olá, ${nome}!`);
+</pre>
+<pre class="term">$ node aspas.js
+Olá, ${nome}!
+Olá, ${nome}!
+Olá, Ana!
+</pre>
+<p>Sem mensagem de erro, e o <code>${nome}</code> saiu ao pé da letra. Só a <strong>crase</strong> entende lacunas; entre aspas duplas ou simples, <code>${nome}</code> são só seis caracteres. É o erro mais comum com template strings. <strong>Como consertar:</strong> troque as aspas das pontas por crases.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o acento agudo <code>´</code> no lugar da crase</strong>
+<pre class="file" data-file="agudo.js">const nome = "Ana";
+console.log(´Olá, ${nome}!´);
+</pre>
+<pre class="term">$ node agudo.js
+/home/ana/agudo.js:2
+console.log(´Olá, ${nome}!´);
+            
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/agudo.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>console.log(´Olá, ${nome}!´);</dt><dd>A linha copiada. O defeito está no primeiro caractere depois do <code>(</code>.</dd>
+  <dt>(a linha em branco)</dt><dd>Aqui deveriam vir as setinhas <code>^</code>, mas, neste caso, o Node 24 da Ana deixou a linha só com espaços. Os espaços vão até a coluna do <code>´</code>: é ali o problema.</dd>
+  <dt>SyntaxError: Invalid or unexpected token</dt><dd>"Erro de sintaxe: símbolo inválido ou inesperado." Para o JavaScript, o acento agudo <code>´</code> não é aspa nem crase nem nada: é um símbolo que ele não sabe ler.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Caminho por dentro do Node; pode ignorar.</dd>
+</dl>
+<p>Acontece muito no teclado brasileiro, em que o acento agudo e a crase ficam na <strong>mesma tecla</strong>: sem o <kbd>Shift</kbd> sai o agudo <code>´</code>; com <kbd>Shift</kbd>, a crase <code>`</code>. <strong>Como consertar:</strong> apague os <code>´</code> e digite <kbd>Shift</kbd> + a tecla à direita do <kbd>P</kbd>, seguido de espaço.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável da lacuna não existe</strong>
+<pre class="file" data-file="naoexiste.js">const nome = "Ana";
+console.log(`Olá, ${nmoe}!`);
+</pre>
+<pre class="term">$ node naoexiste.js
+/home/ana/naoexiste.js:2
+console.log(`Olá, ${nmoe}!`);
+                    ^
+
+ReferenceError: nmoe is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/naoexiste.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de referência: <code>nmoe</code> não está definido". A Ana trocou duas letras de lugar. Dentro da lacuna vale o mesmo que fora dela: o nome tem de ser de uma variável que existe. A setinha aponta o <code>nmoe</code>, e a linha <code>at Object.&lt;anonymous&gt; (/home/ana/naoexiste.js:2:21)</code> confirma: linha 2, coluna 21. Ao contrário do erro de sintaxe, este é um erro <strong>de execução</strong>: se houvesse linhas antes da 2, elas teriam rodado. <strong>Como consertar:</strong> <code>${nome}</code>, com o nome igual ao da variável (maiúsculas contam).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>$( )</code> ou <code>{ }</code> sem o cifrão</strong>
+<pre class="file" data-file="parenteses.js">const nome = "Ana";
+console.log(`Olá, $(nome)!`);
+console.log(`Olá, {nome}!`);
+</pre>
+<pre class="term">$ node parenteses.js
+Olá, $(nome)!
+Olá, {nome}!
+</pre>
+<p>A lacuna tem um formato só: <strong>cifrão e chaves</strong>, <code>${ }</code>. Com parênteses, ou sem o cifrão, o JavaScript não reconhece a lacuna e mostra o texto como está. <strong>Como consertar:</strong> <code>${nome}</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Abriu a lacuna e não fechou a chave</strong>
+<pre class="file" data-file="semchave.js">const nome = "Ana";
+console.log(`Olá, ${nome!`);
+</pre>
+<pre class="term">$ node semchave.js
+/home/ana/semchave.js:2
+console.log(`Olá, ${nome!`);
+                    ^^^^
+
+SyntaxError: Missing } in template expression
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: faltou o <code>}</code> na expressão do template". As setinhas apontam o <code>nome!</code>: o JavaScript estava dentro da lacuna, esperando o <code>}</code>, e encontrou um <code>!</code>. <strong>Como consertar:</strong> feche a chave logo depois do nome: <code>`Olá, ${nome}!`</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total da Ana: R$ 12;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode este programa e veja as lacunas saírem ao pé da letra. Conserte as aspas; ao rodar de novo, vai aparecer um segundo problema, com mensagem de erro. Conserte os dois para aparecer <code>Total da Ana: R$ 12</code>.</p>
+<pre class="script" data-file="main.js">const cliente = "Ana";
+const total = 4 * 3;
+console.log("Total da ${cliente}: R$ ${totla}");
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = "Ana";
+const total = 4 * 3;
+console.log(`Total da ${cliente}: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>`texto`</code></td><td>Template string (crase)</td><td><code>`Bom dia`</code> → <code>Bom dia</code></td></tr>
+<tr><td><code>${variavel}</code></td><td>Encaixa o valor da variável</td><td><code>`Olá, ${nome}`</code> → <code>Olá, Ana</code></td></tr>
+<tr><td><code>${expressão}</code></td><td>Calcula e encaixa o resultado</td><td><code>`${2 * 3} pães`</code> → <code>6 pães</code></td></tr>
+<tr><td><code>${texto.length}</code></td><td>Encaixa uma propriedade</td><td><code>`${"café".length}`</code> → <code>4</code></td></tr>
+<tr><td>Enter dentro da crase</td><td>Quebra de linha no texto</td><td>A nota da padaria</td></tr>
+<tr><td><code>${lista}</code></td><td>Array vira itens com vírgula</td><td><code>pão,leite,café</code></td></tr>
+<tr><td><code>${objeto}</code></td><td>Objeto vira <code>[object Object]</code></td><td>use <code>${objeto.nome}</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>${nome}</code> aparece ao pé da letra na tela</td><td>Aspas comuns em vez de crase</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code> apontando um <code>´</code></td><td>Acento agudo no lugar da crase</td></tr>
+<tr><td><code>ReferenceError: … is not defined</code></td><td>A variável da lacuna não existe (ou está escrita errado)</td></tr>
+<tr><td><code>$(nome)</code> ou <code>{nome}</code> na tela</td><td>A lacuna é <code>${ }</code>: cifrão e chaves</td></tr>
+<tr><td><code>[object Object]</code> na frase</td><td>Encaixou um objeto inteiro: escolha uma propriedade</td></tr>
+<tr><td><code>undefined</code> na frase</td><td>A variável não recebeu valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<pre class="file" data-file="ex1.js">const fruta = "manga";
+const quilos = 2;
+console.log(`${quilos} kg de ${fruta}`);
+console.log(`Dobro: ${quilos * 2}`);
+</pre>
+<div class="ex-code">1ª linha: <input data-answer="2 kg de manga" aria-label="saída 1"><br>2ª linha: <input data-answer="Dobro: 4" aria-label="saída 2"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a lacuna</h3>
+<p>Complete para o programa mostrar <code>Bom dia, Bia!</code>:</p>
+<div class="ex-code">const nome = "Bia";<br>console.log(`Bom dia, <input data-answer="${nome}" aria-label="lacuna">!`);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Aspas comuns</h3>
+<p>O que mostra <code>console.log("Oi, ${nome}")</code>, se <code>nome</code> vale <code>"Caio"</code>?</p>
+<div class="ex-code">Saída: <input data-answer="Oi, ${nome}" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Quanto mostra <code>console.log(`Total: ${2 + 3}`)</code>?</p>
+<label><input type="radio" name="q4"> <code>Total: 5</code></label>
+<label><input type="radio" name="q4"> <code>Total: 23</code></label>
+<label><input type="radio" name="q4"> <code>Total: ${2 + 3}</code></label>
+<label><input type="radio" name="q4"> <code>Total: 2 + 3</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destas linhas encaixa o valor da variável <code>cidade</code>?</p>
+<label><input type="radio" name="q5"> <code>"Moro em ${cidade}"</code></label>
+<label><input type="radio" name="q5"> <code>`Moro em $(cidade)`</code></label>
+<label><input type="radio" name="q5"> <code>'Moro em ${cidade}'</code></label>
+<label><input type="radio" name="q5"> <code>`Moro em ${cidade}`</code></label>
+</div>
+
+<h3>Missão final: o recibo</h3>
+
+<div class="tryjs" data-goal="out:Recebi de Bia a quantia de R$ 30;;out:referente a 2 bolos.;;src:\$\{">
+<p class="try-task"><strong>Missão:</strong> monte o recibo com um template string de <strong>duas linhas</strong>. A primeira: <code>Recebi de Bia a quantia de R$ 30</code> (o 30 tem de ser a conta <code>bolos * precoBolo</code> dentro de uma lacuna). A segunda: <code>referente a 2 bolos.</code></p>
+<pre class="script" data-file="main.js">const cliente = "Bia";
+const bolos = 2;
+const precoBolo = 15;
+
+const recibo = "";
+console.log(recibo);
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = "Bia";
+const bolos = 2;
+const precoBolo = 15;
+
+const recibo = `Recebi de ${cliente} a quantia de R$ ${bolos * precoBolo}
+referente a ${bolos} bolos.`;
+console.log(recibo);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>template string</strong> é um texto entre <strong>crases</strong> <code>`…`</code>. Cada <code>${ }</code> é uma lacuna onde o JavaScript encaixa um valor.</li>
+  <li>Dentro do <code>${ }</code> cabe qualquer expressão: variável, conta, comparação, <code>.length</code>. A conta é feita antes de virar texto.</li>
+  <li>Crase aceita quebras de linha (e os espaços da frente também entram no texto) e aspas duplas e simples sem escape.</li>
+  <li>Array numa lacuna vira <code>a,b,c</code>; objeto vira <code>[object Object]</code>; variável sem valor vira <code>undefined</code>.</li>
+  <li>Erros comuns: <code>${}</code> entre aspas comuns (sai ao pé da letra), acento agudo no lugar da crase (<code>SyntaxError</code>), variável inexistente (<code>ReferenceError</code>), <code>$( )</code> no lugar de <code>${ }</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
