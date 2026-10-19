@@ -226,7 +226,7 @@
     var m = e && typeof e === "object" ? marcas.get(e) : null;
     var ehErro = e instanceof Error || (e && typeof e === "object" && typeof e.stack === "string" && "message" in e);
     if (ehErro) { try { void e.stack; } catch (x) {} }
-    if (m && m.cab) cab = naoTratadoModulo && /^node:/.test(m.cab) ? "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\n" : m.cab;
+    if (m && m.cab) cab = naoTratadoModulo && /^AssertionError/.test(m.nomeStack || "") ? "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\n" : m.cab;
     else if (ehErro) {
       var p = posicaoErro(e);
       if (p) {
@@ -1816,9 +1816,10 @@
     import(url).then(function () { principalPendente = false; G.__jsNodeInicioESM(); talvezFim(); }, function (e) {
       principalPendente = false;
       if (carregandoESM) { carregandoESM = false; ativos--; }
-      var lig = e && e.name === "SyntaxError" ? erroLigacao(e) : null;
+      try { if (e && typeof e === "object") void e.stack; } catch (x) {}
+      var lig = e && e.name === "SyntaxError" && !marcas.has(e) ? erroLigacao(e) : null;
       if (lig) { terminarComSintaxe(lig); return; }
-      if (e && e.name === "SyntaxError" && !(e instanceof Error && posicoes.has(e) && framesUsuario(e))) {
+      if (e && e.name === "SyntaxError" && !marcas.has(e) && !(e instanceof Error && posicoes.has(e) && framesUsuario(e))) {
         segurar();
         if (erroCJS) { erroSintaxe(erroCJS, arq, false).then(terminarComSintaxe); return; }
         var qual = acharArquivoComErroSintaxe(e);
