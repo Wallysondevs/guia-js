@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Assíncrono — o que é código assíncrono | Guia JavaScript</title>
+<meta name="description" content="Código assíncrono no JavaScript para quem está começando: síncrono × assíncrono com a encomenda de bolo na padaria, o primeiro setTimeout, por que o 0 ms não roda na hora, o que trava o programa, ler um arquivo com readFileSync × readFile, os três jeitos (callback, Promise, async/await) e os erros reais (undefined, Promise { <pending> }, try que não pega o erro).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Assíncrono</span>: o que é</h1>
+
+<p class="intro">Até agora, todo programa seu rodou como uma receita: linha 1, depois linha 2, depois linha 3, cada uma esperando a anterior terminar. Mas muita coisa num programa de verdade <strong>demora</strong>: esperar 2 segundos, ler um arquivo do disco, buscar dados na internet, esperar o clique de um botão. Se o programa ficasse parado esperando cada uma delas, ele passaria a maior parte do tempo sem fazer nada. O JavaScript resolve isso com o código <strong>assíncrono</strong>: começa uma tarefa demorada, <strong>segue em frente</strong>, e cuida do resultado quando ele chegar. Esta aula é a porta de entrada de todo o grupo "Assíncrono".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre código <strong>síncrono</strong> (um depois do outro, esperando) e <strong>assíncrono</strong> (começa, segue, reage depois).</li>
+  <li>O primeiro <code>setTimeout</code>, e por que a ordem da saída não é a ordem do código.</li>
+  <li>Por que um laço pesado <strong>trava</strong> tudo, até um timer de 0 ms.</li>
+  <li>Ler um arquivo dos dois jeitos: <code>readFileSync</code> (esperando) e <code>readFile</code> (sem esperar).</li>
+  <li>Os três estilos de código assíncrono que você vai aprender nas próximas aulas: callbacks, Promises e <code>async</code>/<code>await</code>.</li>
+  <li>Os erros clássicos: o <code>undefined</code> de quem usou o resultado cedo demais, o <code>Promise { &lt;pending&gt; }</code> e o <code>try</code> que não pega o erro.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: a encomenda de bolo</h2>
+<p>Imagine dois jeitos de comprar um bolo de aniversário na padaria do bairro:</p>
+<ol class="passo">
+  <li><strong>Jeito síncrono:</strong> a Ana pede o bolo e fica <strong>parada no balcão</strong> as duas horas que ele leva para ficar pronto. Não vai ao mercado, não busca o irmão na escola, não faz nada. Só depois de pegar o bolo ela segue o dia.</li>
+  <li><strong>Jeito assíncrono:</strong> a Ana pede o bolo, deixa o telefone e diz "<strong>me liga quando estiver pronto</strong>". Vai ao mercado, busca o irmão… Quando o telefone toca, ela volta e pega o bolo.</li>
+</ol>
+<p>No segundo jeito, o bolo demora o mesmo tanto, mas a Ana aproveita o tempo. E repare numa coisa: a ordem em que as coisas <strong>terminam</strong> (mercado, irmão, bolo) não é a ordem em que ela as <strong>começou</strong> (bolo, mercado, irmão).</p>
+<p>O "me liga quando estiver pronto" é a essência do código assíncrono. Em programação, o "telefone" é uma <strong>função</strong> que você entrega para ser chamada depois.</p>
+
+<hr>
+
+<h2>1. Código síncrono: o que você fez até agora</h2>
+
+<pre class="file" data-file="sincrono.js">console.log("1. Liguei o forno");
+console.log("2. Misturei a massa");
+console.log("3. Coloquei o bolo no forno");
+console.log("4. Lavei a louça");
+</pre>
+
+<pre class="term">$ node sincrono.js
+1. Liguei o forno
+2. Misturei a massa
+3. Coloquei o bolo no forno
+4. Lavei a louça
+</pre>
+
+<p>Nenhuma surpresa: as linhas rodam <strong>na ordem em que estão escritas</strong>, e cada uma só começa quando a anterior termina. Isso se chama <strong>síncrono</strong> ("ao mesmo tempo", "no compasso": tudo anda junto, em fila).</p>
+
+<hr>
+
+<h2>2. O primeiro código assíncrono: <code>setTimeout</code></h2>
+<p>O <code>setTimeout</code> ("definir um tempo de espera") recebe uma <strong>função</strong> e um tempo em milissegundos (1000 ms = 1 segundo). Ele diz ao JavaScript: "daqui a esse tempo, chame esta função". E, sem esperar, o programa segue para a linha de baixo:</p>
+
+<pre class="file" data-file="primeiro.js">console.log("1. Encomendei o bolo na padaria");
+setTimeout(() =&gt; {
+  console.log("3. O bolo ficou pronto!");
+}, 2000);
+console.log("2. Enquanto isso, fui ao mercado");
+</pre>
+
+<p>A Ana rodou com o comando <code>time</code> na frente, que mede quanto tempo o programa levou:</p>
+
+<pre class="term">$ time node primeiro.js
+1. Encomendei o bolo na padaria
+2. Enquanto isso, fui ao mercado
+3. O bolo ficou pronto!
+
+real	0m2,037s
+user	0m0,024s
+sys	0m0,012s
+</pre>
+
+<dl class="anatomy">
+  <dt>setTimeout(() =&gt; { … }, 2000)</dt><dd>Entrega a <a href="arrow-functions.html">arrow function</a> ao JavaScript, com o recado "chame daqui a 2000 ms". A função <strong>não roda agora</strong>: fica guardada.</dd>
+  <dt>"2. Enquanto isso…" saiu antes do "3"</dt><dd>O programa não ficou parado no <code>setTimeout</code>: foi direto para a linha 5. A ordem da saída (1, 2, 3) não é a ordem do código (1, 3, 2).</dd>
+  <dt>real 0m2,037s</dt><dd>O tempo total, no relógio: um pouco mais de 2 segundos. O Node <strong>esperou</strong> o timer antes de terminar: um programa só acaba quando não tem mais nada pendente.</dd>
+  <dt>user 0m0,024s</dt><dd>O tempo que o processador realmente trabalhou: 24 milésimos. Durante os 2 segundos de espera, o programa ficou <strong>parado sem gastar nada</strong>, só esperando o "telefone tocar". (Os números mudam um pouco de um computador para outro e de uma vez para outra.)</dd>
+</dl>
+
+<p>A função que você entrega para ser chamada depois tem um nome: <strong>callback</strong> ("chamar de volta"). O <code>setTimeout</code> e o seu irmão <code>setInterval</code> têm aula própria: <a href="timers.html">setTimeout e setInterval</a>.</p>
+
+<div class="tryjs" data-goal="outre:mercado\.\n[\s\S]*Bolo pronto!;;src:setTimeout">
+<p class="try-task"><strong>Missão:</strong> do jeito que está, a Ana fica esperando o bolo antes de ir ao mercado. Coloque a linha do <code>Bolo pronto!</code> dentro de um <code>setTimeout</code> de 2000 ms, para a saída ficar: <code>Encomendei o bolo.</code>, <code>Enquanto isso, vou ao mercado.</code> e, 2 segundos depois, <code>Bolo pronto!</code>.</p>
+<pre class="script" data-file="main.js">console.log("Encomendei o bolo.");
+console.log("Bolo pronto!");
+console.log("Enquanto isso, vou ao mercado.");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Encomendei o bolo.");
+setTimeout(() =&gt; {
+  console.log("Bolo pronto!");
+}, 2000);
+console.log("Enquanto isso, vou ao mercado.");
+</pre>
+</div>
+
+<h3>E com 0 milissegundos?</h3>
+<p>Se o tempo for zero, a função roda na hora? Não:</p>
+
+<pre class="file" data-file="zero.js">console.log("A");
+setTimeout(() =&gt; {
+  console.log("B");
+}, 0);
+console.log("C");
+</pre>
+
+<pre class="term">$ node zero.js
+A
+C
+B
+</pre>
+
+<p>O <code>B</code> saiu por último. Um callback <strong>nunca interrompe</strong> o código que está rodando: o JavaScript primeiro termina tudo o que está fazendo agora (o <code>A</code> e o <code>C</code>) e só <strong>depois</strong> olha a lista do que ficou pendente. O "0 ms" quer dizer "assim que você estiver livre", não "agora". É a regra mais importante do JavaScript assíncrono, e quem cuida dela é o <a href="event-loop.html">Event Loop</a>.</p>
+
+<hr>
+
+<h2>3. Uma pessoa só: o que trava o programa</h2>
+<p>O JavaScript (no Node e no navegador) faz <strong>uma coisa de cada vez</strong>: tem uma só "linha de execução" (em inglês, <em>single thread</em>). É como uma padaria com <strong>um só atendente</strong>. Ele consegue cuidar de muitas encomendas porque nunca fica parado esperando o forno. Mas, se ele começar uma tarefa <strong>trabalhosa</strong> (contar um saco de moedas, por exemplo), ninguém mais é atendido até ele acabar, nem o cliente cujo bolo já está pronto.</p>
+
+<pre class="file" data-file="bloqueio.js">setTimeout(() =&gt; {
+  console.log("O timer de 0 ms finalmente rodou");
+}, 0);
+
+console.log("Começando uma conta enorme...");
+let soma = 0;
+for (let i = 0; i &lt; 2_000_000_000; i++) {
+  soma = soma + i;
+}
+console.log("Terminei a conta");
+</pre>
+
+<pre class="term">$ time node bloqueio.js
+Começando uma conta enorme...
+Terminei a conta
+O timer de 0 ms finalmente rodou
+
+real	0m2,921s
+user	0m2,914s
+sys	0m0,008s
+</pre>
+
+<p>O timer pediu "0 ms", mas só rodou depois de quase <strong>3 segundos</strong>: o <code>for</code> de 2 bilhões de voltas (o <code>2_000_000_000</code> é só o número 2000000000 com separadores, para ler melhor) ocupou o atendente o tempo todo. Desta vez, o <code>user</code> ficou quase igual ao <code>real</code>: o processador trabalhou sem parar.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo de demora</th><th>Exemplo</th><th>Trava o programa?</th></tr>
+<tr><td><strong>Esperar</strong> algo de fora</td><td>Timer, ler arquivo, internet, clique do usuário</td><td><strong>Não</strong>, se for feita do jeito assíncrono: o JavaScript pede e segue</td></tr>
+<tr><td><strong>Calcular</strong> muito</td><td>Um laço de bilhões de voltas</td><td><strong>Sim</strong>: o atendente está ocupado de verdade</td></tr>
+</table>
+</div>
+
+<p>No navegador, travar é ainda pior: enquanto o JavaScript está ocupado, a página <strong>congela</strong>: os botões não respondem, o texto não rola. É por isso que tudo o que espera algo de fora, no JavaScript, é assíncrono.</p>
+
+<hr>
+
+<h2>4. Um exemplo de verdade: ler um arquivo</h2>
+<p>Esperar um timer é um exemplo de brinquedo. A demora de verdade é ler o disco, a rede, o banco de dados. A Ana tem um arquivo <code>cardapio.txt</code> na pasta dela:</p>
+
+<pre class="term">$ cat cardapio.txt
+Pão francês
+Pão de queijo
+Bolo de cenoura
+</pre>
+
+<p>O módulo <code>fs</code> do Node (aula <a href="fs-ler.html">Lendo Arquivos</a>) tem os dois jeitos de ler. O <strong>síncrono</strong>, com <code>Sync</code> no nome, espera o arquivo chegar:</p>
+
+<pre class="file" data-file="ler-sync.js">const fs = require("node:fs");
+
+console.log("Vou ler o cardápio...");
+const texto = fs.readFileSync("cardapio.txt", "utf8");
+console.log(texto);
+console.log("Pronto, li.");
+</pre>
+
+<pre class="term">$ node ler-sync.js
+Vou ler o cardápio...
+Pão francês
+Pão de queijo
+Bolo de cenoura
+
+Pronto, li.
+</pre>
+
+<p>Na ordem do código, como sempre. (A linha em branco é a quebra de linha que já existia no fim do arquivo, mais a do <code>console.log</code>.) Agora o <strong>assíncrono</strong>, sem o <code>Sync</code>, que recebe um callback:</p>
+
+<pre class="file" data-file="ler-async.js">const fs = require("node:fs");
+
+console.log("Vou ler o cardápio...");
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  console.log(texto);
+});
+console.log("Pedi o arquivo e segui em frente.");
+</pre>
+
+<pre class="term">$ node ler-async.js
+Vou ler o cardápio...
+Pedi o arquivo e segui em frente.
+Pão francês
+Pão de queijo
+Bolo de cenoura
+
+</pre>
+
+<dl class="anatomy">
+  <dt>fs.readFile("cardapio.txt", "utf8", callback)</dt><dd>"Leia este arquivo, como texto (<code>utf8</code>), e, quando terminar, chame esta função." O Node passa o pedido para o sistema operacional e <strong>volta na hora</strong>.</dd>
+  <dt>(erro, texto) =&gt; { … }</dt><dd>O callback recebe dois valores: um <strong>erro</strong> (se algo deu errado, como o arquivo não existir) e o <strong>conteúdo</strong>. Essa ordem, erro primeiro, é um padrão do Node que a aula <a href="callbacks.html">Callbacks Assíncronos</a> explica.</dd>
+  <dt>"Pedi o arquivo e segui em frente." antes do cardápio</dt><dd>A mesma inversão do <code>setTimeout</code>: o programa não esperou o disco.</dd>
+</dl>
+
+<p>Num programa pequeno como este, tanto faz. Mas num servidor que atende mil pessoas ao mesmo tempo, o <code>readFileSync</code> faria todas esperarem cada leitura de disco; o <code>readFile</code> deixa o Node atender outras pessoas enquanto o disco trabalha. Foi essa ideia que tornou o Node famoso.</p>
+
+<hr>
+
+<h2 id="formas">Três jeitos de escrever código assíncrono</h2>
+<p>O JavaScript ganhou, ao longo dos anos, três estilos para dizer "faça isto quando aquilo terminar". Você vai aprender cada um nas próximas aulas; por enquanto, só reconheça. Os três leem o mesmo cardápio e mostram a primeira linha:</p>
+
+<pre class="file" data-file="tres-jeitos.js">const fs = require("node:fs");
+const fsp = require("node:fs/promises");
+
+// 1. callback: entrego uma função para ser chamada depois
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  console.log("callback:", texto.split("\n")[0]);
+});
+
+// 2. Promise: recebo um "vale" e digo o que fazer quando ele for pago (.then)
+fsp.readFile("cardapio.txt", "utf8").then((texto) =&gt; {
+  console.log("then:", texto.split("\n")[0]);
+});
+
+// 3. async/await: escrevo como se fosse síncrono, e o await espera sem travar
+async function ler() {
+  const texto = await fsp.readFile("cardapio.txt", "utf8");
+  console.log("await:", texto.split("\n")[0]);
+}
+ler();
+</pre>
+
+<pre class="term">$ node tres-jeitos.js
+callback: Pão francês
+then: Pão francês
+await: Pão francês
+</pre>
+
+<p>(As três leituras correm ao mesmo tempo, então a ordem das três linhas não é garantida: quem terminar primeiro escreve primeiro.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estilo</th><th>Desde</th><th>Como é</th><th>Aula</th></tr>
+<tr><td>Callback</td><td>Sempre existiu</td><td>Você entrega uma função; ela é chamada no fim</td><td><a href="callbacks.html">Callbacks Assíncronos</a></td></tr>
+<tr><td>Promise</td><td>ES2015</td><td>A operação devolve um objeto "promessa"; você encadeia <code>.then</code> e <code>.catch</code></td><td><a href="promises.html">Promises</a></td></tr>
+<tr><td><code>async</code>/<code>await</code></td><td>ES2017</td><td>Parece código comum, linha a linha; por baixo, são Promises</td><td><a href="async-await.html">async e await</a></td></tr>
+</table>
+</div>
+
+<p>Em código novo, o mais usado é o <code>async</code>/<code>await</code>. Mas ele é construído em cima das Promises, que por sua vez resolvem problemas dos callbacks; por isso o guia ensina nessa ordem.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Os erros do código assíncrono quase nunca são erros de escrita: o programa roda, mas faz as coisas na ordem que você <strong>não</strong> esperava.</p>
+
+<div class="cenario">
+<strong>Usou o resultado antes de ele chegar</strong>
+<pre class="file" data-file="cedo.js">const fs = require("node:fs");
+
+let cardapio;
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  cardapio = texto;
+});
+console.log(cardapio);
+</pre>
+<pre class="term">$ node cedo.js
+undefined
+</pre>
+<p>O erro mais comum de todos. A Ana guardou o texto numa variável de fora e a mostrou na linha 7. Mas a linha 7 roda <strong>logo depois</strong> do pedido, muito antes de o disco responder: nesse momento, o callback ainda não rodou e <code>cardapio</code> continua <code>undefined</code> (aula <a href="null-undefined.html">null e undefined</a>). É a Ana tentando cortar o bolo no instante em que fez a encomenda. <strong>Como consertar:</strong> tudo o que depende do resultado vai <strong>dentro</strong> do callback (ou depois de um <code>await</code>, que você vai aprender em breve).</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou devolver (<code>return</code>) o resultado de dentro do callback</strong>
+<pre class="file" data-file="retorno.js">const fs = require("node:fs");
+
+function lerCardapio() {
+  fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+    return texto;
+  });
+}
+
+const cardapio = lerCardapio();
+console.log(cardapio);
+</pre>
+<pre class="term">$ node retorno.js
+undefined
+</pre>
+<p>O <code>return texto</code> devolve o texto para <strong>quem chamou o callback</strong> (o próprio Node, que ignora), e não para quem chamou <code>lerCardapio</code>. E a <code>lerCardapio</code> termina na hora, sem <code>return</code> nenhum, devolvendo <code>undefined</code> (aula <a href="return.html">return</a>). <strong>Como consertar:</strong> uma função que depende de algo assíncrono não consegue devolver o resultado pronto. Ela devolve uma <strong>Promise</strong> (o "vale" do bolo), e quem chama espera por ela: é o assunto de <a href="promises.html">Promises</a> e <a href="async-await.html">async e await</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mostrou a Promise em vez do conteúdo</strong>
+<pre class="file" data-file="promessa.js">const fsp = require("node:fs/promises");
+
+const cardapio = fsp.readFile("cardapio.txt", "utf8");
+console.log(cardapio);
+</pre>
+<pre class="term">$ node promessa.js
+Promise { &lt;pending&gt; }
+</pre>
+<p>"Promessa (pendente)". A versão <code>fs/promises</code> não recebe callback: devolve <strong>na hora</strong> uma Promise, o "vale" de um resultado que ainda vai chegar. <code>&lt;pending&gt;</code> quer dizer que ele ainda não chegou. É a Ana mostrando o papel da encomenda em vez do bolo. <strong>Como consertar:</strong> <code>.then(...)</code> ou <code>await</code>, como no exemplo dos três jeitos. Sempre que vir <code>Promise { &lt;pending&gt; }</code> na saída, faltou esperar.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>try … catch</code> não pegou o erro</strong>
+<pre class="file" data-file="trycatch.js">try {
+  setTimeout(() =&gt; {
+    throw new Error("o forno queimou o bolo");
+  }, 100);
+} catch (erro) {
+  console.log("Peguei o erro:", erro.message);
+}
+console.log("Fim do try");
+</pre>
+<pre class="term">$ node trycatch.js
+Fim do try
+/home/ana/trycatch.js:3
+    throw new Error("o forno queimou o bolo");
+    ^
+
+Error: o forno queimou o bolo
+    at Timeout._onTimeout (/home/ana/trycatch.js:3:11)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>try</code> (aula <a href="try-catch.html">try … catch</a>) só protege o que roda <strong>enquanto</strong> ele está aberto. Ele agendou o timer e terminou na hora (<code>Fim do try</code> aparece primeiro). 100 ms depois, o callback rodou e lançou o erro, mas o <code>try</code> já tinha acabado fazia tempo: ninguém pegou, e o Node parou o programa. Repare na pilha: <code>at Timeout._onTimeout</code> e <code>at listOnTimeout (node:internal/timers…)</code> dizem que quem chamou a função foi o <strong>sistema de timers</strong> do Node, e não o seu código. <strong>Como consertar:</strong> o <code>try … catch</code> vai <strong>dentro</strong> do callback. Com Promises e <code>await</code>, os erros voltam a ser pegos de um jeito natural (aulas seguintes).</p>
+</div>
+
+<div class="tryjs" data-goal="outre:Cardápio de hoje:\nPão francês;;src:readFile\s*\(">
+<p class="try-task"><strong>Missão:</strong> este programa mostra <code>Cardápio de hoje:</code> e <code>undefined</code>, porque usa o texto antes de ele chegar. Mova as duas linhas de <code>console.log</code> para <strong>dentro</strong> do callback (e mostre <code>texto</code> em vez de <code>cardapio</code>), para aparecer o cardápio de verdade. O arquivo <code>cardapio.txt</code> está na outra aba.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+let cardapio;
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  cardapio = texto;
+});
+console.log("Cardápio de hoje:");
+console.log(cardapio);
+</pre>
+<pre class="script" data-file="cardapio.txt">Pão francês
+Pão de queijo
+Bolo de cenoura
+</pre>
+<pre class="solucao" data-file="main.js">const fs = require("node:fs");
+
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  console.log("Cardápio de hoje:");
+  console.log(texto);
+});
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Cardápio de hoje:</code> seguido das três linhas do arquivo.</p>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>O que quer dizer</th></tr>
+<tr><td>Síncrono</td><td>Uma linha depois da outra, cada uma esperando a anterior terminar</td></tr>
+<tr><td>Assíncrono</td><td>Começa uma tarefa demorada, segue em frente, e reage quando ela termina</td></tr>
+<tr><td>Callback</td><td>A função que você entrega para ser chamada depois ("me liga quando estiver pronto")</td></tr>
+<tr><td><code>setTimeout(funcao, ms)</code></td><td>Chama a função daqui a <code>ms</code> milissegundos (no mínimo), sem parar o programa</td></tr>
+<tr><td><em>Single thread</em></td><td>O JavaScript faz uma coisa de cada vez; um callback nunca interrompe o código que está rodando</td></tr>
+<tr><td><code>fs.readFileSync</code> × <code>fs.readFile</code></td><td>Lê o arquivo esperando × pede e recebe o conteúdo num callback</td></tr>
+<tr><td>Promise</td><td>Um objeto que representa um resultado que ainda vai chegar (<code>Promise { &lt;pending&gt; }</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>A saída sai fora da ordem do código</td><td>Normal: os callbacks rodam depois de todo o código "de agora"</td></tr>
+<tr><td><code>undefined</code> onde devia estar o resultado</td><td>Usou o resultado fora do callback (cedo demais), ou tentou um <code>return</code> de dentro dele</td></tr>
+<tr><td><code>Promise { &lt;pending&gt; }</code></td><td>Faltou esperar a Promise (<code>.then</code> ou <code>await</code>)</td></tr>
+<tr><td>O <code>catch</code> não pegou o erro do callback</td><td>O <code>try</code> já tinha terminado quando o callback rodou</td></tr>
+<tr><td>O timer atrasou muito / a página congelou</td><td>Um cálculo pesado ocupou o JavaScript</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual a ordem?</h3>
+<p>O que este programa mostra, na ordem? Escreva as três letras juntas, sem espaço.</p>
+<pre class="file" data-file="ordem.js">setTimeout(() =&gt; console.log("X"), 0);
+console.log("Y");
+console.log("Z");
+</pre>
+<div class="ex-code">Mostra <input data-answer="YZX" aria-label="três letras"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para o recado aparecer daqui a 3 segundos:</p>
+<div class="ex-code"><input data-answer="setTimeout" aria-label="função do timer">(() =&gt; console.log("Tire o bolo do forno!"), <input data-answer="3000" aria-label="tempo em milissegundos">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que o JavaScript usa código assíncrono para ler arquivos e buscar dados na internet?</p>
+<label><input type="radio" name="q3"> Porque assim a leitura fica mais rápida</label>
+<label><input type="radio" name="q3"> Porque o JavaScript não consegue ler arquivos de outro jeito</label>
+<label><input type="radio" name="q3"> Para não ficar parado esperando: ele faz uma coisa de cada vez, e esperar travaria tudo</label>
+<label><input type="radio" name="q3"> Para os erros não aparecerem</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um <code>setTimeout</code> de 0 ms foi agendado antes de um laço que demora 5 segundos. Quando o callback roda?</p>
+<label><input type="radio" name="q4"> Na hora, interrompendo o laço</label>
+<label><input type="radio" name="q4"> Só depois que o laço (e o resto do código de agora) termina</label>
+<label><input type="radio" name="q4"> Nunca: 0 ms é inválido</label>
+<label><input type="radio" name="q4"> Exatamente 0 ms depois do programa começar</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Apareceu <code>Promise { &lt;pending&gt; }</code> na saída. O que isso quer dizer?</p>
+<label><input type="radio" name="q5"> Você mostrou a Promise em vez de esperar o resultado dela</label>
+<label><input type="radio" name="q5"> O arquivo não existe</label>
+<label><input type="radio" name="q5"> O programa travou</label>
+<label><input type="radio" name="q5"> É um erro de sintaxe</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Síncrono</strong>: cada linha espera a anterior. <strong>Assíncrono</strong>: começa uma tarefa demorada, segue em frente e reage quando ela termina, por meio de uma função entregue para depois (o <strong>callback</strong>).</li>
+  <li>Com código assíncrono, a ordem da saída pode não ser a ordem do código. Um callback nunca interrompe o código que está rodando, nem com <code>setTimeout</code> de 0 ms.</li>
+  <li>O JavaScript faz uma coisa de cada vez. <strong>Esperar</strong> (timer, disco, rede, clique) não trava, se for assíncrono; <strong>calcular</strong> muito trava tudo, inclusive a página no navegador.</li>
+  <li>O Node só termina o programa quando não há mais nada pendente (timers, leituras).</li>
+  <li>Há três estilos: callbacks, Promises e <code>async</code>/<code>await</code>, que você vai aprender nessa ordem.</li>
+  <li>Use o resultado <strong>dentro</strong> do callback (ou depois do <code>await</code>): fora dele, ainda é <code>undefined</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
