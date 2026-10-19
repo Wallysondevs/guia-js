@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Objetos são Referências — cópia, comparação e const | Guia JavaScript</title>
+<meta name="description" content="Por que mudar um objeto por uma variável muda também pela outra: números são copiados, objetos e arrays são compartilhados por referência. Comparar objetos com ===, objetos passados para funções, const que não congela, cópia rasa com {...} e cópia profunda com structuredClone, com as saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Objetos são Referências</span></h1>
+
+<p class="intro">Você escreve <code>const outra = ana;</code>, muda a idade em <code>outra</code>… e a idade de <code>ana</code> muda junto. Não é defeito: é a regra mais importante sobre <a href="objetos.html">objetos</a> e <a href="arrays.html">arrays</a> no JavaScript. Uma variável não <strong>guarda</strong> o objeto; ela guarda o <strong>caminho até ele</strong>, uma <strong>referência</strong>. Esta aula mostra o que isso muda no dia a dia e como fazer uma cópia de verdade quando você precisa de uma.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre copiar um número (o valor vai junto) e "copiar" um objeto (só o endereço vai junto).</li>
+  <li>Por que <code>{ nome: "Ana" } === { nome: "Ana" }</code> dá <code>false</code>.</li>
+  <li>O que acontece com um objeto que você passa para uma função.</li>
+  <li>Por que <code>const</code> não impede de mudar o objeto, e o que é o <code>Object.freeze</code>.</li>
+  <li>Como copiar de verdade: a cópia <strong>rasa</strong> (<code>{ ...obj }</code>) e a cópia <strong>profunda</strong> (<code>structuredClone</code>).</li>
+  <li>Os erros reais: <code>Assignment to constant variable</code> e <code>could not be cloned</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: o papel com o endereço da casa</h2>
+<p>Pense numa casa e num papelzinho com o endereço dela.</p>
+<ul>
+  <li>Se a Ana tira <strong>xerox do papel</strong> e dá para a Bia, agora existem <strong>dois papéis</strong>, mas continua existindo <strong>uma casa só</strong>. Se a Bia for lá e pintar a porta de azul, quando a Ana chegar a porta estará azul.</li>
+  <li>Já um <strong>número</strong> é como um bilhete com "10" escrito. Tirar xerox dá outro bilhete com "10"; riscar e escrever "20" na cópia não muda o original.</li>
+</ul>
+<p>No JavaScript é assim:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo de valor</th><th>O que a variável guarda</th><th>O que <code>b = a</code> faz</th></tr>
+<tr><td>Primitivos: número, texto, booleano, <code>null</code>, <code>undefined</code>, <code>bigint</code> (veja <a href="tipos-de-dados.html">Os Tipos de Dados</a>)</td><td>O próprio valor</td><td>Copia o valor: são dois valores independentes</td></tr>
+<tr><td>Objetos (inclui arrays e funções)</td><td>Uma <strong>referência</strong>: o "endereço" do objeto na memória</td><td>Copia o endereço: as duas variáveis apontam para <strong>o mesmo</strong> objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Números são copiados</h2>
+
+<pre class="file" data-file="numeros.js">let a = 10;
+let b = a;
+b = 20;
+console.log("a:", a);
+console.log("b:", b);
+</pre>
+
+<pre class="term">$ node numeros.js
+a: 10
+b: 20
+</pre>
+
+<p>Na linha 2, <code>b</code> recebeu uma <strong>cópia</strong> do 10. Na linha 3, só o <code>b</code> mudou. Nada surpreendente, e é assim que você espera que tudo funcione. Agora veja um objeto.</p>
+
+<hr>
+
+<h2>2. Objetos são compartilhados</h2>
+
+<pre class="file" data-file="referencia.js">const ana = { nome: "Ana", idade: 30 };
+const outra = ana;
+outra.idade = 31;
+console.log(ana);
+console.log(outra);
+</pre>
+
+<dl class="anatomy">
+  <dt>const ana = { nome: "Ana", idade: 30 };</dt><dd>As chaves <code>{ }</code> <strong>criam</strong> um objeto novo na memória. A variável <code>ana</code> recebe o <strong>endereço</strong> dele.</dd>
+  <dt>const outra = ana;</dt><dd>Não cria objeto nenhum (não há <code>{ }</code> aqui). Só copia o endereço: agora <code>ana</code> e <code>outra</code> são dois nomes para <strong>o mesmo</strong> objeto.</dd>
+  <dt>outra.idade = 31;</dt><dd>Vai até o objeto pelo endereço guardado em <code>outra</code> e troca a idade lá dentro. Como o objeto é um só…</dd>
+  <dt>console.log(ana);</dt><dd>…lendo pelo outro nome, a idade também é 31.</dd>
+</dl>
+
+<pre class="term">$ node referencia.js
+{ nome: 'Ana', idade: 31 }
+{ nome: 'Ana', idade: 31 }
+</pre>
+
+<div class="tip">
+<strong>Regra prática</strong>
+<p>Conte as chaves <code>{ }</code> (ou colchetes <code>[ ]</code>). Cada <code>{ … }</code> escrito no código cria <strong>um</strong> objeto. Neste programa há um par de chaves só, então há um objeto só, por mais variáveis que apontem para ele.</p>
+</div>
+
+<div class="tryjs" data-goal="out:{ nome: 'Ana', idade: 30 };;src:\.\.\.ana">
+<p class="try-task"><strong>Missão:</strong> a Ana quer que <code>outra</code> seja um objeto <strong>separado</strong>, para mudar a idade sem mexer no original. Troque <code>const outra = ana;</code> por <code>const outra = { ...ana };</code> (os três pontinhos copiam as propriedades para um objeto novo; a seção 6 explica) e rode: a primeira linha deve continuar com <code>idade: 30</code>.</p>
+<pre class="script" data-file="main.js">const ana = { nome: "Ana", idade: 30 };
+const outra = ana;
+outra.idade = 31;
+console.log(ana);
+console.log(outra);
+</pre>
+<pre class="solucao" data-file="main.js">const ana = { nome: "Ana", idade: 30 };
+const outra = { ...ana };
+outra.idade = 31;
+console.log(ana);
+console.log(outra);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Comparar objetos com <code>===</code></h2>
+<p>O <code>===</code> (veja <a href="operadores-comparacao.html">Comparação</a>) compara o que a variável guarda. Para objetos, ele guarda o endereço, então <code>===</code> pergunta: <strong>"é o mesmo objeto?"</strong>, e não "têm o mesmo conteúdo?".</p>
+
+<pre class="file" data-file="comparar.js">const a = { nome: "Ana" };
+const b = { nome: "Ana" };
+const c = a;
+console.log(a === b);
+console.log(a === c);
+console.log(a.nome === b.nome);
+</pre>
+
+<pre class="term">$ node comparar.js
+false     « dois pares de chaves: dois objetos, mesmo com o mesmo conteúdo
+true      « c é só outro nome para o objeto de a
+true      « aqui se comparam dois textos (primitivos): "Ana" === "Ana"
+</pre>
+
+<p>São duas casas iguaizinhas, mas em endereços diferentes. Para saber se dois objetos têm o mesmo conteúdo, compare as propriedades que importam (<code>a.nome === b.nome</code>) ou, para objetos simples, compare a versão em texto deles, com <code>JSON.stringify</code> (veja <a href="json.html">JSON</a> e a seção <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>4. Objetos passados para funções</h2>
+<p>Quando você chama uma função com um objeto, o parâmetro recebe <strong>o endereço</strong> (veja <a href="parametros.html">Parâmetros e Argumentos</a>). Por isso a função consegue mudar o objeto original:</p>
+
+<pre class="file" data-file="aniversario.js">function fazerAniversario(pessoa) {
+  pessoa.idade = pessoa.idade + 1;
+}
+
+const ana = { nome: "Ana", idade: 30 };
+fazerAniversario(ana);
+console.log(ana);
+</pre>
+
+<pre class="term">$ node aniversario.js
+{ nome: 'Ana', idade: 31 }
+</pre>
+
+<p><code>pessoa</code> e <code>ana</code> apontam para o mesmo objeto; mudar <code>pessoa.idade</code> é mudar <code>ana.idade</code>. Mas atenção à diferença entre <strong>mexer dentro</strong> do objeto e <strong>trocar</strong> o endereço do parâmetro:</p>
+
+<pre class="file" data-file="trocar.js">function trocarPessoa(pessoa) {
+  pessoa = { nome: "Bia", idade: 25 };
+  console.log("dentro:", pessoa);
+}
+
+const ana = { nome: "Ana", idade: 30 };
+trocarPessoa(ana);
+console.log("fora:", ana);
+</pre>
+
+<pre class="term">$ node trocar.js
+dentro: { nome: 'Bia', idade: 25 }
+fora: { nome: 'Ana', idade: 30 }
+</pre>
+
+<p><code>pessoa = { … }</code> escreve um endereço <strong>novo</strong> no papel <code>pessoa</code>, que é só da função. O papel <code>ana</code>, lá fora, continua com o endereço antigo. Resumindo:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Dentro da função</th><th>Afeta o objeto de quem chamou?</th></tr>
+<tr><td><code>pessoa.idade = 31</code>, <code>lista.push("café")</code>, <code>delete pessoa.nome</code></td><td><strong>Sim</strong>: mexe dentro do objeto compartilhado</td></tr>
+<tr><td><code>pessoa = { … }</code>, <code>lista = []</code></td><td><strong>Não</strong>: só troca o endereço guardado no parâmetro</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Função que muda o que recebeu</strong>
+<p>Uma função que altera o objeto recebido pode surpreender quem a chamou ("eu só queria calcular, por que a minha lista mudou?"). Quando a função só precisa calcular algo, prefira não mexer no objeto: crie e devolva um novo (veja <a href="return.html">return</a>). Métodos como <code>map</code>, <code>filter</code> e <code>toSorted</code> seguem essa ideia.</p>
+</div>
+
+<hr>
+
+<h2>5. Arrays também são referências</h2>
+<p>Array é um tipo de objeto, então vale tudo o que você viu:</p>
+
+<pre class="file" data-file="lista.js">const compras = ["arroz", "feijão"];
+const lista = compras;
+lista.push("café");
+console.log(compras);
+console.log(compras === lista);
+</pre>
+
+<pre class="term">$ node lista.js
+[ 'arroz', 'feijão', 'café' ]
+true
+</pre>
+
+<p>O <code>push</code> (veja <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>) foi feito em <code>lista</code>, mas <code>compras</code> ganhou o café, porque é o mesmo array. Os jeitos de copiar um array estão em <a href="arrays-copiar.html">Copiando Arrays</a>.</p>
+
+<hr>
+
+<h2>6. <code>const</code> não congela o objeto</h2>
+<p>O <code>const</code> (veja <a href="const.html">Constantes</a>) proíbe trocar <strong>o que a variável guarda</strong>, e o que ela guarda é o endereço. Mexer <strong>dentro</strong> do objeto continua permitido:</p>
+
+<pre class="file" data-file="constante.js">const produto = { nome: "Pão", preco: 0.8 };
+produto.preco = 0.9;
+console.log(produto);
+produto = { nome: "Bolo", preco: 15 };
+</pre>
+
+<pre class="term">$ node constante.js
+{ nome: 'Pão', preco: 0.9 }
+/home/ana/constante.js:4
+produto = { nome: "Bolo", preco: 15 };
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constante.js:4:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>{ nome: 'Pão', preco: 0.9 }</dt><dd>A linha 2 funcionou: o preço mudou dentro do objeto, e o <code>const</code> não reclamou.</dd>
+  <dt>/home/ana/constante.js:4</dt><dd>O arquivo e a <strong>linha</strong> do problema: a 4.</dd>
+  <dt>produto = { … } e o ^</dt><dd>A linha culpada, com o <code>^</code> embaixo do <code>=</code>: foi a tentativa de <strong>atribuir</strong> que falhou.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Erro de tipo: atribuição a uma variável constante." Você tentou pôr outro endereço numa variável <code>const</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/constante.js:4:9)</dt><dd>O caminho do erro: linha 4, coluna 9 do seu arquivo. As linhas <code>node:internal/…</code> são o próprio Node carregando o programa; pode ignorá-las.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+
+<h3>Se quiser proibir mudanças: <code>Object.freeze</code></h3>
+<p><code>Object.freeze(obj)</code> ("congelar") trava as propriedades do objeto. Num arquivo comum, a tentativa de mudar é <strong>ignorada em silêncio</strong>:</p>
+
+<pre class="file" data-file="congelar2.js">const config = Object.freeze({ moeda: "R$", taxa: 0.05 });
+config.taxa = 0.5;
+console.log(config.taxa);
+console.log(Object.isFrozen(config));
+</pre>
+
+<pre class="term">$ node congelar2.js
+0.05
+true
+</pre>
+
+<p>Nos <a href="modulos.html">módulos</a> e em arquivos que começam com <code>"use strict";</code> (o "modo estrito"), a mesma linha vira erro: <code>TypeError: Cannot assign to read only property 'taxa' of object '#&lt;Object&gt;'</code> ("não é possível atribuir à propriedade somente-leitura <code>taxa</code>"). O congelamento vale só para o primeiro nível: um objeto dentro de <code>config</code> continuaria mudável.</p>
+
+<hr>
+
+<h2>7. Copiando de verdade</h2>
+
+<h3>Cópia rasa: <code>{ ...obj }</code></h3>
+<p>Os três pontinhos dentro de <code>{ }</code> (o <strong>spread</strong>, "espalhar"; aula <a href="spread-rest.html">Spread e Rest</a>) criam um objeto <strong>novo</strong> e copiam para ele cada propriedade do original:</p>
+
+<pre class="file" data-file="copia.js">const ana = { nome: "Ana", idade: 30 };
+const copia = { ...ana };
+copia.idade = 31;
+console.log(ana);
+console.log(copia);
+console.log(ana === copia);
+</pre>
+
+<pre class="term">$ node copia.js
+{ nome: 'Ana', idade: 30 }
+{ nome: 'Ana', idade: 31 }
+false
+</pre>
+
+<p>Agora há dois pares de chaves, então dois objetos: o original ficou com 30. O jeito mais antigo de fazer a mesma cópia é <code>Object.assign({}, ana)</code>, que você vai encontrar em código antigo (no lab, <code>console.log(ana.idade, copia.idade)</code> mostrou <code>30 31</code>, igual).</p>
+
+<p>Por que "rasa"? Porque ela copia só o <strong>primeiro nível</strong>. Se uma propriedade guarda outro objeto, o que é copiado é o <strong>endereço</strong> desse objeto de dentro:</p>
+
+<pre class="file" data-file="rasa.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const copia = { ...ana };
+copia.endereco.cidade = "Natal";
+console.log(ana.endereco.cidade);
+console.log(ana.endereco === copia.endereco);
+</pre>
+
+<pre class="term">$ node rasa.js
+Natal     « o endereço da Ana mudou também!
+true      « as duas cópias dividem o mesmo objeto endereco
+</pre>
+
+<h3>Cópia profunda: <code>structuredClone</code></h3>
+<p><code>structuredClone(obj)</code> ("clone estruturado") copia o objeto e <strong>tudo o que está dentro dele</strong>, em todos os níveis. Funciona no Node e nos navegadores atuais:</p>
+
+<pre class="file" data-file="profunda.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const copia = structuredClone(ana);
+copia.endereco.cidade = "Natal";
+console.log(ana.endereco.cidade);
+console.log(copia.endereco.cidade);
+console.log(ana.endereco === copia.endereco);
+</pre>
+
+<pre class="term">$ node profunda.js
+Recife
+Natal
+false
+</pre>
+
+<div class="tryjs" data-goal="out:Recife;;src:structuredClone">
+<p class="try-task"><strong>Missão:</strong> aqui a cópia rasa deixou a Ana com a cidade errada. Troque <code>{ ...ana }</code> por <code>structuredClone(ana)</code> para a primeira linha mostrar <code>Recife</code>.</p>
+<pre class="script" data-file="main.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const copia = { ...ana };
+copia.endereco.cidade = "Natal";
+console.log(ana.endereco.cidade);
+console.log(copia.endereco.cidade);
+</pre>
+<pre class="solucao" data-file="main.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const copia = structuredClone(ana);
+copia.endereco.cidade = "Natal";
+console.log(ana.endereco.cidade);
+console.log(copia.endereco.cidade);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th><th>Observação</th></tr>
+<tr><td>Outro nome para o <strong>mesmo</strong> objeto</td><td><code>const b = a;</code></td><td>Mudar por um muda pelo outro</td></tr>
+<tr><td>Um objeto novo com as mesmas propriedades (só um nível)</td><td><code>{ ...a }</code></td><td>O mais usado hoje; objetos de dentro continuam compartilhados</td></tr>
+<tr><td>O mesmo, em código antigo</td><td><code>Object.assign({}, a)</code></td><td>Mesmo resultado do <code>{ ...a }</code></td></tr>
+<tr><td>Uma cópia independente em todos os níveis</td><td><code>structuredClone(a)</code></td><td>Não copia funções (métodos): dá erro</td></tr>
+<tr><td>Copiar um array</td><td><code>[...lista]</code>, <code>lista.slice()</code></td><td>Aula <a href="arrays-copiar.html">Copiando Arrays</a></td></tr>
+<tr><td>Proibir mudanças</td><td><code>Object.freeze(a)</code></td><td>Só o primeiro nível</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Comparou dois objetos com <code>===</code> esperando <code>true</code></strong>
+<pre class="file" data-file="igual.js">const pedido1 = { produto: "Pão", quantidade: 10 };
+const pedido2 = { produto: "Pão", quantidade: 10 };
+if (pedido1 === pedido2) {
+  console.log("Pedidos iguais");
+} else {
+  console.log("Pedidos diferentes");
+}
+console.log(JSON.stringify(pedido1) === JSON.stringify(pedido2));
+</pre>
+<pre class="term">$ node igual.js
+Pedidos diferentes
+true
+</pre>
+<p>Não há mensagem de erro, e é isso que torna o engano perigoso: o programa só dá a resposta errada. São dois objetos (dois pares de chaves), então <code>===</code> dá <code>false</code>. <strong>Como consertar:</strong> compare as propriedades (<code>pedido1.produto === pedido2.produto &amp;&amp; pedido1.quantidade === pedido2.quantidade</code>) ou, para objetos simples com as propriedades na mesma ordem, os textos do <code>JSON.stringify</code> (última linha: <code>true</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou a "cópia" e estragou o original</strong>
+<p>É o programa da seção 2: <code>const outra = ana;</code> não copia nada. Também acontece com a cópia rasa quando há objetos dentro de objetos (seção 7). <strong>Como consertar:</strong> <code>{ ...ana }</code> para um nível; <code>structuredClone(ana)</code> quando há objetos dentro.</p>
+</div>
+
+<div class="cenario">
+<strong>Reatribuiu uma variável <code>const</code></strong>
+<p>É o <code>TypeError: Assignment to constant variable.</code> da seção 6. <strong>Como consertar:</strong> se você só quer mudar uma propriedade, mude a propriedade (<code>produto.preco = 15</code>); se precisa mesmo trocar o objeto inteiro, declare com <code>let</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>structuredClone</code> num objeto com método</strong>
+<pre class="file" data-file="clonefuncao.js">const loja = {
+  nome: "Lojinha da Ana",
+  saudar() {
+    console.log("Bem-vindo!");
+  },
+};
+const copia = structuredClone(loja);
+</pre>
+<pre class="term">$ node clonefuncao.js
+node:internal/worker/js_transferable:127
+  const serializedData = nativeStructuredClone(value, idlOptions);
+                         ^
+
+DOMException [DataCloneError]: saudar() {
+    console.log("Bem-vindo!");
+  } could not be cloned.
+    at new DOMException (node:internal/per_context/domexception:76:18)
+    at structuredClone (node:internal/worker/js_transferable:127:26)
+    at Object.&lt;anonymous&gt; (/home/ana/clonefuncao.js:7:15)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Desta vez as primeiras linhas mostram o código <strong>de dentro do Node</strong> (<code>node:internal/…</code>), onde o erro estourou. A sua linha aparece mais abaixo: <code>/home/ana/clonefuncao.js:7:15</code>, a do <code>structuredClone</code>. A mensagem <code>DataCloneError: saudar() { … } could not be cloned</code> quer dizer "erro de clonagem: <em>saudar</em> não pôde ser clonado": <code>structuredClone</code> copia dados (números, textos, arrays, objetos, datas…), mas <strong>não funções</strong> (os métodos, veja <a href="objetos-metodos.html">Métodos e this</a>). <strong>Como consertar:</strong> clone só os dados, ou use <code>{ ...loja }</code>, que copia o método como mais uma propriedade (os dois objetos passam a apontar para a mesma função, o que normalmente não é problema).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const b = a;</code> (objeto)</td><td>Copia a referência: <code>a</code> e <code>b</code> são o mesmo objeto</td></tr>
+<tr><td><code>a === b</code> (objetos)</td><td><code>true</code> só se for <strong>o mesmo</strong> objeto</td></tr>
+<tr><td><code>{ ...a }</code> / <code>Object.assign({}, a)</code></td><td>Cópia rasa (um nível)</td></tr>
+<tr><td><code>structuredClone(a)</code></td><td>Cópia profunda (todos os níveis, sem funções)</td></tr>
+<tr><td><code>Object.freeze(a)</code> / <code>Object.isFrozen(a)</code></td><td>Congela o primeiro nível / pergunta se está congelado</td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Tentou trocar o valor de uma <code>const</code></td></tr>
+<tr><td><code>DataCloneError: … could not be cloned.</code></td><td><code>structuredClone</code> encontrou uma função</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<pre class="file" data-file="ex1.js">const caixa = { pao: 10 };
+const mesma = caixa;
+mesma.pao = 3;
+console.log(caixa.pao);
+</pre>
+<div class="ex-code">Aparece <input data-answer="3" aria-label="valor mostrado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. true ou false?</h3>
+<p>Qual é o resultado de <code>[1, 2] === [1, 2]</code>?</p>
+<div class="ex-code"><input data-answer="false" aria-label="true ou false"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete a cópia profunda</h3>
+<div class="ex-code">const copia = <input data-answer="structuredClone" aria-label="função de cópia profunda">(ana);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>function zerar(p) { p.estoque = 0; }</code> é chamada com <code>zerar(produto)</code>. O que acontece com <code>produto.estoque</code>?</p>
+<label><input type="radio" name="q4"> Nada: a função recebeu uma cópia</label>
+<label><input type="radio" name="q4"> Vira 0: a função recebeu o endereço do mesmo objeto</label>
+<label><input type="radio" name="q4"> Dá erro, porque <code>produto</code> é <code>const</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Com <code>const ana = { nome: "Ana" };</code>, qual linha dá <code>TypeError: Assignment to constant variable.</code>?</p>
+<label><input type="radio" name="q5"> <code>ana.nome = "Bia";</code></label>
+<label><input type="radio" name="q5"> <code>ana.idade = 30;</code></label>
+<label><input type="radio" name="q5"> <code>ana = { nome: "Bia" };</code></label>
+<label><input type="radio" name="q5"> <code>delete ana.nome;</code></label>
+</div>
+
+<h3>Missão final: o estoque da filial</h3>
+
+<div class="tryjs" data-goal="out:Matriz: 20;;out:Filial: 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> a lojinha da Ana abriu uma filial e quer começar com o mesmo estoque da matriz, mas cada uma vendendo o seu. O programa abaixo estraga o estoque da matriz. Conserte a linha da cópia para sair <code>Matriz: 20</code> e <code>Filial: 5</code>. (Dica: o estoque é um objeto <strong>dentro</strong> de outro.)</p>
+<pre class="script" data-file="main.js">const matriz = { nome: "Matriz", estoque: { pao: 20 } };
+const filial = { ...matriz };
+filial.nome = "Filial";
+filial.estoque.pao = 5;
+console.log(`${matriz.nome}: ${matriz.estoque.pao}`);
+console.log(`${filial.nome}: ${filial.estoque.pao}`);
+</pre>
+<pre class="solucao" data-file="main.js">const matriz = { nome: "Matriz", estoque: { pao: 20 } };
+const filial = structuredClone(matriz);
+filial.nome = "Filial";
+filial.estoque.pao = 5;
+console.log(`${matriz.nome}: ${matriz.estoque.pao}`);
+console.log(`${filial.nome}: ${filial.estoque.pao}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Primitivos (números, textos, booleanos…) são <strong>copiados</strong>; objetos e arrays são acessados por <strong>referência</strong>: <code>b = a</code> copia só o endereço.</li>
+  <li>Cada <code>{ }</code> ou <code>[ ]</code> escrito cria um objeto novo; conte-os para saber quantos objetos existem.</li>
+  <li><code>===</code> entre objetos pergunta "é o mesmo objeto?", não "têm o mesmo conteúdo?".</li>
+  <li>Uma função que recebe um objeto pode mudá-lo; trocar o parâmetro inteiro (<code>p = { … }</code>) não afeta quem chamou.</li>
+  <li><code>const</code> impede trocar o endereço, não o conteúdo. Para travar o conteúdo, <code>Object.freeze</code>.</li>
+  <li>Cópia rasa: <code>{ ...obj }</code>. Cópia profunda: <code>structuredClone(obj)</code> (sem funções).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
