@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript map — transformando cada item e criando um array novo | Guia JavaScript</title>
+<meta name="description" content="O método map do JavaScript para quem nunca programou: criar um array novo com cada item transformado (preços com aumento, nomes em maiúsculas, textos formatados), o original que não muda, o return obrigatório com chaves, a posição como segundo parâmetro, map(Number) para converter textos, a pegadinha do map(parseInt), map × forEach + push, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">map: Transformando um Array</span></h1>
+
+<p class="intro">A padaria vai reajustar todos os preços em 10%. A professora quer a lista da chamada em letras maiúsculas para imprimir. A Ana quer cada preço escrito bonitinho, como <code>R$ 4.50</code>. As três tarefas têm a mesma forma: pegar um array, fazer <strong>a mesma transformação</strong> em cada item e obter um <strong>array novo</strong> com os resultados. Para isso existe o <code>map</code> (em inglês, "mapear": fazer corresponder a cada item de uma lista um item de outra).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>map</code> cria um array novo a partir de uma função que transforma <strong>um</strong> item.</li>
+  <li>Que o array original <strong>não muda</strong>, e que o novo tem sempre o <strong>mesmo tamanho</strong>.</li>
+  <li>Exemplos do dia a dia: aumentar preços, mudar textos, formatar valores, numerar uma lista.</li>
+  <li>A diferença entre a arrow function curta e a com chaves (que precisa de <code>return</code>).</li>
+  <li>A converter textos em números com <code>map(Number)</code>, e a pegadinha do <code>map(parseInt)</code>.</li>
+  <li>Por que <code>map</code> é melhor que <code>forEach</code> + <code>push</code> para montar um array.</li>
+  <li>Os erros reais mais comuns: o array cheio de <code>undefined</code>, o <code>map</code> que "não fez nada" e o <code>map is not a function</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a máquina de suco</h2>
+<p>Na lanchonete, a Ana põe as frutas na máquina de suco, uma de cada vez. Para cada fruta que entra, sai <strong>um</strong> copo de suco: entra laranja, sai suco de laranja; entra uva, sai suco de uva. No fim, ela tem uma fileira de copos, <strong>um para cada fruta</strong>, na mesma ordem. E as frutas que sobraram na fruteira continuam lá (a máquina não mexeu na fruteira; trabalhou com as que você deu a ela).</p>
+<ul>
+  <li>A fruteira é o array original.</li>
+  <li>A máquina é a <strong>função</strong> que você escreve: ela sabe transformar <strong>uma</strong> fruta em <strong>um</strong> suco.</li>
+  <li>A fileira de copos é o array novo que o <code>map</code> devolve.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro <code>map</code></h2>
+
+<pre class="file" data-file="dobro.js">const numeros = [1, 2, 3, 4];
+const dobros = numeros.map((n) =&gt; n * 2);
+console.log(dobros);
+console.log(numeros);
+</pre>
+
+<dl class="anatomy">
+  <dt>numeros.map( … )</dt><dd>"Mapeie <code>numeros</code>": para cada item, chame a função e guarde o que ela devolver.</dd>
+  <dt>(n) =&gt; n * 2</dt><dd>A "máquina": uma <a href="arrow-functions.html">arrow function</a> que recebe <strong>um</strong> número e devolve o dobro dele. Na forma curta (sem chaves), o valor depois da seta é devolvido automaticamente.</dd>
+  <dt>const dobros = …</dt><dd>O <code>map</code> devolve um <strong>array novo</strong> com os resultados, na mesma ordem. Ele precisa ser guardado numa variável (ou usado na hora); senão, o resultado se perde.</dd>
+</dl>
+
+<pre class="term">$ node dobro.js
+[ 2, 4, 6, 8 ]
+[ 1, 2, 3, 4 ]
+</pre>
+
+<p>O que o <code>map</code> fez, passo a passo:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th><code>n</code></th><th>A função devolveu</th><th>Vai para</th></tr>
+<tr><td>1ª</td><td>1</td><td>2</td><td><code>dobros[0]</code></td></tr>
+<tr><td>2ª</td><td>2</td><td>4</td><td><code>dobros[1]</code></td></tr>
+<tr><td>3ª</td><td>3</td><td>6</td><td><code>dobros[2]</code></td></tr>
+<tr><td>4ª</td><td>4</td><td>8</td><td><code>dobros[3]</code></td></tr>
+</table>
+</div>
+
+<p>E a segunda linha da saída confirma: <code>numeros</code> continua <code>[ 1, 2, 3, 4 ]</code>. O <code>map</code> nunca mexe no original.</p>
+
+<hr>
+
+<h2>2. Transformações do dia a dia</h2>
+
+<h3>Preços com aumento de 10%</h3>
+
+<pre class="file" data-file="reajuste.js">const precos = [0.9, 4, 6.5, 12];
+const novos = precos.map((preco) =&gt; preco * 1.1);
+console.log(novos);
+
+const arredondados = precos.map((preco) =&gt; Math.round(preco * 1.1 * 100) / 100);
+console.log(arredondados);
+</pre>
+
+<pre class="term">$ node reajuste.js
+[ 0.9900000000000001, 4.4, 7.15, 13.200000000000001 ]
+[ 0.99, 4.4, 7.15, 13.2 ]
+</pre>
+
+<p>A primeira linha mostra a imprecisão das contas com vírgula (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). A segunda arredonda cada preço para 2 casas: multiplica por 100, arredonda com <code>Math.round</code> (veja <a href="math.html">Math</a>) e divide de volta. Toda essa conta cabe dentro da função do <code>map</code>.</p>
+
+<h3>Textos: maiúsculas, tamanhos, pedaços</h3>
+
+<pre class="file" data-file="textos.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(alunos.map((nome) =&gt; nome.toUpperCase()));
+console.log(alunos.map((nome) =&gt; nome.length));
+console.log(alunos.map((nome) =&gt; nome[0]));
+</pre>
+
+<pre class="term">$ node textos.js
+[ 'ANA', 'BIA', 'CAIO', 'DUDA' ]
+[ 3, 3, 4, 4 ]
+[ 'A', 'B', 'C', 'D' ]
+</pre>
+
+<p>Repare que o array novo não precisa ter o mesmo <strong>tipo</strong> de item do original: de nomes (textos) saiu um array de tamanhos (números). O que não muda é a <strong>quantidade</strong>: 4 nomes, 4 resultados.</p>
+
+<h3>Formatar para mostrar</h3>
+
+<pre class="file" data-file="formatar.js">const precos = [0.9, 4, 6.5, 12];
+const etiquetas = precos.map((preco) =&gt; `R$ ${preco.toFixed(2)}`);
+console.log(etiquetas);
+</pre>
+
+<pre class="term">$ node formatar.js
+[ 'R$ 0.90', 'R$ 4.00', 'R$ 6.50', 'R$ 12.00' ]
+</pre>
+
+<p>O <code>toFixed(2)</code> escreve o número com 2 casas decimais (veja <a href="numeros-formatar.html">Formatando Números</a>), e a template string põe o <code>R$</code> na frente. Para trocar o ponto pela vírgula, como no Brasil, a mesma aula mostra o <code>toLocaleString</code>.</p>
+
+<div class="tryjs" data-goal="out:[ 'ARROZ', 'FEIJÃO', 'CAFÉ' ];;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> use o <code>map</code> para criar <code>gritando</code>, com cada item da lista em maiúsculas (<code>toUpperCase()</code>).</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+const gritando = compras;
+console.log(gritando);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+const gritando = compras.map((item) =&gt; item.toUpperCase());
+console.log(gritando);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Com chaves, precisa de <code>return</code></h2>
+<p>Quando a transformação precisa de mais de uma linha (uma variável no meio, um <code>if</code>), a arrow function ganha chaves. E aí, como em qualquer função, o valor só sai se tiver <code>return</code> (veja <a href="return.html">Retornando Valores</a>):</p>
+
+<pre class="file" data-file="situacao.js">const notas = [7.5, 5, 9, 4];
+const situacao = notas.map((nota) =&gt; {
+  if (nota &gt;= 6) {
+    return `${nota}: aprovado`;
+  }
+  return `${nota}: recuperação`;
+});
+console.log(situacao);
+</pre>
+
+<pre class="term">$ node situacao.js
+[ '7.5: aprovado', '5: recuperação', '9: aprovado', '4: recuperação' ]
+</pre>
+
+<p>A mesma coisa cabe numa linha com o <a href="ternario.html">operador ternário</a>: <code>notas.map((nota) =&gt; nota &gt;= 6 ? `${nota}: aprovado` : `${nota}: recuperação`)</code>. Use a forma que for mais fácil de ler. O que acontece quando o <code>return</code> é esquecido está em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>4. A posição: numerando a lista</h2>
+<p>Como no <a href="foreach.html">forEach</a>, a função recebe a posição como segundo parâmetro:</p>
+
+<pre class="file" data-file="numerar.js">const alunos = ["Ana", "Bia", "Caio"];
+const chamada = alunos.map((nome, i) =&gt; `${i + 1}. ${nome}`);
+console.log(chamada);
+</pre>
+
+<pre class="term">$ node numerar.js
+[ '1. Ana', '2. Bia', '3. Caio' ]
+</pre>
+
+<hr>
+
+<h2>5. Textos que viram números: <code>map(Number)</code></h2>
+<p>Quando os números chegam como texto (de um arquivo, do teclado, de um <a href="strings-split.html">split</a>), o <code>map</code> converte todos de uma vez. Dá para entregar a função <code>Number</code> (veja <a href="conversao.html">Conversão</a>) pelo nome, como você fez com funções em <a href="foreach.html">forEach</a>:</p>
+
+<pre class="file" data-file="numeros.js">const linha = "7.5;8;6.5;10";
+const textos = linha.split(";");
+const notas = textos.map(Number);
+console.log(textos);
+console.log(notas);
+</pre>
+
+<pre class="term">$ node numeros.js
+[ '7.5', '8', '6.5', '10' ]
+[ 7.5, 8, 6.5, 10 ]
+</pre>
+
+<p>Os itens de <code>textos</code> aparecem com aspas (são strings); os de <code>notas</code>, sem (são números, e agora dá para somar). <code>textos.map(Number)</code> é o mesmo que <code>textos.map((t) =&gt; Number(t))</code>.</p>
+
+<h3>A pegadinha do <code>map(parseInt)</code></h3>
+<p>E com o <code>parseInt</code>, que também converte texto em número inteiro?</p>
+
+<pre class="file" data-file="parseint.js">const textos = ["10", "10", "10"];
+console.log(textos.map(Number));
+console.log(textos.map(parseInt));
+console.log(textos.map((t) =&gt; parseInt(t)));
+</pre>
+
+<pre class="term">$ node parseint.js
+[ 10, 10, 10 ]
+[ 10, NaN, 2 ]
+[ 10, 10, 10 ]
+</pre>
+
+<p>O segundo resultado parece um defeito, mas tem explicação. O <code>map</code> chama a função com <strong>dois</strong> valores, o item e a posição: <code>parseInt("10", 0)</code>, <code>parseInt("10", 1)</code>, <code>parseInt("10", 2)</code>. E o segundo valor do <code>parseInt</code> é a <strong>base</strong> do número: 0 quer dizer "decida sozinho" (deu 10), base 1 não existe (deu <code>NaN</code>), e na base 2 (binário) <code>"10"</code> vale 2. É a mesma armadilha do <code>forEach(console.log)</code>. <strong>Regra prática:</strong> passe pelo nome só funções feitas para receber um valor, como <code>Number</code>; na dúvida, escreva a arrow function.</p>
+
+<div class="tryjs" data-goal="out:[ 1.5, 2.25, 3 ];;semerro;;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> a Ana anotou os preços com <strong>vírgula</strong>, e o <code>Number("1,5")</code> dá <code>NaN</code>. Use o <code>map</code> para trocar a vírgula por ponto em cada texto (<code>t.replace(",", ".")</code>) e converter para número, numa função só.</p>
+<pre class="script" data-file="main.js">const textos = ["1,5", "2,25", "3"];
+const precos = textos.map(Number);
+console.log(precos);
+</pre>
+<pre class="solucao" data-file="main.js">const textos = ["1,5", "2,25", "3"];
+const precos = textos.map((t) =&gt; Number(t.replace(",", ".")));
+console.log(precos);
+</pre>
+</div>
+
+<hr>
+
+<h2>6. No modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), dá para ver o array novo aparecer na hora, e confirmar que o original não mudou:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const precos = [2, 5, 10]
+undefined
+&gt; precos.map((p) =&gt; p * 2)
+[ 4, 10, 20 ]
+&gt; precos
+[ 2, 5, 10 ]
+&gt; precos.map((p) =&gt; `R$ ${p}`)
+[ 'R$ 2', 'R$ 5', 'R$ 10' ]
+&gt; .exit
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Antes do <code>map</code>, um array transformado se montava à mão, com um laço e <code>push</code>. Você ainda vai ver isso em muito código:</p>
+
+<pre class="file" data-file="formas.js">const precos = [0.9, 4, 6.5];
+
+// 1. map
+const a = precos.map((preco) =&gt; preco * 2);
+
+// 2. for … of + push
+const b = [];
+for (const preco of precos) {
+  b.push(preco * 2);
+}
+
+// 3. forEach + push
+const c = [];
+precos.forEach((preco) =&gt; c.push(preco * 2));
+
+console.log(a);
+console.log(b);
+console.log(c);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 1.8, 8, 13 ]
+[ 1.8, 8, 13 ]
+[ 1.8, 8, 13 ]
+</pre>
+
+<p>Os três dão o mesmo array, mas o <code>map</code> diz numa linha só o que está acontecendo ("<code>a</code> é <code>precos</code> transformado"), sem um array vazio que vai sendo enchido, e o resultado pode ser uma <code>const</code> desde o começo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um array novo, com cada item transformado (mesmo tamanho)</td><td><code>map</code></td></tr>
+<tr><td>Só fazer algo com cada item (mostrar, salvar), sem montar array</td><td><code>forEach</code> ou <code>for … of</code></td></tr>
+<tr><td>Um array novo com <strong>só alguns</strong> itens</td><td><a href="filter.html">filter</a> (próxima aula)</td></tr>
+<tr><td>Um valor só a partir de todos (soma, maior)</td><td><a href="reduce.html">reduce</a> ou um laço com acumulador</td></tr>
+<tr><td>Mudar o próprio array, sem criar outro</td><td>Um laço escrevendo em <code>lista[i]</code> (raro; prefira o <code>map</code>)</td></tr>
+</table>
+</div>
+
+<p>Como o <code>map</code> devolve um array, dá para emendar outro método logo depois: <code>alunos.map((n) =&gt; n.toUpperCase()).map((n) =&gt; `${n}!`)</code>. Esse "encadeamento" fica ainda mais útil junto com o <code>filter</code>, na próxima aula.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chaves sem <code>return</code>: um array de <code>undefined</code></strong>
+<pre class="file" data-file="sem_return.js">const precos = [0.9, 4, 6.5];
+const dobros = precos.map((preco) =&gt; {
+  preco * 2;
+});
+console.log(dobros);
+</pre>
+<pre class="term">$ node sem_return.js
+[ undefined, undefined, undefined ]
+</pre>
+<p>Nenhuma mensagem de erro, mas o array novo está cheio de <code>undefined</code>. A conta <code>preco * 2</code> foi feita e jogada fora: com chaves, a função só devolve o que estiver num <code>return</code>, e sem ele devolve <code>undefined</code>. O <code>map</code> guardou fielmente esses três <code>undefined</code>. <strong>Como consertar:</strong> <code>return preco * 2;</code>, ou a forma curta, sem chaves: <code>(preco) =&gt; preco * 2</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>map</code> mudava o original</strong>
+<pre class="file" data-file="original.js">const nomes = ["ana", "bia"];
+nomes.map((nome) =&gt; nome.toUpperCase());
+console.log(nomes);
+</pre>
+<pre class="term">$ node original.js
+[ 'ana', 'bia' ]
+</pre>
+<p>O <code>map</code> trabalhou e devolveu <code>[ 'ANA', 'BIA' ]</code>, mas ninguém guardou o resultado, e o <code>nomes</code> continuou igual. <strong>Como consertar:</strong> guarde o array novo: <code>const maiusculos = nomes.map(…)</code>. (Se a variável for <code>let</code>, dá até para pôr o novo no lugar do velho: <code>nomes = nomes.map(…)</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>map</code> para filtrar</strong>
+<pre class="file" data-file="filtrar.js">const notas = [7.5, 5, 9, 4];
+const aprovadas = notas.map((nota) =&gt; {
+  if (nota &gt;= 6) {
+    return nota;
+  }
+});
+console.log(aprovadas);
+</pre>
+<pre class="term">$ node filtrar.js
+[ 7.5, undefined, 9, undefined ]
+</pre>
+<p>As notas baixas não sumiram: viraram <code>undefined</code>. O <code>map</code> <strong>sempre</strong> devolve um array do mesmo tamanho; quando a função não devolve nada, o lugar fica com <code>undefined</code>. <strong>Como consertar:</strong> para ficar só com alguns itens, o método é o <a href="filter.html">filter</a>: <code>notas.filter((nota) =&gt; nota &gt;= 6)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>map</code> numa string</strong>
+<pre class="file" data-file="string.js">const palavra = "pão";
+const letras = palavra.map((letra) =&gt; letra.toUpperCase());
+</pre>
+<pre class="term">$ node string.js
+/home/ana/string.js:2
+const letras = palavra.map((letra) =&gt; letra.toUpperCase());
+                       ^
+
+TypeError: palavra.map is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/string.js:2:24)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>palavra.map</code> não é uma função". Strings não têm <code>map</code> (nem <code>forEach</code>, nem <code>filter</code>). <strong>Como consertar:</strong> transforme a string num array de letras primeiro: <code>Array.from(palavra).map(…)</code> ou <code>palavra.split("").map(…)</code> (aula <a href="strings-split.html">split e join</a>). O mesmo erro aparece quando a variável deveria ter um array e tem outra coisa.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um item <code>undefined</code> dentro do <code>map</code></strong>
+<pre class="file" data-file="buraco.js">const nomes = ["Ana", undefined, "Caio"];
+const iniciais = nomes.map((nome) =&gt; nome[0]);
+</pre>
+<pre class="term">$ node buraco.js
+/home/ana/buraco.js:2
+const iniciais = nomes.map((nome) =&gt; nome[0]);
+                                         ^
+
+TypeError: Cannot read properties of undefined (reading '0')
+    at /home/ana/buraco.js:2:42
+    at Array.map (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/buraco.js:2:24)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/buraco.js:2 e o ^</dt><dd>O <code>^</code> aponta o <code>[0]</code> dentro da arrow function: foi ali que o erro aconteceu.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading '0')</dt><dd>Na 2ª chamada, <code>nome</code> valia <code>undefined</code>, e não dá para pegar a posição 0 de <code>undefined</code>.</dd>
+  <dt>at /home/ana/buraco.js:2:42</dt><dd>A pilha agora tem três linhas suas, de dentro para fora. A primeira é a <strong>sua arrow function</strong> (ela não tem nome, por isso aparece só o lugar: linha 2, coluna 42).</dd>
+  <dt>at Array.map (&lt;anonymous&gt;)</dt><dd>Quem chamou a sua função: o <code>map</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/buraco.js:2:24)</dt><dd>E quem chamou o <code>map</code>: a linha 2 do seu programa, coluna 24.</dd>
+</dl>
+<p><strong>Como consertar:</strong> descubra de onde veio o item <code>undefined</code> (um índice errado ao montar a lista?). Se a lista pode mesmo ter buracos, trate dentro da função: <code>(nome) =&gt; (nome === undefined ? "?" : nome[0])</code>, ou tire os vazios antes com o <a href="filter.html">filter</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'Ana (1º)', 'Bia (2º)', 'Caio (3º)' ];;semerro;;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> o programa devia mostrar cada aluno com a sua posição, mas saiu um array de <code>undefined</code>. Conserte.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const chamada = alunos.map((nome, i) =&gt; {
+  `${nome} (${i + 1}º)`;
+});
+console.log(chamada);
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const chamada = alunos.map((nome, i) =&gt; {
+  return `${nome} (${i + 1}º)`;
+});
+console.log(chamada);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const novo = lista.map((item) =&gt; …);</code></td><td>Array novo com o que a função devolveu para cada item</td></tr>
+<tr><td><code>lista.map((item) =&gt; { …; return x; })</code></td><td>Com chaves, o <code>return</code> é obrigatório</td></tr>
+<tr><td><code>lista.map((item, i) =&gt; …)</code></td><td>Recebe também a posição</td></tr>
+<tr><td><code>textos.map(Number)</code></td><td>Converte cada texto em número</td></tr>
+<tr><td><code>textos.map((t) =&gt; parseInt(t))</code></td><td>Converte com <code>parseInt</code> (nunca <code>map(parseInt)</code>)</td></tr>
+<tr><td><code>lista.map(…).map(…)</code></td><td>Encadear transformações</td></tr>
+<tr><td>Tamanho do resultado</td><td>Sempre igual ao do original</td></tr>
+<tr><td>O original</td><td>Não muda</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>[ undefined, undefined, … ]</code></td><td>Função com chaves e sem <code>return</code></td></tr>
+<tr><td>Alguns <code>undefined</code> no meio</td><td>Usou <code>map</code> para filtrar (use <code>filter</code>)</td></tr>
+<tr><td>O array "não mudou"</td><td>O <code>map</code> devolve um array novo; guarde-o numa variável</td></tr>
+<tr><td><code>NaN</code> na conversão</td><td><code>map(parseInt)</code>, ou texto com vírgula no <code>Number</code></td></tr>
+<tr><td><code>TypeError: palavra.map is not a function</code></td><td>Não é um array (string, número, <code>undefined</code>…)</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined</code> dentro do <code>map</code></td><td>Um dos itens é <code>undefined</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para obter os quadrados: <code>[ 1, 4, 9 ]</code>.</p>
+<div class="ex-code">const q = [1, 2, 3].<input data-answer="map" aria-label="nome do método">((n) =&gt; n * n);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o tamanho?</h3>
+<p>Se <code>lista</code> tem 7 itens, quantos itens tem <code>lista.map((x) =&gt; x + 1)</code>?</p>
+<div class="ex-code"><input data-answer="7" aria-label="tamanho"> itens</div>
+</div>
+
+<div class="exercise">
+<h3>3. O que sai?</h3>
+<pre class="file" data-file="ex3.js">console.log(["a", "bb", "ccc"].map((s) =&gt; s.length));
+</pre>
+<div class="ex-code"><input data-answer="[ 1, 2, 3 ]|[1, 2, 3]|[1,2,3]" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Depois de <code>const v = [1, 2]; const w = v.map((x) =&gt; x * 10);</code>, quanto vale <code>v</code>?</p>
+<label><input type="radio" name="q4"> <code>[ 10, 20 ]</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> <code>[ 1, 2, 10, 20 ]</code></label>
+<label><input type="radio" name="q4"> <code>[ 1, 2 ]</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>[1, 2].map((x) =&gt; { x * 2; })</code> devolve…</p>
+<label><input type="radio" name="q5"> <code>[ 2, 4 ]</code></label>
+<label><input type="radio" name="q5"> <code>[ undefined, undefined ]</code></label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+<label><input type="radio" name="q5"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Você quer só os preços acima de R$ 10. Qual método?</p>
+<label><input type="radio" name="q6"> <code>map</code></label>
+<label><input type="radio" name="q6"> <code>forEach</code></label>
+<label><input type="radio" name="q6"> <code>filter</code></label>
+<label><input type="radio" name="q6"> <code>push</code></label>
+</div>
+
+<h3>Missão final: o cardápio com desconto</h3>
+
+<div class="tryjs" data-goal="out:Pão de queijo: R$ 3.60;;out:Bolo de fubá: R$ 10.80;;out:[ 4, 12 ];;semerro;;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> na sexta-feira, a padaria dá 10% de desconto. (1) Com <code>map</code>, crie <code>comDesconto</code>: cada preço vezes <code>0.9</code>. (2) Com outro <code>map</code>, crie <code>cardapio</code>: para cada produto, o texto <code>Pão de queijo: R$ 3.60</code> (use a posição <code>i</code> para pegar o preço com desconto e <code>toFixed(2)</code>). (3) As linhas que mostram tudo já estão prontas; a última confere que o array <code>precos</code> original não mudou.</p>
+<pre class="script" data-file="main.js">const produtos = ["Pão de queijo", "Bolo de fubá"];
+const precos = [4, 12];
+
+const comDesconto = precos;
+const cardapio = produtos;
+
+for (const linha of cardapio) {
+  console.log(linha);
+}
+console.log(precos);
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = ["Pão de queijo", "Bolo de fubá"];
+const precos = [4, 12];
+
+const comDesconto = precos.map((preco) =&gt; preco * 0.9);
+const cardapio = produtos.map((produto, i) =&gt; `${produto}: R$ ${comDesconto[i].toFixed(2)}`);
+
+for (const linha of cardapio) {
+  console.log(linha);
+}
+console.log(precos);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Pão de queijo: R$ 3.60</code>, <code>Bolo de fubá: R$ 10.80</code> e <code>[ 4, 12 ]</code>: o array de preços original continuou intacto.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>lista.map(funcao)</code> chama a função para cada item e devolve um <strong>array novo</strong> com o que ela devolveu, na mesma ordem.</li>
+  <li>O array novo tem sempre o <strong>mesmo tamanho</strong>; o original <strong>não muda</strong>. Guarde o resultado numa variável.</li>
+  <li>Na arrow function curta, o valor sai sozinho; com chaves, precisa de <code>return</code> (senão, sai um array de <code>undefined</code>).</li>
+  <li>A função recebe <code>(item, posição, array)</code>, como no <code>forEach</code>.</li>
+  <li><code>textos.map(Number)</code> converte textos em números; <code>map(parseInt)</code> dá <code>NaN</code> por causa da posição.</li>
+  <li>Para transformar, <code>map</code>; para escolher alguns itens, <code>filter</code>; para só fazer algo com cada um, <code>forEach</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
