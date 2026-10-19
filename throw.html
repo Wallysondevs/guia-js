@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript throw — lançando os seus próprios erros | Guia JavaScript</title>
+<meta name="description" content="O throw do JavaScript para quem nunca programou: lançar um erro com throw new Error, validar dados de uma função, escolher TypeError ou RangeError, pegar com try … catch, a causa (cause), uma classe de erro própria, por que não lançar texto puro e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">throw</span></h1>
+
+<p class="intro">Nas aulas anteriores, os erros vinham do JavaScript ou do Node: você lia (<code>ReferenceError</code>, <code>TypeError</code>…) e tratava com <a href="try-catch.html">try … catch</a>. Mas às vezes é o <strong>seu</strong> programa que precisa dizer "isso está errado, não vou continuar": um saque maior que o saldo, uma nota 15 numa prova que vai até 10, uma idade negativa. O JavaScript não acha nada disso errado. Quem sabe é você. Para avisar, você <strong>lança</strong> um erro com o <code>throw</code> (em inglês, "<strong>lançar</strong>", "atirar").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como lançar um erro com <code>throw new Error("mensagem")</code>, e o que o Node mostra quando ninguém o pega.</li>
+  <li>Para que serve: <strong>validar</strong> os dados que chegam numa função.</li>
+  <li>Como pegar o seu próprio erro com <code>try … catch</code>.</li>
+  <li>Quando usar <code>TypeError</code> e <code>RangeError</code> em vez do <code>Error</code> genérico.</li>
+  <li>Como guardar a <strong>causa</strong> de um erro (<code>{ cause: erro }</code>) e como criar um tipo de erro seu.</li>
+  <li>Por que não lançar um texto puro (<code>throw "erro"</code>), e os erros reais de quem está começando.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o caixa eletrônico</h2>
+<p>A Ana vai ao caixa eletrônico com R$ 100 na conta e pede R$ 500. O caixa não entrega R$ 100 e "deixa para lá", nem entrega R$ 500 e fica com o saldo negativo. Ele <strong>para</strong> a operação e mostra uma mensagem clara: "Saldo insuficiente". Quem decide o que fazer depois é a Ana (pedir menos, desistir).</p>
+<p>O <code>throw</code> é esse "parar e avisar":</p>
+<ul>
+  <li>a função que encontra o problema <strong>lança</strong> o erro (o caixa mostra a mensagem);</li>
+  <li>quem chamou a função decide: <strong>pega</strong> o erro com <code>try … catch</code> e trata (a Ana pede outro valor), ou deixa o erro subir e o programa para.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro <code>throw</code></h2>
+
+<pre class="file" data-file="sacar.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw new Error("Saldo insuficiente");
+  }
+  return saldo - valor;
+}
+console.log(sacar(100, 30));
+console.log(sacar(100, 500));
+console.log("Fim");
+</pre>
+
+<dl class="anatomy">
+  <dt>if (valor &gt; saldo)</dt><dd>A <strong>validação</strong>: a função confere se o pedido faz sentido antes de fazer a conta.</dd>
+  <dt>new Error("Saldo insuficiente")</dt><dd><strong>Cria</strong> um objeto de erro do tipo <code>Error</code>, com a mensagem que você escolheu. Ele guarda também a pilha de chamadas: de onde o erro veio.</dd>
+  <dt>throw</dt><dd><strong>Lança</strong> o erro. A partir daqui, a função para na hora: o <code>return</code> de baixo não roda. O erro "sobe" para quem chamou a função; se ninguém o pegar com <code>try … catch</code>, ele derruba o programa.</dd>
+  <dt>return saldo - valor</dt><dd>Só chega aqui quando o pedido é válido.</dd>
+</dl>
+
+<pre class="term">$ node sacar.js
+70
+/home/ana/sacar.js:3
+    throw new Error("Saldo insuficiente");
+    ^
+
+Error: Saldo insuficiente
+    at sacar (/home/ana/sacar.js:3:11)
+    at Object.&lt;anonymous&gt; (/home/ana/sacar.js:8:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+
+<p>A mensagem tem exatamente as mesmas partes que você aprendeu a ler em <a href="erros.html">Lendo uma Mensagem de Erro</a>, só que agora o texto é <strong>seu</strong>:</p>
+<ul>
+  <li>o primeiro saque deu certo e mostrou <code>70</code>;</li>
+  <li><code>/home/ana/sacar.js:3</code> e a linha copiada mostram o seu <code>throw</code>, com o <code>^</code> embaixo dele;</li>
+  <li><code>Error: Saldo insuficiente</code> é o tipo que você escolheu (<code>Error</code>) com a sua mensagem;</li>
+  <li>a pilha conta que o erro foi lançado dentro de <code>sacar</code> (linha 3), chamada na linha 8;</li>
+  <li>o <code>Fim</code> não apareceu: ninguém pegou o erro, e o programa parou (código de saída 1).</li>
+</ul>
+
+<div class="tip">
+<strong>Por que lançar um erro, e não só um <code>console.log</code>?</strong>
+<p>Se a função só escrevesse "Saldo insuficiente" e seguisse, ela teria de devolver <strong>alguma coisa</strong>, e o programa continuaria com um saldo errado. O <code>throw</code> garante que nada de errado continue: ou alguém trata o problema, ou tudo para com uma mensagem clara, apontando a linha.</p>
+</div>
+
+<div class="tryjs" data-goal="erro:Valor inválido;;src:\bthrow\b">
+<p class="try-task"><strong>Missão:</strong> a função aceita um saque <strong>negativo</strong>, e o saldo aumenta de R$ 100 para R$ 120! Acrescente uma validação no começo da <code>sacar</code>: se <code>valor &lt;= 0</code>, lance <code>new Error(`Valor inválido: ${valor}`)</code>. Rode e leia a mensagem.</p>
+<pre class="script" data-file="main.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw new Error("Saldo insuficiente");
+  }
+  return saldo - valor;
+}
+console.log(sacar(100, -20));
+</pre>
+<pre class="solucao" data-file="main.js">function sacar(saldo, valor) {
+  if (valor &lt;= 0) {
+    throw new Error(`Valor inválido: ${valor}`);
+  }
+  if (valor &gt; saldo) {
+    throw new Error("Saldo insuficiente");
+  }
+  return saldo - valor;
+}
+console.log(sacar(100, -20));
+</pre>
+</div>
+
+<p>No lab, a solução terminou com <code>Error: Valor inválido: -20</code>, com a primeira linha <code>at</code> apontando a função <code>sacar</code>, linha 3 (a do novo <code>throw</code>). Agora o programa para em vez de dar dinheiro de presente.</p>
+
+<hr>
+
+<h2>2. Pegando o seu próprio erro</h2>
+<p>Um erro lançado com <code>throw</code> é pego pelo <code>try … catch</code> igualzinho aos erros do JavaScript. A Ana faz três saques seguidos; o do meio é grande demais:</p>
+
+<pre class="file" data-file="sacar2.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw new Error(`Saldo insuficiente: você tem R$ ${saldo} e pediu R$ ${valor}`);
+  }
+  return saldo - valor;
+}
+const pedidos = [30, 500, 50];
+let saldo = 100;
+for (const valor of pedidos) {
+  try {
+    saldo = sacar(saldo, valor);
+    console.log(`Sacou R$ ${valor}. Saldo: R$ ${saldo}`);
+  } catch (erro) {
+    console.log(`Não deu: ${erro.message}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node sacar2.js
+Sacou R$ 30. Saldo: R$ 70
+Não deu: Saldo insuficiente: você tem R$ 70 e pediu R$ 500
+Sacou R$ 50. Saldo: R$ 20
+</pre>
+
+<p>Repare na divisão de tarefas: a <code>sacar</code> só <strong>detecta</strong> o problema e lança; quem chama decide como <strong>tratar</strong> (aqui, avisar e seguir para o próximo pedido). E o saldo ficou certo: como o <code>throw</code> interrompeu a <code>sacar</code>, a linha <code>saldo = sacar(…)</code> não mudou o saldo no saque que falhou.</p>
+
+<div class="note">
+<strong>Uma boa mensagem de erro</strong>
+<p>Diga <strong>o que</strong> está errado e, se der, <strong>com quais valores</strong>: "Saldo insuficiente: você tem R$ 70 e pediu R$ 500" ajuda muito mais do que "Erro!" ou "Valor inválido". Quem vai ler pode ser você mesmo, daqui a seis meses.</p>
+</div>
+
+<hr>
+
+<h2>3. Escolhendo o tipo do erro</h2>
+<p>Você pode lançar qualquer um dos tipos de <a href="tipos-erro.html">Os Tipos de Erro</a>. Os mais usados para validar dados:</p>
+<ul>
+  <li><code>TypeError</code>: o valor é do <strong>tipo</strong> errado (veio texto onde devia vir número);</li>
+  <li><code>RangeError</code>: o tipo está certo, mas o valor está <strong>fora da faixa</strong> (idade −5);</li>
+  <li><code>Error</code>: qualquer outro problema (saldo insuficiente, produto esgotado).</li>
+</ul>
+
+<pre class="file" data-file="tipos.js">function definirIdade(idade) {
+  if (typeof idade !== "number") {
+    throw new TypeError(`A idade tem de ser um número, e veio ${typeof idade}`);
+  }
+  if (idade &lt; 0 || idade &gt; 130) {
+    throw new RangeError(`Idade fora da faixa (0 a 130): ${idade}`);
+  }
+  return idade;
+}
+for (const valor of [30, "30", -5]) {
+  try {
+    console.log("OK:", definirIdade(valor));
+  } catch (erro) {
+    if (erro instanceof RangeError) {
+      console.log("Faixa errada -&gt;", erro.message);
+    } else {
+      console.log(`${erro.name} -&gt;`, erro.message);
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ node tipos.js
+OK: 30
+TypeError -&gt; A idade tem de ser um número, e veio string
+Faixa errada -&gt; Idade fora da faixa (0 a 130): -5
+</pre>
+
+<p>O tipo certo ajuda quem pega o erro: com <code>instanceof RangeError</code>, o <code>catch</code> consegue tratar cada caso de um jeito. O <code>typeof</code> (veja <a href="typeof.html">typeof</a>) descobriu que <code>"30"</code>, entre aspas, é <code>string</code>.</p>
+
+<hr>
+
+<h2>4. Guardando a causa: <code>{ cause: erro }</code> <span class="versao">ES2022</span></h2>
+<p>Às vezes você pega um erro "técnico" e quer lançar outro, mais claro para quem vai ler, sem perder o original. O segundo parâmetro do <code>Error</code> aceita a <strong>causa</strong>:</p>
+
+<pre class="file" data-file="causa2.js">function lerConfig(texto) {
+  try {
+    return JSON.parse(texto);
+  } catch (erro) {
+    throw new Error("Configuração inválida", { cause: erro });
+  }
+}
+try {
+  lerConfig("{tema: escuro}");
+} catch (erro) {
+  console.log(erro.message);
+  console.log("Causa:", erro.cause.message);
+}
+</pre>
+
+<pre class="term">$ node causa2.js
+Configuração inválida
+Causa: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+</pre>
+
+<p>Quem chama a <code>lerConfig</code> vê a mensagem simples ("Configuração inválida"), e o detalhe do <code>JSON.parse</code> continua guardado em <code>erro.cause</code>. Se ninguém pegar, o Node mostra os dois: o seu erro e, embaixo, a causa, marcada com <code>[cause]</code>:</p>
+
+<pre class="term">$ node causa.js
+/home/ana/causa.js:5
+    throw new Error("Configuração inválida", { cause: erro });
+    ^
+
+Error: Configuração inválida
+    at lerConfig (/home/ana/causa.js:5:11)
+    at Object.&lt;anonymous&gt; (/home/ana/causa.js:8:1)
+    ... 6 lines matching cause stack trace ...
+    at node:internal/main/run_main_module:33:47 {
+  [cause]: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (&lt;anonymous&gt;)
+      at lerConfig (/home/ana/causa.js:3:17)
+      at Object.&lt;anonymous&gt; (/home/ana/causa.js:8:1)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+}
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>... 6 lines matching cause stack trace ...</code> foi o próprio Node que escreveu: "6 linhas iguais às da pilha da causa", que ele resumiu para não repetir. (O <code>causa.js</code> é o mesmo programa, sem o <code>try</code> de fora.)</p>
+
+<hr>
+
+<h2>5. Um tipo de erro só seu</h2>
+<p>Em programas maiores, vale criar um tipo de erro com nome próprio. Isso usa <a href="classes.html">classes</a> e <a href="heranca.html">herança</a>, que você vai estudar no Nível 3; por enquanto, veja como fica e o que muda na mensagem:</p>
+
+<pre class="file" data-file="classe.js">class SaldoInsuficienteError extends Error {
+  constructor(saldo, valor) {
+    super(`Você tem R$ ${saldo} e pediu R$ ${valor}`);
+    this.name = "SaldoInsuficienteError";
+    this.falta = valor - saldo;
+  }
+}
+try {
+  throw new SaldoInsuficienteError(100, 500);
+} catch (erro) {
+  console.log(erro.name);
+  console.log(erro.message);
+  console.log(`Faltam R$ ${erro.falta}`);
+  console.log(erro instanceof SaldoInsuficienteError, erro instanceof Error);
+}
+throw new SaldoInsuficienteError(20, 50);
+</pre>
+
+<pre class="term">$ node classe.js
+SaldoInsuficienteError
+Você tem R$ 100 e pediu R$ 500
+Faltam R$ 400
+true true
+/home/ana/classe.js:16
+throw new SaldoInsuficienteError(20, 50);
+^
+
+SaldoInsuficienteError: Você tem R$ 20 e pediu R$ 50
+    at Object.&lt;anonymous&gt; (/home/ana/classe.js:16:7)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  falta: 30
+}
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>class SaldoInsuficienteError extends Error</dt><dd>"Um novo tipo de erro, que <strong>é um</strong> <code>Error</code>". Por convenção, o nome termina em <code>Error</code>.</dd>
+  <dt>super(`…`)</dt><dd>Passa a mensagem para o <code>Error</code> "de dentro".</dd>
+  <dt>this.name = "SaldoInsuficienteError"</dt><dd>O nome que aparece antes dos dois-pontos na mensagem.</dd>
+  <dt>this.falta = …</dt><dd>Uma informação extra pendurada no erro. Repare que o Node a mostra no fim da mensagem, entre <code>{ }</code>: <code>falta: 30</code>.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de avisar que algo deu errado</h2>
+<p>O <code>throw</code> não é o único jeito de uma função dizer "não deu". Outra forma comum é devolver um valor especial (<code>null</code>, <code>undefined</code>, <code>-1</code>), como faz o <code>indexOf</code> do array quando não acha o item.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Devolver um valor especial</td><td><code>lista.indexOf("x")</code> → <code>-1</code>; <code>mapa.get("x")</code> → <code>undefined</code></td><td>"Não achei" é um resultado <strong>normal</strong>, esperado, que acontece o tempo todo</td></tr>
+<tr><td><code>throw</code></td><td><code>throw new Error("Saldo insuficiente")</code></td><td>O pedido não faz sentido, e continuar levaria a um resultado errado</td></tr>
+<tr><td><code>console.log</code> / <code>console.error</code> e seguir</td><td><code>console.error("aviso: …")</code></td><td>Só um aviso; o programa pode seguir sem problema</td></tr>
+<tr><td><code>process.exit(1)</code></td><td>(aula <a href="process-env.html">process.exit</a>)</td><td>No programa principal de um script de terminal, para encerrar de propósito</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Lançou um texto em vez de um <code>Error</code></strong>
+<p>O JavaScript deixa lançar <strong>qualquer valor</strong>, até um texto. Mas veja o que se perde:</p>
+<pre class="file" data-file="texto.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw "Saldo insuficiente";
+  }
+  return saldo - valor;
+}
+sacar(100, 500);
+</pre>
+<pre class="term">$ node texto.js
+
+/home/ana/texto.js:3
+    throw "Saldo insuficiente";
+    ^
+Saldo insuficiente
+(Use `node --trace-uncaught ...` to show where the exception was thrown)
+
+Node.js v24.22.0
+</pre>
+<p>Não há tipo (<code>Error:</code>), nem linhas <code>at</code>: um texto não guarda a pilha de chamadas, então o Node não sabe dizer por onde o programa passou. (Ele até sugere rodar com a opção <code>--trace-uncaught</code> para descobrir.) E quem pegar esse erro num <code>catch</code> vai tentar <code>erro.message</code> e receber <code>undefined</code>:</p>
+<pre class="term">$ node texto2.js
+undefined
+Saldo insuficiente
+</pre>
+<p><strong>Como consertar:</strong> lance sempre um objeto de erro: <code>throw new Error("Saldo insuficiente")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Quebrou a linha logo depois do <code>throw</code></strong>
+<pre class="file" data-file="novalinha.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw
+      new Error("Saldo insuficiente");
+  }
+  return saldo - valor;
+}
+</pre>
+<pre class="term">$ node novalinha.js
+/home/ana/novalinha.js:3
+    throw
+    ^^^^^
+
+SyntaxError: Illegal newline after throw
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Quebra de linha proibida depois do <code>throw</code>". O que vai ser lançado tem de começar <strong>na mesma linha</strong> do <code>throw</code>. <strong>Como consertar:</strong> <code>throw new Error("Saldo insuficiente");</code> numa linha só.</p>
+</div>
+
+<div class="cenario">
+<strong>Código depois do <code>throw</code> que nunca roda</strong>
+<pre class="file" data-file="depois.js">function dividir(a, b) {
+  if (b === 0) {
+    throw new Error("Divisão por zero");
+    console.log("Isto nunca aparece");
+  }
+  return a / b;
+}
+try {
+  dividir(10, 0);
+} catch (erro) {
+  console.log("Peguei:", erro.message);
+}
+</pre>
+<pre class="term">$ node depois.js
+Peguei: Divisão por zero
+</pre>
+<p>O <code>throw</code> sai da função na hora, como um <code>return</code>. Qualquer linha depois dele, no mesmo bloco, é inútil. Se você precisa avisar algo, faça <strong>antes</strong> do <code>throw</code> (ou no <code>catch</code> de quem chamou).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>new</code> (e funcionou)</strong>
+<pre class="file" data-file="semnew.js">const e1 = new Error("com new");
+const e2 = Error("sem new");
+console.log(e1.message, e2.message, e2 instanceof Error);
+</pre>
+<pre class="term">$ node semnew.js
+com new sem new true
+</pre>
+<p>Diferente do <code>Set</code> e do <code>Map</code>, o <code>Error</code> funciona sem <code>new</code>: o resultado é o mesmo. Mesmo assim, escreva <code>new Error(…)</code>: é o jeito que todo mundo usa, e uma classe de erro sua (seção 5) <strong>exige</strong> o <code>new</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>throw new Error("mensagem")</code></td><td>Lança um erro genérico; a função para na hora</td></tr>
+<tr><td><code>throw new TypeError("…")</code></td><td>Lança um erro de tipo (valor do tipo errado)</td></tr>
+<tr><td><code>throw new RangeError("…")</code></td><td>Lança um erro de faixa (valor fora dos limites)</td></tr>
+<tr><td><code>new Error("…", { cause: erro })</code> <span class="versao">ES2022</span></td><td>Cria um erro guardando o original em <code>.cause</code></td></tr>
+<tr><td><code>class MeuError extends Error { … }</code></td><td>Um tipo de erro próprio (aulas <a href="classes.html">Classes</a> e <a href="heranca.html">Herança</a>)</td></tr>
+<tr><td><code>try { … } catch (erro) { … }</code></td><td>Pega o erro lançado (aula <a href="try-catch.html">try … catch</a>)</td></tr>
+<tr><td><code>throw erro</code> dentro do <code>catch</code></td><td>Joga de novo para cima um erro que você não sabe tratar</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Mensagem sem tipo e sem linhas <code>at</code>, com <code>--trace-uncaught</code></td><td>Lançou um texto (<code>throw "…"</code>) em vez de <code>new Error</code></td></tr>
+<tr><td><code>erro.message</code> é <code>undefined</code> no <code>catch</code></td><td>Quem lançou usou um texto, não um <code>Error</code></td></tr>
+<tr><td><code>SyntaxError: Illegal newline after throw</code></td><td>O que é lançado está na linha de baixo</td></tr>
+<tr><td>Uma linha depois do <code>throw</code> nunca roda</td><td>O <code>throw</code> sai da função na hora</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para lançar um erro quando a quantidade for negativa:</p>
+<div class="ex-code">if (quantidade &lt; 0) {<br>&nbsp;&nbsp;<input data-answer="throw" aria-label="palavra que lança"> <input data-answer="new" aria-label="palavra que cria"> Error("Quantidade negativa");<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual tipo?</h3>
+<p>Uma função recebe a nota de uma prova (0 a 10) e chega <code>15</code>. Qual tipo de erro combina melhor? (Escreva o nome exato.)</p>
+<div class="ex-code"><input data-answer="RangeError" aria-label="tipo de erro"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que acontece com as linhas da função que vêm depois de um <code>throw</code> que foi executado?</p>
+<label><input type="radio" name="q3"> Rodam normalmente</label>
+<label><input type="radio" name="q3"> Não rodam: a função para na hora</label>
+<label><input type="radio" name="q3"> Rodam só se houver <code>catch</code></label>
+<label><input type="radio" name="q3"> Rodam duas vezes</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que <code>throw new Error("x")</code> é melhor que <code>throw "x"</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>throw "x"</code> dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> Porque é mais curto</label>
+<label><input type="radio" name="q4"> Porque o <code>Error</code> guarda o tipo, a mensagem em <code>.message</code> e a pilha de chamadas</label>
+<label><input type="radio" name="q4"> Não é: os dois são iguais</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma função lança um erro e ninguém usa <code>try … catch</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> O programa para e o Node mostra a mensagem, com código de saída 1</label>
+<label><input type="radio" name="q5"> O erro é ignorado e o programa segue</label>
+<label><input type="radio" name="q5"> A função devolve <code>undefined</code></label>
+<label><input type="radio" name="q5"> O Node pergunta se quer continuar</label>
+</div>
+
+<h3>Missão final: as notas da turma</h3>
+
+<div class="tryjs" data-goal="out:Notas válidas: 2;;semerro;;src:\bcatch\b">
+<p class="try-task"><strong>Missão:</strong> a função <code>notaValida</code> lança um <code>RangeError</code> para notas fora de 0 a 10. Rode: a nota 15 derruba o programa. Sem mexer na função, ponha um <code>try … catch</code> dentro do <code>for</code> que mostre <code>Nota ignorada: …</code> (com o <code>erro.message</code>) e continue. No fim deve aparecer <code>Notas válidas: 2</code>.</p>
+<pre class="script" data-file="main.js">function notaValida(nota) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    throw new RangeError(`Nota fora da faixa: ${nota}`);
+  }
+  return nota;
+}
+const notas = [8, 15, 9.5];
+const validas = [];
+for (const nota of notas) {
+  validas.push(notaValida(nota));
+}
+console.log(`Notas válidas: ${validas.length}`);
+</pre>
+<pre class="solucao" data-file="main.js">function notaValida(nota) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    throw new RangeError(`Nota fora da faixa: ${nota}`);
+  }
+  return nota;
+}
+const notas = [8, 15, 9.5];
+const validas = [];
+for (const nota of notas) {
+  try {
+    validas.push(notaValida(nota));
+  } catch (erro) {
+    console.log(`Nota ignorada: ${erro.message}`);
+  }
+}
+console.log(`Notas válidas: ${validas.length}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Nota ignorada: Nota fora da faixa: 15</code> e <code>Notas válidas: 2</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>throw new Error("mensagem")</code> lança um erro: a função para na hora, e o erro sobe para quem a chamou.</li>
+  <li>Se ninguém pegar, o programa para com a mensagem normal do Node (com a <strong>sua</strong> mensagem e a linha do <code>throw</code>).</li>
+  <li>Use para <strong>validar</strong>: quando continuar levaria a um resultado errado.</li>
+  <li>Quem chama decide: pega com <code>try … catch</code> e trata, ou deixa subir.</li>
+  <li><code>TypeError</code> para tipo errado, <code>RangeError</code> para fora da faixa, <code>Error</code> para o resto; mensagens com os valores ajudam muito.</li>
+  <li><code>{ cause: erro }</code> guarda o erro original; uma classe que estende <code>Error</code> cria um tipo próprio.</li>
+  <li>Lance sempre um <code>Error</code>, nunca um texto puro; e o que é lançado começa na mesma linha do <code>throw</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
