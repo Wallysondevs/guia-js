@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Hoisting — o que dá para usar antes de declarar | Guia JavaScript</title>
+<meta name="description" content="Hoisting (içamento) em JavaScript para quem nunca programou: por que uma function pode ser chamada antes de aparecer no código, o var que vale undefined, o let e o const na zona morta temporal (Cannot access before initialization), arrow functions e classes antes da declaração, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Hoisting</span></h1>
+
+<p class="intro">Você já deve ter percebido que o JavaScript roda o programa de cima para baixo, uma linha depois da outra. Então como este programa funciona, se ele chama <code>saudar</code> <strong>antes</strong> de a função aparecer? A resposta é o <strong>hoisting</strong> (em inglês, "içamento", o ato de levantar algo com uma corda, como uma bandeira). Antes de rodar a primeira linha, o JavaScript dá uma olhada no código inteiro e "levanta" as declarações para o topo do seu bloco. Mas cada tipo de declaração é levantado de um jeito, e é isso que esta aula explica.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que uma <code>function</code> declarada pode ser chamada antes de aparecer no código.</li>
+  <li>Por que um <code>var</code> usado antes da declaração vale <code>undefined</code>, sem erro.</li>
+  <li>O que é a <strong>zona morta temporal</strong> do <code>let</code> e do <code>const</code>, e a mensagem <code>Cannot access 'x' before initialization</code>.</li>
+  <li>O que acontece com arrow functions, funções guardadas em variáveis e classes usadas cedo demais.</li>
+  <li>A diferença entre "não pode acessar antes de inicializar" e "não está definida".</li>
+  <li>Como organizar o arquivo para nunca depender do hoisting por acidente.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. É bom já conhecer <a href="variaveis.html">let</a>, <a href="const.html">const</a>, <a href="var.html">var</a>, <a href="funcoes.html">Funções</a> e <a href="escopo.html">Escopo</a>.</p>
+
+<hr>
+
+<h2>A ideia: a lista de chamada antes da aula</h2>
+<p>No primeiro dia de aula, a professora da Ana recebe a <strong>lista de chamada</strong> antes de entrar na sala. Ela ainda não conhece ninguém, mas já sabe <strong>os nomes</strong> de todos os alunos que existem na turma. O JavaScript faz parecido: antes de rodar a primeira linha, ele lê o arquivo inteiro e monta a "lista" de tudo que foi declarado (cada <code>function</code>, <code>var</code>, <code>let</code>, <code>const</code> e <code>class</code>).</p>
+<p>A diferença está no que a lista diz sobre cada nome:</p>
+<ul>
+  <li><strong><code>function</code></strong>: o nome já vem com a função pronta. Dá para usar desde a primeira linha.</li>
+  <li><strong><code>var</code></strong>: o nome já existe, mas vale <code>undefined</code> até a linha da atribuição rodar.</li>
+  <li><strong><code>let</code>, <code>const</code> e <code>class</code></strong>: o nome está na lista, mas "ainda não chegou". Tocar nele antes da linha da declaração é erro.</li>
+</ul>
+<p>Nada é movido de verdade no seu arquivo: "levantar para o topo" é só um jeito de explicar o efeito.</p>
+
+<hr>
+
+<h2>1. <code>function</code>: pode chamar antes</h2>
+
+<pre class="file" data-file="antes.js">saudar("Ana");
+
+function saudar(nome) {
+  console.log(`Olá, ${nome}!`);
+}
+</pre>
+
+<pre class="term">$ node antes.js
+Olá, Ana!
+</pre>
+
+<p>Funcionou. Uma <strong>declaração de função</strong> (a palavra <code>function</code> no começo da linha, com um nome) é levantada <strong>inteira</strong>: o nome e o corpo. Quando a linha 1 roda, o JavaScript já sabe o que <code>saudar</code> faz. É como se o arquivo fosse este:</p>
+
+<pre class="file" data-file="como-o-javascript-enxerga.js">function saudar(nome) {
+  console.log(`Olá, ${nome}!`);
+}
+
+saudar("Ana");
+</pre>
+
+<p>Esse é o hoisting útil. Ele permite escrever o programa principal no topo e deixar os detalhes (as funções auxiliares) mais para baixo:</p>
+
+<pre class="file" data-file="organizado.js">function main() {
+  const total = somar(4.5, 12);
+  mostrar(total);
+}
+
+function somar(a, b) {
+  return a + b;
+}
+
+function mostrar(valor) {
+  console.log(`Total: R$ ${valor}`);
+}
+
+main();
+</pre>
+
+<pre class="term">$ node organizado.js
+Total: R$ 16.5
+</pre>
+
+<p>Repare que <code>main</code> usa <code>somar</code> e <code>mostrar</code>, que aparecem depois dela. Mesmo sem hoisting, isso funcionaria aqui: o que importa é que, quando <code>main()</code> <strong>roda</strong> (na última linha), as outras já existem.</p>
+
+<hr>
+
+<h2>2. <code>var</code>: existe, mas vale <code>undefined</code></h2>
+<p>O <code>var</code> é o jeito antigo de criar variáveis (veja <a href="var.html">var: o Jeito Antigo</a>). Ele também é levantado, mas <strong>só o nome</strong>. O valor só chega quando a linha da atribuição roda:</p>
+
+<pre class="file" data-file="var-antes.js">console.log(preco);
+var preco = 4.5;
+console.log(preco);
+</pre>
+
+<pre class="term">$ node var-antes.js
+undefined
+4.5
+</pre>
+
+<p>Nenhum erro, e a primeira linha mostrou <code>undefined</code>. Para o JavaScript, o programa era assim:</p>
+
+<pre class="file" data-file="como-o-javascript-enxerga.js">var preco;            // levantado: o nome existe, valendo undefined
+console.log(preco);   // undefined
+preco = 4.5;          // a atribuição fica onde estava
+console.log(preco);   // 4.5
+</pre>
+
+<p>Isso parece gentil, mas é uma armadilha: o programa segue rodando com um valor errado, sem avisar ninguém. Um <code>undefined</code> numa conta vira <code>NaN</code>, e você só descobre bem longe dali. É um dos motivos para <strong>nunca usar <code>var</code></strong> em código novo.</p>
+
+<hr>
+
+<h2>3. <code>let</code> e <code>const</code>: a zona morta temporal</h2>
+<p>Agora o mesmo programa com <code>let</code>:</p>
+
+<pre class="file" data-file="let-antes.js">console.log(preco);
+let preco = 4.5;
+</pre>
+
+<pre class="term">$ node let-antes.js
+/home/ana/let-antes.js:1
+console.log(preco);
+            ^
+
+ReferenceError: Cannot access 'preco' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/let-antes.js:1:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/let-antes.js:1</dt><dd>O arquivo e a linha do problema: a linha 1.</dd>
+  <dt>console.log(preco); e o ^</dt><dd>A linha do código, com o <code>^</code> embaixo do <code>preco</code>: foi ali que o JavaScript tropeçou.</dd>
+  <dt>ReferenceError</dt><dd>"Erro de referência": um problema com um <strong>nome</strong> (de variável, de função). Veja <a href="tipos-erro.html">Os Tipos de Erro</a>.</dd>
+  <dt>Cannot access 'preco' before initialization</dt><dd>"Não é possível acessar <code>preco</code> antes da inicialização". Repare: o JavaScript <strong>sabe</strong> que <code>preco</code> existe (ele leu a linha 2 antes de começar), mas ela ainda não recebeu o seu valor.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/let-antes.js:1:13)</dt><dd>Onde o erro aconteceu: no programa principal (que o Node chama de <code>Object.&lt;anonymous&gt;</code>), linha 1, coluna 13. As outras linhas <code>at …</code> com <code>node:internal</code> são o próprio Node carregando o seu arquivo; pode ignorá-las.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+
+<p>O trecho do bloco, do começo até a linha da declaração, em que a variável existe mas não pode ser tocada, tem um nome: <strong>zona morta temporal</strong> (em inglês, <em>temporal dead zone</em>, ou TDZ). "Temporal" porque depende do <strong>momento</strong> em que a linha roda, não da posição no texto. Com <code>const</code> é igual:</p>
+
+<pre class="file" data-file="const-antes.js">console.log(TAXA);
+const TAXA = 0.1;
+</pre>
+
+<pre class="term">$ node const-antes.js
+/home/ana/const-antes.js:1
+console.log(TAXA);
+            ^
+
+ReferenceError: Cannot access 'TAXA' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/const-antes.js:1:13)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>Isso é <strong>bom</strong>: em vez de seguir com um <code>undefined</code> escondido, como o <code>var</code>, o programa para na hora e aponta a linha exata. Por isso o guia usa <code>const</code> e <code>let</code>.</p>
+
+<h3>"Antes de inicializar" × "não está definida"</h3>
+<p>Compare com uma variável que <strong>não existe</strong> em lugar nenhum do arquivo:</p>
+
+<pre class="file" data-file="nao-existe.js">console.log(preco);
+</pre>
+
+<pre class="term">$ node nao-existe.js
+/home/ana/nao-existe.js:1
+console.log(preco);
+            ^
+
+ReferenceError: preco is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/nao-existe.js:1:13)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>O que quer dizer</th><th>O que verificar</th></tr>
+<tr><td><code>Cannot access 'preco' before initialization</code></td><td>Existe um <code>let</code>/<code>const</code>/<code>class</code> com esse nome, mas mais abaixo</td><td>A <strong>ordem</strong>: use a variável depois da linha que a cria</td></tr>
+<tr><td><code>preco is not defined</code></td><td>Não existe nada com esse nome que esteja ao alcance</td><td>A <strong>escrita</strong> (maiúsculas, acentos) e o <a href="escopo.html">escopo</a></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Total com taxa: 110;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa usa a constante antes de criá-la. Rode, leia o erro e conserte mudando a <strong>ordem</strong> das linhas, até aparecer <code>Total com taxa: 110</code>.</p>
+<pre class="script" data-file="main.js">const total = 100;
+console.log(`Total com taxa: ${total + total * TAXA}`);
+const TAXA = 0.1;
+</pre>
+<pre class="solucao" data-file="main.js">const total = 100;
+const TAXA = 0.1;
+console.log(`Total com taxa: ${total + total * TAXA}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Funções guardadas em variáveis: valem as regras da variável</h2>
+<p>Só a <strong>declaração</strong> <code>function nome() {}</code> é levantada inteira. Uma <a href="arrow-functions.html">arrow function</a> (ou qualquer função) guardada numa <code>const</code> segue as regras da <code>const</code>:</p>
+
+<pre class="file" data-file="arrow-antes.js">saudar("Ana");
+
+const saudar = (nome) =&gt; {
+  console.log(`Olá, ${nome}!`);
+};
+</pre>
+
+<pre class="term">$ node arrow-antes.js
+/home/ana/arrow-antes.js:1
+saudar("Ana");
+^
+
+ReferenceError: Cannot access 'saudar' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/arrow-antes.js:1:1)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>E em código antigo você vai encontrar a função guardada num <code>var</code>. Aí o erro muda, e fica mais confuso:</p>
+
+<pre class="file" data-file="var-func-antes.js">saudar("Ana");
+
+var saudar = function (nome) {
+  console.log(`Olá, ${nome}!`);
+};
+</pre>
+
+<pre class="term">$ node var-func-antes.js
+/home/ana/var-func-antes.js:1
+saudar("Ana");
+^
+
+TypeError: saudar is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/var-func-antes.js:1:1)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p><code>TypeError: saudar is not a function</code>: "<code>saudar</code> não é uma função". O <code>var saudar</code> foi levantado valendo <code>undefined</code>, e <code>undefined("Ana")</code> não dá para chamar. A mensagem não fala nada de ordem, e por isso confunde quem está começando.</p>
+
+<h3>O caso que engana: a função roda antes da hora</h3>
+<p>Uma função pode <strong>usar</strong> uma <code>const</code> que aparece depois dela, desde que seja <strong>chamada</strong> depois que essa <code>const</code> foi criada. O que importa é o momento em que a linha roda:</p>
+
+<pre class="file" data-file="ordem-ok.js">const calcularTotal = (itens) =&gt; {
+  return itens.reduce((soma, item) =&gt; soma + aplicarDesconto(item), 0);
+};
+
+const aplicarDesconto = (preco) =&gt; preco * 0.9;
+
+console.log(calcularTotal([10, 20]));
+</pre>
+
+<pre class="term">$ node ordem-ok.js
+27
+</pre>
+
+<p>Funcionou: quando <code>calcularTotal</code> rodou (na última linha), <code>aplicarDesconto</code> já existia. (O <code>reduce</code> soma os itens da lista, cada um com 10% de desconto; veja <a href="reduce.html">reduce</a>.) Agora a mesma coisa com o <code>console.log</code> no meio:</p>
+
+<pre class="file" data-file="ordem-ruim.js">const calcularTotal = (itens) =&gt; {
+  return itens.reduce((soma, item) =&gt; soma + aplicarDesconto(item), 0);
+};
+
+console.log(calcularTotal([10, 20]));
+
+const aplicarDesconto = (preco) =&gt; preco * 0.9;
+</pre>
+
+<pre class="term">$ node ordem-ruim.js
+/home/ana/ordem-ruim.js:2
+  return itens.reduce((soma, item) =&gt; soma + aplicarDesconto(item), 0);
+                                             ^
+
+ReferenceError: Cannot access 'aplicarDesconto' before initialization
+    at /home/ana/ordem-ruim.js:2:46
+    at Array.reduce (&lt;anonymous&gt;)
+    at calcularTotal (/home/ana/ordem-ruim.js:2:16)
+    at Object.&lt;anonymous&gt; (/home/ana/ordem-ruim.js:5:13)
+                                    « (mais 6 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>O erro aponta a linha 2, mas o culpado é a linha 5: foi ela que chamou <code>calcularTotal</code> cedo demais. As linhas <code>at …</code> contam essa história de baixo para cima: o programa principal, na linha 5, chamou <code>calcularTotal</code> (linha 2), que chamou o <code>reduce</code>, que chamou a arrow function da linha 2, que tentou usar <code>aplicarDesconto</code>, ainda na zona morta.</p>
+
+<hr>
+
+<h2>5. A zona morta também vale dentro de um bloco</h2>
+<p>O hoisting acontece em <strong>cada bloco</strong> (cada par de <code>{ }</code>). Aqui a Ana esperava ver <code>Ana</code>, a variável de fora:</p>
+
+<pre class="file" data-file="bloco.js">let nome = "Ana";
+
+if (true) {
+  console.log(nome);
+  let nome = "Bia";
+}
+</pre>
+
+<pre class="term">$ node bloco.js
+/home/ana/bloco.js:4
+  console.log(nome);
+              ^
+
+ReferenceError: Cannot access 'nome' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/bloco.js:4:15)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>let nome</code> da linha 5 foi levantado para o topo <strong>do bloco do <code>if</code></strong>. Dentro do bloco, <code>nome</code> já é a variável nova (a <code>"Bia"</code>), que ainda está na zona morta, e não a <code>"Ana"</code> de fora. <strong>Como consertar:</strong> use outro nome para a variável de dentro (<code>let outroNome = "Bia";</code>). Ter duas variáveis com o mesmo nome, uma dentro da outra, confunde: evite.</p>
+
+<h3>Até o <code>typeof</code> respeita a zona morta</h3>
+<p>O <a href="typeof.html">typeof</a> é famoso por nunca dar erro: com uma variável que não existe, ele responde <code>"undefined"</code>. Na zona morta, ele quebra:</p>
+
+<pre class="file" data-file="typeof.js">console.log(typeof naoExiste);
+console.log(typeof preco);
+let preco = 4.5;
+</pre>
+
+<pre class="term">$ node typeof.js
+undefined
+/home/ana/typeof.js:2
+console.log(typeof preco);
+        ^
+
+ReferenceError: Cannot access 'preco' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/typeof.js:2:9)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<hr>
+
+<h2>6. Classes: como o <code>let</code></h2>
+<p>As <a href="classes.html">classes</a> (o molde para criar objetos, assunto do nível 3) também ficam na zona morta até a linha da declaração:</p>
+
+<pre class="file" data-file="classe.js">const conta = new Conta("Ana");
+
+class Conta {
+  constructor(dono) {
+    this.dono = dono;
+  }
+}
+</pre>
+
+<pre class="term">$ node classe.js
+/home/ana/classe.js:1
+const conta = new Conta("Ana");
+              ^
+
+ReferenceError: Cannot access 'Conta' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/classe.js:1:15)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p><strong>Como consertar:</strong> declare a classe antes de usar o <code>new</code>.</p>
+
+<hr>
+
+<h2 id="formas">Resumo das regras e qual usar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Usar antes da linha dela…</th><th>Exemplo de resultado</th></tr>
+<tr><td><code>function nome() {}</code></td><td>Funciona: levantada inteira</td><td><code>Olá, Ana!</code></td></tr>
+<tr><td><code>var x = 1;</code></td><td>Sem erro, mas vale <code>undefined</code></td><td><code>undefined</code></td></tr>
+<tr><td><code>var f = function () {}</code></td><td>Chamar dá erro</td><td><code>TypeError: f is not a function</code></td></tr>
+<tr><td><code>let x = 1;</code> / <code>const x = 1;</code></td><td>Erro (zona morta temporal)</td><td><code>ReferenceError: Cannot access 'x' before initialization</code></td></tr>
+<tr><td><code>const f = () =&gt; {}</code></td><td>Erro (é uma <code>const</code>)</td><td><code>ReferenceError: Cannot access 'f' before initialization</code></td></tr>
+<tr><td><code>class Conta {}</code></td><td>Erro (zona morta temporal)</td><td><code>ReferenceError: Cannot access 'Conta' before initialization</code></td></tr>
+</table>
+</div>
+
+<p>Duas formas de organizar um arquivo, as duas boas:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estilo</th><th>Como fica</th><th>Quando escolher</th></tr>
+<tr><td>Tudo antes de usar</td><td>Constantes e funções no topo; o código que chama, embaixo</td><td>Sempre funciona, com <code>function</code>, <code>const</code> ou arrow. É o mais seguro.</td></tr>
+<tr><td>Principal primeiro</td><td>Uma <code>function main()</code> no topo, as <code>function</code> auxiliares embaixo e <code>main();</code> na última linha</td><td>Quando você quer ler o "resumo" do programa primeiro. Funciona por causa do hoisting das declarações <code>function</code>.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>A regra prática</strong>
+<p>Não precisa decorar as regras de hoisting para programar bem. Basta: <strong>declare antes de usar</strong>, use <code>const</code> e <code>let</code> (nunca <code>var</code>), e chame o código principal no fim do arquivo. Se aparecer <code>Cannot access '…' before initialization</code>, olhe a <strong>ordem</strong> das linhas.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Os erros desta aula, juntos, para consulta rápida:</p>
+
+<div class="cenario">
+<strong>Chamou uma arrow function antes da <code>const</code></strong>
+<p><code>ReferenceError: Cannot access 'saudar' before initialization</code> (seção 4). <strong>Como consertar:</strong> mova a chamada para depois da <code>const saudar = …</code>, ou troque por uma declaração <code>function saudar(nome) { … }</code>, que pode ser chamada antes.</p>
+</div>
+
+<div class="cenario">
+<strong>Código antigo com <code>var</code>: o valor sai <code>undefined</code> ou "não é uma função"</strong>
+<p>Um <code>var</code> usado cedo demais vale <code>undefined</code> (seção 2), e chamar uma função guardada num <code>var</code> cedo demais dá <code>TypeError: saudar is not a function</code> (seção 4). <strong>Como consertar:</strong> troque <code>var</code> por <code>const</code>/<code>let</code> (o erro passa a dizer claramente que é um problema de ordem) e acerte a ordem.</p>
+</div>
+
+<div class="cenario">
+<strong>O erro aponta uma linha, mas o culpado é outra</strong>
+<p>Quando uma função roda cedo demais e usa algo que ainda está na zona morta (seção 4, <code>ordem-ruim.js</code>), o <code>^</code> aponta para dentro da função. Leia as linhas <code>at …</code> de baixo para cima até achar a linha do <strong>seu</strong> programa principal (<code>Object.&lt;anonymous&gt;</code>, linha 5): é ali que está a chamada fora de hora.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável de dentro do bloco "esconde" a de fora</strong>
+<p><code>Cannot access 'nome' before initialization</code> numa variável que existe lá fora (seção 5). <strong>Como consertar:</strong> não reaproveite o nome dentro do bloco.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>O que é</th></tr>
+<tr><td>Hoisting (içamento)</td><td>O JavaScript registra as declarações de um bloco antes de rodar a primeira linha dele</td></tr>
+<tr><td>Declaração de função</td><td><code>function nome() {}</code>: levantada inteira, pode ser chamada antes</td></tr>
+<tr><td>Zona morta temporal (TDZ)</td><td>Do começo do bloco até a linha do <code>let</code>/<code>const</code>/<code>class</code>: o nome existe, mas tocar nele é erro</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'x' before initialization</code></td><td>Usou <code>x</code> na zona morta: problema de ordem</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>Não existe <code>x</code> ao alcance: problema de nome ou de escopo</td></tr>
+<tr><td><code>TypeError: f is not a function</code></td><td>Entre outras causas: chamou uma função guardada num <code>var</code> antes da atribuição</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<p>O que a primeira linha deste programa mostra?</p>
+<pre class="file" data-file="ex1.js">console.log(cor);
+var cor = "azul";
+</pre>
+<div class="ex-code">Mostra <input data-answer="undefined" aria-label="o que aparece"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a mensagem</h3>
+<p>Trocando o <code>var</code> do exercício 1 por <code>let</code>, o Node mostra:</p>
+<div class="ex-code">ReferenceError: Cannot access 'cor' before <input data-answer="initialization" aria-label="última palavra da mensagem"></div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Qual destas pode ser chamada numa linha <strong>acima</strong> da sua declaração, sem erro?</p>
+<label><input type="radio" name="q3"> <code>function dobrar(n) { return n * 2; }</code></label>
+<label><input type="radio" name="q3"> <code>const dobrar = (n) =&gt; n * 2;</code></label>
+<label><input type="radio" name="q3"> <code>let dobrar = function (n) { return n * 2; };</code></label>
+<label><input type="radio" name="q3"> <code>var dobrar = (n) =&gt; n * 2;</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O Node mostrou <code>ReferenceError: total is not defined</code>. O que você verifica primeiro?</p>
+<label><input type="radio" name="q4"> Se a linha do <code>const total</code> está abaixo da linha do erro</label>
+<label><input type="radio" name="q4"> Se faltou um <code>return</code></label>
+<label><input type="radio" name="q4"> Se o nome <code>total</code> foi escrito igual nos dois lugares e se ele existe ao alcance (escopo)</label>
+<label><input type="radio" name="q4"> Se a versão do Node é a 24</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que o guia prefere o erro do <code>let</code> ao <code>undefined</code> silencioso do <code>var</code>?</p>
+<label><input type="radio" name="q5"> Porque o <code>let</code> é mais rápido</label>
+<label><input type="radio" name="q5"> Porque o erro para o programa na linha exata do problema, em vez de deixar um valor errado seguir adiante</label>
+<label><input type="radio" name="q5"> Porque o <code>var</code> não funciona no Node 24</label>
+<label><input type="radio" name="q5"> Não há diferença</label>
+</div>
+
+<h3>Missão final: a ordem certa</h3>
+
+<div class="tryjs" data-goal="out:27;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o <code>ordem-ruim.js</code> da seção 4. Sem mudar nenhuma função, conserte a <strong>ordem</strong> das linhas para o programa mostrar <code>27</code>. (Outra solução válida: transformar <code>aplicarDesconto</code> numa declaração <code>function</code>.)</p>
+<pre class="script" data-file="main.js">const calcularTotal = (itens) =&gt; {
+  return itens.reduce((soma, item) =&gt; soma + aplicarDesconto(item), 0);
+};
+
+console.log(calcularTotal([10, 20]));
+
+const aplicarDesconto = (preco) =&gt; preco * 0.9;
+</pre>
+<pre class="solucao" data-file="main.js">const calcularTotal = (itens) =&gt; {
+  return itens.reduce((soma, item) =&gt; soma + aplicarDesconto(item), 0);
+};
+
+const aplicarDesconto = (preco) =&gt; preco * 0.9;
+
+console.log(calcularTotal([10, 20]));
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Antes de rodar um bloco, o JavaScript registra todas as declarações dele: isso é o <strong>hoisting</strong> (içamento).</li>
+  <li><code>function nome() {}</code> é levantada inteira: dá para chamar antes da linha dela.</li>
+  <li><code>var</code> é levantado valendo <code>undefined</code>: sem erro, mas com valor errado. Mais um motivo para não usar <code>var</code>.</li>
+  <li><code>let</code>, <code>const</code> e <code>class</code> ficam na <strong>zona morta temporal</strong> até a linha da declaração: usar antes dá <code>ReferenceError: Cannot access '…' before initialization</code>.</li>
+  <li>Funções guardadas em variáveis (arrow functions, <code>const f = function …</code>) seguem as regras da variável.</li>
+  <li>O que importa é o <strong>momento em que a linha roda</strong>: declare antes de usar e chame o código principal no fim.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
