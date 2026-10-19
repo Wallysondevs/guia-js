@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Truthy e Falsy — o que o if considera verdadeiro | Guia JavaScript</title>
+<meta name="description" content="Truthy e falsy em JavaScript para quem nunca programou: os 8 valores falsos (false, 0, -0, 0n, texto vazio, null, undefined, NaN), por que &quot;0&quot;, &quot;false&quot;, [] e {} são verdadeiros, Boolean() e !!, testar se um texto ou uma lista está vazia, a armadilha do estoque 0, o || que troca o 0 e o ??, e o erro real do Node.js 24 ao testar a propriedade de undefined.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Truthy e Falsy</span></h1>
+
+<p class="intro">A condição de um <code>if</code> não precisa ser um booleano. Você pode escrever <code>if (nome)</code>, <code>if (quantidade)</code>, <code>if (lista.length)</code>, e o JavaScript decide sozinho se aquilo conta como verdadeiro ou falso. Os valores que contam como falso são chamados de <strong>falsy</strong> (em inglês, "falso-ish", "meio falso"); todos os outros são <strong>truthy</strong> ("meio verdadeiro"). A lista de falsy é curta, e vale a pena decorar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que acontece quando a condição do <code>if</code> não é <code>true</code> nem <code>false</code>.</li>
+  <li>Os <strong>8 valores falsy</strong> do JavaScript; todo o resto é truthy.</li>
+  <li>As surpresas: <code>"0"</code>, <code>"false"</code>, <code>" "</code>, <code>[]</code> e <code>{}</code> são truthy.</li>
+  <li>Como ver a decisão do JavaScript com <code>Boolean(valor)</code> e com <code>!!valor</code>.</li>
+  <li>Os usos do dia a dia: testar se um texto foi preenchido, se uma lista tem itens.</li>
+  <li>As armadilhas: o estoque 0 tratado como "não informado", o <code>||</code> que troca o 0, e comparar com <code>== true</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "tem alguma coisa aí?"</h2>
+<p>A Ana pergunta para o irmão: <em>"Tem leite na geladeira?"</em>. Ele não responde "sim" nem "não": ele responde <em>"tem meia caixa"</em>, ou <em>"tem zero"</em>, ou só dá de ombros. Mesmo assim, ela entende: meia caixa quer dizer "sim"; zero, nada ou o ombro quer dizer "não".</p>
+<p>O <code>if</code> faz a mesma coisa. Ele precisa de um sim ou não, mas aceita qualquer resposta e a "traduz": valores que dão a ideia de <strong>vazio, nada, zero</strong> viram <code>false</code>; o resto vira <code>true</code>.</p>
+
+<hr>
+
+<h2>1. Os 8 valores falsy</h2>
+<p>Esta é a lista completa. Qualquer valor que <strong>não</strong> esteja nela é truthy:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor falsy</th><th>O que é</th></tr>
+<tr><td><code>false</code></td><td>O próprio falso (veja <a href="booleanos.html">Booleanos</a>)</td></tr>
+<tr><td><code>0</code></td><td>O número zero</td></tr>
+<tr><td><code>-0</code></td><td>O "zero negativo", que existe no JavaScript (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>)</td></tr>
+<tr><td><code>0n</code></td><td>O zero do BigInt (veja <a href="bigint.html">BigInt</a>)</td></tr>
+<tr><td><code>""</code></td><td>O texto vazio (também <code>''</code> e <code>``</code>)</td></tr>
+<tr><td><code>null</code></td><td>"Nada", de propósito (veja <a href="null-undefined.html">null e undefined</a>)</td></tr>
+<tr><td><code>undefined</code></td><td>"Ainda não tem valor"</td></tr>
+<tr><td><code>NaN</code></td><td>"Não é um número", o resultado de uma conta que não deu certo</td></tr>
+</table>
+</div>
+
+<p>Para ver o que o <code>if</code> decide, use o <code>Boolean(valor)</code>: ele faz a mesma tradução e mostra o resultado (veja <a href="conversao.html">Conversão</a>).</p>
+
+<pre class="file" data-file="falsy.js">console.log(Boolean(false));
+console.log(Boolean(0));
+console.log(Boolean(-0));
+console.log(Boolean(0n));
+console.log(Boolean(""));
+console.log(Boolean(null));
+console.log(Boolean(undefined));
+console.log(Boolean(NaN));
+</pre>
+
+<pre class="term">$ node falsy.js
+false
+false
+false
+false
+false
+false
+false
+false
+</pre>
+
+<p>Os oito deram <code>false</code>. E dentro de um <code>if</code>:</p>
+
+<pre class="file" data-file="if-zero.js">const quantidade = 0;
+
+if (quantidade) {
+  console.log("Tem produto.");
+} else {
+  console.log("Não tem produto.");
+}
+</pre>
+
+<pre class="term">$ node if-zero.js
+Não tem produto.
+</pre>
+
+<p>O <code>0</code> é falsy, então o Node foi para o <code>else</code>, como se a condição fosse <code>false</code>.</p>
+
+<hr>
+
+<h2>2. Todo o resto é truthy, inclusive as surpresas</h2>
+<p>Números diferentes de zero, textos com pelo menos um caractere, listas e objetos (mesmo vazios): tudo isso é truthy. Algumas linhas desta tabela pegam muita gente:</p>
+
+<pre class="file" data-file="truthy.js">console.log(Boolean(42));
+console.log(Boolean(-1));
+console.log(Boolean("Ana"));
+console.log(Boolean("0"));
+console.log(Boolean("false"));
+console.log(Boolean(" "));
+console.log(Boolean([]));
+console.log(Boolean({}));
+console.log(Boolean(Infinity));
+</pre>
+
+<pre class="term">$ node truthy.js
+true
+true
+true
+true
+true
+true
+true
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>"0"</dt><dd>É um <strong>texto</strong> com um caractere, o dígito zero. Texto não vazio é truthy. Só o <strong>número</strong> <code>0</code> é falsy.</dd>
+  <dt>"false"</dt><dd>Também é um texto de 5 letras, não o booleano <code>false</code>. Truthy.</dd>
+  <dt>" "</dt><dd>Um espaço é um caractere: o texto não está vazio. Truthy.</dd>
+  <dt>[] e {}</dt><dd>Uma lista vazia (veja <a href="arrays.html">Arrays</a>) e um objeto vazio (veja <a href="objetos.html">Objetos</a>) são truthy. Em outras linguagens, como o Python, lista vazia é falsa; no JavaScript, não.</dd>
+</dl>
+
+<div class="tryjs" data-goal="outre:^false\n">
+<p class="try-task"><strong>Missão:</strong> troque o valor dentro do primeiro <code>Boolean(…)</code> por algum valor <strong>falsy</strong>, para a primeira linha da saída virar <code>false</code>. Depois teste outros valores, dos dois tipos.</p>
+<pre class="script" data-file="main.js">console.log(Boolean("0"));
+console.log(Boolean([]));
+</pre>
+<pre class="solucao" data-file="main.js">console.log(Boolean(0));
+console.log(Boolean([]));
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os usos do dia a dia</h2>
+
+<h3>O texto foi preenchido?</h3>
+<p>O jeito mais comum de usar truthy/falsy: saber se um texto não está vazio. A Ana pede o apelido no cadastro, que é opcional:</p>
+
+<pre class="file" data-file="apelido.js">const nome = "Beatriz";
+const apelido = "";
+
+if (apelido) {
+  console.log(`Oi, ${apelido}!`);
+} else {
+  console.log(`Oi, ${nome}!`);
+}
+</pre>
+
+<pre class="term">$ node apelido.js
+Oi, Beatriz!
+</pre>
+
+<p><code>if (apelido)</code> se lê "se tem apelido". Ele cobre de uma vez o texto vazio <code>""</code>, o <code>undefined</code> (o apelido nem foi informado) e o <code>null</code>.</p>
+
+<h3>A lista tem itens?</h3>
+<p>Como <code>[]</code> é truthy, <code>if (lista)</code> <strong>não</strong> serve para saber se a lista está vazia. Use o tamanho dela, o <code>length</code>: 0 é falsy, qualquer outro número é truthy.</p>
+
+<pre class="file" data-file="lista.js">const compras = [];
+
+if (compras) {
+  console.log("if (compras): entrou");
+}
+if (compras.length) {
+  console.log("if (compras.length): entrou");
+} else {
+  console.log("A lista de compras está vazia.");
+}
+</pre>
+
+<pre class="term">$ node lista.js
+if (compras): entrou
+A lista de compras está vazia.
+</pre>
+
+<hr>
+
+<h2>4. <code>!</code> e <code>!!</code></h2>
+<p>O "não" (<code>!</code>; veja <a href="operadores-logicos.html">Operadores Lógicos</a>) também traduz o valor antes de inverter. <code>!valor</code> dá <code>true</code> para os falsy. E dois "não" seguidos, <code>!!valor</code>, invertem duas vezes: o resultado é o mesmo do <code>Boolean(valor)</code>. Você vai ver muito <code>!!</code> em código dos outros:</p>
+
+<pre class="file" data-file="negacao.js">const apelido = "";
+console.log(!apelido);
+console.log(!!apelido);
+console.log(!!"Bia");
+
+if (!apelido) {
+  console.log("Sem apelido.");
+}
+</pre>
+
+<pre class="term">$ node negacao.js
+true
+false
+true
+Sem apelido.
+</pre>
+
+<p><code>if (!apelido)</code> se lê "se <strong>não</strong> tem apelido".</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Testar se o apelido foi preenchido pode ser escrito de forma <strong>curta</strong> (confiando no truthy) ou <strong>explícita</strong> (dizendo exatamente o que você quer):</p>
+
+<pre class="file" data-file="formas.js">const apelido = "Bia";
+
+if (apelido) console.log("1. curto");
+if (apelido !== "") console.log("2. diferente de vazio");
+if (apelido.length &gt; 0) console.log("3. tamanho maior que zero");
+if (Boolean(apelido)) console.log("4. Boolean()");
+</pre>
+
+<pre class="term">$ node formas.js
+1. curto
+2. diferente de vazio
+3. tamanho maior que zero
+4. Boolean()
+</pre>
+
+<p>Com <code>"Bia"</code> os quatro concordam. A diferença aparece com outros valores: com <code>undefined</code>, a forma 2 entra no bloco (<code>undefined</code> é diferente de <code>""</code>) e a forma 3 dá erro (veja <a href="#errado">Quando dá errado</a>). A forma 1 trata os três "vazios" (<code>""</code>, <code>undefined</code>, <code>null</code>) igual.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto preenchido ou não (vazio, <code>undefined</code> e <code>null</code> contam como "não")</td><td><code>if (texto)</code></td></tr>
+<tr><td>Lista com itens</td><td><code>if (lista.length &gt; 0)</code> ou <code>if (lista.length)</code></td></tr>
+<tr><td>Número que pode ser 0 de verdade (estoque, nota, preço)</td><td>Compare explicitamente: <code>if (estoque !== undefined)</code>, <code>if (nota &gt;= 0)</code></td></tr>
+<tr><td>Guardar a decisão numa variável booleana</td><td><code>Boolean(valor)</code> (mais legível) ou <code>!!valor</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Truthy e falsy quase nunca dão mensagem de erro: dão <strong>resultado errado</strong>, em silêncio. Por isso estes cenários merecem atenção.</p>
+
+<div class="cenario">
+<strong>O zero que "não existe"</strong>
+<p>A Ana mostra o estoque, ou um aviso se o estoque ainda não foi contado:</p>
+<pre class="file" data-file="estoque.js">const estoque = 0;
+
+if (estoque) {
+  console.log(`Estoque: ${estoque} unidades`);
+} else {
+  console.log("Estoque ainda não informado.");
+}
+</pre>
+<pre class="term">$ node estoque.js
+Estoque ainda não informado.
+</pre>
+<p>Mas o estoque <strong>foi</strong> informado: é zero, o produto acabou! O <code>if (estoque)</code> não distingue "não sei" (<code>undefined</code>) de "sei, e é zero" (<code>0</code>). <strong>Como consertar:</strong> quando o 0 é um valor válido, compare com o que você quer evitar: <code>if (estoque !== undefined)</code>. Assim, com 0 aparece <code>Estoque: 0 unidades</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>||</code> que troca o zero</strong>
+<p>Um atalho popular para "valor padrão" é o <code>||</code>: <code>a || b</code> dá <code>a</code> se <code>a</code> for truthy, senão <code>b</code> (veja <a href="operadores-logicos.html">Operadores Lógicos</a>). Ele cai na mesma armadilha:</p>
+<pre class="file" data-file="ou.js">const desconto = 0;
+console.log(desconto || 10);
+console.log(desconto ?? 10);
+</pre>
+<pre class="term">$ node ou.js
+10
+0
+</pre>
+<p>A Ana queria desconto zero, e o <code>||</code> trocou por 10, porque 0 é falsy. O <code>??</code> só troca <code>null</code> e <code>undefined</code>, e manteve o 0. <strong>Como consertar:</strong> para valor padrão, prefira <code>??</code>; ele tem aula própria em <a href="optional-chaining.html">?. e ??</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparar com <code>== true</code></strong>
+<pre class="file" data-file="igualtrue.js">const quantidade = 2;
+
+if (quantidade) {
+  console.log("if (quantidade): entrou");
+}
+if (quantidade == true) {
+  console.log("if (quantidade == true): entrou");
+}
+</pre>
+<pre class="term">$ node igualtrue.js
+if (quantidade): entrou
+</pre>
+<p>O 2 é truthy, mas <code>2 == true</code> é <code>false</code>: o <code>==</code> transforma o <code>true</code> no número <code>1</code> e compara <code>2</code> com <code>1</code> (é uma das pegadinhas de <a href="conversao-automatica.html">Conversão Automática</a>). "Ser truthy" e "ser igual a <code>true</code>" são coisas diferentes. <strong>Como consertar:</strong> nunca compare com <code>true</code> nem com <code>false</code>: escreva só <code>if (quantidade)</code> ou uma comparação de verdade, como <code>if (quantidade &gt; 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Testar a propriedade de algo que não existe</strong>
+<pre class="file" data-file="tamanho.js">let apelido;
+
+if (apelido.length &gt; 0) {
+  console.log(`Oi, ${apelido}!`);
+}
+</pre>
+<pre class="term">$ node tamanho.js
+/home/ana/tamanho.js:3
+if (apelido.length &gt; 0) {
+            ^
+
+TypeError: Cannot read properties of undefined (reading 'length')
+    at Object.&lt;anonymous&gt; (/home/ana/tamanho.js:3:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Este dá erro de verdade. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/tamanho.js:3</dt><dd>O erro aconteceu na linha 3.</dd>
+  <dt>if (apelido.length &gt; 0) {</dt><dd>A linha 3, com a setinha <code>^</code> embaixo do <code>length</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'length')</dt><dd>"Não é possível ler propriedades de <code>undefined</code> (lendo <code>'length'</code>)". O <code>apelido</code> foi criado sem valor, e <code>undefined</code> não tem <code>length</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/tamanho.js:3:13)</dt><dd>Linha 3, coluna 13 do seu arquivo: o lugar do <code>length</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> teste o valor antes, com o truthy: <code>if (apelido)</code> sozinho já basta, porque o texto vazio também é falsy. Ou, se precisar do tamanho, <code>if (apelido &amp;&amp; apelido.length &gt; 3)</code>: o <code>&amp;&amp;</code> nem olha o lado direito quando o esquerdo é falsy.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Estoque: 0 unidades;;src:!==">
+<p class="try-task"><strong>Missão:</strong> conserte o programa do estoque para mostrar <code>Estoque: 0 unidades</code>, trocando a condição por uma comparação com <code>!== undefined</code>.</p>
+<pre class="script" data-file="main.js">const estoque = 0;
+
+if (estoque) {
+  console.log(`Estoque: ${estoque} unidades`);
+} else {
+  console.log("Estoque ainda não informado.");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = 0;
+
+if (estoque !== undefined) {
+  console.log(`Estoque: ${estoque} unidades`);
+} else {
+  console.log("Estoque ainda não informado.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th>Falsy ou truthy?</th></tr>
+<tr><td><code>false</code>, <code>0</code>, <code>-0</code>, <code>0n</code>, <code>""</code>, <code>null</code>, <code>undefined</code>, <code>NaN</code></td><td><strong>falsy</strong> (são só esses 8)</td></tr>
+<tr><td><code>true</code>, <code>1</code>, <code>-1</code>, <code>3.14</code>, <code>Infinity</code></td><td>truthy</td></tr>
+<tr><td><code>"Ana"</code>, <code>"0"</code>, <code>"false"</code>, <code>" "</code></td><td>truthy (texto não vazio)</td></tr>
+<tr><td><code>[]</code>, <code>{}</code></td><td>truthy (mesmo vazios)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>if (valor)</code></td><td>Entra se o valor for truthy</td></tr>
+<tr><td><code>if (!valor)</code></td><td>Entra se o valor for falsy</td></tr>
+<tr><td><code>Boolean(valor)</code> / <code>!!valor</code></td><td>Mostra a decisão: <code>true</code> ou <code>false</code></td></tr>
+<tr><td><code>if (lista.length)</code></td><td>Entra se a lista tiver itens</td></tr>
+<tr><td><code>a || b</code></td><td><code>b</code> se <code>a</code> for falsy (troca até o 0 e o <code>""</code>)</td></tr>
+<tr><td><code>a ?? b</code></td><td><code>b</code> só se <code>a</code> for <code>null</code> ou <code>undefined</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<p>Escreva o que <code>console.log(Boolean("0"))</code> mostra:</p>
+<div class="ex-code"><input data-answer="true" aria-label="resposta"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E este?</h3>
+<p>O que <code>console.log(0 || "vazio")</code> mostra?</p>
+<div class="ex-code"><input data-answer="vazio" aria-label="resposta"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual destes valores é <strong>falsy</strong>?</p>
+<label><input type="radio" name="q3"> <code>"false"</code></label>
+<label><input type="radio" name="q3"> <code>[]</code></label>
+<label><input type="radio" name="q3"> <code>" "</code></label>
+<label><input type="radio" name="q3"> <code>NaN</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como saber se a lista <code>tarefas</code> está vazia?</p>
+<label><input type="radio" name="q4"> <code>if (!tarefas)</code></label>
+<label><input type="radio" name="q4"> <code>if (tarefas.length === 0)</code></label>
+<label><input type="radio" name="q4"> <code>if (tarefas == false)</code></label>
+<label><input type="radio" name="q4"> <code>if (tarefas === [])</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. A nota de uma aluna pode ser 0. Qual condição mostra a nota mesmo quando ela é 0, e só esconde quando não foi lançada (<code>undefined</code>)?</p>
+<label><input type="radio" name="q5"> <code>if (nota !== undefined)</code></label>
+<label><input type="radio" name="q5"> <code>if (nota)</code></label>
+<label><input type="radio" name="q5"> <code>if (!!nota)</code></label>
+<label><input type="radio" name="q5"> <code>if (nota || 0)</code></label>
+</div>
+
+<h3>Missão final: o recado</h3>
+
+<div class="tryjs" data-goal="out:Sem recados hoje.;;src:\bif\s*\(\s*!?\s*recado\b">
+<p class="try-task"><strong>Missão:</strong> o mural da padaria mostra o recado do dia, se houver. Escreva um <code>if … else</code> usando o próprio <code>recado</code> como condição (sem <code>===</code> nem <code>length</code>): se tiver recado, mostre <code>Recado: …</code>; senão, <code>Sem recados hoje.</code>. Com o recado vazio, deve aparecer <code>Sem recados hoje.</code>. Depois teste com um recado de verdade.</p>
+<pre class="script" data-file="main.js">const recado = "";
+
+// escreva o if … else aqui
+</pre>
+<pre class="solucao" data-file="main.js">const recado = "";
+
+if (recado) {
+  console.log(`Recado: ${recado}`);
+} else {
+  console.log("Sem recados hoje.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Quando a condição não é booleana, o JavaScript a traduz para <code>true</code> ou <code>false</code>.</li>
+  <li>Só 8 valores são <strong>falsy</strong>: <code>false</code>, <code>0</code>, <code>-0</code>, <code>0n</code>, <code>""</code>, <code>null</code>, <code>undefined</code> e <code>NaN</code>. Todo o resto é <strong>truthy</strong>, inclusive <code>"0"</code>, <code>"false"</code>, <code>" "</code>, <code>[]</code> e <code>{}</code>.</li>
+  <li><code>Boolean(valor)</code> e <code>!!valor</code> mostram a decisão; <code>!valor</code> a inverte.</li>
+  <li><code>if (texto)</code> testa se o texto foi preenchido; para listas, use <code>if (lista.length)</code>.</li>
+  <li>Cuidado com o 0 válido (estoque, nota, desconto): compare explicitamente e prefira <code>??</code> a <code>||</code> para valor padrão.</li>
+  <li>Nunca compare com <code>== true</code>: truthy não é o mesmo que igual a <code>true</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
