@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript require e module.exports — módulos CommonJS | Guia JavaScript</title>
+<meta name="description" content="Os módulos CommonJS do Node.js para quem nunca programou: require, module.exports, exports, .cjs e &quot;type&quot;: &quot;commonjs&quot;, require de JSON e de pastas, __dirname e __filename, o cache de módulos, misturar require e import no Node.js 24 e os erros reais (Cannot find module, MODULE_NOT_FOUND, exports = {}).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">require e module.exports</span></h1>
+
+<p class="intro">Na aula <a href="modulos.html">Módulos (import e export)</a>, você dividiu um programa em arquivos com <code>import</code> e <code>export</code>, o padrão oficial da linguagem. Só que o Node nasceu em 2009, seis anos <strong>antes</strong> de esse padrão existir. Para não esperar, ele criou o seu próprio sistema de módulos, o <strong>CommonJS</strong>, com duas palavras: <code>require</code> ("exigir", "requisitar") para trazer um módulo, e <code>module.exports</code> ("exportações do módulo") para oferecer. Milhões de pacotes e tutoriais usam esse jeito até hoje, e o <code>npm init</code> ainda cria projetos CommonJS. Por isso você precisa saber ler e escrever os dois.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como oferecer coisas com <code>module.exports</code> e trazê-las com <code>require("./arquivo")</code>.</li>
+  <li>O atalho <code>exports.nome</code>, a exportação de uma coisa só e a desestruturação no <code>require</code>.</li>
+  <li>Quando o Node usa CommonJS: <code>.cjs</code>, <code>"type": "commonjs"</code> e os <code>.js</code> sem <code>"type"</code>.</li>
+  <li>O que o <code>require</code> faz a mais: dispensa a extensão, lê pastas e arquivos <code>.json</code>.</li>
+  <li><code>__dirname</code> e <code>__filename</code>, e o cache (cada módulo roda uma vez só).</li>
+  <li>Como misturar CommonJS e módulos ES no Node 24.</li>
+  <li>Os erros reais: <code>Cannot find module</code>, o <code>exports = { }</code> que não funciona e o <code>module.exports</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>papelaria</code> com um <code>package.json</code> igual ao que o <code>npm init</code> cria (<code>"type": "commonjs"</code>). O <code>require</code> e o <code>module.exports</code> são <strong>só do Node</strong>: o navegador não os conhece.</p>
+
+<hr>
+
+<h2>A ideia: a mesma cozinha, outro balcão</h2>
+<p>Lembra da cozinha do restaurante da aula anterior? Cada bancada é um módulo, e o que vai para o balcão os outros podem usar. No CommonJS, a ideia é a mesma; muda o jeito de usar o balcão:</p>
+<ul>
+  <li>cada bancada tem <strong>uma bandeja</strong> só, chamada <code>module.exports</code>. Tudo o que ela quer oferecer, coloca nessa bandeja;</li>
+  <li>quem precisa vai até a bancada e diz <code>require("./molhos")</code>: "me dá a bandeja dos molhos". E recebe a bandeja inteira.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro módulo CommonJS</h2>
+<p>O <code>package.json</code> da pasta <code>papelaria</code>:</p>
+
+<pre class="file" data-file="package.json">{
+  "name": "papelaria",
+  "version": "1.0.0",
+  "type": "commonjs"
+}
+</pre>
+
+<p>O módulo das contas, que <strong>põe na bandeja</strong> três coisas:</p>
+
+<pre class="file" data-file="contas.js">function somar(a, b) {
+  return a + b;
+}
+
+function aplicarDesconto(preco, porcento) {
+  return preco - (preco * porcento) / 100;
+}
+
+const TAXA_ENTREGA = 7.5;
+
+function arredondar(valor) {
+  return Math.round(valor * 100) / 100;
+}
+
+module.exports = { somar, aplicarDesconto, TAXA_ENTREGA };
+</pre>
+
+<p>E o programa principal, que <strong>pega a bandeja</strong>:</p>
+
+<pre class="file" data-file="main.js">const contas = require("./contas.js");
+
+const subtotal = contas.somar(30, 20);
+const comDesconto = contas.aplicarDesconto(subtotal, 10);
+console.log(`Subtotal: R$ ${subtotal}`);
+console.log(`Com desconto: R$ ${comDesconto}`);
+console.log(`Com entrega: R$ ${comDesconto + contas.TAXA_ENTREGA}`);
+console.log(contas);
+</pre>
+
+<pre class="term">$ cd papelaria
+$ node main.js
+Subtotal: R$ 50
+Com desconto: R$ 45
+Com entrega: R$ 52.5
+{
+  somar: [Function: somar],
+  aplicarDesconto: [Function: aplicarDesconto],
+  TAXA_ENTREGA: 7.5
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>module.exports = { somar, aplicarDesconto, TAXA_ENTREGA }</dt><dd>A bandeja: um <a href="objetos.html">objeto</a> com o que o módulo oferece. <code>{ somar }</code> é o atalho de <code>{ somar: somar }</code>. Costuma ficar no <strong>fim</strong> do arquivo, depois de tudo estar criado.</dd>
+  <dt>function arredondar (fora da bandeja)</dt><dd>Fica <strong>privada</strong>: só o <code>contas.js</code> enxerga.</dd>
+  <dt>require("./contas.js")</dt><dd>Roda o <code>contas.js</code> (na primeira vez) e <strong>devolve</strong> o <code>module.exports</code> dele. O <code>./</code> quer dizer "nesta pasta".</dd>
+  <dt>const contas = …</dt><dd>A bandeja recebida vai para uma variável comum. Você escolhe o nome.</dd>
+  <dt>contas.somar(30, 20)</dt><dd>Usa o que está na bandeja, com ponto.</dd>
+  <dt>console.log(contas)</dt><dd>Mostra que o que chegou é só um objeto com as três coisas. Repare: nada de <code>arredondar</code>.</dd>
+</dl>
+
+<p>Compare com a versão de módulo ES da aula anterior: <code>export</code> na frente de cada função virou <strong>uma</strong> linha de <code>module.exports</code> no fim; <code>import { … } from</code> virou <code>const … = require(…)</code>. O resultado é o mesmo.</p>
+
+<div class="tryjs" data-goal="out:Troco: R$ 8;;semerro">
+<p class="try-task"><strong>Missão:</strong> na aba <code>contas.js</code>, crie uma função <code>subtrair(a, b)</code> e coloque-a no <code>module.exports</code>. A aba <code>main.js</code> já a usa. O programa deve mostrar <code>Troco: R$ 8</code>.</p>
+<pre class="script" data-file="main.js">const contas = require("./contas.js");
+
+const total = contas.somar(30, 12);
+const troco = contas.subtrair(50, total);
+console.log(`Troco: R$ ${troco}`);
+</pre>
+<pre class="script" data-file="contas.js">function somar(a, b) {
+  return a + b;
+}
+
+module.exports = { somar };
+</pre>
+<pre class="solucao" data-file="contas.js">function somar(a, b) {
+  return a + b;
+}
+
+function subtrair(a, b) {
+  return a - b;
+}
+
+module.exports = { somar, subtrair };
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Outras formas de exportar e de receber</h2>
+
+<h3>Desestruturar no <code>require</code></h3>
+<p>Se você só quer algumas coisas da bandeja, pegue-as direto, com a <a href="desestruturacao.html">desestruturação</a>. É o jeito mais parecido com o <code>import { … }</code>:</p>
+
+<pre class="file" data-file="desestruturar.js">const { somar, TAXA_ENTREGA } = require("./contas");
+console.log(somar(1, 2), TAXA_ENTREGA);
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node desestruturar.js
+3 7.5
+</pre>
+
+<p>Repare que aqui o caminho foi <code>"./contas"</code>, <strong>sem</strong> o <code>.js</code>, e funcionou: o <code>require</code> tenta a extensão sozinho (seção 4).</p>
+
+<h3>O atalho <code>exports.nome</code></h3>
+<p>Em vez de montar a bandeja no fim, dá para ir colocando uma coisa de cada vez com <code>exports.nome = …</code>:</p>
+
+<pre class="file" data-file="exports.js">exports.saudar = function (nome) {
+  return `Olá, ${nome}!`;
+};
+exports.despedir = (nome) =&gt; `Tchau, ${nome}!`;
+</pre>
+
+<pre class="file" data-file="usa-exports.js">const mensagens = require("./exports");
+console.log(mensagens);
+console.log(mensagens.saudar("Ana"));
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node usa-exports.js
+{ saudar: [Function (anonymous)], despedir: [Function (anonymous)] }
+Olá, Ana!
+</pre>
+
+<p>O <code>exports</code> é um apelido para a mesma bandeja (<code>module.exports</code>). Colocar coisas <strong>nela</strong> com ponto funciona; trocar a bandeja inteira com <code>exports = …</code> <strong>não</strong> funciona (veja <a href="#errado">Quando dá errado</a>). O <code>(anonymous)</code> ("anônima") aparece porque essas funções foram criadas sem nome próprio.</p>
+
+<h3>Exportar uma coisa só</h3>
+<p>Quando o módulo oferece uma única função (ou classe), ela pode <strong>ser</strong> a bandeja:</p>
+
+<pre class="file" data-file="saudar.js">module.exports = function saudar(nome) {
+  return `Olá, ${nome}!`;
+};
+</pre>
+
+<pre class="file" data-file="usa-saudar.js">const saudar = require("./saudar");
+console.log(saudar("Bia"));
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node usa-saudar.js
+Olá, Bia!
+</pre>
+
+<p>Agora o <code>require</code> devolve a <strong>própria função</strong>, que você chama direto. É o equivalente do <code>export default</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No módulo</th><th>Quem usa escreve</th></tr>
+<tr><td><code>module.exports = { somar, TAXA };</code></td><td><code>const contas = require("./contas");</code> e <code>contas.somar()</code><br>ou <code>const { somar, TAXA } = require("./contas");</code></td></tr>
+<tr><td><code>exports.somar = …;</code> (uma linha para cada)</td><td>Igual ao de cima</td></tr>
+<tr><td><code>module.exports = function saudar() {};</code></td><td><code>const saudar = require("./saudar");</code> e <code>saudar()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Quando o Node usa CommonJS?</h2>
+<p>São as mesmas regras da aula anterior, olhando do outro lado:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Arquivo</th><th>O Node trata como</th></tr>
+<tr><td><code>arquivo.cjs</code></td><td>CommonJS, sempre</td></tr>
+<tr><td><code>arquivo.js</code> com <code>"type": "commonjs"</code> no <code>package.json</code> (o que o <code>npm init</code> cria)</td><td>CommonJS</td></tr>
+<tr><td><code>arquivo.js</code> sem <code>"type"</code> e sem <code>import</code>/<code>export</code></td><td>CommonJS</td></tr>
+<tr><td><code>arquivo.js</code> com <code>"type": "module"</code>, ou <code>.mjs</code></td><td>Módulo ES (lá, <code>require</code> não existe)</td></tr>
+</table>
+</div>
+
+<p>Num projeto <code>"type": "module"</code>, se um arquivo precisar ser CommonJS, dê a ele a extensão <code>.cjs</code>.</p>
+
+<hr>
+
+<h2>4. O que o <code>require</code> faz a mais</h2>
+
+<h3>Adivinha a extensão e lê pastas</h3>
+<p>Com <code>require("./contas")</code>, o Node procura <code>contas</code>, depois <code>contas.js</code>, <code>contas.json</code>… E se <code>./utils</code> for uma <strong>pasta</strong>, ele procura o arquivo <code>index.js</code> dentro dela:</p>
+
+<pre class="file" data-file="utils/index.js">module.exports = { versao: "1.0" };
+</pre>
+
+<pre class="file" data-file="pasta.js">const utils = require("./utils");
+console.log(utils);
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node pasta.js
+{ versao: '1.0' }
+</pre>
+
+<p>Os módulos ES não fazem nenhuma dessas adivinhações: lá, o caminho tem de ser o do arquivo, com extensão (<code>"./utils/index.js"</code>).</p>
+
+<h3>Lê arquivos JSON</h3>
+
+<pre class="file" data-file="precos.json">{ "pão": 0.75, "leite": 5.49 }
+</pre>
+
+<pre class="file" data-file="json.js">const precos = require("./precos.json");
+console.log(precos);
+console.log(precos["leite"]);
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node json.js
+{ 'pão': 0.75, leite: 5.49 }
+5.49
+</pre>
+
+<p>O <code>require</code> de um <code>.json</code> lê o arquivo e já entrega o objeto pronto, sem <code>JSON.parse</code> (veja <a href="json.html">JSON</a>). Prático para arquivos de configuração que não mudam enquanto o programa roda.</p>
+
+<h3>Os módulos do Node, <code>__dirname</code> e <code>__filename</code></h3>
+
+<pre class="file" data-file="nativo.js">const fs = require("node:fs");
+const path = require("node:path");
+console.log(__filename);
+console.log(__dirname);
+console.log(path.join(__dirname, "precos.json"));
+console.log(fs.existsSync(path.join(__dirname, "precos.json")));
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node nativo.js
+/home/ana/papelaria/nativo.js
+/home/ana/papelaria
+/home/ana/papelaria/precos.json
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>require("node:fs")</dt><dd>Os módulos do Node vêm do mesmo jeito, pelo nome (aulas <a href="fs-ler.html">Lendo Arquivos</a> e <a href="path.html">Caminhos de Arquivo</a>).</dd>
+  <dt>__filename · __dirname</dt><dd>O caminho completo do arquivo que está rodando, e o da pasta dele. Existem em todo arquivo CommonJS, sem importar nada. (Nos módulos ES, são <code>import.meta.filename</code> e <code>import.meta.dirname</code>.)</dd>
+  <dt>path.join(__dirname, "precos.json")</dt><dd>Monta o caminho de um arquivo que está <strong>ao lado</strong> do programa, não importa de qual pasta você rodou o <code>node</code>.</dd>
+</dl>
+
+<h3>Cada módulo roda uma vez só</h3>
+
+<pre class="file" data-file="contador.js">console.log("contador.js rodou");
+let visitas = 0;
+module.exports = {
+  visitar() {
+    visitas++;
+    return visitas;
+  },
+};
+</pre>
+
+<pre class="file" data-file="umavez.js">const a = require("./contador");
+const b = require("./contador");
+console.log(a.visitar(), b.visitar());
+console.log(a === b);
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node umavez.js
+contador.js rodou
+1 2
+true
+</pre>
+
+<p>Igual aos módulos ES: o segundo <code>require</code> não roda o arquivo de novo, entrega a <strong>mesma</strong> bandeja (<code>a === b</code> é <code>true</code>). Por isso o contador chegou a 2. O Node guarda os módulos já carregados num <strong>cache</strong> ("depósito").</p>
+
+<hr>
+
+<h2>5. Misturando CommonJS e módulos ES</h2>
+<p>Num projeto de verdade, é comum um lado precisar usar o outro. No Node 24, as duas direções funcionam:</p>
+
+<pre class="file" data-file="modulo-esm.mjs">export function triplicar(n) {
+  return n * 3;
+}
+</pre>
+
+<pre class="file" data-file="require-esm.js">const { triplicar } = require("./modulo-esm.mjs");
+console.log(triplicar(4));
+</pre>
+
+<pre class="file" data-file="importa-cjs.mjs">import contas from "./contas.js";
+import { somar } from "./contas.js";
+console.log(contas.TAXA_ENTREGA, somar(2, 2));
+</pre>
+
+<pre class="term" data-cwd="~/papelaria">$ node require-esm.js
+12
+$ node importa-cjs.mjs
+7.5 4
+</pre>
+
+<ul>
+  <li><strong>CommonJS usando módulo ES</strong>: o <code>require</code> de um módulo ES funciona sem nenhuma opção desde o Node 22.12 e foi declarado estável no Node 24.15. (A exceção: módulos ES que usam <code>await</code> no topo não podem ser carregados com <code>require</code>.) Em tutoriais antigos, você vai ler que isso "não funciona": era verdade até 2024.</li>
+  <li><strong>Módulo ES usando CommonJS</strong>: o <code>import padrao from</code> recebe a bandeja inteira (o <code>module.exports</code>); o <code>import { somar } from</code> também funciona na maioria dos casos, porque o Node lê o arquivo e descobre os nomes que ele exporta.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">CommonJS × módulos ES</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>CommonJS</th><th>Módulos ES</th></tr>
+<tr><td>Trazer</td><td><code>const x = require("./a")</code></td><td><code>import x from "./a.js"</code></td></tr>
+<tr><td>Trazer alguns nomes</td><td><code>const { f } = require("./a")</code></td><td><code>import { f } from "./a.js"</code></td></tr>
+<tr><td>Oferecer vários</td><td><code>module.exports = { f, g }</code> ou <code>exports.f = …</code></td><td><code>export function f…</code></td></tr>
+<tr><td>Oferecer um só</td><td><code>module.exports = f</code></td><td><code>export default f</code></td></tr>
+<tr><td>Extensão no caminho</td><td>Opcional</td><td>Obrigatória</td></tr>
+<tr><td>Onde pode ficar</td><td>Em qualquer lugar (até dentro de um <code>if</code>)</td><td>Só no topo do arquivo</td></tr>
+<tr><td>Caminho do arquivo</td><td><code>__filename</code>, <code>__dirname</code></td><td><code>import.meta.filename</code>, <code>import.meta.dirname</code></td></tr>
+<tr><td><code>await</code> no topo</td><td>Não</td><td>Sim</td></tr>
+<tr><td>Modo estrito</td><td>Só com <code>"use strict"</code></td><td>Sempre</td></tr>
+<tr><td>Navegador</td><td>Não</td><td>Sim</td></tr>
+<tr><td>Extensão própria</td><td><code>.cjs</code></td><td><code>.mjs</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Projeto novo</td><td>Módulos ES (<code>"type": "module"</code>): é o padrão da linguagem e serve também no navegador</td></tr>
+<tr><td>Projeto que já é CommonJS (<code>require</code> por toda parte)</td><td>Continue com CommonJS; misturar arquivo por arquivo funciona, mas confunde</td></tr>
+<tr><td>Ler um tutorial ou pacote antigo</td><td>Saiba traduzir: <code>require</code> ↔ <code>import</code>, <code>module.exports</code> ↔ <code>export</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>exports = { … }</code></strong>
+<pre class="file" data-file="ruim-exports.js">exports = { somar: (a, b) =&gt; a + b };
+</pre>
+<pre class="file" data-file="usa-ruim.js">const ruim = require("./ruim-exports");
+console.log(ruim);
+console.log(ruim.somar(1, 2));
+</pre>
+<pre class="term" data-cwd="~/papelaria">$ node usa-ruim.js
+{}
+/home/ana/papelaria/usa-ruim.js:3
+console.log(ruim.somar(1, 2));
+                 ^
+
+TypeError: ruim.somar is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/papelaria/usa-ruim.js:3:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>require</code> devolveu <code>{}</code>, uma bandeja vazia. O <code>exports</code> é só um <strong>apelido</strong> que aponta para a bandeja. Com <code>exports = { … }</code>, você fez o apelido apontar para outro objeto, mas a bandeja que o Node entrega, o <code>module.exports</code>, continuou vazia (é a mesma ideia de <a href="objetos-referencia.html">Objetos são Referências</a>). <strong>Como consertar:</strong> <code>module.exports = { somar: … };</code> ou <code>exports.somar = …;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>module.exports</code></strong>
+<pre class="file" data-file="esqueceu.js">function dobrar(n) {
+  return n * 2;
+}
+</pre>
+<pre class="file" data-file="usa-esqueceu.js">const { dobrar } = require("./esqueceu");
+console.log(dobrar(5));
+</pre>
+<pre class="term" data-cwd="~/papelaria">$ node usa-esqueceu.js
+/home/ana/papelaria/usa-esqueceu.js:2
+console.log(dobrar(5));
+            ^
+
+TypeError: dobrar is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/papelaria/usa-esqueceu.js:2:13)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Sem <code>module.exports</code>, a bandeja é um objeto vazio. A desestruturação <code>{ dobrar }</code> não achou nada e deu <code>undefined</code>; chamar <code>undefined</code> dá "<code>dobrar</code> não é uma função". Diferente dos módulos ES (que avisam <code>does not provide an export named</code>), o CommonJS <strong>não</strong> reclama no <code>require</code>: o erro só aparece quando você usa. O mesmo acontece ao chamar algo privado: <code>contas.arredondar(2.555)</code> dá <code>TypeError: contas.arredondar is not a function</code>. <strong>Como consertar:</strong> <code>module.exports = { dobrar };</code> no fim do <code>esqueceu.js</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo não foi encontrado</strong>
+<pre class="file" data-file="naoachou.js">const contas = require("./conta");
+</pre>
+<pre class="term" data-cwd="~/papelaria">$ node naoachou.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module './conta'
+Require stack:
+- /home/ana/papelaria/naoachou.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+    at Module._load (node:internal/modules/cjs/loader:1341:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.require (node:internal/modules/cjs/loader:1674:12)
+    at require (node:internal/modules/helpers:157:16)
+    at Object.&lt;anonymous&gt; (/home/ana/papelaria/naoachou.js:1:16)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/ana/papelaria/naoachou.js' ]
+}
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha, o que importa:</p>
+<dl class="anatomy">
+  <dt>node:internal/modules/cjs/loader:1568 e throw err;</dt><dd>O lugar, <strong>dentro do Node</strong>, onde o erro foi lançado. Não é o seu código: pule.</dd>
+  <dt>Error: Cannot find module './conta'</dt><dd>"Não achei o módulo <code>./conta</code>". O nome está errado: o arquivo é <code>contas.js</code>.</dd>
+  <dt>Require stack: - /home/ana/papelaria/naoachou.js</dt><dd>A "pilha de <code>require</code>": quem pediu o módulo. Aqui, o <code>naoachou.js</code>. Quando um módulo pede outro, que pede outro, a lista mostra a corrente inteira.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/papelaria/naoachou.js:1:16)</dt><dd>A sua linha, no meio das linhas do Node: linha 1, coluna 16.</dd>
+  <dt>code: 'MODULE_NOT_FOUND'</dt><dd>O código do erro, "módulo não encontrado", para um <code>catch</code> testar (veja <a href="try-catch.html">try … catch</a>).</dd>
+</dl>
+<p>Sem o <code>./</code> (<code>require("contas")</code>), a mensagem é a mesma, com <code>Cannot find module 'contas'</code>: o Node procurou um <strong>pacote</strong> com esse nome na pasta <code>node_modules</code> (aula <a href="npm.html">npm</a>) e não achou. <strong>Como consertar:</strong> confira o nome do arquivo e use <code>./</code> para arquivos seus.</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou <code>import</code> num arquivo CommonJS</strong>
+<pre class="file" data-file="import-em-cjs.js">const contas = require("./contas");
+import fs from "node:fs";
+</pre>
+<pre class="term" data-cwd="~/papelaria">$ node import-em-cjs.js
+(node:113) Warning: Failed to load the ES module: /home/ana/papelaria/import-em-cjs.js. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+/home/ana/papelaria/import-em-cjs.js:2
+import fs from "node:fs";
+^^^^^^
+
+SyntaxError: Cannot use import statement outside a module
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Um arquivo é de um sistema <strong>ou</strong> do outro. Como o projeto é <code>"type": "commonjs"</code>, o <code>import</code> não é aceito. <strong>Como consertar:</strong> fique com um só: <code>const fs = require("node:fs");</code>. (O erro contrário, <code>require</code> num módulo ES, é <code>ReferenceError: require is not defined in ES module scope</code>; veja <a href="modulos.html">Módulos</a>.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>module.exports = { a, b };</code></td><td>Oferece um objeto com <code>a</code> e <code>b</code></td></tr>
+<tr><td><code>exports.a = …;</code></td><td>Acrescenta <code>a</code> à bandeja (nunca <code>exports = …</code>)</td></tr>
+<tr><td><code>module.exports = funcao;</code></td><td>O módulo oferece uma coisa só</td></tr>
+<tr><td><code>const m = require("./arquivo");</code></td><td>Roda o arquivo (uma vez) e devolve o <code>module.exports</code></td></tr>
+<tr><td><code>const { a } = require("./arquivo");</code></td><td>Pega só alguns nomes</td></tr>
+<tr><td><code>require("./pasta")</code></td><td>Carrega <code>./pasta/index.js</code></td></tr>
+<tr><td><code>require("./dados.json")</code></td><td>Lê o JSON e devolve o objeto</td></tr>
+<tr><td><code>require("node:fs")</code></td><td>Módulo do Node (ou pacote, sem <code>./</code>)</td></tr>
+<tr><td><code>__filename</code> · <code>__dirname</code></td><td>Caminho do arquivo · da pasta</td></tr>
+<tr><td><code>.cjs</code> · <code>"type": "commonjs"</code></td><td>Diz ao Node que é CommonJS</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>require</code> devolve <code>{}</code></td><td>Faltou <code>module.exports</code>, ou escreveu <code>exports = …</code></td></tr>
+<tr><td><code>TypeError: x is not a function</code> logo depois do <code>require</code></td><td>O nome não está na bandeja (privado, esquecido ou escrito diferente)</td></tr>
+<tr><td><code>Error: Cannot find module './x'</code> + <code>MODULE_NOT_FOUND</code></td><td>Nome ou pasta do arquivo errado</td></tr>
+<tr><td><code>Error: Cannot find module 'x'</code></td><td>Faltou o <code>./</code>, ou o pacote não foi instalado</td></tr>
+<tr><td><code>Cannot use import statement outside a module</code></td><td><code>import</code> num arquivo CommonJS</td></tr>
+<tr><td><code>require is not defined in ES module scope</code></td><td><code>require</code> num módulo ES</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para oferecer a função no módulo e usá-la no programa:</p>
+<div class="ex-code">// cores.js<br>function misturar(a, b) { return `${a} com ${b}`; }<br><input data-answer="module.exports" aria-label="o que recebe as exportações"> = { misturar };<br><br>// main.js<br>const { misturar } = <input data-answer="require" aria-label="função que carrega o módulo">("./cores");</div>
+</div>
+
+<div class="exercise">
+<h3>2. A extensão</h3>
+<p>Qual extensão de arquivo diz ao Node "isto é CommonJS", mesmo num projeto <code>"type": "module"</code>? (Escreva com o ponto.)</p>
+<div class="ex-code"><input data-answer=".cjs" aria-label="extensão"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>require("./contas")</code> devolve?</p>
+<label><input type="radio" name="q3"> O texto do arquivo <code>contas.js</code></label>
+<label><input type="radio" name="q3"> Sempre um array</label>
+<label><input type="radio" name="q3"> O que o <code>contas.js</code> colocou em <code>module.exports</code></label>
+<label><input type="radio" name="q3"> Todas as funções do arquivo, exportadas ou não</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um módulo tem só a linha <code>exports = { somar };</code>. O que o <code>require</code> dele devolve?</p>
+<label><input type="radio" name="q4"> <code>{ somar: [Function: somar] }</code></label>
+<label><input type="radio" name="q4"> <code>{}</code></label>
+<label><input type="radio" name="q4"> Um <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destas é verdade sobre CommonJS no Node 24?</p>
+<label><input type="radio" name="q5"> Funciona no navegador</label>
+<label><input type="radio" name="q5"> O <code>require</code> só pode ficar no topo do arquivo</label>
+<label><input type="radio" name="q5"> A extensão <code>.js</code> no <code>require</code> é obrigatória</label>
+<label><input type="radio" name="q5"> Um projeto criado com <code>npm init</code> usa CommonJS (<code>"type": "commonjs"</code>)</label>
+</div>
+
+<h3>Missão final: traduzindo para CommonJS</h3>
+
+<div class="tryjs" data-goal="out:Itens em estoque: 52;;semerro;;src:module\.exports;;src:require\(">
+<p class="try-task"><strong>Missão:</strong> a Ana copiou um módulo de um tutorial de módulos ES, mas o projeto dela é CommonJS. Traduza as duas abas: no <code>estoque.js</code>, tire os <code>export</code> e ponha um <code>module.exports</code> no fim; no <code>main.js</code>, troque o <code>import</code> por um <code>require</code>. O resultado deve ser <code>Itens em estoque: 52</code>.</p>
+<pre class="script" data-file="main.js">import { produtos, totalItens } from "./estoque.js";
+
+console.log(`Produtos: ${produtos.length}`);
+console.log(`Itens em estoque: ${totalItens()}`);
+</pre>
+<pre class="script" data-file="estoque.js">export const produtos = [
+  { nome: "caneta", qtd: 40 },
+  { nome: "caderno", qtd: 12 },
+];
+
+export function totalItens() {
+  return produtos.reduce((soma, p) =&gt; soma + p.qtd, 0);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const { produtos, totalItens } = require("./estoque.js");
+
+console.log(`Produtos: ${produtos.length}`);
+console.log(`Itens em estoque: ${totalItens()}`);
+</pre>
+<pre class="solucao" data-file="estoque.js">const produtos = [
+  { nome: "caneta", qtd: 40 },
+  { nome: "caderno", qtd: 12 },
+];
+
+function totalItens() {
+  return produtos.reduce((soma, p) =&gt; soma + p.qtd, 0);
+}
+
+module.exports = { produtos, totalItens };
+</pre>
+</div>
+
+<p>Repare: o código inicial <strong>funciona</strong> na caixa, porque ela não tem <code>package.json</code> e o Node 24 detecta o <code>import</code> (seção 3 da aula <a href="modulos.html">Módulos</a>). A missão só é cumprida quando as duas abas estão em CommonJS.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>CommonJS é o sistema de módulos original do Node: <code>module.exports</code> oferece, <code>require</code> traz. Só existe no Node.</li>
+  <li><code>module.exports = { a, b }</code> (ou <code>exports.a = …</code>, nunca <code>exports = …</code>); <code>module.exports = f</code> para uma coisa só.</li>
+  <li><code>const m = require("./arquivo")</code> ou <code>const { a } = require(…)</code>. O que não está na bandeja é privado, e o erro só aparece quando você tenta usar.</li>
+  <li>O <code>require</code> dispensa a extensão, carrega <code>pasta/index.js</code> e lê <code>.json</code>. <code>__dirname</code> e <code>__filename</code> dão o caminho do arquivo.</li>
+  <li>CommonJS: <code>.cjs</code>, <code>"type": "commonjs"</code> (o padrão do <code>npm init</code>) ou <code>.js</code> sem <code>import</code>/<code>export</code>.</li>
+  <li>No Node 24, CommonJS e módulos ES se usam um ao outro; mas cada arquivo é de um sistema só. Para projetos novos, prefira módulos ES.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
