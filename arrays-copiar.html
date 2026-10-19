@@ -331,6 +331,7 @@ Node.js v24.22.0
   <dt>at Object.&lt;anonymous&gt; (/home/ana/clone-funcao.js:4:15)</dt><dd>A primeira linha da pilha com <code>/home/ana</code>: é <strong>aqui</strong> que está o seu código, linha 4, a do <code>structuredClone</code>. Quando a mensagem começar no código do Node, procure na pilha a primeira linha com o nome do seu arquivo.</dd>
 </dl>
 <p><strong>Como consertar:</strong> copie só os dados (as funções podem ficar fora do array, ou ser postas de volta depois). Objetos com métodos (aula <a href="objetos-metodos.html">Métodos e this</a>) não combinam com <code>structuredClone</code>.</p>
+<p>No editor do guia, que roda no seu navegador, a mesma tentativa dá o mesmo <code>DataCloneError</code>, mas com o texto do navegador: <code>Failed to execute 'structuredClone' on 'WorkerGlobalScope': () =&gt; console.log("feito!") could not be cloned.</code>, e o <code>^</code> já aponta para a linha 4 do seu arquivo.</p>
 </div>
 
 <div class="cenario">
