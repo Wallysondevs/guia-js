@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript filter — ficando só com os itens que obedecem a uma regra | Guia JavaScript</title>
+<meta name="description" content="O método filter do JavaScript para quem nunca programou: criar um array novo só com os itens para os quais a função responde true (notas aprovadas, preços acima de um valor, nomes com uma letra), o original que não muda, contar com filter().length, tirar um item pelo valor, tirar repetidos, encadear filter e map, filter × find, e os erros reais do Node.js 24 (= no lugar de ===, chaves sem return).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">filter: Filtrando</span></h1>
+
+<p class="intro">A professora quer a lista só dos alunos que passaram. A padaria quer saber quais produtos custam mais de R$ 10. A Ana quer tirar da lista de compras tudo o que já comprou. Nos três casos, a ideia é a mesma: passar o array por um <strong>filtro</strong> e ficar só com os itens que obedecem a uma regra. O método que faz isso se chama, justamente, <code>filter</code> (em inglês, "filtrar").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>filter</code> cria um array novo só com os itens para os quais a sua função responde <code>true</code>.</li>
+  <li>Que o original não muda, e que o resultado pode ter menos itens, ou nenhum.</li>
+  <li>A contar quantos obedecem com <code>filter(…).length</code>.</li>
+  <li>A tirar um item pelo valor, e a tirar itens repetidos.</li>
+  <li>A emendar <code>filter</code> e <code>map</code>: primeiro escolher, depois transformar.</li>
+  <li>Quando usar <code>filter</code> e quando usar <code>find</code>.</li>
+  <li>Os erros reais mais comuns: o <code>=</code> no lugar do <code>===</code>, as chaves sem <code>return</code> e o <code>filter</code> numa string.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a peneira</h2>
+<p>A Ana está fazendo um bolo e passa a farinha pela peneira. O que é fino passa e cai na tigela; os grumos ficam presos. No fim, a tigela tem <strong>só</strong> a farinha que passou, e nada foi transformado: cada grão que caiu é o mesmo que entrou.</p>
+<ul>
+  <li>A farinha antes de peneirar é o array original.</li>
+  <li>A peneira é a <strong>função</strong> que você escreve: para cada item, ela responde "passa" (<code>true</code>) ou "não passa" (<code>false</code>).</li>
+  <li>A tigela é o array novo que o <code>filter</code> devolve.</li>
+</ul>
+<p>Compare com o <a href="map.html">map</a>, da aula anterior: o <code>map</code> é a máquina de suco (todo item entra e sai <strong>transformado</strong>; mesmo tamanho). O <code>filter</code> é a peneira (os itens saem <strong>iguais</strong>, mas nem todos saem).</p>
+
+<hr>
+
+<h2>1. O primeiro <code>filter</code></h2>
+
+<pre class="file" data-file="aprovadas.js">const notas = [7.5, 5, 9, 4, 6, 10];
+const aprovadas = notas.filter((nota) =&gt; nota &gt;= 6);
+console.log(aprovadas);
+console.log(notas);
+</pre>
+
+<dl class="anatomy">
+  <dt>notas.filter( … )</dt><dd>"Filtre <code>notas</code>": para cada item, pergunte à função se ele fica.</dd>
+  <dt>(nota) =&gt; nota &gt;= 6</dt><dd>A "peneira": uma <a href="arrow-functions.html">arrow function</a> que recebe <strong>uma</strong> nota e devolve <code>true</code> ou <code>false</code>. Aqui, "a nota é maior ou igual a 6?". É a mesma forma de função que você usou no <a href="arrays-buscar.html">find</a>.</dd>
+  <dt>const aprovadas = …</dt><dd>O <code>filter</code> devolve um <strong>array novo</strong> com os itens que receberam <code>true</code>, na mesma ordem em que estavam.</dd>
+</dl>
+
+<pre class="term">$ node aprovadas.js
+[ 7.5, 9, 6, 10 ]
+[ 7.5, 5, 9, 4, 6, 10 ]
+</pre>
+
+<p>O que o <code>filter</code> fez, item por item:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>nota</code></th><th><code>nota &gt;= 6</code></th><th>Vai para <code>aprovadas</code>?</th></tr>
+<tr><td>7.5</td><td><code>true</code></td><td>Sim</td></tr>
+<tr><td>5</td><td><code>false</code></td><td>Não</td></tr>
+<tr><td>9</td><td><code>true</code></td><td>Sim</td></tr>
+<tr><td>4</td><td><code>false</code></td><td>Não</td></tr>
+<tr><td>6</td><td><code>true</code></td><td>Sim</td></tr>
+<tr><td>10</td><td><code>true</code></td><td>Sim</td></tr>
+</table>
+</div>
+
+<p>De 6 notas, 4 passaram. E o <code>notas</code> continua com as 6: como o <code>map</code>, o <code>filter</code> nunca mexe no original.</p>
+
+<h3>Quando ninguém passa, ou todos passam</h3>
+
+<pre class="file" data-file="nenhum.js">const notas = [7.5, 8, 9];
+console.log(notas.filter((nota) =&gt; nota &lt; 6));
+console.log(notas.filter((nota) =&gt; nota &gt; 0));
+</pre>
+
+<pre class="term">$ node nenhum.js
+[]
+[ 7.5, 8, 9 ]
+</pre>
+
+<p>Se nenhum item passa, o resultado é um array <strong>vazio</strong> (<code>[]</code>), nunca <code>undefined</code>: dá para usar <code>length</code>, <code>for … of</code> e tudo mais nele, sem erro. Se todos passam, sai uma cópia com todos.</p>
+
+<div class="tryjs" data-goal="out:[ 12.9, 25, 18 ];;src:\.filter\(">
+<p class="try-task"><strong>Missão:</strong> use o <code>filter</code> para guardar em <code>caros</code> só os preços <strong>acima de 10</strong>.</p>
+<pre class="script" data-file="main.js">const precos = [3.5, 12.9, 7, 25, 18, 9.9];
+const caros = precos;
+console.log(caros);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [3.5, 12.9, 7, 25, 18, 9.9];
+const caros = precos.filter((preco) =&gt; preco &gt; 10);
+console.log(caros);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Regras com textos</h2>
+<p>A regra pode ser qualquer pergunta de sim ou não. Com textos, os métodos de string (aulas <a href="strings-buscar.html">Procurando em Strings</a> e <a href="strings-metodos.html">Métodos de String</a>) e o <a href="operadores-logicos.html">&amp;&amp; e ||</a> ajudam a montar a pergunta:</p>
+
+<pre class="file" data-file="textos.js">const alunos = ["Ana", "Bia", "Caio", "Carla", "Duda", "Cecília"];
+
+console.log(alunos.filter((nome) =&gt; nome.startsWith("C")));
+console.log(alunos.filter((nome) =&gt; nome.length &lt;= 3));
+console.log(alunos.filter((nome) =&gt; nome.includes("a") &amp;&amp; nome.length &gt; 4));
+</pre>
+
+<pre class="term">$ node textos.js
+[ 'Caio', 'Carla', 'Cecília' ]
+[ 'Ana', 'Bia' ]
+[ 'Carla', 'Cecília' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>nome.startsWith("C")</dt><dd>Os nomes que começam com C.</dd>
+  <dt>nome.length &lt;= 3</dt><dd>Os nomes com até 3 letras.</dd>
+  <dt>nome.includes("a") &amp;&amp; nome.length &gt; 4</dt><dd>Duas condições ao mesmo tempo: tem a letra <code>a</code> (minúscula) <strong>e</strong> mais de 4 letras.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Contar quantos obedecem</h2>
+<p>Como o <code>filter</code> devolve um array, o <code>length</code> dele diz <strong>quantos</strong> passaram. É um jeito curto de contar, sem laço nem contador:</p>
+
+<pre class="file" data-file="contar.js">const notas = [7.5, 5, 9, 4, 6, 10];
+const quantos = notas.filter((nota) =&gt; nota &gt;= 6).length;
+console.log(`${quantos} de ${notas.length} alunos passaram.`);
+
+const vendas = [120, 98, 143, 110, 87, 156, 160];
+console.log(`Dias com mais de 140 pães: ${vendas.filter((v) =&gt; v &gt; 140).length}`);
+</pre>
+
+<pre class="term">$ node contar.js
+4 de 6 alunos passaram.
+Dias com mais de 140 pães: 3
+</pre>
+
+<p>Na aula <a href="for-of.html">for … of</a>, a mesma contagem precisou de uma variável <code>let</code>, um laço e um <code>if</code>. Aqui coube numa linha.</p>
+
+<hr>
+
+<h2>4. Tirar um item pelo valor</h2>
+<p>Na aula <a href="arrays-buscar.html">Procurando</a>, para tirar o feijão da lista você precisou achar a posição com <code>indexOf</code>, conferir o <code>-1</code> e usar o <code>splice</code>. Com o <code>filter</code>, a ideia é outra: em vez de tirar, você monta uma lista nova com <strong>todos, menos</strong> o feijão:</p>
+
+<pre class="file" data-file="tirar.js">const compras = ["arroz", "feijão", "café", "feijão", "leite"];
+const semFeijao = compras.filter((item) =&gt; item !== "feijão");
+console.log(semFeijao);
+
+const comprados = ["café", "leite"];
+const falta = compras.filter((item) =&gt; !comprados.includes(item));
+console.log(falta);
+</pre>
+
+<pre class="term">$ node tirar.js
+[ 'arroz', 'café', 'leite' ]
+[ 'arroz', 'feijão', 'feijão' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>item !== "feijão"</dt><dd>"O item é diferente de feijão?" Todos os que <strong>não</strong> são feijão passam. Repare que saíram os <strong>dois</strong> feijões (o <code>indexOf</code> + <code>splice</code> tiraria só o primeiro). E, se não houvesse feijão nenhum, nada de errado aconteceria: não existe o perigo do <code>-1</code>.</dd>
+  <dt>!comprados.includes(item)</dt><dd>"O item <strong>não</strong> está na lista do que já foi comprado?" Fica só o que ainda falta comprar.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:[ 'Ana', 'Caio', 'Duda' ];;src:\.filter\(">
+<p class="try-task"><strong>Missão:</strong> a Bia mudou de escola. Use o <code>filter</code> para criar <code>turmaNova</code>, com todos menos a <code>"Bia"</code>.</p>
+<pre class="script" data-file="main.js">const turma = ["Ana", "Bia", "Caio", "Duda"];
+const turmaNova = turma;
+console.log(turmaNova);
+</pre>
+<pre class="solucao" data-file="main.js">const turma = ["Ana", "Bia", "Caio", "Duda"];
+const turmaNova = turma.filter((nome) =&gt; nome !== "Bia");
+console.log(turmaNova);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. A posição: tirar os repetidos</h2>
+<p>Como no <code>map</code> e no <code>forEach</code>, a função recebe a posição como segundo parâmetro. Um truque clássico usa isso para tirar itens repetidos: um item fica só se a posição dele for a <strong>primeira</strong> em que ele aparece.</p>
+
+<pre class="file" data-file="repetidos.js">const pedidos = ["pão", "café", "pão", "leite", "café", "pão"];
+const semRepetir = pedidos.filter((item, i) =&gt; pedidos.indexOf(item) === i);
+console.log(semRepetir);
+</pre>
+
+<pre class="term">$ node repetidos.js
+[ 'pão', 'café', 'leite' ]
+</pre>
+
+<p>O primeiro <code>"pão"</code> está na posição 0, e <code>indexOf("pão")</code> também dá 0: fica. O segundo <code>"pão"</code> está na posição 2, mas <code>indexOf("pão")</code> continua dando 0: sai. Funciona, mas existe um jeito mais direto de tirar repetidos, o <code>Set</code>: <code>[...new Set(pedidos)]</code> (aula <a href="set.html">Set</a>).</p>
+
+<hr>
+
+<h2>6. Escolher e depois transformar: <code>filter</code> + <code>map</code></h2>
+<p>Como o <code>filter</code> devolve um array, dá para emendar um <code>map</code> logo depois (e vice-versa). A professora quer os nomes dos aprovados em maiúsculas para o mural:</p>
+
+<pre class="file" data-file="encadear.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const notas = [7.5, 5, 9, 4];
+
+const mural = alunos
+  .filter((nome, i) =&gt; notas[i] &gt;= 6)
+  .map((nome) =&gt; nome.toUpperCase());
+
+console.log(mural);
+</pre>
+
+<pre class="term">$ node encadear.js
+[ 'ANA', 'CAIO' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos.filter((nome, i) =&gt; notas[i] &gt;= 6)</dt><dd>Fica só quem tem nota boa. A nota de cada aluno está no outro array, na <strong>mesma posição</strong>, por isso a regra usa o <code>i</code>: <code>[ 'Ana', 'Caio' ]</code>.</dd>
+  <dt>.map((nome) =&gt; nome.toUpperCase())</dt><dd>O <code>map</code> trabalha sobre o resultado do <code>filter</code>, não sobre <code>alunos</code>.</dd>
+  <dt>uma por linha</dt><dd>Quando a corrente fica comprida, o costume é pôr cada método numa linha, começando com o ponto. O JavaScript lê tudo como uma instrução só, até o <code>;</code>.</dd>
+</dl>
+
+<p>A ordem importa: filtrar primeiro e transformar depois faz o <code>map</code> trabalhar menos, e a regra do <code>filter</code> continua vendo os valores originais.</p>
+
+<hr>
+
+<h2>7. No modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), compare o <code>filter</code> com o <code>find</code> usando a mesma regra:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const notas = [7.5, 5, 9, 4]
+undefined
+&gt; notas.filter((n) =&gt; n &gt;= 6)
+[ 7.5, 9 ]
+&gt; notas.find((n) =&gt; n &gt;= 6)
+7.5
+&gt; notas.filter((n) =&gt; n &gt; 10)
+[]
+&gt; notas
+[ 7.5, 5, 9, 4 ]
+&gt; .exit
+</pre>
+
+<p>Com a mesma pergunta, o <code>find</code> devolveu <strong>o primeiro</strong> item que passou (um número), e o <code>filter</code>, <strong>todos</strong> os que passaram (um array).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Antes do <code>filter</code>, a peneira se fazia à mão, com um laço, um <code>if</code> e <code>push</code>:</p>
+
+<pre class="file" data-file="formas.js">const notas = [7.5, 5, 9, 4];
+
+// 1. filter
+const a = notas.filter((nota) =&gt; nota &gt;= 6);
+
+// 2. for … of + if + push
+const b = [];
+for (const nota of notas) {
+  if (nota &gt;= 6) {
+    b.push(nota);
+  }
+}
+
+console.log(a);
+console.log(b);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 7.5, 9 ]
+[ 7.5, 9 ]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>A pergunta</th><th>Método</th><th>Devolve</th></tr>
+<tr><td>Quais itens obedecem à regra?</td><td><code>filter</code></td><td>Um array (talvez vazio)</td></tr>
+<tr><td>Qual é o <strong>primeiro</strong> que obedece?</td><td><code>find</code> (aula <a href="arrays-buscar.html">Procurando</a>)</td><td>Um item, ou <code>undefined</code></td></tr>
+<tr><td>Quantos obedecem?</td><td><code>filter(…).length</code></td><td>Um número</td></tr>
+<tr><td>Algum obedece? Todos obedecem?</td><td><code>some</code> / <code>every</code> (aula <a href="arrays-outros.html">some, every…</a>)</td><td><code>true</code> ou <code>false</code></td></tr>
+<tr><td>Tirar um valor (todas as vezes que aparece)</td><td><code>filter((x) =&gt; x !== valor)</code></td><td>Um array novo</td></tr>
+<tr><td>Tirar uma posição do próprio array</td><td><code>splice</code> (aula <a href="arrays-splice.html">splice e slice</a>)</td><td>Os itens tirados</td></tr>
+<tr><td>Transformar cada item</td><td><code>map</code></td><td>Um array do mesmo tamanho</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>=</code> no lugar de <code>===</code></strong>
+<pre class="file" data-file="igual.js">const compras = ["arroz", "café", "leite"];
+const cafes = compras.filter((item) =&gt; item = "café");
+console.log(cafes);
+</pre>
+<pre class="term">$ node igual.js
+[ 'arroz', 'café', 'leite' ]
+</pre>
+<p>A ideia era ficar só com o café, mas passaram <strong>todos</strong>, e sem nenhuma mensagem de erro. Um <code>=</code> sozinho não compara: ele <strong>guarda</strong> <code>"café"</code> dentro de <code>item</code> (veja <a href="atribuicao.html">Atribuição</a>), e a função devolve esse texto. Um texto que não está vazio conta como "verdadeiro" (veja <a href="truthy-falsy.html">Truthy e Falsy</a>), então todo item passou. <strong>Como consertar:</strong> para comparar, <code>===</code>: <code>(item) =&gt; item === "café"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chaves sem <code>return</code>: o array vazio</strong>
+<pre class="file" data-file="sem_return.js">const notas = [7.5, 5, 9, 4];
+const aprovadas = notas.filter((nota) =&gt; {
+  nota &gt;= 6;
+});
+console.log(aprovadas);
+</pre>
+<pre class="term">$ node sem_return.js
+[]
+</pre>
+<p>Nenhum erro, e nenhuma nota passou. Com chaves, a função sem <code>return</code> devolve <code>undefined</code> para todos os itens, e <code>undefined</code> conta como "falso": ninguém passa na peneira. (No <code>map</code>, o mesmo engano dava um array cheio de <code>undefined</code>; no <code>filter</code>, dá um array vazio.) <strong>Como consertar:</strong> <code>return nota &gt;= 6;</code>, ou a forma curta sem chaves.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>filter</code> tirava do original</strong>
+<pre class="file" data-file="original.js">const compras = ["arroz", "feijão", "café"];
+compras.filter((item) =&gt; item !== "feijão");
+console.log(compras);
+</pre>
+<pre class="term">$ node original.js
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+<p>O feijão continua lá. O <code>filter</code> montou um array novo sem ele e o devolveu, mas ninguém guardou. <strong>Como consertar:</strong> <code>const semFeijao = compras.filter(…)</code>; ou, com <code>let</code>, ponha o novo no lugar: <code>compras = compras.filter(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>filter</code> numa string</strong>
+<pre class="file" data-file="string.js">const palavra = "banana";
+const semA = palavra.filter((letra) =&gt; letra !== "a");
+</pre>
+<pre class="term">$ node string.js
+/home/ana/string.js:2
+const semA = palavra.filter((letra) =&gt; letra !== "a");
+                     ^
+
+TypeError: palavra.filter is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/string.js:2:22)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>palavra.filter</code> não é uma função". Strings não têm <code>filter</code>. <strong>Como consertar:</strong> transforme em array de letras, filtre e junte de volta: <code>Array.from(palavra).filter((letra) =&gt; letra !== "a").join("")</code> (o <code>join</code> está em <a href="strings-split.html">split e join</a>). Para esse caso específico, o <code>replaceAll("a", "")</code> das strings é mais simples (aula <a href="strings-substituir.html">Substituindo</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'leite' ];;semerro;;src:\.filter\(">
+<p class="try-task"><strong>Missão:</strong> o programa devia mostrar só o que <strong>falta</strong> comprar (o que não está em <code>comprados</code>), mas está mostrando a lista inteira. Encontre os dois erros e conserte.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "café", "leite", "pão"];
+const comprados = ["café", "pão"];
+compras.filter((item) =&gt; {
+  !comprados.includes(item);
+});
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "café", "leite", "pão"];
+const comprados = ["café", "pão"];
+const falta = compras.filter((item) =&gt; {
+  return !comprados.includes(item);
+});
+console.log(falta);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const novo = lista.filter((item) =&gt; regra);</code></td><td>Array novo só com os itens em que a regra deu <code>true</code></td></tr>
+<tr><td><code>lista.filter((item, i) =&gt; …)</code></td><td>A regra recebe também a posição</td></tr>
+<tr><td><code>lista.filter(…).length</code></td><td>Quantos obedecem à regra</td></tr>
+<tr><td><code>lista.filter((x) =&gt; x !== valor)</code></td><td>Todos menos <code>valor</code></td></tr>
+<tr><td><code>lista.filter((x) =&gt; !outra.includes(x))</code></td><td>Os que não estão em <code>outra</code></td></tr>
+<tr><td><code>lista.filter((x, i) =&gt; lista.indexOf(x) === i)</code></td><td>Sem repetidos</td></tr>
+<tr><td><code>lista.filter(…).map(…)</code></td><td>Escolher e depois transformar</td></tr>
+<tr><td>Se ninguém passa</td><td><code>[]</code> (nunca <code>undefined</code>)</td></tr>
+<tr><td>O original</td><td>Não muda</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Todos os itens passaram</td><td><code>=</code> no lugar de <code>===</code> na regra</td></tr>
+<tr><td>Sempre <code>[]</code></td><td>Função com chaves e sem <code>return</code> (ou a regra nunca dá <code>true</code>)</td></tr>
+<tr><td>O array "não mudou"</td><td>O <code>filter</code> devolve um array novo; guarde-o</td></tr>
+<tr><td><code>TypeError: palavra.filter is not a function</code></td><td>Não é um array (string, número, <code>undefined</code>…)</td></tr>
+<tr><td>Queria um item e veio um array</td><td>Use <code>find</code> para o primeiro; <code>filter</code> sempre devolve array</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para ficar só com os números pares:</p>
+<div class="ex-code">const pares = [1, 2, 3, 4].<input data-answer="filter" aria-label="nome do método">((n) =&gt; n % 2 === 0);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos?</h3>
+<pre class="file" data-file="ex2.js">console.log([5, 15, 25, 35].filter((n) =&gt; n &gt; 10).length);
+</pre>
+<div class="ex-code">Mostra <input data-answer="3" aria-label="valor">.</div>
+</div>
+
+<div class="exercise">
+<h3>3. Ninguém passou</h3>
+<p>O que mostra <code>console.log([1, 2].filter((n) =&gt; n &gt; 5))</code>?</p>
+<div class="ex-code"><input data-answer="[]" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>[3, 8, 12, 5].filter((n) =&gt; n &gt; 6)</code> devolve…</p>
+<label><input type="radio" name="q4"> <code>8</code></label>
+<label><input type="radio" name="q4"> <code>[ 8, 12 ]</code></label>
+<label><input type="radio" name="q4"> <code>[ true, false ]</code></label>
+<label><input type="radio" name="q4"> <code>[ false, true, true, false ]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual a diferença entre <code>map</code> e <code>filter</code>?</p>
+<label><input type="radio" name="q5"> O <code>map</code> transforma todos (mesmo tamanho); o <code>filter</code> escolhe alguns, sem transformar</label>
+<label><input type="radio" name="q5"> O <code>filter</code> muda o original; o <code>map</code> não</label>
+<label><input type="radio" name="q5"> O <code>map</code> devolve <code>true</code>/<code>false</code>; o <code>filter</code>, um array</label>
+<label><input type="radio" name="q5"> Nenhuma: são sinônimos</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. <code>["a", "b"].filter((x) =&gt; x = "a")</code> devolve…</p>
+<label><input type="radio" name="q6"> <code>[ 'a' ]</code></label>
+<label><input type="radio" name="q6"> <code>[]</code></label>
+<label><input type="radio" name="q6"> Um erro</label>
+<label><input type="radio" name="q6"> <code>[ 'a', 'b' ]</code></label>
+</div>
+
+<h3>Missão final: o relatório da padaria</h3>
+
+<div class="tryjs" data-goal="out:Dias acima da meta: 3;;out:[ 'qua: 143', 'sáb: 156', 'dom: 160' ];;semerro;;src:\.filter\(;;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> a meta da padaria é vender mais de 140 pães por dia. (1) Com <code>filter</code> e <code>length</code>, conte quantos dias passaram da meta. (2) Monte <code>destaques</code>: primeiro, com <code>map</code>, transforme cada dia num texto como <code>qua: 143</code> (a venda do dia está em <code>vendas[i]</code>); depois, com <code>filter</code>, fique só com os textos dos dias em que <code>vendas[i]</code> passou de 140.</p>
+<pre class="script" data-file="main.js">const dias = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+const vendas = [120, 98, 143, 110, 87, 156, 160];
+
+const acima = 0;
+const destaques = dias;
+
+console.log(`Dias acima da meta: ${acima}`);
+console.log(destaques);
+</pre>
+<pre class="solucao" data-file="main.js">const dias = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+const vendas = [120, 98, 143, 110, 87, 156, 160];
+
+const acima = vendas.filter((venda) =&gt; venda &gt; 140).length;
+const destaques = dias
+  .map((dia, i) =&gt; `${dia}: ${vendas[i]}`)
+  .filter((texto, i) =&gt; vendas[i] &gt; 140);
+
+console.log(`Dias acima da meta: ${acima}`);
+console.log(destaques);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Dias acima da meta: 3</code> e <code>[ 'qua: 143', 'sáb: 156', 'dom: 160' ]</code>. Repare que aqui a ordem foi a contrária da seção 6: <code>map</code> primeiro. O <code>map</code> não muda as posições (o texto da quarta continua na posição 2), então o <code>filter</code> ainda pode olhar <code>vendas[i]</code>. Se o <code>filter</code> viesse antes, as posições mudariam e o <code>vendas[i]</code> do <code>map</code> pegaria a venda errada. Quando dados que andam juntos (o dia e a venda) ficam em arrays separados, esse tipo de malabarismo aparece. A solução elegante é guardá-los juntos num <strong>objeto</strong>, o assunto do próximo grupo de aulas (<a href="objetos.html">Objetos</a>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>lista.filter(regra)</code> devolve um <strong>array novo</strong> só com os itens para os quais a regra devolveu <code>true</code>, na ordem original.</li>
+  <li>O original não muda; o resultado pode ter menos itens, ou ser <code>[]</code>.</li>
+  <li><code>filter(…).length</code> conta; <code>filter((x) =&gt; x !== valor)</code> tira um valor; <code>filter((x, i) =&gt; lista.indexOf(x) === i)</code> tira repetidos.</li>
+  <li><code>filter</code> e <code>map</code> se encadeiam: escolha primeiro, transforme depois.</li>
+  <li><code>find</code> devolve o primeiro que passa; <code>filter</code>, todos (sempre um array).</li>
+  <li>Na regra, compare com <code>===</code> (um <code>=</code> deixa passar tudo) e, com chaves, não esqueça o <code>return</code> (sem ele, ninguém passa).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
