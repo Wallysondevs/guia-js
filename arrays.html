@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Arrays — guardando uma lista de valores numa variável só | Guia JavaScript</title>
+<meta name="description" content="Arrays do JavaScript para quem nunca programou: criar uma lista com colchetes, itens de qualquer tipo, o array vazio, as posições que começam em 0, o length, como o Node mostra um array no console.log, typeof e Array.isArray, Array.of e Array.from, a pegadinha do new Array(3), o array dentro de uma const e os erros reais do Node.js 24 explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Arrays</span></h1>
+
+<p class="intro">Até agora, cada variável guardou <strong>um</strong> valor: um nome, um preço, uma nota. Mas a vida da Ana é cheia de <strong>listas</strong>: a lista de compras da semana, as notas da turma, os pães que a padaria vendeu hoje. Criar uma variável para cada item (<code>item1</code>, <code>item2</code>, <code>item3</code>…) não dá certo: e se a lista tiver 50 itens? Para isso existe o <strong>array</strong> (em inglês, "arranjo", "fileira"; no Brasil também se diz <strong>vetor</strong> ou, simplesmente, <strong>lista</strong>): uma variável só que guarda <strong>vários valores em fila</strong>, um atrás do outro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um array e como criar um com colchetes: <code>["arroz", "feijão", "café"]</code>.</li>
+  <li>Que um array pode guardar textos, números, booleanos, tudo misturado, ou nada (o array vazio <code>[]</code>).</li>
+  <li>Que cada item tem uma <strong>posição</strong> (o índice), e que a primeira posição é a <strong>0</strong>.</li>
+  <li>A contar os itens com <code>length</code>.</li>
+  <li>Como o <code>console.log</code> do Node mostra um array (e por que as aspas viram simples).</li>
+  <li>A descobrir se um valor é um array: <code>typeof</code> engana, <code>Array.isArray</code> não.</li>
+  <li>Outras formas de criar arrays (<code>Array.of</code>, <code>Array.from</code>) e a pegadinha do <code>new Array(3)</code>.</li>
+  <li>Os erros reais mais comuns: a vírgula esquecida, o colchete que não fechou, o <code>lenght</code> escrito errado e a <code>const</code> que não aceita outro array.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a lista de compras na porta da geladeira</h2>
+<p>Pense na lista de compras que a Ana prende na geladeira com um ímã. É <strong>uma folha só</strong>, mas nela cabem vários itens, um embaixo do outro, numa ordem:</p>
+<ol class="passo">
+  <li>arroz</li>
+  <li>feijão</li>
+  <li>café</li>
+</ol>
+<p>Três coisas dessa folha valem para todo array:</p>
+<ul>
+  <li>É <strong>uma coisa só</strong> com um nome (a "lista de compras"), não três papeizinhos soltos. No JavaScript, é uma variável só.</li>
+  <li>Os itens têm <strong>ordem</strong>: o arroz vem antes do feijão. Dá para dizer "o primeiro item", "o terceiro item".</li>
+  <li>A lista pode <strong>crescer e diminuir</strong>: dá para acrescentar o pão no fim ou riscar o café. (Isso é assunto de <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>.)</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro array</h2>
+
+<pre class="file" data-file="compras.js">const compras = ["arroz", "feijão", "café"];
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>const compras</dt><dd>Uma variável comum, criada com <code>const</code> (veja <a href="const.html">Constantes</a>). O nome no plural (<code>compras</code>, <code>notas</code>, <code>alunos</code>) é um costume que ajuda a lembrar que ali dentro há <strong>vários</strong> valores.</dd>
+  <dt>[ e ]</dt><dd>Os <strong>colchetes</strong> abrem e fecham o array. Tudo o que estiver entre eles é um item da lista.</dd>
+  <dt>"arroz", "feijão", "café"</dt><dd>Os <strong>itens</strong> (também chamados de <strong>elementos</strong>), separados por <strong>vírgula</strong>. Aqui são três <a href="strings.html">strings</a>, cada uma com as suas aspas.</dd>
+  <dt>;</dt><dd>O ponto e vírgula fecha a instrução inteira, depois do <code>]</code>, como em qualquer outra linha.</dd>
+  <dt>console.log(compras)</dt><dd>Mostra o array inteiro de uma vez (veja <a href="console-log.html">console.log()</a>).</dd>
+</dl>
+
+<pre class="term">$ node compras.js
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+
+<p>Repare em dois detalhes da saída:</p>
+<ul>
+  <li>O Node mostra o array do jeito que ele foi escrito: entre colchetes, itens separados por vírgula, com um espaço depois do <code>[</code> e antes do <code>]</code>.</li>
+  <li>No código as aspas eram <strong>duplas</strong>; na saída, o Node mostra <strong>simples</strong> (<code>'arroz'</code>). Não é erro, nem mudou nada no seu array: é só o jeito que o <code>console.log</code> do Node escolheu para mostrar que aqueles itens são textos. No JavaScript, <code>"arroz"</code> e <code>'arroz'</code> são exatamente a mesma string.</li>
+</ul>
+
+<p>Um array grande pode ser escrito em várias linhas, um item por linha. Fica mais fácil de ler e de mexer depois:</p>
+
+<pre class="file" data-file="compras_linhas.js">const compras = [
+  "arroz",
+  "feijão",
+  "café",
+  "leite",
+];
+console.log(compras);
+</pre>
+
+<pre class="term">$ node compras_linhas.js
+[ 'arroz', 'feijão', 'café', 'leite' ]
+</pre>
+
+<p>Viu a vírgula depois de <code>"leite"</code>, o último item? Ela se chama <strong>vírgula final</strong> (em inglês, <em>trailing comma</em>) e é permitida: o JavaScript a ignora. Muita gente prefere deixá-la, porque assim, para acrescentar um item no fim, basta escrever uma linha nova, sem mexer na de cima.</p>
+
+<div class="tryjs" data-goal="out:'pão';;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente <code>"pão"</code> no fim da lista de compras (não esqueça a vírgula antes dele) e clique em Rodar.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café", "pão"];
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O que cabe num array</h2>
+<p>Um array guarda <strong>qualquer</strong> tipo de valor (veja <a href="tipos-de-dados.html">Os Tipos de Dados</a>). As notas da turma são números; a resposta "a loja está aberta?" de cada dia da semana, booleanos:</p>
+
+<pre class="file" data-file="tipos.js">const notas = [7.5, 8, 6.5, 9, 10];
+const aberta = [true, true, true, true, true, true, false];
+const ficha = ["Ana", 30, true];
+const vazio = [];
+
+console.log(notas);
+console.log(aberta);
+console.log(ficha);
+console.log(vazio);
+</pre>
+
+<pre class="term">$ node tipos.js
+[ 7.5, 8, 6.5, 9, 10 ]
+[
+  true,  true,
+  true,  true,
+  true,  true,
+  false
+]
+[ 'Ana', 30, true ]
+[]
+</pre>
+
+<dl class="anatomy">
+  <dt>notas</dt><dd>Números vão <strong>sem aspas</strong>, como em qualquer lugar. O Node os mostra sem aspas também: é assim que você distingue o número <code>8</code> do texto <code>'8'</code> na saída.</dd>
+  <dt>aberta</dt><dd>Sete booleanos, um por dia da semana (domingo fechado). Repare que o Node os mostrou em <strong>colunas</strong>, dois por linha: quando um array tem mais de 6 itens curtos, o <code>console.log</code> arruma a saída assim (você vai ver isso de novo na seção 5). Os valores são os mesmos; só a arrumação na tela mudou.</dd>
+  <dt>ficha</dt><dd>Tipos <strong>misturados</strong>: um texto, um número e um booleano. O JavaScript deixa. Na prática, é melhor que todos os itens de um array sejam <strong>do mesmo tipo</strong> (só nomes, só preços), porque aí você trata todos do mesmo jeito. Para guardar "nome, idade, ativo" de uma pessoa existe um lugar melhor, o <a href="objetos.html">objeto</a>.</dd>
+  <dt>vazio</dt><dd>Um array <strong>sem nenhum item</strong>: <code>[]</code>. Parece inútil, mas é como a folha da lista ainda em branco: o programa começa com ela vazia e vai acrescentando itens depois.</dd>
+</dl>
+
+<p>Um array pode guardar até outros arrays (uma lista de listas). Esse assunto tem aula própria: <a href="arrays-matriz.html">Arrays de Arrays</a>.</p>
+
+<hr>
+
+<h2>3. As posições: a primeira é a 0</h2>
+<p>Cada item do array mora numa <strong>posição</strong> numerada, o <strong>índice</strong>. E aqui vem a surpresa de todo iniciante: <strong>a contagem começa do zero</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Índice</th><td><code>0</code></td><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><th>Item</th><td><code>"arroz"</code></td><td><code>"feijão"</code></td><td><code>"café"</code></td></tr>
+</table>
+</div>
+
+<p>Para pegar um item, escreva o nome do array e, entre colchetes, o índice:</p>
+
+<pre class="file" data-file="posicoes.js">const compras = ["arroz", "feijão", "café"];
+console.log(compras[0]);
+console.log(compras[1]);
+console.log(compras[2]);
+</pre>
+
+<pre class="term">$ node posicoes.js
+arroz
+feijão
+café
+</pre>
+
+<p>Agora as aspas sumiram: <code>compras[0]</code> não é um array, é <strong>um</strong> item, a string <code>arroz</code>, e o <code>console.log</code> mostra uma string sozinha sem aspas (como sempre fez). Pense no índice como "quantos passos andar a partir do começo": o primeiro item está a 0 passos do começo, o segundo a 1 passo. Ler, trocar e pegar o último item são o assunto da próxima aula, <a href="arrays-acessar.html">Acessando e Alterando Itens</a>.</p>
+
+<hr>
+
+<h2>4. Quantos itens? <code>length</code></h2>
+<p>Todo array sabe o próprio tamanho. Basta escrever <code>.length</code> (em inglês, "comprimento") depois do nome:</p>
+
+<pre class="file" data-file="tamanho.js">const compras = ["arroz", "feijão", "café"];
+const vazio = [];
+
+console.log(compras.length);
+console.log(vazio.length);
+console.log(`A lista tem ${compras.length} itens.`);
+</pre>
+
+<pre class="term">$ node tamanho.js
+3
+0
+A lista tem 3 itens.
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.length</dt><dd>O <strong>número de itens</strong>. O ponto quer dizer "a propriedade <code>length</code> deste array". Repare: não tem parênteses, porque <code>length</code> não é uma ação, é uma informação que o array guarda.</dd>
+  <dt>vazio.length</dt><dd>Um array vazio tem tamanho <code>0</code>.</dd>
+  <dt>`A lista tem ${…} itens.`</dt><dd>O tamanho dentro de uma <a href="template-strings.html">template string</a>.</dd>
+</dl>
+
+<div class="warning">
+<strong>O tamanho é 3, mas o último índice é 2</strong>
+<p>Como a contagem das posições começa em 0, o último item de um array de 3 itens está na posição <strong>2</strong>. Em qualquer array, o último índice é sempre <code>length - 1</code>. Essa diferença de um causa tantos erros que tem até nome: o "erro de um a mais" (em inglês, <em>off-by-one</em>). Você vai encontrá-lo de novo na próxima aula e em <a href="for.html">for</a>.</p>
+</div>
+
+<p>Você já viu o <code>length</code> nas strings (veja <a href="strings.html">Strings</a>): lá ele conta letras, aqui conta itens. Uma string se parece com uma fileira de letras, e por isso várias ideias deste grupo de aulas valem para as duas.</p>
+
+<div class="tryjs" data-goal="out:A turma tem 6 notas.;;semerro">
+<p class="try-task"><strong>Missão:</strong> a professora lançou mais uma nota, <code>5.5</code>. Acrescente-a no array <code>notas</code> e rode: a frase tem de mostrar <code>A turma tem 6 notas.</code> sem você trocar o número na mão.</p>
+<pre class="script" data-file="main.js">const notas = [7.5, 8, 6.5, 9, 10];
+console.log(`A turma tem ${notas.length} notas.`);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [7.5, 8, 6.5, 9, 10, 5.5];
+console.log(`A turma tem ${notas.length} notas.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Como o Node mostra arrays maiores</h2>
+<p>Com poucos itens, o array cabe numa linha. Com muitos, o <code>console.log</code> do Node quebra a saída em várias linhas para ela não ficar comprida demais. Estas são as vendas de pão da padaria em cada dia de um mês:</p>
+
+<pre class="file" data-file="vendas.js">const vendas = [
+  120, 98, 143, 110, 87, 156, 160,
+  132, 101, 95, 118, 140, 171, 165,
+  128, 99, 104, 122, 137, 180, 175,
+  119, 93, 108, 126, 149, 168, 172,
+  130, 97,
+];
+console.log(vendas);
+console.log(vendas.length);
+</pre>
+
+<pre class="term">$ node vendas.js
+[
+  120,  98, 143, 110,  87, 156, 160,
+  132, 101,  95, 118, 140, 171, 165,
+  128,  99, 104, 122, 137, 180, 175,
+  119,  93, 108, 126, 149, 168, 172,
+  130,  97
+]
+30
+</pre>
+
+<p>O Node arrumou os números em colunas, alinhados à direita, para facilitar a leitura. Quantos números ficam por linha é decisão dele, não sua: não tente fazer um programa depender desse formato. E se o array tiver <strong>mais de 100</strong> itens, o Node mostra só os 100 primeiros e avisa quantos faltam:</p>
+
+<pre class="file" data-file="muitos.js">const muitos = Array.from({ length: 150 }, (_, i) =&gt; i + 1);
+console.log(muitos);
+</pre>
+
+<pre class="term">$ node muitos.js
+[
+   1,  2,  3,   4,  5,  6,  7,  8,  9, 10, 11, 12,
+  13, 14, 15,  16, 17, 18, 19, 20, 21, 22, 23, 24,
+  25, 26, 27,  28, 29, 30, 31, 32, 33, 34, 35, 36,
+  37, 38, 39,  40, 41, 42, 43, 44, 45, 46, 47, 48,
+  49, 50, 51,  52, 53, 54, 55, 56, 57, 58, 59, 60,
+  61, 62, 63,  64, 65, 66, 67, 68, 69, 70, 71, 72,
+  73, 74, 75,  76, 77, 78, 79, 80, 81, 82, 83, 84,
+  85, 86, 87,  88, 89, 90, 91, 92, 93, 94, 95, 96,
+  97, 98, 99, 100,
+  ... 50 more items
+]
+</pre>
+
+<p>Não se preocupe com a primeira linha agora (é um jeito de criar os números de 1 a 150, que aparece na seção 7); o importante é a última: <code>... 50 more items</code>, "mais 50 itens". Eles existem no array; o Node só não os mostrou. (O Console do navegador, a tecla <kbd>F12</kbd>, mostra arrays de outro jeito, com uma setinha que você clica para abrir a lista; veja <a href="console-navegador.html">O Console do Navegador</a>.)</p>
+
+<hr>
+
+<h2>6. Isto é um array? <code>typeof</code> engana</h2>
+<p>Na aula <a href="typeof.html">typeof</a> você aprendeu a perguntar o tipo de um valor. Com arrays, a resposta decepciona:</p>
+
+<pre class="file" data-file="tipo.js">const compras = ["arroz", "feijão", "café"];
+console.log(typeof compras);
+console.log(Array.isArray(compras));
+console.log(Array.isArray("arroz"));
+</pre>
+
+<pre class="term">$ node tipo.js
+object
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>typeof compras → 'object'</dt><dd>Para o JavaScript, um array é um tipo especial de <strong>objeto</strong> (o assunto do grupo <a href="objetos.html">Objetos</a>). Por isso o <code>typeof</code> responde <code>object</code>, a mesma resposta que daria para qualquer objeto, e não ajuda a saber se é uma lista.</dd>
+  <dt>Array.isArray(compras) → true</dt><dd>"É um array?". A pergunta certa: devolve <code>true</code> para arrays e <code>false</code> para todo o resto, como a string <code>"arroz"</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>7. Arrays no modo interativo</h2>
+<p>No modo interativo do Node (veja <a href="repl.html">O Modo Interativo</a>), você nem precisa do <code>console.log</code>: o Node mostra o valor de cada expressão sozinho. É um ótimo lugar para brincar com arrays:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const compras = ["arroz", "feijão", "café"]
+undefined
+&gt; compras
+[ 'arroz', 'feijão', 'café' ]
+&gt; compras.length
+3
+&gt; compras[0]
+'arroz'
+&gt; [1, 2, 3].length
+3
+&gt; Array.isArray(compras)
+true
+&gt; .exit
+</pre>
+
+<p>Repare que a linha do <code>const</code> respondeu <code>undefined</code>: criar uma variável não "dá" nenhum valor para mostrar (o modo interativo sempre faz isso com <code>const</code> e <code>let</code>). As outras linhas são expressões, e o Node mostra o resultado de cada uma. Repare também em <code>compras[0]</code>: no modo interativo, a string aparece <strong>com</strong> aspas (<code>'arroz'</code>), para você ver que é um texto; o <code>console.log</code> a mostraria sem aspas.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de criar um array</h2>
+<p>Os colchetes (<code>[ … ]</code>, chamados de <strong>literal de array</strong>) são o jeito do dia a dia. Mas você vai encontrar outros em código pronto:</p>
+
+<pre class="file" data-file="formas.js">const a = ["arroz", "feijão"];
+const b = new Array("arroz", "feijão");
+const c = Array.of(7, 8, 9);
+const d = Array.from("Ana");
+const e = "arroz,feijão,café".split(",");
+
+console.log(a);
+console.log(b);
+console.log(c);
+console.log(d);
+console.log(e);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 'arroz', 'feijão' ]
+[ 'arroz', 'feijão' ]
+[ 7, 8, 9 ]
+[ 'A', 'n', 'a' ]
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>new Array("arroz", "feijão")</dt><dd>O jeito antigo, com o "construtor" <code>Array</code> (o <code>new</code> quer dizer "crie um novo"). Dá o mesmo resultado dos colchetes, só que mais comprido e com uma pegadinha (logo abaixo).</dd>
+  <dt>Array.of(7, 8, 9)</dt><dd>"Array de": cria um array com os valores que você passar.</dd>
+  <dt>Array.from("Ana")</dt><dd>"Array a partir de": transforma outra coisa que tenha "uma fileira de partes" num array. Uma string vira um array de letras.</dd>
+  <dt>"arroz,feijão,café".split(",")</dt><dd>Corta uma string em pedaços a cada vírgula, e os pedaços viram um array. É o que você faz quando lê uma lista de um arquivo ou do teclado (veja <a href="strings-split.html">split e join</a>).</dd>
+</dl>
+
+<h3>A pegadinha do <code>new Array(3)</code></h3>
+
+<pre class="file" data-file="pegadinha.js">const x = new Array(3);
+const y = Array.of(3);
+console.log(x);
+console.log(x.length);
+console.log(y);
+</pre>
+
+<pre class="term">$ node pegadinha.js
+[ &lt;3 empty items&gt; ]
+3
+[ 3 ]
+</pre>
+
+<p>Com <strong>um número só</strong>, o <code>new Array(3)</code> não cria o array <code>[3]</code>: cria um array de tamanho 3 com <strong>três buracos vazios</strong> (<code>&lt;3 empty items&gt;</code>, "3 itens vazios"). Com dois ou mais valores, ou com um texto, ele se comporta como os colchetes. Essa mudança de comportamento confunde todo mundo, e foi por isso que o <code>Array.of</code> foi criado: ele sempre faz o que parece.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Escrever uma lista de valores no código (quase sempre)</td><td><code>["arroz", "feijão"]</code></td></tr>
+<tr><td>Começar uma lista vazia e encher depois</td><td><code>[]</code></td></tr>
+<tr><td>Transformar uma string em array de letras</td><td><code>Array.from("Ana")</code></td></tr>
+<tr><td>Cortar um texto com separador num array de pedaços</td><td><code>texto.split(",")</code></td></tr>
+<tr><td>Criar um array com <code>new</code></td><td>Evite: <code>new Array(3)</code> faz buracos. Reconheça em código antigo.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>8. O array numa <code>const</code></h2>
+<p>Uma dúvida comum: se <code>compras</code> é uma <code>const</code>, como a lista pode crescer? A resposta é que a <code>const</code> protege a <strong>variável</strong>, não o conteúdo. Voltando à geladeira: a <code>const</code> cola a folha com supercola, então você não pode trocá-la por outra folha; mas pode escrever e riscar itens na mesma folha.</p>
+
+<pre class="file" data-file="const_array.js">const compras = ["arroz", "feijão"];
+compras.push("café");
+console.log(compras);
+compras = ["pão"];
+</pre>
+
+<pre class="term">$ node const_array.js
+[ 'arroz', 'feijão', 'café' ]
+/home/ana/const_array.js:4
+compras = ["pão"];
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/const_array.js:4:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>push</code> (que você vai ver em <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>) acrescentou o café <strong>na mesma folha</strong>, e funcionou. Já <code>compras = ["pão"]</code> tentou trocar a folha inteira, e a <code>const</code> não deixou. A mensagem de erro está explicada em <a href="#errado">Quando dá errado</a>. Por isso a regra do guia continua valendo para arrays: <strong><code>const</code> por padrão</strong>; <code>let</code> só se você precisar mesmo pôr outro array no lugar.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu uma vírgula entre os itens</strong>
+<pre class="file" data-file="semvirgula.js">const compras = ["arroz" "feijão", "café"];
+console.log(compras);
+</pre>
+<pre class="term">$ node semvirgula.js
+/home/ana/semvirgula.js:1
+const compras = ["arroz" "feijão", "café"];
+                         ^^^^^^^^
+
+SyntaxError: Unexpected string
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « e mais 7 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semvirgula.js:1</dt><dd>O arquivo e a linha onde o Node percebeu o problema: a linha 1.</dd>
+  <dt>a linha do código e os ^^^^^^^^</dt><dd>O Node copia a linha e sublinha com <code>^</code> o pedaço exato que ele não esperava: a string <code>"feijão"</code> inteira (8 sinais, um para cada caractere, aspas incluídas).</dd>
+  <dt>SyntaxError: Unexpected string</dt><dd>"Erro de sintaxe: string inesperada". Depois de <code>"arroz"</code>, o Node esperava uma vírgula ou o <code>]</code>, e encontrou outra string. É um erro de <strong>sintaxe</strong> (de escrita): o programa nem começa, por isso nenhum <code>console.log</code> rodou.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>O caminho que o erro fez <strong>por dentro do Node</strong> (a "pilha de chamadas"). Nos erros de sintaxe, todas essas linhas são do próprio Node, e você pode ignorá-las; aqui elas foram cortadas.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que deu o erro.</dd>
+</dl>
+<p><strong>Como consertar:</strong> uma vírgula entre <strong>cada</strong> par de itens: <code>["arroz", "feijão", "café"]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O colchete não fechou</strong>
+<pre class="file" data-file="semcolchete.js">const compras = ["arroz", "feijão", "café";
+console.log(compras);
+</pre>
+<pre class="term">$ node semcolchete.js
+/home/ana/semcolchete.js:1
+const compras = ["arroz", "feijão", "café";
+                                          ^
+
+SyntaxError: Unexpected token ';'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « e mais 7 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: <code>;</code> inesperado". O Node ainda estava <strong>dentro</strong> do array, esperando uma vírgula e mais um item ou o <code>]</code>, e encontrou o ponto e vírgula; o <code>^</code> aponta exatamente para ele. O Node não diz "faltou o colchete": ele diz o que encontrou no lugar. Quando a mensagem for <code>Unexpected token</code>, olhe o que <strong>falta antes</strong> do <code>^</code>. <strong>Como consertar:</strong> feche o array com <code>]</code> antes do ponto e vírgula.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>lenght</code> em vez de <code>length</code></strong>
+<pre class="file" data-file="lenght.js">const compras = ["arroz", "feijão", "café"];
+console.log(compras.lenght);
+console.log(`A lista tem ${compras.lenght} itens.`);
+</pre>
+<pre class="term">$ node lenght.js
+undefined
+A lista tem undefined itens.
+</pre>
+<p>Nenhuma mensagem de erro, e por isso é traiçoeiro. <code>lenght</code> (com o <code>h</code> trocado de lugar) não existe no array, e no JavaScript ler uma propriedade que não existe dá <code>undefined</code> ("indefinido"; veja <a href="null-undefined.html">null e undefined</a>), sem reclamar. <strong>Como consertar:</strong> <code>length</code>, com o <strong>t</strong> antes do <strong>h</strong> (de "leng-th"). Se aparecer <code>undefined</code> onde você esperava um tamanho, desconfie da escrita.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs outro array numa <code>const</code></strong>
+<pre class="term">$ node const_array.js
+[ 'arroz', 'feijão', 'café' ]
+/home/ana/const_array.js:4
+compras = ["pão"];
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/const_array.js:4:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: a primeira linha da saída é o <code>console.log</code>, que rodou normalmente (este é um erro que só aparece <strong>durante</strong> a execução). Depois vem <code>/home/ana/const_array.js:4</code>, a linha 4, com o <code>^</code> embaixo do <code>=</code>. <code>TypeError: Assignment to constant variable.</code> quer dizer "Erro de tipo: atribuição a uma variável constante": você tentou dar outro valor a uma <code>const</code>. A linha <code>at Object.&lt;anonymous&gt; (/home/ana/const_array.js:4:9)</code> confirma o lugar: linha 4, coluna 9 (o 9º caractere da linha). <strong>Como consertar:</strong> se você precisa mesmo trocar o array inteiro, crie a variável com <code>let</code>. Se só queria acrescentar ou mudar itens, use os métodos do array (<code>push</code>, a troca por índice), que não precisam trocar a variável.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou parênteses no lugar dos colchetes</strong>
+<pre class="file" data-file="parenteses.js">const compras = ("arroz", "feijão", "café");
+console.log(compras);
+console.log(compras.length);
+</pre>
+<pre class="term">$ node parenteses.js
+café
+4
+</pre>
+<p>De novo, sem erro nenhum, mas a lista sumiu: sobrou só <code>café</code>. Entre parênteses, a vírgula do JavaScript quer dizer outra coisa: "calcule tudo e fique só com o último valor". Então <code>compras</code> virou a string <code>"café"</code>, e o <code>length</code> contou as <strong>letras</strong> dela (4). <strong>Como consertar:</strong> array é com <strong>colchetes</strong>: <code>[ … ]</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:A lista tem 4 itens.;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois erros. Rode, leia a mensagem, conserte, e rode de novo até aparecer <code>A lista tem 4 itens.</code></p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão" "café", "leite"];
+console.log(`A lista tem ${compras.lenght} itens.`);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café", "leite"];
+console.log(`A lista tem ${compras.length} itens.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const lista = ["a", "b", "c"];</code></td><td>Cria um array com três itens</td></tr>
+<tr><td><code>const lista = [];</code></td><td>Cria um array vazio</td></tr>
+<tr><td><code>lista[0]</code></td><td>O primeiro item (os índices começam em 0)</td></tr>
+<tr><td><code>lista.length</code></td><td>Quantos itens o array tem</td></tr>
+<tr><td><code>lista.length - 1</code></td><td>O índice do último item</td></tr>
+<tr><td><code>Array.isArray(valor)</code></td><td><code>true</code> se o valor for um array</td></tr>
+<tr><td><code>typeof lista</code></td><td><code>'object'</code> (não serve para reconhecer arrays)</td></tr>
+<tr><td><code>Array.of(1, 2, 3)</code></td><td>Cria um array com esses valores</td></tr>
+<tr><td><code>Array.from("Ana")</code></td><td>Cria um array a partir de outra coisa (aqui, as letras)</td></tr>
+<tr><td><code>texto.split(",")</code></td><td>Corta um texto num array de pedaços</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected string</code> (ou <code>Unexpected number</code>)</td><td>Faltou uma vírgula entre dois itens</td></tr>
+<tr><td><code>SyntaxError: Unexpected token ';'</code></td><td>O <code>]</code> do array não fechou</td></tr>
+<tr><td><code>undefined</code> no lugar do tamanho</td><td>Escreveu <code>lenght</code> (ou outro nome errado)</td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Tentou pôr outro array numa <code>const</code></td></tr>
+<tr><td>Sobrou só o último item</td><td>Usou <code>( )</code> no lugar de <code>[ ]</code></td></tr>
+<tr><td><code>[ &lt;3 empty items&gt; ]</code></td><td>Usou <code>new Array(3)</code> querendo o array <code>[3]</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a criação</h3>
+<p>Complete para criar o array das frutas da feira:</p>
+<div class="ex-code">const frutas = <input data-answer="[" aria-label="símbolo que abre o array">"maçã", "banana", "uva"<input data-answer="]" aria-label="símbolo que fecha o array">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos itens?</h3>
+<p>O que este programa mostra?</p>
+<pre class="file" data-file="ex2.js">const dias = ["seg", "ter", "qua", "qui", "sex"];
+console.log(dias.length);
+</pre>
+<div class="ex-code">Mostra <input data-answer="5" aria-label="número de itens">.</div>
+</div>
+
+<div class="exercise">
+<h3>3. O último índice</h3>
+<p>No mesmo array <code>dias</code>, qual é o índice de <code>"sex"</code>?</p>
+<div class="ex-code">dias[<input data-answer="4" aria-label="índice">] é "sex"</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>typeof ["a", "b"]</code> responde?</p>
+<label><input type="radio" name="q4"> <code>'array'</code></label>
+<label><input type="radio" name="q4"> <code>'list'</code></label>
+<label><input type="radio" name="q4"> <code>'object'</code></label>
+<label><input type="radio" name="q4"> <code>'string'</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual linha cria um array com um único item, o número 3?</p>
+<label><input type="radio" name="q5"> <code>new Array(3)</code></label>
+<label><input type="radio" name="q5"> <code>[3]</code></label>
+<label><input type="radio" name="q5"> <code>(3)</code></label>
+<label><input type="radio" name="q5"> <code>Array.from(3)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>const compras = ["arroz"];</code>. Qual destas linhas dá erro?</p>
+<label><input type="radio" name="q6"> <code>compras = ["arroz", "café"];</code></label>
+<label><input type="radio" name="q6"> <code>compras.push("café");</code></label>
+<label><input type="radio" name="q6"> <code>console.log(compras.length);</code></label>
+<label><input type="radio" name="q6"> Nenhuma</label>
+</div>
+
+<h3>Missão final: a turma da Ana</h3>
+
+<div class="tryjs" data-goal="out:A turma tem 4 alunos.;;out:Bia;;src:\[[^\]]*\bBia\b">
+<p class="try-task"><strong>Missão:</strong> crie um array <code>alunos</code> com quatro nomes: <code>"Ana"</code>, <code>"Bia"</code>, <code>"Caio"</code> e <code>"Duda"</code>. Depois, mostre o array inteiro com <code>console.log</code> e a frase <code>A turma tem 4 alunos.</code> usando o <code>length</code> numa template string.</p>
+<pre class="script" data-file="main.js">// crie o array alunos aqui
+
+// mostre o array e a frase
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(alunos);
+console.log(`A turma tem ${alunos.length} alunos.`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>[ 'Ana', 'Bia', 'Caio', 'Duda' ]</code> e, na linha de baixo, <code>A turma tem 4 alunos.</code></p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>array</strong> guarda vários valores em fila numa variável só. Cria-se com colchetes e vírgulas: <code>["arroz", "feijão", "café"]</code>; o array vazio é <code>[]</code>.</li>
+  <li>Os itens podem ser de qualquer tipo, mas o melhor é que todos sejam do mesmo tipo.</li>
+  <li>Cada item tem um <strong>índice</strong>, que começa em <strong>0</strong>: <code>compras[0]</code> é o primeiro. O último é <code>length - 1</code>.</li>
+  <li><code>lista.length</code> diz quantos itens o array tem (sem parênteses).</li>
+  <li>O <code>console.log</code> do Node mostra os textos com aspas simples, quebra arrays grandes em colunas e mostra no máximo 100 itens.</li>
+  <li><code>typeof</code> de um array é <code>'object'</code>; para saber se é array, use <code>Array.isArray</code>.</li>
+  <li>Prefira os colchetes; evite <code>new Array(n)</code>, que cria buracos vazios.</li>
+  <li>Numa <code>const</code>, o array pode mudar por dentro, mas a variável não aceita outro array.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
