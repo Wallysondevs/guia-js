@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Procurando em Strings — includes, indexOf, startsWith e endsWith | Guia JavaScript</title>
+<meta name="description" content="Como procurar um pedaço dentro de um texto no JavaScript, para quem nunca programou: includes (tem ou não tem?), startsWith e endsWith (começa e termina com), indexOf e lastIndexOf (em que posição?), o -1 de não achou, procurar a partir de uma posição, ignorar maiúsculas com toLowerCase, e os erros reais do Node.js 24 (contains is not a function, o 0 do indexOf que parece falso, Includes com I maiúsculo).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Procurando em Strings</span></h1>
+
+<p class="intro">O e-mail tem <code>@</code>? A lista de ingredientes tem "amendoim"? O arquivo termina com <code>.pdf</code>? Em que posição está o hífen do código do produto? Procurar um pedaço dentro de um texto é uma das tarefas mais comuns da programação. As strings do JavaScript têm métodos prontos para isso: <code>includes</code>, <code>startsWith</code>, <code>endsWith</code>, <code>indexOf</code> e <code>lastIndexOf</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>includes()</code>: o texto <strong>tem</strong> este pedaço? (<code>true</code> ou <code>false</code>)</li>
+  <li><code>startsWith()</code> e <code>endsWith()</code>: o texto <strong>começa</strong> ou <strong>termina</strong> com este pedaço?</li>
+  <li><code>indexOf()</code> e <code>lastIndexOf()</code>: <strong>em que posição</strong> está o pedaço? E o <code>-1</code>, que quer dizer "não achei".</li>
+  <li>Como procurar a partir de uma posição, e como procurar sem ligar para maiúsculas.</li>
+  <li>Os erros reais: o <code>contains</code> de outras linguagens, o <code>Includes</code> com I maiúsculo e o <code>0</code> do <code>indexOf</code> que parece "não achou".</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: procurar uma palavra no caça-palavras</h2>
+<p>Num caça-palavras, há duas perguntas diferentes que você pode fazer:</p>
+<ol class="passo">
+  <li>"A palavra <strong>GATO</strong> está aí?" A resposta é <strong>sim ou não</strong>.</li>
+  <li>"<strong>Onde</strong> ela está?" A resposta é uma <strong>posição</strong>: "começa na quinta letra".</li>
+</ol>
+<p>Os métodos desta aula se dividem do mesmo jeito: <code>includes</code>, <code>startsWith</code> e <code>endsWith</code> respondem "sim ou não" (um <a href="booleanos.html">booleano</a>); <code>indexOf</code> e <code>lastIndexOf</code> respondem "onde" (um número). Para entender as posições, lembre da aula <a href="strings.html">Strings</a>: cada caractere tem um número, e a contagem começa do <strong>zero</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Posição</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
+<tr><th>Caractere de <code>"pão quente"</code></th><td>p</td><td>ã</td><td>o</td><td>(espaço)</td><td>q</td><td>u</td><td>e</td><td>n</td><td>t</td><td>e</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Tem ou não tem: <code>includes()</code></h2>
+
+<pre class="file" data-file="tem.js">const ingredientes = "farinha, ovos, leite, amendoim, açúcar";
+
+console.log(ingredientes.includes("amendoim"));
+console.log(ingredientes.includes("chocolate"));
+console.log(ingredientes.includes("ovo"));
+console.log(ingredientes.includes("Leite"));
+console.log("ana@email.com".includes("@"));
+</pre>
+
+<dl class="anatomy">
+  <dt>ingredientes.includes("amendoim")</dt><dd>"Os ingredientes <strong>incluem</strong> <code>amendoim</code>?" Entre os parênteses vai o pedaço procurado. A resposta é <code>true</code>.</dd>
+  <dt>includes("chocolate")</dt><dd>Não está no texto: <code>false</code>.</dd>
+  <dt>includes("ovo")</dt><dd><code>true</code>: o método procura <strong>caracteres em sequência</strong>, não palavras inteiras. <code>ovo</code> está dentro de <code>ovos</code>.</dd>
+  <dt>includes("Leite")</dt><dd><code>false</code>: maiúscula e minúscula são diferentes. O texto tem <code>leite</code>, com l minúsculo.</dd>
+</dl>
+
+<pre class="term">$ node tem.js
+true
+false
+true
+false
+true
+</pre>
+
+<p>O <code>includes</code> é a pergunta mais comum. Junto com um <a href="if.html">if</a>, ele vira decisões como "se o pedido tem amendoim, avise o cliente alérgico".</p>
+
+<hr>
+
+<h2>2. Começa com, termina com: <code>startsWith()</code> e <code>endsWith()</code></h2>
+
+<pre class="file" data-file="pontas.js">const arquivo = "cardapio-2026.pdf";
+const telefone = "+55 81 99999-0000";
+
+console.log(arquivo.endsWith(".pdf"));
+console.log(arquivo.endsWith(".PDF"));
+console.log(arquivo.startsWith("cardapio"));
+console.log(telefone.startsWith("+55"));
+console.log(telefone.startsWith("81"));
+</pre>
+
+<pre class="term">$ node pontas.js
+true
+false
+true
+true
+false
+</pre>
+
+<p><code>startsWith</code> ("começa com") só olha o <strong>começo</strong> do texto, e <code>endsWith</code> ("termina com"), só o <strong>fim</strong>. O telefone <strong>tem</strong> <code>81</code>, mas não <strong>começa</strong> com ele: por isso a última linha deu <code>false</code>. São os métodos certos para conferir extensão de arquivo, código de país, prefixo de código de produto.</p>
+
+<div class="tryjs" data-goal="out:Parece e-mail? true;;src:endsWith">
+<p class="try-task"><strong>Missão:</strong> a lojinha só aceita e-mails que tenham <code>@</code> <strong>e</strong> terminem com <code>.com.br</code>. O programa já confere o <code>@</code>. Complete a condição com <code>&amp;&amp;</code> e <code>endsWith</code>, e troque o e-mail para <code>bia@padaria.com.br</code>, até aparecer <code>Parece e-mail? true</code>.</p>
+<pre class="script" data-file="main.js">const email = "bia.padaria.com";
+const pareceEmail = email.includes("@");
+console.log("Parece e-mail?", pareceEmail);
+</pre>
+<pre class="solucao" data-file="main.js">const email = "bia@padaria.com.br";
+const pareceEmail = email.includes("@") &amp;&amp; email.endsWith(".com.br");
+console.log("Parece e-mail?", pareceEmail);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Em que posição: <code>indexOf()</code></h2>
+<p>O <code>indexOf</code> (em inglês, "índice de", isto é, "a posição de") procura o pedaço e devolve a <strong>posição do primeiro caractere</strong> dele. Se não achar, devolve <strong><code>-1</code></strong>:</p>
+
+<pre class="file" data-file="posicao.js">const frase = "pão quente, pão doce";
+
+console.log(frase.indexOf("quente"));
+console.log(frase.indexOf("pão"));
+console.log(frase.indexOf("doce"));
+console.log(frase.indexOf("bolo"));
+console.log(frase.indexOf("Pão"));
+</pre>
+
+<pre class="term">$ node posicao.js
+4
+0
+16
+-1
+-1
+</pre>
+
+<dl class="anatomy">
+  <dt>indexOf("quente") → 4</dt><dd>O <code>q</code> de <code>quente</code> está na posição 4 (confira na tabela do começo da aula).</dd>
+  <dt>indexOf("pão") → 0</dt><dd><code>pão</code> aparece duas vezes; o <code>indexOf</code> devolve a <strong>primeira</strong>, que está bem no começo, na posição 0.</dd>
+  <dt>indexOf("bolo") → -1</dt><dd>Não achou. Como nenhuma posição é negativa, o <code>-1</code> é o jeito de dizer "não está aqui".</dd>
+  <dt>indexOf("Pão") → -1</dt><dd>Com P maiúsculo, não acha: o texto só tem <code>pão</code> minúsculo.</dd>
+</dl>
+
+<div class="warning">
+<strong>O 0 quer dizer "achei no começo"</strong>
+<p>Posição <code>0</code> é a primeira posição, não "nada". Quem quer só saber se o pedaço existe deve perguntar <code>texto.indexOf("x") !== -1</code>, ou, melhor ainda, usar o <code>includes</code>. Na seção <a href="#errado">Quando dá errado</a> você vê o que acontece quando alguém trata o 0 como "não achou".</p>
+</div>
+
+<h3>A última vez e a partir de uma posição</h3>
+
+<pre class="file" data-file="outras.js">const frase = "pão quente, pão doce";
+
+console.log(frase.lastIndexOf("pão"));
+console.log(frase.indexOf("pão", 1));
+console.log(frase.includes("pão", 13));
+</pre>
+
+<pre class="term">$ node outras.js
+12
+12
+false
+</pre>
+
+<ul>
+  <li><code>lastIndexOf</code> ("último índice de") procura de trás para a frente e devolve a posição da <strong>última</strong> ocorrência: o segundo <code>pão</code>, na 12.</li>
+  <li><code>indexOf("pão", 1)</code>: o segundo argumento é <strong>de onde começar</strong> a procurar. Começando da posição 1, o primeiro <code>pão</code> (na 0) já ficou para trás, e o próximo é o da 12.</li>
+  <li><code>includes</code>, <code>startsWith</code> e <code>endsWith</code> também aceitam esse número. A partir da posição 13, não há mais nenhum <code>pão</code> inteiro: <code>false</code>.</li>
+</ul>
+
+<p>Para descobrir <strong>quantas vezes</strong> um pedaço aparece, você repete o <code>indexOf</code> começando logo depois da última posição achada, até ele devolver <code>-1</code>. Isso precisa de um laço, como o <a href="while.html">while</a>.</p>
+
+<hr>
+
+<h2>4. Procurando sem ligar para maiúsculas</h2>
+<p>Todos os métodos de busca diferenciam maiúsculas e minúsculas. O truque é o mesmo da aula <a href="strings-metodos.html">Métodos de String</a>: passe <strong>os dois lados</strong> para minúsculas antes de procurar.</p>
+
+<pre class="file" data-file="semcaixa.js">const ingredientes = "Farinha de TRIGO, ovos e Leite";
+const procurado = "Trigo";
+
+console.log(ingredientes.includes(procurado));
+console.log(ingredientes.toLowerCase().includes(procurado.toLowerCase()));
+</pre>
+
+<pre class="term">$ node semcaixa.js
+false
+true
+</pre>
+
+<p>A segunda linha compara <code>"farinha de trigo, ovos e leite"</code> com <code>"trigo"</code>: tudo minúsculo dos dois lados, e a busca acha. O texto original não mudou: o <code>toLowerCase()</code> fez uma cópia só para a busca.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque o texto e o pedaço procurado. Tente procurar um espaço (<code>" "</code>), uma letra só, uma palavra que aparece duas vezes, e uma com maiúscula diferente.</p>
+<pre class="script" data-file="main.js">const texto = "pão quente, pão doce";
+const procurado = "pão";
+
+console.log("Tem?", texto.includes(procurado));
+console.log("Primeira posição:", texto.indexOf(procurado));
+console.log("Última posição:", texto.lastIndexOf(procurado));
+console.log("Começa com ele?", texto.startsWith(procurado));
+console.log("Termina com ele?", texto.endsWith(procurado));
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A pergunta "tem <code>@</code>?" pode ser escrita de três jeitos, e "começa com <code>+55</code>?" de dois:</p>
+
+<pre class="file" data-file="formas.js">const email = "ana@email.com";
+
+console.log(email.includes("@"));
+console.log(email.indexOf("@") !== -1);
+console.log(email.indexOf("@") &gt;= 0);
+
+const fone = "+55 81 99999-0000";
+console.log(fone.startsWith("+55"));
+console.log(fone.indexOf("+55") === 0);
+</pre>
+
+<pre class="term">$ node formas.js
+true
+true
+true
+true
+true
+</pre>
+
+<p>O <code>includes</code>, o <code>startsWith</code> e o <code>endsWith</code> chegaram ao JavaScript em <span class="versao">ES2015</span>. Antes deles, tudo era feito com <code>indexOf</code>, e você vai encontrar muito <code>indexOf(…) !== -1</code> em código antigo. Hoje, para perguntas de sim ou não, prefira os métodos que já devolvem um booleano: eles dizem o que você quer em português.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pergunta</th><th>Qual usar</th></tr>
+<tr><td>O texto tem este pedaço?</td><td><code>texto.includes(pedaco)</code></td></tr>
+<tr><td>Começa com / termina com?</td><td><code>texto.startsWith(pedaco)</code> / <code>texto.endsWith(pedaco)</code></td></tr>
+<tr><td>Em que posição está (a primeira vez)?</td><td><code>texto.indexOf(pedaco)</code> (e confira o <code>-1</code>)</td></tr>
+<tr><td>Em que posição está a última vez?</td><td><code>texto.lastIndexOf(pedaco)</code></td></tr>
+<tr><td>Tem, sem ligar para maiúsculas?</td><td><code>texto.toLowerCase().includes(pedaco.toLowerCase())</code></td></tr>
+<tr><td>Busca com padrão ("qualquer número", "qualquer letra")</td><td>Expressões regulares (aula <a href="regex.html">Expressões Regulares</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>0</code> do <code>indexOf</code> tratado como "não achou"</strong>
+<pre class="file" data-file="zero.js">const frase = "pão quente";
+
+console.log(Boolean(frase.indexOf("pão")));
+console.log(Boolean(frase.indexOf("bolo")));
+console.log(frase.includes("pão"));
+</pre>
+<pre class="term">$ node zero.js
+false
+true
+true
+</pre>
+<p>Nenhuma mensagem de erro, e as duas primeiras respostas estão <strong>trocadas</strong>. Quem usa o resultado do <code>indexOf</code> direto como "sim ou não" (num <code>if</code>, por exemplo) cai nisso: o <code>0</code> (achou no começo) conta como falso, e o <code>-1</code> (não achou) conta como verdadeiro (veja <a href="truthy-falsy.html">Truthy e Falsy</a>). <strong>Como consertar:</strong> use <code>includes</code>, ou compare: <code>frase.indexOf("pão") !== -1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o <code>contains</code> de outras linguagens</strong>
+<pre class="file" data-file="contains.js">const email = "ana@email.com";
+console.log(email.contains("@"));
+</pre>
+<pre class="term">$ node contains.js
+/home/ana/contains.js:2
+console.log(email.contains("@"));
+                  ^
+
+TypeError: email.contains is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/contains.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/contains.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>^</dt><dd>A setinha embaixo de <code>contains</code>.</dd>
+  <dt>TypeError: email.contains is not a function</dt><dd>"Erro de tipo: <code>email.contains</code> não é uma função." Em Java e C#, o método se chama <code>contains</code> ("contém"); em JavaScript, ele não existe. A string não tem nada com esse nome, e o JavaScript não consegue "usar" (com <code>()</code>) o que não existe.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/contains.js:2:19)</dt><dd>Linha 2, coluna 19, o começo de <code>contains</code>. As linhas <code>at</code> seguintes são de dentro do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> em JavaScript é <code>includes</code>: <code>email.includes("@")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>Includes</code> ou <code>indexof</code></strong>
+<pre class="file" data-file="caixa.js">const email = "ana@email.com";
+console.log(email.indexof("@"));
+</pre>
+<pre class="term">$ node caixa.js
+/home/ana/caixa.js:2
+console.log(email.indexof("@"));
+                  ^
+
+TypeError: email.indexof is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/caixa.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Os nomes dos métodos também diferenciam maiúsculas: é <code>indexOf</code>, com <strong>O</strong> maiúsculo; <code>includes</code>, tudo minúsculo; <code>startsWith</code> e <code>endsWith</code>, com <strong>W</strong> maiúsculo. <strong>Como consertar:</strong> confira a grafia (no modo interativo, o <kbd>Tab</kbd> mostra os nomes certos).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o que procurar</strong>
+<pre class="file" data-file="vazio.js">const frase = "o valor é undefined";
+console.log(frase.includes());
+console.log("pão".includes());
+</pre>
+<pre class="term">$ node vazio.js
+true
+false
+</pre>
+<p>Sem nada entre os parênteses, o JavaScript procura o <strong>texto</strong> <code>"undefined"</code> (o valor que "falta" vira esse texto). Por isso a primeira linha deu <code>true</code> e a segunda, <code>false</code>: nada de erro, só respostas sem sentido. <strong>Como consertar:</strong> diga o que procurar: <code>frase.includes("valor")</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Tem trigo? true;;src:includes;;src:toLowerCase">
+<p class="try-task"><strong>Missão:</strong> o rótulo do bolo escreveu "TRIGO" em maiúsculas, e o programa da Ana não acha o trigo. Conserte a busca para ela não ligar para maiúsculas, até aparecer <code>Tem trigo? true</code>.</p>
+<pre class="script" data-file="main.js">const rotulo = "Farinha de TRIGO, ovos, leite e açúcar";
+const temTrigo = rotulo.includes("trigo");
+console.log("Tem trigo?", temTrigo);
+</pre>
+<pre class="solucao" data-file="main.js">const rotulo = "Farinha de TRIGO, ovos, leite e açúcar";
+const temTrigo = rotulo.toLowerCase().includes("trigo");
+console.log("Tem trigo?", temTrigo);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>includes(p)</code></td><td><code>true</code> se o texto tem <code>p</code></td><td><code>"pão quente".includes("que")</code> → <code>true</code></td></tr>
+<tr><td><code>startsWith(p)</code></td><td><code>true</code> se começa com <code>p</code></td><td><code>"+55 81".startsWith("+55")</code> → <code>true</code></td></tr>
+<tr><td><code>endsWith(p)</code></td><td><code>true</code> se termina com <code>p</code></td><td><code>"foto.png".endsWith(".png")</code> → <code>true</code></td></tr>
+<tr><td><code>indexOf(p)</code></td><td>Posição da primeira vez, ou <code>-1</code></td><td><code>"pão quente".indexOf("quente")</code> → <code>4</code></td></tr>
+<tr><td><code>lastIndexOf(p)</code></td><td>Posição da última vez, ou <code>-1</code></td><td><code>"a-b-c".lastIndexOf("-")</code> → <code>3</code></td></tr>
+<tr><td><code>indexOf(p, inicio)</code></td><td>Procura a partir da posição <code>inicio</code></td><td><code>"a-b-c".indexOf("-", 2)</code> → <code>3</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Não acha algo que está lá</td><td>Maiúsculas diferentes: use <code>toLowerCase()</code> nos dois lados</td></tr>
+<tr><td>"Achou" quando não devia, ou o contrário, com <code>indexOf</code></td><td>Usou o número como sim/não: o <code>0</code> parece falso e o <code>-1</code>, verdadeiro</td></tr>
+<tr><td><code>TypeError: … .contains is not a function</code></td><td>Em JavaScript é <code>includes</code></td></tr>
+<tr><td><code>TypeError: … .indexof is not a function</code></td><td>Grafia: <code>indexOf</code>, <code>startsWith</code>, <code>endsWith</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Tem ou não tem?</h3>
+<p>Com <code>const s = "bolo de cenoura";</code>:</p>
+<div class="ex-code">s.includes("cenoura") → <input data-answer="true" aria-label="resultado 1"><br>s.startsWith("de") → <input data-answer="false" aria-label="resultado 2"><br>s.endsWith("ra") → <input data-answer="true" aria-label="resultado 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a posição?</h3>
+<p>Com <code>const s = "bolo de cenoura";</code>:</p>
+<div class="ex-code">s.indexOf("b") → <input data-answer="0" aria-label="posição 1"><br>s.indexOf("de") → <input data-answer="5" aria-label="posição 2"><br>s.indexOf("chocolate") → <input data-answer="-1" aria-label="posição 3"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete</h3>
+<p>Complete para saber se o arquivo é uma foto <code>.jpg</code>:</p>
+<div class="ex-code">const ehFoto = arquivo.<input data-answer="endsWith" aria-label="método">(".jpg");</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>"Banana".includes("banana")</code> devolve?</p>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>false</code>, porque o B maiúsculo é diferente do b minúsculo</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O <code>indexOf</code> devolveu <code>0</code>. O que isso quer dizer?</p>
+<label><input type="radio" name="q5"> Que não achou</label>
+<label><input type="radio" name="q5"> Que achou, logo no começo do texto</label>
+<label><input type="radio" name="q5"> Que o texto está vazio</label>
+<label><input type="radio" name="q5"> Que achou zero vezes</label>
+</div>
+
+<h3>Missão final: onde está o arroba?</h3>
+
+<div class="tryjs" data-goal="out:O @ está na posição 4;;out:Termina com .com? true;;src:indexOf">
+<p class="try-task"><strong>Missão:</strong> complete o programa para mostrar em que posição está o <code>@</code> do e-mail (com <code>indexOf</code>) e se o e-mail termina com <code>.com</code> (com <code>endsWith</code>). Com o e-mail <code>caio@email.com</code>, as linhas devem ser <code>O @ está na posição 4</code> e <code>Termina com .com? true</code>.</p>
+<pre class="script" data-file="main.js">const email = "caio@email.com";
+const posicao = 0;
+const terminaCom = false;
+console.log(`O @ está na posição ${posicao}`);
+console.log(`Termina com .com? ${terminaCom}`);
+</pre>
+<pre class="solucao" data-file="main.js">const email = "caio@email.com";
+const posicao = email.indexOf("@");
+const terminaCom = email.endsWith(".com");
+console.log(`O @ está na posição ${posicao}`);
+console.log(`Termina com .com? ${terminaCom}`);
+</pre>
+</div>
+
+<p>Sabendo a posição do <code>@</code>, dá para separar o nome do usuário (<code>caio</code>) do resto do e-mail. É o assunto da próxima aula: <a href="strings-fatiar.html">Pedaços de String</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>includes(p)</code>, <code>startsWith(p)</code> e <code>endsWith(p)</code> respondem <code>true</code> ou <code>false</code>: o texto tem, começa com, termina com <code>p</code>?</li>
+  <li><code>indexOf(p)</code> devolve a posição da primeira ocorrência; <code>lastIndexOf(p)</code>, a da última. As posições começam em <code>0</code>; não achou = <code>-1</code>.</li>
+  <li>Um segundo número diz de onde começar a procurar: <code>indexOf("pão", 1)</code>.</li>
+  <li>Todas as buscas diferenciam maiúsculas: para ignorar, <code>texto.toLowerCase().includes(p.toLowerCase())</code>.</li>
+  <li>Para "tem ou não tem", use <code>includes</code>: o <code>0</code> do <code>indexOf</code> parece falso e o <code>-1</code> parece verdadeiro.</li>
+  <li>Erros comuns: <code>contains</code> (não existe em JavaScript), <code>indexof</code>/<code>Includes</code> com a caixa errada, <code>includes()</code> sem argumento.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
