@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Herança — extends e super | Guia JavaScript</title>
+<meta name="description" content="Herança de classes no JavaScript para quem está começando: class Filha extends Mae, super() no construtor, super.metodo() para reaproveitar um método, sobrescrever métodos, instanceof, três níveis de herança, herdar de Error, o jeito antigo com prototype e os erros reais do Node.js 24 (Must call super constructor, Class extends value is not a constructor).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Herança</span> (extends e super)</h1>
+
+<p class="intro">Na aula <a href="classes.html">Classes</a>, a Ana criou a classe <code>Produto</code> para a lojinha dela: todo produto tem nome, preço e sabe se descrever. Mas alguns produtos são <strong>especiais</strong>: o leite e o queijo têm <strong>data de validade</strong>; o sorvete, além disso, precisa de <strong>temperatura</strong>. Escrever uma classe nova do zero para cada um repetiria o nome, o preço e o <code>descrever()</code> em todas. A <strong>herança</strong> resolve isso: uma classe nova pode <strong>herdar</strong> tudo de uma classe que já existe e só acrescentar o que é diferente.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é herança e como se escreve: <code>class Perecivel extends Produto</code> ("estende").</li>
+  <li>Para que serve o <code>super(…)</code> no construtor, e por que ele é obrigatório antes do <code>this</code>.</li>
+  <li>Como <strong>sobrescrever</strong> um método e como reaproveitar o método da classe mãe com <code>super.metodo()</code>.</li>
+  <li>Como perguntar "este objeto é um produto?" com <code>instanceof</code>.</li>
+  <li>Herança em vários níveis, e herdar de uma classe pronta do JavaScript (<code>Error</code>).</li>
+  <li>O jeito antigo (com <code>prototype</code>), a alternativa sem herança, e os erros reais do Node.js.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "é um produto, só que com validade"</h2>
+<p>Pense na ficha de cadastro da lojinha. Todo produto tem uma ficha com <strong>nome</strong> e <strong>preço</strong>. Para os perecíveis, a Ana não inventa uma ficha nova do zero: ela pega a ficha normal e <strong>grampeia</strong> nela uma folhinha a mais com a <strong>validade</strong>. O leite continua sendo um produto (tem nome e preço, aparece na prateleira, entra na conta), só que com uma informação extra.</p>
+<p>Na programação é igual:</p>
+<ul>
+  <li>a classe que já existe (<code>Produto</code>) é a <strong>classe mãe</strong> (também chamada de <em>superclasse</em> ou <em>classe base</em>);</li>
+  <li>a classe nova (<code>Perecivel</code>) é a <strong>classe filha</strong> (ou <em>subclasse</em>): ela <strong>herda</strong> tudo da mãe e acrescenta o que é dela;</li>
+  <li>a frase que deve fazer sentido é "<strong>todo perecível é um produto</strong>". Se a frase "todo X é um Y" soar estranha, herança provavelmente não é a ferramenta certa (veja <a href="#formas">Formas diferentes</a>).</li>
+</ul>
+
+<hr>
+
+<h2>1. A primeira herança: <code>extends</code> e <code>super()</code></h2>
+
+<pre class="file" data-file="perecivel.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    super(nome, preco);
+    this.validade = validade;
+  }
+}
+
+const arroz = new Produto("Arroz 5 kg", 27.9);
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+
+console.log(arroz.descrever());
+console.log(leite.descrever());
+console.log(leite.validade);
+console.log(leite);
+</pre>
+
+<dl class="anatomy">
+  <dt>class Produto { … }</dt><dd>A classe mãe, igual à da aula <a href="classes.html">Classes</a>: o <code>constructor</code> guarda nome e preço; o método <code>descrever()</code> devolve um texto com o preço em 2 casas (o <code>toFixed(2)</code>, de <a href="numeros-formatar.html">Formatando Números</a>).</dd>
+  <dt>class Perecivel extends Produto</dt><dd>"A classe <code>Perecivel</code> <strong>estende</strong> a classe <code>Produto</code>". O <code>extends</code> (em inglês, "estende") é a palavra que liga a filha à mãe. Só com isso, a filha já ganha o <code>descrever()</code> da mãe.</dd>
+  <dt>constructor(nome, preco, validade)</dt><dd>O construtor da filha recebe <strong>três</strong> valores: os dois que a mãe sabe guardar e o que é novo.</dd>
+  <dt>super(nome, preco);</dt><dd>Chama o <strong>construtor da mãe</strong>, passando o nome e o preço. É o <code>super(…)</code> que roda o <code>this.nome = nome; this.preco = preco;</code> lá do <code>Produto</code>. Em inglês, <em>super</em> quer dizer "acima": a classe de cima.</dd>
+  <dt>this.validade = validade;</dt><dd>Depois que a mãe fez a parte dela, a filha guarda o que é só dela. <strong>A ordem importa:</strong> o <code>this</code> só pode ser usado depois do <code>super(…)</code> (a seção <a href="#errado">Quando dá errado</a> mostra o erro).</dd>
+  <dt>leite.descrever()</dt><dd>A classe <code>Perecivel</code> não tem nenhum <code>descrever()</code> escrito nela. O JavaScript procura na filha, não acha, e <strong>sobe</strong> para a mãe: é o método do <code>Produto</code> que roda.</dd>
+</dl>
+
+<pre class="term">$ node perecivel.js
+Arroz 5 kg: R$ 27.90
+Leite 1 L: R$ 5.49
+25/10
+Perecivel { nome: 'Leite 1 L', preco: 5.49, validade: '25/10' }
+</pre>
+
+<p>Repare na última linha: o <code>console.log</code> do objeto mostra o nome da classe (<code>Perecivel</code>) e as <strong>três</strong> propriedades juntas, como se fossem uma ficha só. As duas primeiras foram guardadas pelo construtor da mãe; a terceira, pelo da filha.</p>
+
+<hr>
+
+<h2>2. A filha pode não ter construtor nenhum</h2>
+<p>Se a filha não precisa guardar nada novo, ela nem precisa escrever um <code>constructor</code>. Nesse caso, o JavaScript usa o construtor da mãe sozinho. A lojinha dá canetas de brinde: um brinde é um produto, só que se descreve de outro jeito:</p>
+
+<pre class="file" data-file="substituir.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Brinde extends Produto {
+  descrever() {
+    return `${this.nome}: grátis!`;
+  }
+}
+
+const caneta = new Brinde("Caneta da loja", 0);
+console.log(caneta.descrever());
+console.log(caneta.preco);
+</pre>
+
+<pre class="term">$ node substituir.js
+Caneta da loja: grátis!
+0
+</pre>
+
+<p>Duas coisas aconteceram aqui:</p>
+<ul>
+  <li>O <code>new Brinde("Caneta da loja", 0)</code> usou o construtor do <code>Produto</code>: por isso <code>caneta.preco</code> vale <code>0</code>. Sem construtor próprio, a filha funciona como se tivesse escrito <code>constructor(...args) { super(...args); }</code> (repassa tudo para a mãe; o <code>...</code> é o <a href="spread-rest.html">rest e spread</a>).</li>
+  <li>O <code>Brinde</code> escreveu o <strong>seu próprio</strong> <code>descrever()</code>. Quando a filha tem um método com o mesmo nome do da mãe, o da filha <strong>ganha</strong>: o JavaScript procura primeiro na filha e, achando, nem olha a mãe. Isso se chama <strong>sobrescrever</strong> o método (em inglês, <em>override</em>).</li>
+</ul>
+
+<hr>
+
+<h2>3. Sobrescrever, mas aproveitando a mãe: <code>super.metodo()</code></h2>
+<p>O brinde trocou o <code>descrever()</code> inteiro. Para o leite, a Ana quer outra coisa: o texto da mãe (<code>Leite 1 L: R$ 5.49</code>) <strong>mais</strong> a validade. Copiar o código da mãe para a filha funcionaria, mas aí a mesma conta ficaria escrita em dois lugares. O jeito certo é chamar o método da mãe com <code>super.descrever()</code>:</p>
+
+<pre class="file" data-file="sobrescrever.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    super(nome, preco);
+    this.validade = validade;
+  }
+
+  descrever() {
+    return `${super.descrever()} (vence em ${this.validade})`;
+  }
+}
+
+const arroz = new Produto("Arroz 5 kg", 27.9);
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+
+console.log(arroz.descrever());
+console.log(leite.descrever());
+</pre>
+
+<pre class="term">$ node sobrescrever.js
+Arroz 5 kg: R$ 27.90
+Leite 1 L: R$ 5.49 (vence em 25/10)
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Onde aparece</th><th>O que faz</th></tr>
+<tr><td><code>super(nome, preco)</code></td><td>Só dentro do <code>constructor</code> da filha</td><td>Roda o <strong>construtor</strong> da mãe</td></tr>
+<tr><td><code>super.descrever()</code></td><td>Em qualquer método da filha</td><td>Roda o <strong>método</strong> <code>descrever</code> da mãe (mesmo que a filha tenha um com o mesmo nome)</td></tr>
+</table>
+</div>
+
+<p>Se um dia a Ana mudar o <code>descrever()</code> do <code>Produto</code> (por exemplo, para mostrar o preço com vírgula), o leite muda junto, sem ela mexer na classe <code>Perecivel</code>. É a grande vantagem do <code>super.metodo()</code>.</p>
+
+<div class="tryjs" data-goal="out:(não deixe ao alcance de crianças);;out:Sabão em pó 1 kg: R$ 18.50;;src:super\.descrever\s*\(">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Limpeza</code> já herda do <code>Produto</code>, mas ainda não tem método próprio. Escreva nela um <code>descrever()</code> que devolva o texto da mãe (use <code>super.descrever()</code>) seguido de <code>(não deixe ao alcance de crianças)</code>. A saída esperada é <code>Sabão em pó 1 kg: R$ 18.50 (não deixe ao alcance de crianças)</code>.</p>
+<pre class="script" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Limpeza extends Produto {
+  // escreva o descrever() aqui
+}
+
+const sabao = new Limpeza("Sabão em pó 1 kg", 18.5);
+console.log(sabao.descrever());
+</pre>
+<pre class="solucao" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Limpeza extends Produto {
+  descrever() {
+    return `${super.descrever()} (não deixe ao alcance de crianças)`;
+  }
+}
+
+const sabao = new Limpeza("Sabão em pó 1 kg", 18.5);
+console.log(sabao.descrever());
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Uma prateleira com tipos misturados, e o <code>instanceof</code></h2>
+<p>Como todo perecível e todo brinde <strong>são</strong> produtos, eles podem ficar juntos no mesmo array. O laço chama <code>descrever()</code> em cada um, sem se preocupar com o tipo: cada objeto responde do seu jeito.</p>
+
+<pre class="file" data-file="prateleira.js">// (as classes Produto, Perecivel e Brinde das seções 2 e 3 vêm aqui em cima)
+
+const prateleira = [
+  new Produto("Arroz 5 kg", 27.9),
+  new Perecivel("Leite 1 L", 5.49, "25/10"),
+  new Brinde("Caneta da loja", 0),
+];
+
+for (const item of prateleira) {
+  console.log(item.descrever());
+}
+
+const leite = prateleira[1];
+console.log(leite instanceof Perecivel);
+console.log(leite instanceof Produto);
+console.log(prateleira[0] instanceof Perecivel);
+console.log(leite.constructor.name);
+</pre>
+
+<pre class="term">$ node prateleira.js
+Arroz 5 kg: R$ 27.90
+Leite 1 L: R$ 5.49 (vence em 25/10)
+Caneta da loja: grátis!
+true
+true
+false
+Perecivel
+</pre>
+
+<dl class="anatomy">
+  <dt>item.descrever()</dt><dd>A mesma linha de código produziu três textos diferentes. Esse "cada um responde do seu jeito à mesma pergunta" tem um nome chique: <strong>polimorfismo</strong> ("muitas formas"). O <code>for … of</code> é o da aula <a href="for-of.html">Percorrendo com for … of</a>.</dd>
+  <dt>leite instanceof Perecivel → true</dt><dd><code>instanceof</code> ("é instância de") pergunta: "este objeto foi criado por esta classe, <strong>ou por uma filha dela</strong>?". O leite foi criado com <code>new Perecivel</code>: <code>true</code>.</dd>
+  <dt>leite instanceof Produto → true</dt><dd>O leite também é um <code>Produto</code>, porque <code>Perecivel</code> é filha de <code>Produto</code>. É a frase "todo perecível é um produto" virando código.</dd>
+  <dt>prateleira[0] instanceof Perecivel → false</dt><dd>O arroz é um produto comum. Nem todo produto é perecível: a herança vale de baixo para cima, nunca de cima para baixo.</dd>
+  <dt>leite.constructor.name → Perecivel</dt><dd>O nome da classe que criou o objeto, como texto. Útil para mostrar em mensagens.</dd>
+</dl>
+
+<hr>
+
+<h2>5. Herança em vários níveis</h2>
+<p>A filha também pode ter filhas. O sorvete é um perecível (tem validade) que precisa de freezer. A classe <code>Congelado</code> estende <code>Perecivel</code>, que estende <code>Produto</code>:</p>
+
+<pre class="file" data-file="congelado.js">// (Produto e Perecivel da seção 3 vêm aqui em cima)
+
+class Congelado extends Perecivel {
+  constructor(nome, preco, validade, temperatura) {
+    super(nome, preco, validade);
+    this.temperatura = temperatura;
+  }
+
+  descrever() {
+    return `${super.descrever()} [guardar a ${this.temperatura} °C]`;
+  }
+}
+
+const sorvete = new Congelado("Sorvete 2 L", 24.9, "10/03", -18);
+console.log(sorvete.descrever());
+console.log(sorvete instanceof Congelado, sorvete instanceof Perecivel, sorvete instanceof Produto);
+console.log(sorvete);
+</pre>
+
+<pre class="term">$ node congelado.js
+Sorvete 2 L: R$ 24.90 (vence em 10/03) [guardar a -18 °C]
+true true true
+Congelado {
+  nome: 'Sorvete 2 L',
+  preco: 24.9,
+  validade: '10/03',
+  temperatura: -18
+}
+</pre>
+
+<p>Siga o caminho do <code>sorvete.descrever()</code>:</p>
+<ol class="passo">
+  <li>O <code>descrever()</code> do <code>Congelado</code> chama <code>super.descrever()</code>, que é o do <strong><code>Perecivel</code></strong> (a mãe imediata).</li>
+  <li>O do <code>Perecivel</code> chama o seu <code>super.descrever()</code>, que é o do <strong><code>Produto</code></strong>: devolve <code>Sorvete 2 L: R$ 24.90</code>.</li>
+  <li>O <code>Perecivel</code> acrescenta <code>(vence em 10/03)</code> e devolve.</li>
+  <li>O <code>Congelado</code> acrescenta <code>[guardar a -18 °C]</code> e devolve o texto inteiro.</li>
+</ol>
+<p>Com o construtor é igual: o <code>super(nome, preco, validade)</code> do <code>Congelado</code> chama o construtor do <code>Perecivel</code>, que chama o do <code>Produto</code>. (O objeto agora tem 4 propriedades e o Node passou a mostrar uma por linha: ele faz isso quando a linha ficaria comprida demais.)</p>
+
+<div class="tip">
+<strong>Até quantos níveis?</strong>
+<p>O JavaScript não tem limite, mas cadeias longas ficam difíceis de seguir: para entender o <code>Congelado</code> você precisa abrir três classes. Na prática, 2 ou 3 níveis já é bastante.</p>
+</div>
+
+<hr>
+
+<h2>6. Herdando de uma classe pronta: o seu próprio tipo de erro</h2>
+<p>Dá para estender as classes que já vêm com o JavaScript. A mais útil para começar é <code>Error</code> (aula <a href="throw.html">Lançando Erros</a>): a Ana cria um erro só da lojinha, que carrega o nome do produto que acabou.</p>
+
+<pre class="file" data-file="erro-estoque.js">class ErroDeEstoque extends Error {
+  constructor(produto) {
+    super(`acabou o estoque de ${produto}`);
+    this.name = "ErroDeEstoque";
+    this.produto = produto;
+  }
+}
+
+try {
+  throw new ErroDeEstoque("Leite 1 L");
+} catch (erro) {
+  console.log(erro.name);
+  console.log(erro.message);
+  console.log(erro.produto);
+  console.log(erro instanceof ErroDeEstoque, erro instanceof Error);
+}
+
+throw new ErroDeEstoque("Pão de queijo");
+</pre>
+
+<pre class="term">$ node erro-estoque.js
+ErroDeEstoque
+acabou o estoque de Leite 1 L
+Leite 1 L
+true true
+/home/ana/erro-estoque.js:18
+throw new ErroDeEstoque("Pão de queijo");
+^
+
+ErroDeEstoque: acabou o estoque de Pão de queijo
+    at Object.&lt;anonymous&gt; (/home/ana/erro-estoque.js:18:7)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « (mais 5 linhas at node:internal… cortadas)
+    at node:internal/main/run_main_module:33:47 {
+  produto: 'Pão de queijo'
+}
+
+Node.js v24.22.0
+</pre>
+
+<ul>
+  <li><code>super(`acabou o estoque de ${produto}`)</code> passa a <strong>mensagem</strong> para o construtor do <code>Error</code>, que a guarda em <code>erro.message</code>.</li>
+  <li><code>this.name = "ErroDeEstoque"</code> troca o nome que aparece na frente da mensagem. Sem essa linha, o Node mostraria <code>Error: acabou o estoque…</code>.</li>
+  <li>No <code>catch</code> (aula <a href="try-catch.html">try … catch</a>), o <code>instanceof</code> deixa o programa reconhecer o tipo do erro: <code>true true</code>, ele é um <code>ErroDeEstoque</code> e também um <code>Error</code>.</li>
+  <li>O último <code>throw</code> não foi pego por ninguém, e o Node mostrou a mensagem com o <strong>nome novo</strong> e, no fim, entre chaves, a propriedade extra <code>produto</code>.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<h3>O jeito antigo: função construtora e <code>prototype</code></h3>
+<p>As classes chegaram ao JavaScript em 2015 (o ES6). Antes disso, a herança era montada à mão. Você ainda vai encontrar este estilo em código antigo e em respostas velhas da internet:</p>
+
+<pre class="file" data-file="antigo.js">function Produto(nome, preco) {
+  this.nome = nome;
+  this.preco = preco;
+}
+Produto.prototype.descrever = function () {
+  return this.nome + ": R$ " + this.preco.toFixed(2);
+};
+
+function Perecivel(nome, preco, validade) {
+  Produto.call(this, nome, preco);
+  this.validade = validade;
+}
+Perecivel.prototype = Object.create(Produto.prototype);
+Perecivel.prototype.constructor = Perecivel;
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+console.log(leite.descrever());
+console.log(leite instanceof Produto);
+</pre>
+
+<pre class="term">$ node antigo.js
+Leite 1 L: R$ 5.49
+true
+</pre>
+
+<p>O resultado é o mesmo, mas veja quanta coisa: o <code>Produto.call(this, …)</code> faz o papel do <code>super(…)</code>, e as duas linhas com <code>prototype</code> fazem o papel do <code>extends</code>. O <code>class … extends</code> faz <strong>exatamente</strong> isso por baixo dos panos, de um jeito mais curto e com menos chance de erro. O que é esse tal de <code>prototype</code> é o assunto da aula <a href="prototipos.html">Protótipos</a>, e o <code>call</code> aparece em <a href="this.html">this, call, apply e bind</a>. <strong>Em código novo, use <code>class</code> e <code>extends</code>.</strong></p>
+
+<h3>Sem herança: um objeto <em>dentro</em> do outro (composição)</h3>
+<p>Nem toda relação é "é um". Um item do carrinho <strong>não é</strong> um produto: ele <strong>tem</strong> um produto e uma quantidade. Para "tem um", em vez de <code>extends</code>, guarde o outro objeto numa propriedade:</p>
+
+<pre class="file" data-file="composicao.js">// (Produto da seção 1 vem aqui em cima)
+
+class ItemDoCarrinho {
+  constructor(produto, quantidade) {
+    this.produto = produto;
+    this.quantidade = quantidade;
+  }
+
+  total() {
+    return this.produto.preco * this.quantidade;
+  }
+}
+
+const item = new ItemDoCarrinho(new Produto("Leite 1 L", 5.49), 3);
+console.log(item.produto.descrever());
+console.log(`Total: R$ ${item.total().toFixed(2)}`);
+</pre>
+
+<pre class="term">$ node composicao.js
+Leite 1 L: R$ 5.49
+Total: R$ 16.47
+</pre>
+
+<p>Os programadores costumam dizer "prefira composição à herança": junte objetos pequenos em vez de criar árvores grandes de classes. Herança é ótima quando a frase "todo X é um Y" é verdadeira de fato.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>"Todo X <strong>é um</strong> Y, com algo a mais" (perecível é um produto; gerente é um funcionário)</td><td><code>class X extends Y</code></td></tr>
+<tr><td>"X <strong>tem um</strong> Y" (item do carrinho tem um produto; turma tem alunos)</td><td>Composição: guardar o Y numa propriedade do X</td></tr>
+<tr><td>Um tipo de erro só seu, reconhecível no <code>catch</code></td><td><code>class MeuErro extends Error</code></td></tr>
+<tr><td>Ler código antigo (antes de 2015)</td><td>Reconhecer <code>Mae.call(this, …)</code> e <code>Filha.prototype = Object.create(Mae.prototype)</code>; não escrever assim</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>super(…)</code> no construtor da filha</strong>
+<pre class="file" data-file="sem-super.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    this.validade = validade;
+  }
+}
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+console.log(leite);
+</pre>
+<pre class="term">$ node sem-super.js
+/home/ana/sem-super.js:10
+    this.validade = validade;
+    ^
+
+ReferenceError: Must call super constructor in derived class before accessing 'this' or returning from derived constructor
+    at new Perecivel (/home/ana/sem-super.js:10:5)
+    at Object.&lt;anonymous&gt; (/home/ana/sem-super.js:14:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « (mais 6 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/sem-super.js:10</dt><dd>O arquivo e a linha onde o erro aconteceu: a 10, a do <code>this.validade</code>.</dd>
+  <dt>this.validade = validade; e o ^</dt><dd>A linha do código, e o <code>^</code> embaixo apontando o ponto exato: o <code>this</code>.</dd>
+  <dt>ReferenceError: Must call super constructor in derived class before accessing 'this' or returning from derived constructor</dt><dd>"É preciso chamar o construtor da classe mãe (<em>super constructor</em>) na classe derivada (a filha) antes de usar o <code>this</code> ou de terminar o construtor da filha". Numa classe com <code>extends</code>, quem <strong>cria</strong> o objeto é o construtor da mãe; até o <code>super(…)</code> rodar, o <code>this</code> ainda não existe.</dd>
+  <dt>at new Perecivel (…:10:5)</dt><dd>O erro aconteceu <strong>dentro</strong> do construtor de <code>Perecivel</code> (linha 10, coluna 5)…</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:14:15)</dt><dd>…que foi chamado pelo <code>new Perecivel(…)</code> da linha 14. As linhas <code>at node:internal…</code> são o próprio Node carregando o arquivo: pode ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p>Se o construtor da filha não usar o <code>this</code> em lugar nenhum, o erro aparece do mesmo jeito, só que no <strong>fim</strong> do construtor ("<em>or returning from derived constructor</em>"): com um construtor que só tinha <code>console.log("criando um perecível");</code>, o Node mostrou <code>criando um perecível</code> e logo depois o mesmo <code>ReferenceError</code>, apontando a linha do <code>console.log</code>. <strong>Como consertar:</strong> a primeira linha do construtor da filha é <code>super(nome, preco);</code>. Se a filha não tem nada novo para guardar, apague o construtor inteiro (seção 2).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o <code>super(…)</code> numa classe sem <code>extends</code></strong>
+<pre class="file" data-file="super-fora.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+class Brinde {
+  constructor(nome) {
+    super(nome, 0);
+  }
+}
+</pre>
+<pre class="term">$ node super-fora.js
+/home/ana/super-fora.js:10
+    super(nome, 0);
+    ^^^^^
+
+SyntaxError: 'super' keyword unexpected here
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"A palavra <code>super</code> não era esperada aqui". É um <code>SyntaxError</code> (erro de escrita): o programa nem começou a rodar. O <code>Brinde</code> não tem mãe, então não existe construtor de cima para chamar. <strong>Como consertar:</strong> faltou o <code>extends</code>: <code>class Brinde extends Produto</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A classe mãe foi escrita depois da filha</strong>
+<pre class="file" data-file="ordem.js">class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    super(nome, preco);
+    this.validade = validade;
+  }
+}
+
+class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+</pre>
+<pre class="term">$ node ordem.js
+/home/ana/ordem.js:1
+class Perecivel extends Produto {
+                        ^
+
+ReferenceError: Cannot access 'Produto' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/ordem.js:1:25)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para acessar <code>Produto</code> antes da inicialização". Uma <code>class</code> se comporta como um <code>const</code>: só existe a partir da linha onde foi escrita (aula <a href="hoisting.html">Hoisting</a>). Na linha 1, o <code>Produto</code> ainda não foi criado. <strong>Como consertar:</strong> escreva a classe mãe <strong>antes</strong> da filha.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou estender um objeto comum</strong>
+<pre class="file" data-file="objeto.js">const produto = { nome: "", preco: 0 };
+
+class Perecivel extends produto {
+}
+</pre>
+<pre class="term">$ node objeto.js
+/home/ana/objeto.js:3
+class Perecivel extends produto {
+                        ^
+
+TypeError: Class extends value #&lt;Object&gt; is not a constructor or null
+    at Object.&lt;anonymous&gt; (/home/ana/objeto.js:3:25)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O valor depois do <code>extends</code>, um <code>#&lt;Object&gt;</code>, não é um construtor nem <code>null</code>". Depois do <code>extends</code> tem de vir uma <strong>classe</strong> (algo que se usa com <code>new</code>), e <code>produto</code> é um objeto comum (aula <a href="objetos.html">Objetos</a>). É fácil cair nisso quando a variável e a classe têm quase o mesmo nome: <code>produto</code> × <code>Produto</code>. <strong>Como consertar:</strong> estenda a classe, com a inicial maiúscula.</p>
+</div>
+
+<div class="cenario">
+<strong>Errou o nome do método no <code>super.</code></strong>
+<pre class="file" data-file="super-errado.js">  descrever() {
+    return `${super.descreve()} (vence em ${this.validade})`;
+  }
+</pre>
+<pre class="term">$ node super-errado.js
+/home/ana/super-errado.js:19
+    return `${super.descreve()} (vence em ${this.validade})`;
+                    ^
+
+TypeError: (intermediate value).descreve is not a function
+    at Perecivel.descrever (/home/ana/super-errado.js:19:21)
+    at Object.&lt;anonymous&gt; (/home/ana/super-errado.js:24:19)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>(valor intermediário).descreve</code> não é uma função". O <code>(intermediate value)</code> é o jeito do Node de chamar o <code>super</code> (ele não tem um nome de variável para mostrar). A mãe tem <code>descrever</code>, com <strong>r</strong> no fim; <code>descreve</code> não existe, vale <code>undefined</code>, e <code>undefined</code> não pode ser chamado com <code>()</code>. A pilha <code>at</code> conta a história: o erro foi dentro de <code>Perecivel.descrever</code> (linha 19), chamado na linha 24. <strong>Como consertar:</strong> confira o nome do método na classe mãe.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Leite 1 L: R$ 5.49 (vence em 25/10);;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>dois</strong> erros: um no construtor e um no método. Rode, leia a mensagem, conserte, e rode de novo até aparecer <code>Leite 1 L: R$ 5.49 (vence em 25/10)</code>.</p>
+<pre class="script" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    this.validade = validade;
+  }
+
+  descrever() {
+    return `${super.descreve()} (vence em ${this.validade})`;
+  }
+}
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+console.log(leite.descrever());
+</pre>
+<pre class="solucao" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    super(nome, preco);
+    this.validade = validade;
+  }
+
+  descrever() {
+    return `${super.descrever()} (vence em ${this.validade})`;
+  }
+}
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+console.log(leite.descrever());
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class Filha extends Mae { … }</code></td><td>Cria uma classe que herda os métodos (e o construtor) da classe <code>Mae</code></td></tr>
+<tr><td><code>super(a, b)</code></td><td>No construtor da filha: roda o construtor da mãe. Obrigatório antes de usar <code>this</code></td></tr>
+<tr><td><code>super.metodo()</code></td><td>Em um método da filha: roda o método da mãe com esse nome</td></tr>
+<tr><td>Método com o mesmo nome na filha</td><td>Sobrescreve (<em>override</em>) o da mãe para os objetos da filha</td></tr>
+<tr><td>Filha sem <code>constructor</code></td><td>Usa o construtor da mãe com os mesmos argumentos</td></tr>
+<tr><td><code>obj instanceof Classe</code></td><td><code>true</code> se o objeto foi criado pela classe ou por uma filha dela</td></tr>
+<tr><td><code>obj.constructor.name</code></td><td>O nome da classe que criou o objeto, como texto</td></tr>
+<tr><td><code>class MeuErro extends Error</code></td><td>Um tipo de erro próprio (chame <code>super(mensagem)</code> e defina <code>this.name</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: Must call super constructor in derived class…</code></td><td>Faltou o <code>super(…)</code> no construtor da filha, ou o <code>this</code> veio antes dele</td></tr>
+<tr><td><code>SyntaxError: 'super' keyword unexpected here</code></td><td><code>super(…)</code> numa classe sem <code>extends</code> (ou fora de uma classe)</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'Mae' before initialization</code></td><td>A classe mãe foi escrita depois da filha</td></tr>
+<tr><td><code>TypeError: Class extends value … is not a constructor or null</code></td><td>Depois do <code>extends</code> veio algo que não é classe (um objeto, um número…)</td></tr>
+<tr><td><code>TypeError: (intermediate value).x is not a function</code></td><td><code>super.x()</code> com um nome de método que a mãe não tem</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a herança</h3>
+<p>Complete para a classe <code>Aluno</code> herdar de <code>Pessoa</code> e passar o nome para o construtor da mãe:</p>
+<div class="ex-code">class Aluno <input data-answer="extends" aria-label="palavra que liga a filha à mãe"> Pessoa {<br>&nbsp;&nbsp;constructor(nome, turma) {<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="super" aria-label="chamada ao construtor da mãe">(nome);<br>&nbsp;&nbsp;&nbsp;&nbsp;this.turma = turma;<br>&nbsp;&nbsp;}<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Verdadeiro ou falso?</h3>
+<p>Com as classes desta aula (<code>Congelado extends Perecivel</code>, <code>Perecivel extends Produto</code>), o que mostra <code>console.log(new Perecivel("Queijo", 30, "01/11") instanceof Congelado)</code>?</p>
+<div class="ex-code">Mostra <input data-answer="false" aria-label="true ou false"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Numa classe filha, qual deve ser a primeira linha do construtor, antes de qualquer <code>this</code>?</p>
+<label><input type="radio" name="q3"> <code>this.super();</code></label>
+<label><input type="radio" name="q3"> <code>extends(nome);</code></label>
+<label><input type="radio" name="q3"> <code>super(nome);</code></label>
+<label><input type="radio" name="q3"> <code>Mae.constructor(nome);</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A classe <code>Brinde extends Produto</code> tem um método <code>descrever()</code>, e <code>Produto</code> também. Qual roda em <code>new Brinde("Caneta", 0).descrever()</code>?</p>
+<label><input type="radio" name="q4"> O do <code>Produto</code>, porque ele veio primeiro</label>
+<label><input type="radio" name="q4"> O do <code>Brinde</code>: o da filha sobrescreve o da mãe</label>
+<label><input type="radio" name="q4"> Os dois, um depois do outro</label>
+<label><input type="radio" name="q4"> Nenhum: dá erro de nome repetido</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Em qual caso herança <strong>não</strong> é a melhor escolha?</p>
+<label><input type="radio" name="q5"> <code>Gerente</code> e <code>Funcionario</code></label>
+<label><input type="radio" name="q5"> <code>Perecivel</code> e <code>Produto</code></label>
+<label><input type="radio" name="q5"> <code>ErroDeEstoque</code> e <code>Error</code></label>
+<label><input type="radio" name="q5"> <code>Carrinho</code> e <code>Produto</code> (um carrinho tem vários produtos)</label>
+</div>
+
+<h3>Missão final: o gerente da padaria</h3>
+
+<div class="tryjs" data-goal="out:Bia, salário R$ 4500, gerente do setor Padaria;;out:Caio, salário R$ 2100;;src:\bextends\s+Funcionario\b;;src:super\s*\(">
+<p class="try-task"><strong>Missão:</strong> na padaria do bairro, todo gerente é um funcionário com um <strong>setor</strong>. Escreva a classe <code>Gerente</code> que <strong>estende</strong> <code>Funcionario</code>: o construtor recebe <code>nome</code>, <code>salario</code> e <code>setor</code> (chame <code>super</code> com os dois primeiros) e o método <code>apresentar()</code> devolve o texto da mãe seguido de <code>, gerente do setor </code> e o setor. A saída da Bia deve ser <code>Bia, salário R$ 4500, gerente do setor Padaria</code>.</p>
+<pre class="script" data-file="main.js">class Funcionario {
+  constructor(nome, salario) {
+    this.nome = nome;
+    this.salario = salario;
+  }
+
+  apresentar() {
+    return `${this.nome}, salário R$ ${this.salario}`;
+  }
+}
+
+// escreva a classe Gerente aqui
+
+const caio = new Funcionario("Caio", 2100);
+console.log(caio.apresentar());
+// tire as duas barras da linha de baixo quando a classe estiver pronta
+// const bia = new Gerente("Bia", 4500, "Padaria");
+// console.log(bia.apresentar());
+</pre>
+<pre class="solucao" data-file="main.js">class Funcionario {
+  constructor(nome, salario) {
+    this.nome = nome;
+    this.salario = salario;
+  }
+
+  apresentar() {
+    return `${this.nome}, salário R$ ${this.salario}`;
+  }
+}
+
+class Gerente extends Funcionario {
+  constructor(nome, salario, setor) {
+    super(nome, salario);
+    this.setor = setor;
+  }
+
+  apresentar() {
+    return `${super.apresentar()}, gerente do setor ${this.setor}`;
+  }
+}
+
+const caio = new Funcionario("Caio", 2100);
+console.log(caio.apresentar());
+const bia = new Gerente("Bia", 4500, "Padaria");
+console.log(bia.apresentar());
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Caio, salário R$ 2100</code> e <code>Bia, salário R$ 4500, gerente do setor Padaria</code>; e <code>bia instanceof Funcionario</code> deu <code>true</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>class Filha extends Mae</code> cria uma classe que <strong>herda</strong> tudo da mãe. Use quando a frase "todo X é um Y" for verdadeira.</li>
+  <li>No construtor da filha, <code>super(…)</code> roda o construtor da mãe e tem de vir <strong>antes</strong> de qualquer <code>this</code>. Se a filha não tem nada novo para guardar, ela nem precisa de construtor.</li>
+  <li>Um método da filha com o mesmo nome <strong>sobrescreve</strong> o da mãe; <code>super.metodo()</code> chama o da mãe para aproveitar o que ela já faz.</li>
+  <li><code>instanceof</code> responde se um objeto é de uma classe <strong>ou de uma filha dela</strong>.</li>
+  <li>Dá para estender classes prontas, como <code>Error</code>, para ter erros com nome próprio.</li>
+  <li>O <code>extends</code> faz por baixo o que o código antigo fazia com <code>prototype</code> e <code>Mae.call(this)</code> (aula <a href="prototipos.html">Protótipos</a>). Para "tem um", prefira composição.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
