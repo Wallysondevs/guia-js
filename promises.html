@@ -93,6 +93,11 @@ Promise {
 
 <p>Você quase nunca vai mostrar uma Promise com <code>console.log</code>. Mas quando aparecer um <code>Promise { &lt;pending&gt; }</code> na sua saída, agora você sabe: você mostrou a <strong>senha</strong>, não o sanduíche.</p>
 
+<div class="note">
+<strong>No editor do guia</strong>
+<p>Rodado numa caixa do guia, o <code>estados.js</code> mostra <code>Promise { &lt;pending&gt; }</code> nas quatro linhas: o editor roda no navegador, que não deixa espiar dentro das Promises do <code>fs/promises</code>. O estado das Promises que você cria com <code>new Promise</code> (seção 3) ele mostra igual ao Node.</p>
+</div>
+
 <hr>
 
 <h2>2. Usando uma Promise: <code>.then</code>, <code>.catch</code> e <code>.finally</code></h2>
