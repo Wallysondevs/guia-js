@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Parâmetros Padrão — valor para o argumento que faltou | Guia JavaScript</title>
+<meta name="description" content="Parâmetros padrão no JavaScript para quem está começando: function f(x = 1), o que acontece com o argumento que falta (undefined, NaN), o padrão só vale para undefined (não para null, 0 ou texto vazio), pular um parâmetro do meio, padrão que usa outro parâmetro ou chama uma função, padrão com desestruturação e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Parâmetros Padrão</span></h1>
+
+<p class="intro">No JavaScript, você pode chamar uma função com <strong>menos</strong> argumentos do que ela tem parâmetros, e ele não reclama: o parâmetro que ficou sem valor vale <code>undefined</code>. Isso costuma estragar contas e textos sem dar erro nenhum. Um <strong>parâmetro padrão</strong> (em inglês, <em>default parameter</em>) diz qual valor usar quando o argumento não vier: <code>function precoTotal(preco, quantidade = 1)</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que acontece com um parâmetro sem argumento (o <code>undefined</code>, o <code>NaN</code>).</li>
+  <li>Como dar um valor padrão: <code>nome = "visitante"</code>.</li>
+  <li>Que o padrão só entra no lugar de <code>undefined</code>, nunca de <code>null</code>, <code>0</code> ou <code>""</code>.</li>
+  <li>Como pular um parâmetro do meio, e por que os opcionais vão no fim.</li>
+  <li>Padrões que usam outro parâmetro, que chamam uma função, e o padrão com desestruturação.</li>
+  <li>Os jeitos antigos (<code>if</code> e <code>||</code>) e a armadilha do <code>0</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Para relembrar o que são parâmetros e argumentos, veja <a href="parametros.html">Parâmetros e Argumentos</a>.</p>
+
+<hr>
+
+<h2>A ideia: "se não disser o tamanho, é médio"</h2>
+<p>Na padaria, quem pede "um café" sem dizer o tamanho recebe o médio. Ninguém precisa perguntar; já está combinado. O cliente que diz "um café grande" recebe o grande. O parâmetro padrão é esse combinado: um valor que a função usa <strong>quando quem chamou não disse nada</strong>.</p>
+
+<hr>
+
+<h2>1. O problema: o argumento que faltou</h2>
+
+<pre class="file" data-file="problema.js">function saudar(nome) {
+  console.log(`Olá, ${nome}!`);
+}
+
+function precoTotal(preco, quantidade) {
+  return preco * quantidade;
+}
+
+saudar();
+console.log(precoTotal(0.8));
+</pre>
+
+<pre class="term">$ node problema.js
+Olá, undefined!
+NaN
+</pre>
+
+<p>Nenhum erro, mas dois resultados ruins. Sem argumento, <code>nome</code> e <code>quantidade</code> valem <code>undefined</code>. No texto, o <code>undefined</code> aparece escrito; na conta, <code>0.8 * undefined</code> dá <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>), que estraga qualquer conta seguinte.</p>
+
+<hr>
+
+<h2>2. O parâmetro padrão</h2>
+
+<pre class="file" data-file="padrao.js">function saudar(nome = "visitante") {
+  console.log(`Olá, ${nome}!`);
+}
+
+saudar("Ana");
+saudar();
+</pre>
+
+<dl class="anatomy">
+  <dt>nome</dt><dd>O parâmetro, como sempre.</dd>
+  <dt>= "visitante"</dt><dd>O valor padrão. Lê-se: "se não vier nada para <code>nome</code>, ele vale <code>"visitante"</code>". Qualquer expressão serve: um número, um texto, um array, uma conta.</dd>
+  <dt>saudar("Ana")</dt><dd>Veio argumento: o padrão é ignorado.</dd>
+  <dt>saudar()</dt><dd>Não veio: o padrão entra.</dd>
+</dl>
+
+<pre class="term">$ node padrao.js
+Olá, Ana!
+Olá, visitante!
+</pre>
+
+<p>Com dois parâmetros, só o que pode faltar ganha padrão:</p>
+
+<pre class="file" data-file="dois.js">function precoTotal(preco, quantidade = 1) {
+  return preco * quantidade;
+}
+
+console.log(precoTotal(0.8, 10));
+console.log(precoTotal(0.8));
+console.log(precoTotal(0.8, 0));
+</pre>
+
+<pre class="term">$ node dois.js
+8
+0.8      « quantidade não veio: usou 1
+0        « quantidade veio, e é 0: o padrão não entrou
+</pre>
+
+<div class="tryjs" data-goal="out:Olá, Ana! Bom dia!;;out:Olá, cliente! Bom dia!;;src:periodo\s*=\s*&quot;dia&quot;">
+<p class="try-task"><strong>Missão:</strong> dê padrões aos dois parâmetros: <code>nome</code> deve ser <code>"cliente"</code> e <code>periodo</code> deve ser <code>"dia"</code>, para as duas linhas saírem <code>Olá, Ana! Bom dia!</code> e <code>Olá, cliente! Bom dia!</code>.</p>
+<pre class="script" data-file="main.js">function boasVindas(nome, periodo) {
+  console.log(`Olá, ${nome}! Bom ${periodo}!`);
+}
+
+boasVindas("Ana");
+boasVindas();
+</pre>
+<pre class="solucao" data-file="main.js">function boasVindas(nome = "cliente", periodo = "dia") {
+  console.log(`Olá, ${nome}! Bom ${periodo}!`);
+}
+
+boasVindas("Ana");
+boasVindas();
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O padrão só entra no lugar de <code>undefined</code></h2>
+<p>A regra exata: o padrão é usado quando o argumento <strong>não vem</strong> ou vem <code>undefined</code>. Qualquer outro valor, mesmo "vazio", é respeitado:</p>
+
+<pre class="file" data-file="soundefined.js">function cafe(tamanho = "médio") {
+  console.log(`Um café ${tamanho}.`);
+}
+
+cafe("grande");
+cafe();
+cafe(undefined);
+cafe(null);
+cafe("");
+</pre>
+
+<pre class="term">$ node soundefined.js
+Um café grande.
+Um café médio.     « sem argumento
+Um café médio.     « undefined explícito: mesmo efeito
+Um café null.      « null é um valor: o padrão não entra
+Um café .          « texto vazio também é um valor
+</pre>
+
+<p>É a mesma regra do <code>??</code>, só que mais estrita: o <code>??</code> troca <code>null</code> <strong>e</strong> <code>undefined</code>; o padrão troca só <code>undefined</code>. Se a função pode receber <code>null</code> e você quer tratar como "faltou", use dentro dela <code>tamanho = tamanho ?? "médio";</code> (veja <a href="optional-chaining.html">?. e ??</a>).</p>
+
+<hr>
+
+<h2>4. Pular um parâmetro do meio</h2>
+<p>Os argumentos são entregues <strong>pela ordem</strong>. Para usar o padrão de um parâmetro do meio e ainda passar o seguinte, mande <code>undefined</code> no lugar dele:</p>
+
+<pre class="file" data-file="meio.js">function pedido(item, quantidade = 1, embalagem = "saco de papel") {
+  console.log(`${quantidade}x ${item} em ${embalagem}`);
+}
+
+pedido("pão");
+pedido("pão", 10);
+pedido("bolo", undefined, "caixa");
+</pre>
+
+<pre class="term">$ node meio.js
+1x pão em saco de papel
+10x pão em saco de papel
+1x bolo em caixa
+</pre>
+
+<p>Funciona, mas <code>pedido("bolo", undefined, "caixa")</code> é feio e fácil de errar. Duas boas práticas:</p>
+<ul>
+  <li>Ponha os parâmetros <strong>obrigatórios primeiro</strong> e os que têm padrão <strong>no fim</strong>, do mais usado para o menos usado.</li>
+  <li>Quando forem muitos opcionais, receba <strong>um objeto</strong> e use desestruturação (seção 6): cada valor vai com o nome dele, em qualquer ordem.</li>
+</ul>
+
+<hr>
+
+<h2>5. Padrões mais espertos</h2>
+
+<h3>Um padrão pode usar os parâmetros anteriores</h3>
+<pre class="file" data-file="anterior.js">function parcelar(total, parcelas = 1, valorParcela = total / parcelas) {
+  console.log(`${parcelas}x de R$ ${valorParcela.toFixed(2)}`);
+}
+
+parcelar(120);
+parcelar(120, 3);
+parcelar(120, 3, 50);
+</pre>
+
+<pre class="term">$ node anterior.js
+1x de R$ 120.00
+3x de R$ 40.00
+3x de R$ 50.00
+</pre>
+
+<p>Os parâmetros são preparados da esquerda para a direita; quando chega a vez de <code>valorParcela</code>, <code>total</code> e <code>parcelas</code> já têm valor. O contrário (usar um parâmetro que vem <strong>depois</strong>) dá erro: veja <a href="#errado">Quando dá errado</a>. O <code>toFixed(2)</code> formata com duas casas (aula <a href="numeros-formatar.html">Formatando Números</a>).</p>
+
+<h3>O padrão é calculado a cada chamada</h3>
+<p>A expressão do padrão roda de novo em toda chamada que precisa dela. Por isso, um array padrão é <strong>novo</strong> a cada vez:</p>
+
+<pre class="file" data-file="cadavez.js">function adicionar(item, lista = []) {
+  lista.push(item);
+  return lista;
+}
+
+console.log(adicionar("pão"));
+console.log(adicionar("leite"));
+const minha = ["café"];
+console.log(adicionar("açúcar", minha));
+</pre>
+
+<pre class="term">$ node cadavez.js
+[ 'pão' ]
+[ 'leite' ]           « outro array vazio, novinho: o pão não está aqui
+[ 'café', 'açúcar' ]
+</pre>
+
+<p>E o padrão pode chamar uma função, que só roda quando o padrão é necessário:</p>
+
+<pre class="file" data-file="funcaopadrao.js">function hoje() {
+  console.log("(calculando o padrão...)");
+  return "19/10/2026";
+}
+
+function registrar(venda, data = hoje()) {
+  console.log(`${venda} em ${data}`);
+}
+
+registrar("Bolo", "18/10/2026");
+registrar("Pão");
+</pre>
+
+<pre class="term">$ node funcaopadrao.js
+Bolo em 18/10/2026          « veio a data: hoje() nem foi chamada
+(calculando o padrão...)
+Pão em 19/10/2026
+</pre>
+
+<p>(Num programa de verdade, <code>hoje()</code> usaria <code>new Date()</code>, da aula <a href="date.html">Datas</a>; aqui a data está fixa para o exemplo dar sempre a mesma saída.)</p>
+
+<h3>Em arrow functions</h3>
+<p>Igualzinho, dentro dos parênteses (veja <a href="arrow-functions.html">Arrow Functions</a>):</p>
+
+<pre class="file" data-file="arrow.js">const desconto = (preco, porcentagem = 10) =&gt; preco - (preco * porcentagem) / 100;
+console.log(desconto(50));
+console.log(desconto(50, 20));
+</pre>
+
+<pre class="term">$ node arrow.js
+45
+40
+</pre>
+
+<hr>
+
+<h2>6. Padrão com desestruturação: opções com nome</h2>
+<p>Juntando com a <a href="desestruturacao.html">desestruturação</a>, a função recebe um objeto de opções, e cada opção tem o seu padrão:</p>
+
+<pre class="file" data-file="objeto.js">function criarPedido({ item, quantidade = 1, viagem = false } = {}) {
+  console.log({ item, quantidade, viagem });
+}
+
+criarPedido({ item: "café", viagem: true });
+criarPedido({ item: "pão", quantidade: 6 });
+criarPedido();
+</pre>
+
+<dl class="anatomy">
+  <dt>{ item, quantidade = 1, viagem = false }</dt><dd>Desmonta o objeto recebido; <code>quantidade</code> e <code>viagem</code> têm padrões próprios.</dd>
+  <dt>= {}</dt><dd>O padrão do parâmetro <strong>inteiro</strong>: se a função for chamada sem nada, desestrutura um objeto vazio (sem isso, <code>criarPedido()</code> daria <code>Cannot destructure property</code>).</dd>
+  <dt>console.log({ item, quantidade, viagem })</dt><dd>Monta um objeto só para mostrar os três valores de uma vez.</dd>
+</dl>
+
+<pre class="term">$ node objeto.js
+{ item: 'café', quantidade: 1, viagem: true }
+{ item: 'pão', quantidade: 6, viagem: false }
+{ item: undefined, quantidade: 1, viagem: false }
+</pre>
+
+<p>Repare que a chamada <code>{ item: "café", viagem: true }</code> pulou a <code>quantidade</code> sem precisar de <code>undefined</code>: é a vantagem das opções com nome.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Antes de existir o parâmetro padrão (até o ES5), o valor padrão era feito dentro da função. Você vai encontrar os dois jeitos em código antigo:</p>
+
+<pre class="file" data-file="antigo.js">function precoTotalIf(preco, quantidade) {
+  if (quantidade === undefined) {
+    quantidade = 1;
+  }
+  return preco * quantidade;
+}
+
+function precoTotalOu(preco, quantidade) {
+  quantidade = quantidade || 1;
+  return preco * quantidade;
+}
+
+console.log(precoTotalIf(0.8), precoTotalIf(0.8, 0));
+console.log(precoTotalOu(0.8), precoTotalOu(0.8, 0));
+</pre>
+
+<pre class="term">$ node antigo.js
+0.8 0
+0.8 0.8      « o || trocou a quantidade 0 por 1!
+</pre>
+
+<p>O <code>|| 1</code> troca qualquer valor falsy (veja <a href="truthy-falsy.html">Truthy e Falsy</a>), então a quantidade <code>0</code>, que é válida, virou 1. Esse defeito era comum e é um dos motivos de o parâmetro padrão existir.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Troca</th><th>Quando usar</th></tr>
+<tr><td><code>function f(x = 1)</code></td><td>só <code>undefined</code></td><td>Sempre que possível: é o jeito moderno e fica visível na primeira linha</td></tr>
+<tr><td><code>x = x ?? 1;</code> dentro</td><td><code>undefined</code> e <code>null</code></td><td>Quando <code>null</code> também deve contar como "faltou"</td></tr>
+<tr><td><code>if (x === undefined) x = 1;</code></td><td>só <code>undefined</code></td><td>Código antigo; mesmo efeito do padrão</td></tr>
+<tr><td><code>x = x || 1;</code></td><td>qualquer falsy (<code>0</code>, <code>""</code>, <code>false</code>…)</td><td>Só se <code>0</code> e <code>""</code> também forem inválidos</td></tr>
+<tr><td><code>function f({ x = 1 } = {})</code></td><td>só <code>undefined</code>, por opção</td><td>Muitas opções, cada uma com nome</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o padrão: <code>undefined</code> e <code>NaN</code></strong>
+<p>É o problema da seção 1: nenhuma mensagem de erro, só <code>Olá, undefined!</code> e <code>NaN</code>. Quando vir esses dois na saída, desconfie de um argumento que faltou. <strong>Como consertar:</strong> passe o argumento, ou dê um padrão ao parâmetro.</p>
+</div>
+
+<div class="cenario">
+<strong>Padrão que usa um parâmetro que vem depois</strong>
+<pre class="file" data-file="depois.js">function preco(valor = base * 2, base = 10) {
+  return valor;
+}
+
+console.log(preco(5));
+console.log(preco());
+</pre>
+<pre class="term">$ node depois.js
+5
+/home/ana/depois.js:1
+function preco(valor = base * 2, base = 10) {
+                       ^
+
+ReferenceError: Cannot access 'base' before initialization
+    at preco (/home/ana/depois.js:1:24)
+    at Object.&lt;anonymous&gt; (/home/ana/depois.js:6:13)    « a chamada culpada, na linha 6
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>5</dt><dd><code>preco(5)</code> funcionou: veio o <code>valor</code>, e o padrão dele nem foi calculado.</dd>
+  <dt>/home/ana/depois.js:1 e o ^</dt><dd>O erro está na linha 1, com o <code>^</code> embaixo do <code>base</code>, dentro do padrão de <code>valor</code>.</dd>
+  <dt>ReferenceError: Cannot access 'base' before initialization</dt><dd>"Não é possível acessar <code>base</code> antes da inicialização." Em <code>preco()</code>, o JavaScript foi calcular o padrão de <code>valor</code>, que precisa de <code>base</code>; mas <code>base</code> vem depois e ainda não foi preparada (os parâmetros são preparados da esquerda para a direita).</dd>
+  <dt>at preco (…:1:24) / at Object.&lt;anonymous&gt; (…:6:13)</dt><dd>De baixo para cima: a linha 6 chamou <code>preco</code>, que quebrou na linha 1.</dd>
+</dl>
+<p><strong>Como consertar:</strong> inverta a ordem: <code>function preco(base = 10, valor = base * 2)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mandou <code>null</code> esperando o padrão</strong>
+<p>Na seção 3, <code>cafe(null)</code> deu <code>Um café null.</code>. É comum quando o valor vem de um formulário ou de um JSON (onde "sem valor" costuma ser <code>null</code>). <strong>Como consertar:</strong> mande <code>undefined</code> (ou não mande nada), ou trate o <code>null</code> dentro da função com <code>??</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Parâmetro obrigatório que ninguém passou</strong>
+<p>Às vezes o certo não é um padrão, e sim <strong>reclamar</strong>. Um truque conhecido: um padrão que chama uma função que lança um erro (veja <a href="throw.html">throw</a>), e só roda se o argumento faltar.</p>
+<pre class="file" data-file="obrigatorio.js">function faltou(nome) {
+  throw new Error(`O parâmetro "${nome}" é obrigatório.`);
+}
+
+function cadastrar(nome = faltou("nome"), cidade = "Recife") {
+  console.log(`${nome}, de ${cidade}`);
+}
+
+cadastrar("Ana");
+cadastrar();
+</pre>
+<pre class="term">$ node obrigatorio.js
+Ana, de Recife
+/home/ana/obrigatorio.js:2
+  throw new Error(`O parâmetro "${nome}" é obrigatório.`);
+  ^
+
+Error: O parâmetro "nome" é obrigatório.
+    at faltou (/home/ana/obrigatorio.js:2:9)
+    at cadastrar (/home/ana/obrigatorio.js:5:27)
+    at Object.&lt;anonymous&gt; (/home/ana/obrigatorio.js:10:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Agora o erro é <strong>seu</strong>, com uma mensagem em português que diz exatamente o que faltou, em vez de um <code>undefined</code> passeando pelo programa. As linhas <code>at</code> contam a história: a linha 10 chamou <code>cadastrar</code>, cujo padrão (linha 5) chamou <code>faltou</code>, que lançou o erro na linha 2.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>function f(x = 1) { … }</code></td><td><code>x</code> vale 1 quando o argumento não vem ou é <code>undefined</code></td></tr>
+<tr><td><code>(x = 1) =&gt; …</code></td><td>O mesmo, em arrow function</td></tr>
+<tr><td><code>f(undefined, 5)</code></td><td>Usa o padrão do primeiro e passa o segundo</td></tr>
+<tr><td><code>function f(a, b = a * 2)</code></td><td>Padrão que usa um parâmetro anterior</td></tr>
+<tr><td><code>function f(lista = [])</code></td><td>Um array novo a cada chamada sem argumento</td></tr>
+<tr><td><code>function f(data = hoje())</code></td><td>Chama <code>hoje()</code> só quando precisa</td></tr>
+<tr><td><code>function f({ a = 1, b = 2 } = {})</code></td><td>Opções com nome, cada uma com padrão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Faça <code>vezes</code> valer 2 quando não for passado:</p>
+<div class="ex-code">function repetir(texto, vezes <input data-answer="= 2|=2" aria-label="padrão">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com <code>function f(x = 10) { return x; }</code>, o que mostra <code>console.log(f(0));</code>?</p>
+<div class="ex-code"><input data-answer="0" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E agora?</h3>
+<p>Com a mesma função, o que mostra <code>console.log(f(null));</code>?</p>
+<div class="ex-code"><input data-answer="null" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>function pedido(item, qtd = 1, embalagem = "saco")</code>, como pedir 1 bolo em "caixa"?</p>
+<label><input type="radio" name="q4"> <code>pedido("bolo", "caixa")</code></label>
+<label><input type="radio" name="q4"> <code>pedido("bolo", , "caixa")</code></label>
+<label><input type="radio" name="q4"> <code>pedido("bolo", undefined, "caixa")</code></label>
+<label><input type="radio" name="q4"> <code>pedido("bolo", null, "caixa")</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que <code>quantidade = quantidade || 1</code> é perigoso?</p>
+<label><input type="radio" name="q5"> Porque dá erro de sintaxe</label>
+<label><input type="radio" name="q5"> Porque troca também o <code>0</code>, que pode ser uma quantidade válida</label>
+<label><input type="radio" name="q5"> Porque não troca o <code>undefined</code></label>
+</div>
+
+<h3>Missão final: a etiqueta de preço</h3>
+
+<div class="tryjs" data-goal="out:Pão: R$ 0.80 (unidade);;out:Bolo: R$ 25.00 (unidade);;out:Café: R$ 32.00 (kg);;semerro;;src:moeda\s*=">
+<p class="try-task"><strong>Missão:</strong> a função quebra quando não recebe a <code>unidade</code> nem a <code>moeda</code> (sai <code>undefined</code>), e quando não recebe o <code>preco</code> o <code>toFixed</code> dá erro. Dê padrões: <code>preco = 0</code>, <code>unidade = "unidade"</code> e <code>moeda = "R$"</code>. Deve sair <code>Pão: R$ 0.80 (unidade)</code>, <code>Bolo: R$ 25.00 (unidade)</code> e <code>Café: R$ 32.00 (kg)</code>, e a última chamada também não pode dar erro.</p>
+<pre class="script" data-file="main.js">function etiqueta(nome, preco, unidade, moeda) {
+  console.log(`${nome}: ${moeda} ${preco.toFixed(2)} (${unidade})`);
+}
+
+etiqueta("Pão", 0.8);
+etiqueta("Bolo", 25);
+etiqueta("Café", 32, "kg");
+etiqueta("Brinde");
+</pre>
+<pre class="solucao" data-file="main.js">function etiqueta(nome, preco = 0, unidade = "unidade", moeda = "R$") {
+  console.log(`${nome}: ${moeda} ${preco.toFixed(2)} (${unidade})`);
+}
+
+etiqueta("Pão", 0.8);
+etiqueta("Bolo", 25);
+etiqueta("Café", 32, "kg");
+etiqueta("Brinde");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Parâmetro sem argumento vale <code>undefined</code>, o que gera <code>undefined</code> em textos e <code>NaN</code> em contas, sem erro.</li>
+  <li><code>function f(x = valor)</code> usa o valor quando o argumento não vem ou é <code>undefined</code>. <code>null</code>, <code>0</code> e <code>""</code> são respeitados.</li>
+  <li>Opcionais no fim; para pular um do meio, <code>undefined</code>, ou, melhor, um objeto de opções com <code>{ a = 1 } = {}</code>.</li>
+  <li>O padrão é calculado a cada chamada, pode usar parâmetros <strong>anteriores</strong> e chamar funções.</li>
+  <li>Prefira o padrão ao velho <code>x = x || 1</code>, que estraga o <code>0</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
