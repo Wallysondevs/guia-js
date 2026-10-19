@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript fs — escrevendo arquivos no Node.js (writeFileSync e appendFileSync) | Guia JavaScript</title>
+<meta name="description" content="Escrever arquivos com o módulo fs do Node.js para quem nunca programou: writeFileSync (cria ou substitui), appendFileSync (acrescenta no fim), salvar listas e JSON com JSON.stringify, ler-mudar-gravar, mkdirSync com recursive, a flag wx para não sobrescrever, writeFile com await, unlinkSync e os erros reais (ERR_INVALID_ARG_TYPE, [object Object], ENOENT, EACCES, EEXIST).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Escrevendo Arquivos</span> (fs)</h1>
+
+<p class="intro">Na aula <a href="fs-ler.html">Lendo Arquivos</a>, os programas leram o que já estava guardado. Agora eles vão <strong>guardar</strong>: anotar as vendas do dia, salvar a lista de compras, atualizar o estoque. É assim que um programa "lembra" das coisas de uma execução para a outra. Quem escreve é o mesmo módulo <code>node:fs</code>, e o recurso continua sendo <strong>só do Node</strong> (no navegador, o jeito de guardar dados é outro: <a href="localstorage.html">localStorage</a>).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar um arquivo, ou trocar todo o conteúdo dele, com <code>writeFileSync</code>.</li>
+  <li>Como acrescentar no fim, sem apagar o que havia, com <code>appendFileSync</code>.</li>
+  <li>Como salvar uma lista (com <code>join</code>) e um objeto (com <code>JSON.stringify</code>).</li>
+  <li>O ciclo "ler → mudar → gravar", que dá memória ao programa.</li>
+  <li>Como criar pastas (<code>mkdirSync</code>), não apagar um arquivo que já existe (flag <code>"wx"</code>) e apagar um arquivo (<code>unlinkSync</code>).</li>
+  <li>A versão que não trava: <code>writeFile</code> com <code>await</code>.</li>
+  <li>Os erros reais: escrever um número, um objeto, numa pasta que não existe, num arquivo protegido.</li>
+</ul>
+</div>
+
+<p>Todos os programas rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta <code>/home/ana/escrever</code>.</p>
+
+<hr>
+
+<h2>A ideia: o quadro branco e o caderno de vendas</h2>
+<p>Na padaria há dois jeitos de anotar:</p>
+<ul>
+  <li>O <strong>quadro branco</strong> da cozinha: para escrever o aviso de hoje, a Ana <strong>apaga</strong> o de ontem e escreve o novo. Ali só cabe uma coisa por vez.</li>
+  <li>O <strong>caderno de vendas</strong> do caixa: cada venda vai numa linha nova, <strong>embaixo</strong> das outras. Nada se apaga.</li>
+</ul>
+<p>O <code>fs</code> tem uma função para cada um: <code>writeFileSync</code> é o quadro branco (substitui tudo); <code>appendFileSync</code> é o caderno (acrescenta no fim). Escolher a errada é o erro mais comum desta aula: usar o quadro branco quando se queria o caderno <strong>apaga o histórico</strong>.</p>
+
+<hr>
+
+<h2>1. Criando um arquivo: <code>writeFileSync</code></h2>
+
+<pre class="file" data-file="bilhete.js">const fs = require("node:fs");
+
+fs.writeFileSync("bilhete.txt", "Comprar farinha e fermento.\n");
+console.log("Bilhete escrito!");
+</pre>
+
+<dl class="anatomy">
+  <dt>fs.writeFileSync(…)</dt><dd>"Escrever o arquivo, esperando terminar". Se o arquivo não existe, ele é <strong>criado</strong>; se existe, o conteúdo antigo é <strong>apagado</strong> e trocado pelo novo.</dd>
+  <dt>"bilhete.txt"</dt><dd>O nome do arquivo. Como na leitura, sem pasta na frente, ele vai para a <strong>pasta atual do terminal</strong> (veja <a href="path.html">Caminhos de Arquivo</a>).</dd>
+  <dt>"Comprar farinha e fermento.\n"</dt><dd>O conteúdo: tem de ser uma <strong>string</strong>. O <code>\n</code> no fim é a quebra de linha (veja <a href="strings-escape.html">Caracteres Especiais</a>): arquivos de texto costumam terminar com uma, e o <code>cat</code> fica mais bonito assim.</dd>
+</dl>
+
+<p>Não precisa passar o <code>"utf8"</code>: para escrever texto, ele já é o padrão.</p>
+
+<pre class="term">$ ls
+$ node bilhete.js
+Bilhete escrito!
+$ ls
+bilhete.js
+bilhete.txt
+$ cat bilhete.txt
+Comprar farinha e fermento.
+</pre>
+
+<p>A pasta só tinha o programa; depois de rodar, apareceu o <code>bilhete.txt</code>, com o texto dentro.</p>
+
+<h3>Escrever de novo apaga o que havia</h3>
+
+<pre class="file" data-file="bilhete2.js">const fs = require("node:fs");
+
+fs.writeFileSync("bilhete.txt", "Ligar para o fornecedor.\n");
+</pre>
+
+<pre class="term">$ node bilhete2.js
+$ cat bilhete.txt
+Ligar para o fornecedor.
+</pre>
+
+<p>O recado da farinha <strong>sumiu</strong>, sem aviso e sem lixeira. É o quadro branco. Antes de usar <code>writeFileSync</code>, pergunte: "posso perder o que está nesse arquivo?"</p>
+
+<div class="tryjs" data-goal="arquivo:recado.txt~Bom dia, Bia!">
+<p class="try-task"><strong>Missão:</strong> o programa só mostra o recado na tela. Faça-o <strong>gravar</strong> o recado no arquivo <code>recado.txt</code>, com <code>fs.writeFileSync</code>. Para conferir, acrescente no fim um <code>console.log(fs.readFileSync("recado.txt", "utf8"));</code>.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+const recado = "Bom dia, Bia! A encomenda fica pronta às 10h.\n";
+console.log(recado);
+</pre>
+<pre class="solucao" data-file="main.js">const fs = require("node:fs");
+
+const recado = "Bom dia, Bia! A encomenda fica pronta às 10h.\n";
+fs.writeFileSync("recado.txt", recado);
+console.log("Recado gravado.");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Acrescentando no fim: <code>appendFileSync</code></h2>
+<p>Para o caderno de vendas, cada execução deve <strong>acrescentar</strong> uma linha. O programa recebe a venda pelos <a href="process-argv.html">argumentos</a>:</p>
+
+<pre class="file" data-file="diario.js">const fs = require("node:fs");
+
+const venda = process.argv.slice(2).join(" ");
+fs.appendFileSync("vendas.txt", venda + "\n");
+console.log(`Anotado: ${venda}`);
+</pre>
+
+<dl class="anatomy">
+  <dt>process.argv.slice(2).join(" ")</dt><dd>Junta todos os argumentos numa frase: <code>3 sonhos</code>.</dd>
+  <dt>fs.appendFileSync("vendas.txt", …)</dt><dd>"Acrescentar ao arquivo": escreve <strong>no fim</strong>, sem apagar nada. Se o arquivo não existe, ele é criado.</dd>
+  <dt>venda + "\n"</dt><dd>A quebra de linha no fim de cada venda. Sem ela, as vendas ficariam todas grudadas numa linha só: <code>3 sonhos2 broas</code>.</dd>
+</dl>
+
+<pre class="term">$ node diario.js 3 sonhos
+Anotado: 3 sonhos
+$ node diario.js 2 broas
+Anotado: 2 broas
+$ node diario.js 1 bolo de fubá
+Anotado: 1 bolo de fubá
+$ cat vendas.txt
+3 sonhos
+2 broas
+1 bolo de fubá
+</pre>
+
+<p>Três execuções, três linhas: o caderno guardou o histórico.</p>
+
+<hr>
+
+<h2>3. Salvando uma lista e um objeto</h2>
+
+<h3>Uma lista: uma linha por item</h3>
+<p>O <code>writeFileSync</code> só aceita texto. Para gravar um array, transforme-o em texto com o <code>join</code> (veja <a href="strings-split.html">split e join</a>), que é o caminho inverso do <code>split</code> da leitura:</p>
+
+<pre class="file" data-file="lista.js">const fs = require("node:fs");
+
+const compras = ["leite", "pão francês", "café"];
+fs.writeFileSync("compras.txt", compras.join("\n") + "\n");
+console.log(fs.readFileSync("compras.txt", "utf8"));
+</pre>
+
+<pre class="term">$ node lista.js
+leite
+pão francês
+café
+
+</pre>
+
+<p>(A linha em branco no fim é a quebra de linha do arquivo mais a do <code>console.log</code>, como na aula de leitura.)</p>
+
+<h3>Um objeto: <code>JSON.stringify</code></h3>
+<p>Para guardar dados com estrutura (objetos dentro de arrays, números, textos), o formato é o <a href="json.html">JSON</a>. O <code>JSON.stringify</code> transforma o objeto em texto; o terceiro argumento, <code>2</code>, pede 2 espaços de recuo, para o arquivo ficar legível:</p>
+
+<pre class="file" data-file="salvar.js">const fs = require("node:fs");
+
+const estoque = {
+  loja: "Padaria da Ana",
+  produtos: [
+    { nome: "sonho", qtd: 12 },
+    { nome: "broa", qtd: 7 },
+  ],
+};
+
+fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2) + "\n");
+console.log("Estoque salvo.");
+</pre>
+
+<pre class="term">$ node salvar.js
+Estoque salvo.
+$ cat estoque.json
+{
+  "loja": "Padaria da Ana",
+  "produtos": [
+    {
+      "nome": "sonho",
+      "qtd": 12
+    },
+    {
+      "nome": "broa",
+      "qtd": 7
+    }
+  ]
+}
+</pre>
+
+<h3>Ler, mudar, gravar: a memória do programa</h3>
+<p>Juntando a leitura e a escrita, o programa passa a <strong>lembrar</strong>. A cada venda, ele lê o estoque, tira um sonho e grava de volta:</p>
+
+<pre class="file" data-file="vender.js">const fs = require("node:fs");
+
+const estoque = JSON.parse(fs.readFileSync("estoque.json", "utf8"));
+const sonho = estoque.produtos.find((p) =&gt; p.nome === "sonho");
+sonho.qtd -= 1;
+fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2) + "\n");
+console.log(`Vendi um sonho. Restam ${sonho.qtd}.`);
+</pre>
+
+<ol class="passo">
+  <li><strong>Ler:</strong> <code>readFileSync</code> + <code>JSON.parse</code> trazem o estoque do arquivo para um objeto.</li>
+  <li><strong>Mudar:</strong> o <code>find</code> acha o sonho (veja <a href="arrays-buscar.html">Procurando</a>) e o <code>-= 1</code> tira uma unidade.</li>
+  <li><strong>Gravar:</strong> <code>JSON.stringify</code> + <code>writeFileSync</code> levam o objeto inteiro de volta para o arquivo, substituindo a versão antiga. Aqui o "quadro branco" é o certo: o arquivo tem de ter o estoque <strong>atual</strong>.</li>
+</ol>
+
+<pre class="term">$ node vender.js
+Vendi um sonho. Restam 11.
+$ node vender.js
+Vendi um sonho. Restam 10.
+$ grep -A1 sonho estoque.json
+      "nome": "sonho",
+      "qtd": 10
+</pre>
+
+<p>Cada execução partiu do que a anterior deixou: 12, 11, 10. O <code>grep</code> confirma que o arquivo guardou o 10. É exatamente o que o <a href="projeto-tarefas.html">Projeto: Lista de Tarefas</a> faz.</p>
+
+<hr>
+
+<h2>4. Pastas, arquivos novos e apagar</h2>
+
+<h3>Criar a pasta antes: <code>mkdirSync</code></h3>
+<p>O <code>writeFileSync</code> cria o arquivo, mas <strong>não</strong> cria pastas. Escrever em <code>relatorios/outubro.txt</code> sem a pasta <code>relatorios</code> dá <code>ENOENT</code> (veja <a href="#errado">Quando dá errado</a>). Crie a pasta antes com <code>mkdirSync</code> ("criar pasta"):</p>
+
+<pre class="file" data-file="pasta2.js">const fs = require("node:fs");
+fs.mkdirSync("relatorios", { recursive: true });
+fs.writeFileSync("relatorios/outubro.txt", "Vendas de outubro\n");
+console.log(fs.readdirSync("relatorios"));
+</pre>
+
+<pre class="term">$ node pasta2.js
+[ 'outubro.txt' ]
+$ node pasta2.js
+[ 'outubro.txt' ]
+</pre>
+
+<p>O <code>{ recursive: true }</code> faz duas coisas: cria também as pastas do meio, se precisar (<code>"a/b/c"</code>), e <strong>não reclama</strong> se a pasta já existir. Por isso a segunda execução funcionou igual. O <code>readdirSync</code> ("ler a pasta") lista o que há dentro dela.</p>
+
+<h3>Só criar se ainda não existir: a flag <code>"wx"</code></h3>
+<p>Para não apagar sem querer um arquivo importante, passe a opção <code>flag: "wx"</code> ("escrever, exclusivo"): se o arquivo já existir, em vez de substituí-lo, o Node dá o erro <code>EEXIST</code> ("já existe"), que você trata:</p>
+
+<pre class="file" data-file="novo.js">const fs = require("node:fs");
+try {
+  fs.writeFileSync("cadastro.txt", "Ana\n", { flag: "wx" });
+  console.log("Cadastro criado.");
+} catch (erro) {
+  if (erro.code === "EEXIST") {
+    console.log("O cadastro já existe; não vou apagar.");
+  } else {
+    throw erro;
+  }
+}
+</pre>
+
+<pre class="term">$ node novo.js
+Cadastro criado.
+$ node novo.js
+O cadastro já existe; não vou apagar.
+</pre>
+
+<h3>Apagar um arquivo: <code>unlinkSync</code></h3>
+
+<pre class="file" data-file="apagar.js">const fs = require("node:fs");
+fs.unlinkSync("bilhete.txt");
+console.log(fs.existsSync("bilhete.txt"));
+</pre>
+
+<pre class="term">$ node apagar.js
+false
+</pre>
+
+<p><code>unlinkSync</code> ("desvincular") apaga o arquivo <strong>de vez</strong>: não vai para a lixeira. O <code>existsSync</code> confirmou: <code>false</code>. Rodar de novo dá <code>ENOENT</code>, porque não há mais o que apagar.</p>
+
+<hr>
+
+<h2>5. Sem travar: <code>writeFile</code> e <code>appendFile</code> com <code>await</code></h2>
+<p>Como na leitura, o <code>node:fs/promises</code> tem as versões que não travam o programa enquanto o disco trabalha (veja <a href="async-await.html">async e await</a>). Num arquivo <code>.mjs</code>:</p>
+
+<pre class="file" data-file="assinc.mjs">import { writeFile, appendFile } from "node:fs/promises";
+
+await writeFile("caixa.txt", "Abertura: R$ 100.00\n");
+await appendFile("caixa.txt", "Venda: R$ 7.50\n");
+console.log("Caixa anotado.");
+</pre>
+
+<pre class="term">$ node assinc.mjs
+Caixa anotado.
+$ cat caixa.txt
+Abertura: R$ 100.00
+Venda: R$ 7.50
+</pre>
+
+<p>O <code>await</code> em cada linha garante a ordem: primeiro o arquivo é criado, depois a venda é acrescentada. Sem o <code>await</code>, as duas operações poderiam correr ao mesmo tempo, e a ordem no arquivo não seria garantida.</p>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Use</th><th>Cuidado</th></tr>
+<tr><td>Criar um arquivo ou trocar todo o conteúdo</td><td><code>writeFileSync(nome, texto)</code></td><td>Apaga o que havia</td></tr>
+<tr><td>Acrescentar no fim (histórico, registro)</td><td><code>appendFileSync(nome, texto)</code></td><td>Lembre o <code>"\n"</code></td></tr>
+<tr><td>Criar só se não existir</td><td><code>writeFileSync(nome, texto, { flag: "wx" })</code></td><td>Trate o <code>EEXIST</code></td></tr>
+<tr><td>Salvar um array</td><td><code>lista.join("\n") + "\n"</code></td><td>Leia de volta com <code>trim().split("\n")</code></td></tr>
+<tr><td>Salvar um objeto</td><td><code>JSON.stringify(obj, null, 2)</code></td><td>Leia de volta com <code>JSON.parse</code></td></tr>
+<tr><td>Garantir a pasta</td><td><code>mkdirSync(pasta, { recursive: true })</code></td><td>Antes de escrever</td></tr>
+<tr><td>Não travar o programa</td><td><code>await writeFile(…)</code> / <code>await appendFile(…)</code></td><td>Do <code>node:fs/promises</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>ERR_INVALID_ARG_TYPE</code>: tentou gravar um número</h3>
+<pre class="file" data-file="numero.js">const fs = require("node:fs");
+const total = 42;
+fs.writeFileSync("total.txt", total);
+</pre>
+<pre class="term">$ node numero.js
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (42)
+    at Object.writeFileSync (node:fs:2491:5)
+    at Object.&lt;anonymous&gt; (/home/ana/escrever/numero.js:3:4)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>node:internal/errors:543 / throw error; / ^</dt><dd>O erro foi lançado dentro do Node, que conferiu o que você mandou e recusou.</dd>
+  <dt>TypeError [ERR_INVALID_ARG_TYPE]</dt><dd>"Erro de tipo: tipo de argumento inválido".</dd>
+  <dt>The "data" argument must be of type string or … Buffer …</dt><dd>"O argumento <code>data</code> (o conteúdo) tem de ser uma string ou um Buffer…". <code>Received type number (42)</code>: "recebi um número, 42".</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/escrever/numero.js:3:4)</dt><dd>A sua linha: a 3, a do <code>writeFileSync</code>.</dd>
+</dl>
+<p><strong>Conserto:</strong> transforme em texto: <code>String(total)</code> ou <code>`${total}\n`</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>[object Object]</code>: gravou um objeto sem <code>JSON.stringify</code></h3>
+<pre class="file" data-file="objeto.js">const fs = require("node:fs");
+const pedido = { cliente: "Bia", itens: 3 };
+fs.writeFileSync("pedido.txt", String(pedido));
+console.log(fs.readFileSync("pedido.txt", "utf8"));
+</pre>
+<pre class="term">$ node objeto.js
+[object Object]
+</pre>
+<p>Não houve erro, o que é pior: o arquivo foi gravado com o texto <code>[object Object]</code>, e os dados do pedido se perderam. É o que acontece quando um objeto vira texto do jeito "automático" (o mesmo de <code>"" + pedido</code> ou de <code>`${pedido}`</code>). <strong>Conserto:</strong> <code>JSON.stringify(pedido)</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>3. <code>ENOENT</code> ao escrever: a pasta não existe</h3>
+<pre class="file" data-file="pasta.js">const fs = require("node:fs");
+fs.writeFileSync("relatorios/outubro.txt", "Vendas de outubro\n");
+</pre>
+<pre class="term">$ node pasta.js
+node:fs:2482
+    return binding.writeFileUtf8(
+                   ^
+
+Error: ENOENT: no such file or directory, open 'relatorios/outubro.txt'
+    at Object.writeFileSync (node:fs:2482:20)
+    at Object.&lt;anonymous&gt; (/home/ana/escrever/pasta.js:2:4)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'relatorios/outubro.txt'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"Arquivo ou pasta inexistente, ao abrir 'relatorios/outubro.txt'". Parece estranho: o arquivo ia ser <strong>criado</strong>, como pode "não existir"? Quem não existe é a <strong>pasta</strong> <code>relatorios</code>, e o <code>writeFileSync</code> não cria pastas. <strong>Conserto:</strong> <code>fs.mkdirSync("relatorios", { recursive: true })</code> antes (seção 4).</p>
+</div>
+
+<div class="cenario">
+<h3>4. <code>EACCES</code>: o arquivo está protegido</h3>
+<p>A Ana deixou a receita da vovó só para leitura (<code>chmod 444</code>), para ninguém estragar:</p>
+<pre class="term">$ chmod 444 receita.txt
+$ node mexer.js
+node:fs:2482
+    return binding.writeFileUtf8(
+                   ^
+
+Error: EACCES: permission denied, open 'receita.txt'
+    at Object.writeFileSync (node:fs:2482:20)
+    at Object.&lt;anonymous&gt; (/home/ana/escrever/mexer.js:2:4)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: 'receita.txt'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"Permissão negada". O <code>mexer.js</code> tentou <code>writeFileSync("receita.txt", …)</code>, e a proteção funcionou. O mesmo erro aparece ao tentar escrever em pastas do sistema ou de outros usuários. <strong>Conserto:</strong> escrever num arquivo que é seu e não está protegido (ou tirar a proteção com <code>chmod 644</code>, se tiver certeza).</p>
+</div>
+
+<div class="cenario">
+<h3>5. O histórico sumiu</h3>
+<p>Não há mensagem nenhuma: o programa usou <code>writeFileSync</code> para anotar cada venda, e o arquivo sempre tem só a última. <strong>Conserto:</strong> para acrescentar, <code>appendFileSync</code>. A missão final é exatamente esse caso.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>fs.writeFileSync(nome, texto)</code></td><td>Cria o arquivo ou substitui todo o conteúdo</td></tr>
+<tr><td><code>fs.appendFileSync(nome, texto)</code></td><td>Acrescenta no fim (cria se não existir)</td></tr>
+<tr><td><code>fs.writeFileSync(nome, texto, { flag: "wx" })</code></td><td>Só cria; se existir, erro <code>EEXIST</code></td></tr>
+<tr><td><code>fs.mkdirSync(pasta, { recursive: true })</code></td><td>Cria a pasta (e as do meio); não reclama se existir</td></tr>
+<tr><td><code>fs.readdirSync(pasta)</code></td><td>Array com os nomes do que há na pasta</td></tr>
+<tr><td><code>fs.unlinkSync(nome)</code></td><td>Apaga o arquivo, de vez</td></tr>
+<tr><td><code>JSON.stringify(obj, null, 2)</code></td><td>Objeto → texto JSON com 2 espaços de recuo</td></tr>
+<tr><td><code>await writeFile(…)</code>, <code>await appendFile(…)</code></td><td>Versões que não travam (<code>node:fs/promises</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual função?</h3>
+<p>Complete para <strong>acrescentar</strong> uma linha ao registro, sem apagar as anteriores:</p>
+<div class="ex-code">fs.<input data-answer="appendFileSync" aria-label="função">("registro.txt", "Forno ligado\n");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Salvando um objeto</h3>
+<p>Complete para gravar o objeto <code>agenda</code> como JSON:</p>
+<div class="ex-code">fs.writeFileSync("agenda.json", <input data-answer="JSON.stringify" aria-label="função de conversão">(agenda, null, 2));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O arquivo <code>aviso.txt</code> tem o texto <code>Fechado</code>. O que ele contém depois de <code>fs.writeFileSync("aviso.txt", "Aberto\n")</code>?</p>
+<label><input type="radio" name="q3"> <code>Fechado</code> e, embaixo, <code>Aberto</code></label>
+<label><input type="radio" name="q3"> <code>Fechado</code> (o arquivo já existia)</label>
+<label><input type="radio" name="q3"> Só <code>Aberto</code></label>
+<label><input type="radio" name="q3"> Dá erro <code>EEXIST</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>fs.writeFileSync("total.txt", 150)</code> dá qual resultado?</p>
+<label><input type="radio" name="q4"> Grava <code>150</code></label>
+<label><input type="radio" name="q4"> Erro <code>ERR_INVALID_ARG_TYPE</code>: o conteúdo tem de ser texto</label>
+<label><input type="radio" name="q4"> Grava <code>[object Number]</code></label>
+<label><input type="radio" name="q4"> Erro <code>ENOENT</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>fs.writeFileSync("fotos/bolo.txt", "…")</code> deu <code>ENOENT</code>. Qual a causa mais provável?</p>
+<label><input type="radio" name="q5"> A pasta <code>fotos</code> não existe</label>
+<label><input type="radio" name="q5"> O arquivo <code>bolo.txt</code> não existe</label>
+<label><input type="radio" name="q5"> O texto está vazio</label>
+<label><input type="radio" name="q5"> Faltou o <code>"utf8"</code></label>
+</div>
+
+<h3>Missão final: o caderno de vendas</h3>
+
+<div class="tryjs" data-args="2 broas" data-goal="arquivo:vendas.txt~3 sonhos;;arquivo:vendas.txt~2 broas">
+<p class="try-task"><strong>Missão:</strong> a aba <code>vendas.txt</code> já tem a venda <code>3 sonhos</code>, e a caixa roda <code>node main.js 2 broas</code>. Mas o programa usa <code>writeFileSync</code> e apaga o histórico. Conserte para que o arquivo fique com as <strong>duas</strong> vendas, uma em cada linha.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+const venda = process.argv.slice(2).join(" ");
+fs.writeFileSync("vendas.txt", venda + "\n");
+console.log(`Anotado: ${venda}`);
+</pre>
+<pre class="script" data-file="vendas.txt">3 sonhos
+</pre>
+<pre class="solucao" data-file="main.js">const fs = require("node:fs");
+
+const venda = process.argv.slice(2).join(" ");
+fs.appendFileSync("vendas.txt", venda + "\n");
+console.log(`Anotado: ${venda}`);
+</pre>
+</div>
+
+<p>No lab, com o <code>diario.js</code> da seção 2 (que usa <code>appendFileSync</code>) e um <code>vendas.txt</code> que tinha só <code>3 sonhos</code>:</p>
+
+<pre class="term">$ node diario.js 2 broas
+Anotado: 2 broas
+$ cat vendas.txt
+3 sonhos
+2 broas
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>fs.writeFileSync(nome, texto)</code> cria o arquivo ou <strong>substitui</strong> todo o conteúdo (o quadro branco). <code>fs.appendFileSync(nome, texto)</code> <strong>acrescenta</strong> no fim (o caderno).</li>
+  <li>O conteúdo tem de ser texto: <code>String(n)</code> para números, <code>lista.join("\n")</code> para listas, <code>JSON.stringify(obj, null, 2)</code> para objetos. Lembre o <code>"\n"</code> no fim das linhas.</li>
+  <li>Ler → mudar → gravar dá memória ao programa entre uma execução e outra.</li>
+  <li><code>mkdirSync(pasta, { recursive: true })</code> cria pastas; a flag <code>"wx"</code> evita sobrescrever; <code>unlinkSync</code> apaga de vez.</li>
+  <li><code>writeFile</code> e <code>appendFile</code> de <code>node:fs/promises</code>, com <code>await</code>, escrevem sem travar o programa.</li>
+  <li>Erros comuns: <code>ERR_INVALID_ARG_TYPE</code> (não era texto), <code>[object Object]</code> (faltou o <code>JSON.stringify</code>), <code>ENOENT</code> (a pasta não existe), <code>EACCES</code> (sem permissão).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
