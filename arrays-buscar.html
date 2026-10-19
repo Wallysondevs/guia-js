@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Procurando em Arrays — includes, indexOf, find e findIndex | Guia JavaScript</title>
+<meta name="description" content="Como procurar num array do JavaScript, para quem nunca programou: includes (tem ou não tem?), indexOf e lastIndexOf (em que posição? -1 se não tem), find e findIndex com uma arrow function (o primeiro que combina com uma regra), findLast e findLastIndex, qual usar em cada caso e os erros reais do Node.js 24 (o -1 no splice, maiúsculas, a função sem return).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Procurando (includes, indexOf, find)</span></h1>
+
+<p class="intro">Antes de sair para o mercado, a Ana confere: "o café já está na lista?". Na chamada, a professora quer saber "em que posição está o Caio?". No boletim, "qual foi a primeira nota abaixo de 6?". São três perguntas diferentes, e o array tem um método para cada uma. Nesta aula você vai aprender a <strong>procurar</strong> num array sem precisar olhar item por item com os próprios olhos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>includes</code>: "tem ou não tem?" (responde <code>true</code> ou <code>false</code>).</li>
+  <li><code>indexOf</code> e <code>lastIndexOf</code>: "em que posição está?" (e o <code>-1</code>, que quer dizer "não achei").</li>
+  <li><code>find</code>: "qual é o primeiro item que combina com uma regra?", com uma arrow function.</li>
+  <li><code>findIndex</code>: a posição desse primeiro item.</li>
+  <li><code>findLast</code> e <code>findLastIndex</code>: procurar de trás para a frente.</li>
+  <li>Como usar a posição achada para tirar o item com <code>splice</code>, sem cair na armadilha do <code>-1</code>.</li>
+  <li>Os erros reais mais comuns: maiúsculas e minúsculas, o <code>-1</code> esquecido, a arrow function sem <code>return</code> e o texto no lugar da função.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: três perguntas diferentes</h2>
+<p>Imagine a Ana procurando algo na prateleira de temperos da cozinha. Ela pode querer saber três coisas:</p>
+<ol class="passo">
+  <li><strong>"Tem orégano?"</strong> A resposta é sim ou não. → <code>includes</code></li>
+  <li><strong>"Em que lugar da prateleira está o orégano?"</strong> A resposta é uma posição, ou "não está aqui". → <code>indexOf</code></li>
+  <li><strong>"Qual é o primeiro pote que está quase vazio?"</strong> Aqui ela não sabe o nome do que procura: sabe só a <strong>regra</strong> ("quase vazio"). Ela olha pote por pote até achar um que obedeça à regra. → <code>find</code></li>
+</ol>
+<p>As duas primeiras procuram um <strong>valor conhecido</strong>. A terceira procura por uma <strong>condição</strong>. Essa diferença decide qual método usar.</p>
+
+<hr>
+
+<h2>1. <code>includes</code>: tem ou não tem?</h2>
+
+<pre class="file" data-file="includes.js">const compras = ["arroz", "feijão", "café", "leite"];
+console.log(compras.includes("café"));
+console.log(compras.includes("pão"));
+
+if (!compras.includes("pão")) {
+  compras.push("pão");
+}
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.includes("café")</dt><dd>"A lista de compras inclui o café?". O valor procurado vai entre os parênteses. A resposta é um <a href="booleanos.html">booleano</a>: <code>true</code> (sim) ou <code>false</code> (não).</dd>
+  <dt>if (!compras.includes("pão"))</dt><dd>Como a resposta é <code>true</code> ou <code>false</code>, ela cabe direto num <a href="if.html">if</a>. O <code>!</code> quer dizer "não" (veja <a href="operadores-logicos.html">Operadores Lógicos</a>): "se a lista <strong>não</strong> inclui o pão, acrescente". Assim o pão não entra duas vezes.</dd>
+</dl>
+
+<pre class="term">$ node includes.js
+true
+false
+[ 'arroz', 'feijão', 'café', 'leite', 'pão' ]
+</pre>
+
+<p>O <code>includes</code> compara cada item com o valor procurado usando a mesma ideia do <code>===</code> (veja <a href="operadores-comparacao.html">Comparação</a>): <code>"Café"</code>, com C maiúsculo, <strong>não</strong> é igual a <code>"café"</code>, e o número <code>7</code> não é igual ao texto <code>"7"</code>.</p>
+
+<pre class="file" data-file="includes_exato.js">const compras = ["arroz", "feijão", "café"];
+const notas = [7, 8, 10];
+console.log(compras.includes("Café"));
+console.log(notas.includes("7"));
+console.log(notas.includes(7));
+</pre>
+
+<pre class="term">$ node includes_exato.js
+false
+false
+true
+</pre>
+
+<div class="tryjs" data-goal="out:Já tem leite na lista.;;out:Acrescentei: ovos;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete as duas condições com <code>includes</code> para o programa responder certo: o leite já está na lista; os ovos, não.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "leite", "café"];
+
+if (false) {
+  console.log("Já tem leite na lista.");
+}
+
+if (false) {
+  compras.push("ovos");
+  console.log("Acrescentei: ovos");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "leite", "café"];
+
+if (compras.includes("leite")) {
+  console.log("Já tem leite na lista.");
+}
+
+if (!compras.includes("ovos")) {
+  compras.push("ovos");
+  console.log("Acrescentei: ovos");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>indexOf</code>: em que posição está?</h2>
+
+<pre class="file" data-file="indexof.js">const chamada = ["Ana", "Bia", "Caio", "Duda", "Bia"];
+console.log(chamada.indexOf("Caio"));
+console.log(chamada.indexOf("Bia"));
+console.log(chamada.lastIndexOf("Bia"));
+console.log(chamada.indexOf("Zeca"));
+</pre>
+
+<dl class="anatomy">
+  <dt>chamada.indexOf("Caio")</dt><dd>"O índice de Caio": a posição onde ele está. É o <code>2</code> (contando do 0).</dd>
+  <dt>chamada.indexOf("Bia")</dt><dd>Há duas Bias. O <code>indexOf</code> procura do começo para o fim e para na <strong>primeira</strong>: posição <code>1</code>.</dd>
+  <dt>chamada.lastIndexOf("Bia")</dt><dd>"O último índice": procura do fim para o começo. A outra Bia está na posição <code>4</code>.</dd>
+  <dt>chamada.indexOf("Zeca")</dt><dd>Não achou: <code>-1</code>. Como nenhuma posição de verdade é negativa, o <code>-1</code> é o jeito de o <code>indexOf</code> dizer "não está aqui".</dd>
+</dl>
+
+<pre class="term">$ node indexof.js
+2
+1
+4
+-1
+</pre>
+
+<h3>Achar e tirar: <code>indexOf</code> + <code>splice</code></h3>
+<p>Um uso muito comum: descobrir a posição de um item para tirá-lo da lista com o <code>splice</code> (aula <a href="arrays-splice.html">splice e slice</a>). Antes de tirar, <strong>confira se achou</strong>:</p>
+
+<pre class="file" data-file="tirar.js">const compras = ["arroz", "feijão", "café", "leite"];
+
+const posicao = compras.indexOf("feijão");
+if (posicao !== -1) {
+  compras.splice(posicao, 1);
+}
+console.log(compras);
+
+const outra = compras.indexOf("chocolate");
+if (outra !== -1) {
+  compras.splice(outra, 1);
+} else {
+  console.log("Não tem chocolate na lista.");
+}
+console.log(compras);
+</pre>
+
+<pre class="term">$ node tirar.js
+[ 'arroz', 'café', 'leite' ]
+Não tem chocolate na lista.
+[ 'arroz', 'café', 'leite' ]
+</pre>
+
+<p>Por que o <code>if (posicao !== -1)</code> é tão importante? Porque o <code>splice</code> aceita posição negativa, e <code>splice(-1, 1)</code> tira o <strong>último</strong> item. Sem a conferência, procurar algo que não existe apagaria o leite. Você vai ver isso acontecer em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>3. <code>find</code>: o primeiro que obedece a uma regra</h2>
+<p>A professora quer saber qual foi a <strong>primeira nota abaixo de 6</strong>. Ela não sabe qual número procurar; sabe só a regra: "menor que 6". Para isso, você entrega ao <code>find</code> uma pequena <strong>função</strong> com a regra:</p>
+
+<pre class="file" data-file="find.js">const notas = [8, 7.5, 5, 9, 4.5];
+const baixa = notas.find((nota) =&gt; nota &lt; 6);
+console.log(baixa);
+</pre>
+
+<dl class="anatomy">
+  <dt>notas.find( … )</dt><dd>"Ache em <code>notas</code>…". O <code>find</code> (em inglês, "encontrar") passa pelos itens, do primeiro ao último.</dd>
+  <dt>(nota) =&gt; nota &lt; 6</dt><dd>Uma <a href="arrow-functions.html">arrow function</a> com a regra. Para cada item, o <code>find</code> chama essa função, pondo o item em <code>nota</code>, e pergunta: "<code>nota &lt; 6</code>?". O nome <code>nota</code> é você quem escolhe (no singular, porque é <strong>um</strong> item de cada vez).</dd>
+  <dt>const baixa = …</dt><dd>Assim que a função responde <code>true</code>, o <code>find</code> <strong>para</strong> e devolve aquele item. Aqui, o <code>5</code>. O <code>4.5</code>, que também é baixo, nem é olhado.</dd>
+</dl>
+
+<pre class="term">$ node find.js
+5
+</pre>
+
+<p>Para ver o <code>find</code> trabalhando, ponha um <code>console.log</code> dentro da função (com chaves e <code>return</code>, como em <a href="arrow-functions.html">Arrow Functions</a>):</p>
+
+<pre class="file" data-file="find_passos.js">const notas = [8, 7.5, 5, 9, 4.5];
+const baixa = notas.find((nota) =&gt; {
+  console.log(`Olhando a nota ${nota}...`);
+  return nota &lt; 6;
+});
+console.log(`Primeira nota baixa: ${baixa}`);
+</pre>
+
+<pre class="term">$ node find_passos.js
+Olhando a nota 8...
+Olhando a nota 7.5...
+Olhando a nota 5...
+Primeira nota baixa: 5
+</pre>
+
+<p>Três chamadas: <code>8</code> (não), <code>7.5</code> (não), <code>5</code> (sim, parou). Essa função que você entrega para outra função chamar se chama <strong>callback</strong> (em inglês, "chamar de volta"); o assunto tem aula própria, <a href="funcoes-valores.html">Funções como Valores</a>, e vai aparecer em todas as próximas aulas deste grupo (<a href="foreach.html">forEach</a>, <a href="map.html">map</a>, <a href="filter.html">filter</a>).</p>
+
+<h3>Quando ninguém obedece à regra</h3>
+
+<pre class="file" data-file="find_nada.js">const notas = [8, 7.5, 9];
+const baixa = notas.find((nota) =&gt; nota &lt; 6);
+console.log(baixa);
+console.log(baixa === undefined ? "Ninguém ficou abaixo de 6." : `Nota baixa: ${baixa}`);
+</pre>
+
+<pre class="term">$ node find_nada.js
+undefined
+Ninguém ficou abaixo de 6.
+</pre>
+
+<p>Se nenhum item faz a função responder <code>true</code>, o <code>find</code> devolve <code>undefined</code>. A última linha usa o <a href="ternario.html">operador ternário</a> para tratar os dois casos.</p>
+
+<h3>Outras regras</h3>
+<p>A regra pode ser qualquer coisa que dê <code>true</code> ou <code>false</code>. Com textos, os métodos de string (aula <a href="strings-buscar.html">Procurando em Strings</a>) ajudam muito:</p>
+
+<pre class="file" data-file="find_regras.js">const alunos = ["Ana", "Bia", "Caio", "Carla", "Duda"];
+console.log(alunos.find((nome) =&gt; nome.startsWith("C")));
+console.log(alunos.find((nome) =&gt; nome.length &gt; 4));
+
+const precos = [3.5, 12.9, 7, 25];
+console.log(precos.find((preco) =&gt; preco &gt;= 10 &amp;&amp; preco &lt;= 20));
+</pre>
+
+<pre class="term">$ node find_regras.js
+Caio
+Carla
+12.9
+</pre>
+
+<dl class="anatomy">
+  <dt>nome.startsWith("C")</dt><dd>"O nome começa com C?" O primeiro que começa é o Caio (a Carla vem depois e não é olhada).</dd>
+  <dt>nome.length &gt; 4</dt><dd>"O nome tem mais de 4 letras?" Só a Carla.</dd>
+  <dt>preco &gt;= 10 &amp;&amp; preco &lt;= 20</dt><dd>Duas condições juntas com o "e" (<code>&amp;&amp;</code>): o primeiro preço entre 10 e 20.</dd>
+</dl>
+
+<div class="tip">
+<strong>Onde o <code>find</code> brilha de verdade</strong>
+<p>Com listas de <strong>objetos</strong> (aula <a href="objetos.html">Objetos</a>), como os produtos da lojinha, cada um com nome e preço, o <code>find</code> é o jeito natural de achar "o produto cujo nome é arroz": <code>produtos.find((p) =&gt; p.nome === "arroz")</code>. O <code>includes</code> e o <code>indexOf</code> não servem para isso. Você vai usar muito essa forma depois.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Primeiro dia com mais de 150: 171;;src:\.find\(">
+<p class="try-task"><strong>Missão:</strong> o array tem as vendas de pão de cada dia. Use o <code>find</code> para achar a <strong>primeira</strong> venda maior que 150.</p>
+<pre class="script" data-file="main.js">const vendas = [120, 98, 143, 171, 87, 156];
+const boa = vendas[0];
+console.log(`Primeiro dia com mais de 150: ${boa}`);
+</pre>
+<pre class="solucao" data-file="main.js">const vendas = [120, 98, 143, 171, 87, 156];
+const boa = vendas.find((venda) =&gt; venda &gt; 150);
+console.log(`Primeiro dia com mais de 150: ${boa}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>findIndex</code>: a posição do primeiro que obedece</h2>
+<p>O <code>findIndex</code> recebe a mesma função do <code>find</code>, mas devolve a <strong>posição</strong> em vez do item, e <code>-1</code> se ninguém obedecer (igual ao <code>indexOf</code>):</p>
+
+<pre class="file" data-file="findindex.js">const notas = [8, 7.5, 5, 9, 4.5];
+const posicao = notas.findIndex((nota) =&gt; nota &lt; 6);
+console.log(posicao);
+console.log(`O ${posicao + 1}º aluno da chamada precisa de reforço.`);
+console.log(notas.findIndex((nota) =&gt; nota &gt; 10));
+</pre>
+
+<pre class="term">$ node findindex.js
+2
+O 3º aluno da chamada precisa de reforço.
+-1
+</pre>
+
+<p>Repare no <code>posicao + 1</code>: para pessoas, o primeiro aluno é o "1º"; para o array, é a posição 0. Na hora de mostrar, some 1.</p>
+
+<hr>
+
+<h2>5. De trás para a frente: <code>findLast</code> e <code>findLastIndex</code> <span class="versao">ES2023</span></h2>
+<p>Às vezes o que interessa é o item <strong>mais recente</strong>, que fica no fim da lista. "Qual foi a última nota abaixo de 6?" O <code>findLast</code> e o <code>findLastIndex</code> fazem o mesmo que o <code>find</code> e o <code>findIndex</code>, começando do fim:</p>
+
+<pre class="file" data-file="findlast.js">const notas = [8, 7.5, 5, 9, 4.5, 10];
+console.log(notas.find((nota) =&gt; nota &lt; 6));
+console.log(notas.findLast((nota) =&gt; nota &lt; 6));
+console.log(notas.findIndex((nota) =&gt; nota &lt; 6));
+console.log(notas.findLastIndex((nota) =&gt; nota &lt; 6));
+</pre>
+
+<pre class="term">$ node findlast.js
+5
+4.5
+2
+4
+</pre>
+
+<p>Eles chegaram ao JavaScript em 2023 e funcionam no Node 24 e nos navegadores atuais. (O <code>lastIndexOf</code>, da seção 2, é o "de trás para a frente" do <code>indexOf</code>.)</p>
+
+<hr>
+
+<h2>6. No modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), dá para comparar as respostas dos quatro métodos principais com a mesma lista:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const n = [10, 20, 30, 20]
+undefined
+&gt; n.includes(20)
+true
+&gt; n.indexOf(20)
+1
+&gt; n.lastIndexOf(20)
+3
+&gt; n.find((x) =&gt; x &gt; 15)
+20
+&gt; n.findIndex((x) =&gt; x &gt; 15)
+1
+&gt; n.indexOf(99)
+-1
+&gt; n.find((x) =&gt; x &gt; 99)
+undefined
+&gt; .exit
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual usar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>A pergunta</th><th>Método</th><th>Devolve</th><th>Se não achar</th></tr>
+<tr><td>Tem este valor?</td><td><code>includes(valor)</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td>Em que posição está este valor?</td><td><code>indexOf(valor)</code></td><td>A primeira posição</td><td><code>-1</code></td></tr>
+<tr><td>Em que posição está, contando do fim?</td><td><code>lastIndexOf(valor)</code></td><td>A última posição</td><td><code>-1</code></td></tr>
+<tr><td>Qual o primeiro que obedece à regra?</td><td><code>find(função)</code></td><td>O item</td><td><code>undefined</code></td></tr>
+<tr><td>Em que posição está o primeiro que obedece?</td><td><code>findIndex(função)</code></td><td>A posição</td><td><code>-1</code></td></tr>
+<tr><td>Qual o último que obedece? Em que posição?</td><td><code>findLast</code> / <code>findLastIndex</code></td><td>O item / a posição</td><td><code>undefined</code> / <code>-1</code></td></tr>
+<tr><td>Quais são <strong>todos</strong> os que obedecem?</td><td><code>filter(função)</code> (aula <a href="filter.html">filter</a>)</td><td>Um array</td><td><code>[]</code></td></tr>
+<tr><td>Pelo menos um obedece? Todos obedecem?</td><td><code>some</code> / <code>every</code> (aula <a href="arrays-outros.html">some, every…</a>)</td><td><code>true</code></td><td><code>false</code></td></tr>
+</table>
+</div>
+
+<p>Em código antigo você vai ver <code>lista.indexOf(x) !== -1</code> (ou <code>&gt;= 0</code>) no lugar de <code>lista.includes(x)</code>: o <code>includes</code> só chegou em 2016. Quando a pergunta é "tem ou não tem?", prefira o <code>includes</code>, que diz exatamente isso. E não use <code>find</code> para procurar um valor exato (<code>find((x) =&gt; x === "café")</code>): o <code>includes</code> e o <code>indexOf</code> são mais curtos.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou a posição sem conferir o <code>-1</code></strong>
+<pre class="file" data-file="menos_um.js">const compras = ["arroz", "feijão", "café", "leite"];
+const posicao = compras.indexOf("chocolate");
+compras.splice(posicao, 1);
+console.log(compras);
+</pre>
+<pre class="term">$ node menos_um.js
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+<p>Não tinha chocolate, o <code>indexOf</code> devolveu <code>-1</code>, e <code>splice(-1, 1)</code> quer dizer "tire 1 a partir do último". Lá se foi o leite, sem nenhuma mensagem de erro. <strong>Como consertar:</strong> sempre <code>if (posicao !== -1)</code> antes de usar a posição (seção 2). O mesmo vale para o <code>findIndex</code>; e um <code>lista[-1]</code> devolveria <code>undefined</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Maiúsculas e minúsculas</strong>
+<pre class="file" data-file="maiusculas.js">const compras = ["arroz", "feijão", "café"];
+const procurado = "Café";
+console.log(compras.includes(procurado));
+console.log(compras.includes(procurado.toLowerCase()));
+</pre>
+<pre class="term">$ node maiusculas.js
+false
+true
+</pre>
+<p>Para o JavaScript, <code>"Café"</code> e <code>"café"</code> são textos diferentes. Quando o valor procurado vem de fora (o que a pessoa digitou), padronize antes: <code>toLowerCase()</code> deixa tudo em minúsculas (veja <a href="strings-metodos.html">Métodos de String</a>). Isso só funciona se a lista também estiver em minúsculas.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um valor no lugar da função</strong>
+<pre class="file" data-file="find_valor.js">const compras = ["arroz", "feijão", "café"];
+const achado = compras.find("café");
+</pre>
+<pre class="term">$ node find_valor.js
+/home/ana/find_valor.js:2
+const achado = compras.find("café");
+                       ^
+
+TypeError: string "café" is not a function
+    at Array.find (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/find_valor.js:2:24)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/find_valor.js:2 e o ^</dt><dd>O problema está na linha 2, no <code>find</code>.</dd>
+  <dt>TypeError: string "café" is not a function</dt><dd>"Erro de tipo: a string <code>"café"</code> não é uma função". O <code>find</code> quer uma <strong>função</strong> com a regra, para chamá-la com cada item; você entregou um texto, e um texto não pode ser chamado.</dd>
+  <dt>at Array.find (&lt;anonymous&gt;)</dt><dd>Uma linha nova na pilha: o erro aconteceu <strong>dentro</strong> do <code>find</code>, que é código do próprio JavaScript (por isso <code>&lt;anonymous&gt;</code>, "anônimo": não está em nenhum arquivo seu).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/find_valor.js:2:24)</dt><dd>E esta é a linha do <strong>seu</strong> arquivo que chamou o <code>find</code>: linha 2, coluna 24. Numa pilha de chamadas, procure sempre a primeira linha com o nome do seu arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> para procurar um valor exato, use <code>includes</code> ou <code>indexOf</code>. Se quiser mesmo o <code>find</code>, entregue uma função: <code>compras.find((item) =&gt; item === "café")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A arrow function com chaves e sem <code>return</code></strong>
+<pre class="file" data-file="sem_return.js">const notas = [8, 7.5, 5, 9];
+const baixa = notas.find((nota) =&gt; {
+  nota &lt; 6;
+});
+console.log(baixa);
+</pre>
+<pre class="term">$ node sem_return.js
+undefined
+</pre>
+<p>A nota 5 está lá, mas o <code>find</code> devolveu <code>undefined</code>. Com chaves <code>{ }</code>, a arrow function só devolve alguma coisa se tiver <code>return</code> (veja <a href="arrow-functions.html">Arrow Functions</a>). Sem ele, a função devolve <code>undefined</code> para todo item, o <code>find</code> entende como "não" todas as vezes, e chega ao fim sem achar nada. <strong>Como consertar:</strong> escreva <code>return nota &lt; 6;</code>, ou tire as chaves: <code>(nota) =&gt; nota &lt; 6</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um nome de outra linguagem</strong>
+<pre class="file" data-file="contains.js">const compras = ["arroz", "feijão", "café"];
+console.log(compras.contains("café"));
+</pre>
+<pre class="term">$ node contains.js
+/home/ana/contains.js:2
+console.log(compras.contains("café"));
+                    ^
+
+TypeError: compras.contains is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/contains.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Em outras linguagens o método se chama <code>contains</code> ("contém"); no JavaScript, é <code>includes</code>. Do mesmo jeito, <code>indexof</code> (com o <code>o</code> minúsculo) dá <code>compras.indexof is not a function</code>: o nome certo é <code>indexOf</code>, com <strong>O</strong> maiúsculo.</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'feijão', 'café', 'leite' ];;out:Não tem chocolate.;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa devia tirar o chocolate só se ele estivesse na lista, mas está apagando o leite. Conserte usando o <code>if</code> com <code>!== -1</code> e, no <code>else</code>, mostre <code>Não tem chocolate.</code></p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café", "leite"];
+const posicao = compras.indexOf("chocolate");
+compras.splice(posicao, 1);
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café", "leite"];
+const posicao = compras.indexOf("chocolate");
+if (posicao !== -1) {
+  compras.splice(posicao, 1);
+} else {
+  console.log("Não tem chocolate.");
+}
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista.includes(x)</code></td><td><code>true</code> se <code>x</code> está na lista</td></tr>
+<tr><td><code>lista.indexOf(x)</code></td><td>Posição da primeira ocorrência de <code>x</code>, ou <code>-1</code></td></tr>
+<tr><td><code>lista.lastIndexOf(x)</code></td><td>Posição da última ocorrência, ou <code>-1</code></td></tr>
+<tr><td><code>lista.find((item) =&gt; regra)</code></td><td>O primeiro item que obedece à regra, ou <code>undefined</code></td></tr>
+<tr><td><code>lista.findIndex((item) =&gt; regra)</code></td><td>A posição dele, ou <code>-1</code></td></tr>
+<tr><td><code>lista.findLast(…)</code> / <code>findLastIndex(…)</code></td><td>O mesmo, procurando do fim <span class="versao">ES2023</span></td></tr>
+<tr><td><code>if (i !== -1) lista.splice(i, 1);</code></td><td>Tirar o item achado, com segurança</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Sumiu o último item da lista</td><td><code>splice</code> com o <code>-1</code> de um <code>indexOf</code>/<code>findIndex</code> que não achou</td></tr>
+<tr><td><code>false</code>/<code>-1</code> para um item que está lá</td><td>Maiúsculas/minúsculas diferentes, ou número × texto (<code>7</code> × <code>"7"</code>)</td></tr>
+<tr><td><code>TypeError: string "café" is not a function</code></td><td>Passou um valor ao <code>find</code> em vez de uma função</td></tr>
+<tr><td><code>find</code> devolve <code>undefined</code> mesmo com um item que combina</td><td>Arrow function com chaves e sem <code>return</code></td></tr>
+<tr><td><code>TypeError: compras.contains is not a function</code></td><td>O nome é <code>includes</code> (e <code>indexOf</code> com O maiúsculo)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Tem ou não tem?</h3>
+<p>O que mostra <code>["a", "b", "c"].includes("d")</code>?</p>
+<div class="ex-code">Mostra <input data-answer="false" aria-label="resultado">.</div>
+</div>
+
+<div class="exercise">
+<h3>2. A posição</h3>
+<p>O que mostra <code>["sol", "lua", "sol"].indexOf("sol")</code>? E <code>["sol", "lua"].indexOf("mar")</code>?</p>
+<div class="ex-code">Primeiro: <input data-answer="0" aria-label="primeiro resultado"> · Segundo: <input data-answer="-1" aria-label="segundo resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete o find</h3>
+<p>Complete para achar o primeiro número par (o resto da divisão por 2 é zero):</p>
+<div class="ex-code">const par = numeros.<input data-answer="find" aria-label="método">((n) =&gt; n % 2 === 0);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>[3, 8, 12, 5].find((n) =&gt; n &gt; 6)</code> devolve…</p>
+<label><input type="radio" name="q4"> <code>[ 8, 12 ]</code></label>
+<label><input type="radio" name="q4"> <code>8</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>true</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>[3, 8, 12, 5].findIndex((n) =&gt; n &gt; 100)</code> devolve…</p>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+<label><input type="radio" name="q5"> <code>false</code></label>
+<label><input type="radio" name="q5"> <code>0</code></label>
+<label><input type="radio" name="q5"> <code>-1</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Você quer saber só se <code>"café"</code> está na lista. Qual é o melhor jeito?</p>
+<label><input type="radio" name="q6"> <code>lista.includes("café")</code></label>
+<label><input type="radio" name="q6"> <code>lista.find("café")</code></label>
+<label><input type="radio" name="q6"> <code>lista.indexOf("café") === 0</code></label>
+<label><input type="radio" name="q6"> <code>lista["café"]</code></label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="tryjs" data-goal="out:Tem sonho? true;;out:O pão de queijo está na posição 2.;;out:Primeiro produto acima de R$ 10: 12.5;;semerro;;src:\.find\(">
+<p class="try-task"><strong>Missão:</strong> a padaria tem dois arrays: os nomes dos produtos e os preços, na mesma ordem. Complete as três linhas: (1) com <code>includes</code>, responda se tem <code>"sonho"</code>; (2) com <code>indexOf</code>, a posição do <code>"pão de queijo"</code>; (3) com <code>find</code>, o primeiro preço acima de 10.</p>
+<pre class="script" data-file="main.js">const produtos = ["pão francês", "sonho", "pão de queijo", "bolo", "torta"];
+const precos = [0.9, 6.5, 4, 12.5, 35];
+
+console.log(`Tem sonho? ${"?"}`);
+console.log(`O pão de queijo está na posição ${"?"}.`);
+console.log(`Primeiro produto acima de R$ 10: ${"?"}`);
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = ["pão francês", "sonho", "pão de queijo", "bolo", "torta"];
+const precos = [0.9, 6.5, 4, 12.5, 35];
+
+console.log(`Tem sonho? ${produtos.includes("sonho")}`);
+console.log(`O pão de queijo está na posição ${produtos.indexOf("pão de queijo")}.`);
+console.log(`Primeiro produto acima de R$ 10: ${precos.find((preco) =&gt; preco &gt; 10)}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Tem sonho? true</code>, <code>O pão de queijo está na posição 2.</code> e <code>Primeiro produto acima de R$ 10: 12.5</code>. Desafio: com o <code>findIndex</code> no lugar do <code>find</code>, você descobre a posição desse preço; e <code>produtos[posição]</code> diz o nome do produto (o bolo).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>includes(valor)</code> responde <code>true</code> ou <code>false</code>: "tem ou não tem?".</li>
+  <li><code>indexOf(valor)</code> devolve a posição da primeira ocorrência (<code>lastIndexOf</code>, da última), ou <code>-1</code> se não achar.</li>
+  <li>Os três comparam como o <code>===</code>: maiúsculas importam, e <code>7</code> não é <code>"7"</code>.</li>
+  <li><code>find(função)</code> devolve o primeiro item para o qual a função responde <code>true</code>, ou <code>undefined</code>; <code>findIndex</code> devolve a posição dele, ou <code>-1</code>. <code>findLast</code>/<code>findLastIndex</code> procuram do fim.</li>
+  <li>A função do <code>find</code> é um callback: o <code>find</code> a chama uma vez para cada item, até achar.</li>
+  <li>Antes de usar uma posição achada, confira <code>!== -1</code>: <code>splice(-1, 1)</code> apaga o último item.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
