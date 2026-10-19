@@ -329,7 +329,7 @@ $ node importa-cjs.mjs
 </pre>
 
 <ul>
-  <li><strong>CommonJS usando módulo ES</strong>: o <code>require</code> de um módulo ES funciona sem nenhuma opção desde o Node 22.12 e foi declarado estável no Node 24.15. (A exceção: módulos ES que usam <code>await</code> no topo não podem ser carregados com <code>require</code>.) Em tutoriais antigos, você vai ler que isso "não funciona": era verdade até 2024.</li>
+  <li><strong>CommonJS usando módulo ES</strong>: o <code>require</code> de um módulo ES funciona sem nenhuma opção desde o Node 22.12 e foi declarado estável no Node 24.15. (A exceção: módulos ES que usam <code>await</code> no topo não podem ser carregados com <code>require</code>.) Em tutoriais antigos, você vai ler que isso "não funciona": era verdade até 2024. (No editor do guia, o <code>require</code> de um módulo ES dá um erro do próprio editor: teste esta direção no Node do seu computador.)</li>
   <li><strong>Módulo ES usando CommonJS</strong>: o <code>import padrao from</code> recebe a bandeja inteira (o <code>module.exports</code>); o <code>import { somar } from</code> também funciona na maioria dos casos, porque o Node lê o arquivo e descobre os nomes que ele exporta.</li>
 </ul>
 
