@@ -23,6 +23,7 @@
   var nImportScripts = G.importScripts.bind(G);
   var nFetch = G.fetch ? G.fetch.bind(G) : null;
   var NativePromise = G.Promise;
+  var NWorker = G.Worker, NBlob = G.Blob, NMessageChannel = G.MessageChannel;
   var ehV8 = typeof Error.captureStackTrace === "function";
   var BASE = (function () { try { return String(G.location.href).replace(/[^/]*$/, ""); } catch (e) { return ""; } })();
   nImportScripts(BASE + "inspect.js");
@@ -126,7 +127,7 @@
     // módulo ES: o corpo do módulo (sem await no topo) roda dentro do carregador do Node
     if (!m.semUsuario && cs.length) {
       var ult = cs[cs.length - 1], au = ult.getFileName && ult.getFileName(), iu = au && arquivosInfo[au];
-      if (iu && iu.esm && !ult.getFunctionName() && !esmComAwait && !(ult.isAsync && ult.isAsync())) r = r.concat(ESM_MAIN);
+      if (iu && iu.esm && !ult.getFunctionName() && !(ult.isAsync && ult.isAsync()) && antesDoAwait(iu, ult.getLineNumber(), ult.getColumnNumber() - (ult.getLineNumber() === 1 ? iu.linha1 : 0))) r = r.concat(ESM_MAIN);
     }
     return r.slice(0, 10);
   }
@@ -209,6 +210,7 @@
   function inspecionarErro(e) {
     try { return U.inspect(e); } catch (x) { try { return String(e); } catch (y) { return "[erro]"; } }
   }
+  var naoTratadoModulo = false;
   function mensagemNaoTratado(e, comoRejeicao) {
     var cab = "";
     var m = e && typeof e === "object" ? marcas.get(e) : null;
@@ -220,7 +222,7 @@
       if (p) {
         var lin = linhaDoFonte(p.info, p.linha), col = p.coluna;
         // throw x: o Node aponta o "throw" (o V8 guarda onde o erro foi lançado)
-        if (!comoRejeicao) {
+        if (!comoRejeicao && !naoTratadoModulo) {
           var antes = lin.slice(0, col - 1), t = antes.lastIndexOf("throw ");
           if (t >= 0 && /^\s*(new\s+)?[\w$.]*\s*\(?\s*$/.test(antes.slice(t + 6))) col = t + 1;
         }
@@ -251,7 +253,8 @@
     }
     // throw "texto": o Node mostra a linha do throw (aqui: o 1º throw de não-Error do programa)
     var cab2 = "";
-    var achou = acharThrow();
+    var achou = naoTratadoModulo ? null : acharThrow();
+    if (naoTratadoModulo) cab2 = "\nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n";
     if (achou) cab2 = "\n" + achou.info.mostrar + ":" + achou.linha + "\n" + achou.texto + "\n" + espacos(achou.coluna - 1) + "^\n";
     var txt;
     try { txt = typeof e === "string" ? e : U.inspect(e); } catch (x) { txt = String(e); }
@@ -271,7 +274,8 @@
     return null;
   }
 
-  function naoTratado(e, comoRejeicao) {
+  function naoTratado(e, comoRejeicao, doModulo) {
+    naoTratadoModulo = !!doModulo;
     if (encerrado) return;
     if (e === SAIR) return;
     var lista = process.listeners(comoRejeicao ? "unhandledRejection" : "uncaughtException");
@@ -845,7 +849,20 @@
     if (stdinFim) return;
     entregarStdin(t);
   }
-  function receberEof() { pediu = false; if (stdinFim) return; stdinFim = true; entregarFim(); }
+  var perguntasPendentes = [];
+  class AbortError extends Error { constructor(m) { super(m); this.code = "ABORT_ERR"; this.name = "AbortError"; } }
+  function receberEof() {
+    pediu = false; if (stdinFim) return; stdinFim = true;
+    if (interativo) perguntasPendentes.slice().forEach(function (q) {
+      var e = new AbortError("Aborted with Ctrl+D");
+      marcar(e, ["[_ttyWrite] (node:internal/readline/interface:1359:37)", "ReadStream.onkeypress (node:internal/readline/interface:289:20)", "ReadStream.emit (node:events:514:28)", "emitKeys (node:internal/readline/utils:371:14)", "emitKeys.next (<anonymous>)", "ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)", "ReadStream.emit (node:events:514:28)", "addChunk (node:internal/streams/readable:569:12)", "readableAddChunkPushByteMode (node:internal/streams/readable:520:3)", "Readable.push (node:internal/streams/readable:400:5)"],
+        "node:internal/readline/interface:1359\n            this[kQuestionReject]?.(new AbortError('Aborted with Ctrl+D'));\n                                    ^\n\n", true);
+      q.rl._questao = null;
+      q.falha(e);
+    });
+    perguntasPendentes = [];
+    entregarFim();
+  }
   function entregarStdin(t) {
     try { process.stdin._chegou(t); } catch (e) { if (e !== SAIR) naoTratado(e, false); }
     if (stdinConsumidores > 0 && !stdinFim) pedirEntrada();
@@ -1057,7 +1074,7 @@
     return im;
   }
   // a fase "check" do laço do Node: antes, os timers que já venceram (setTimeout 0 sai antes do setImmediate)
-  var filaImediata = [], canal = new MessageChannel();
+  var filaImediata = [], canal = new NMessageChannel();
   canal.port1.onmessage = function () {
     timersVencidos();
     var lista = filaImediata; filaImediata = [];
@@ -1267,7 +1284,9 @@
     if (ehV8) { var onde = {}; Error.captureStackTrace(onde); try { void onde.stack; var cs = posicoes.get(onde); if (cs) for (var i = 0; i < cs.length; i++) { var f = cs[i].getFileName(); if (f && arquivosInfo[f] && arquivosInfo[f] === principalInfo) { var l = cs[i].getLineNumber(), tx = linhaDoFonte(principalInfo, l), c = cs[i].getColumnNumber() - (l === 1 ? principalInfo.linha1 : 0), a = tx.lastIndexOf("await", c - 1); awaitVisto = { info: principalInfo, linha: l, coluna: a >= 0 ? a + 1 : c, texto: tx }; break; } } } catch (x) {} }
     return new NativePromise(function (ok, falha) {
       if (self.closed) { var e = new Error("readline was closed"); e.code = "ERR_USE_AFTER_CLOSE"; falha(e); return; }
-      Interface.prototype.question.call(self, q, opc, ok);
+      var item = { rl: self, falha: falha };
+      perguntasPendentes.push(item);
+      Interface.prototype.question.call(self, q, opc, function (v) { perguntasPendentes = perguntasPendentes.filter(function (x) { return x !== item; }); ok(v); });
     });
   };
   var readline = {
@@ -1447,6 +1466,13 @@
     return undefined;
   }
   var NOMES_EMBUTIDOS = ["assert", "assert/strict", "async_hooks", "buffer", "child_process", "cluster", "console", "constants", "crypto", "dgram", "diagnostics_channel", "dns", "dns/promises", "domain", "events", "fs", "fs/promises", "http", "http2", "https", "inspector", "module", "net", "os", "path", "path/posix", "path/win32", "perf_hooks", "process", "punycode", "querystring", "readline", "readline/promises", "repl", "stream", "stream/promises", "string_decoder", "sys", "timers", "timers/promises", "tls", "tty", "url", "util", "util/types", "v8", "vm", "wasi", "worker_threads", "zlib", "test", "sqlite", "sea"];
+  var SEM_SUPORTE = ["child_process", "http", "https", "http2", "net", "worker_threads", "cluster", "dgram", "dns", "dns/promises", "tls", "zlib", "vm", "v8", "async_hooks", "test", "sqlite", "inspector", "module", "tty", "diagnostics_channel", "repl", "wasi", "domain", "sea", "stream/promises"];
+  function erroSemModulo(nome) {
+    var e = new Error("O editor do guia não tem o módulo node:" + nome + " (ele precisa do Node.js de verdade: rode no seu computador)");
+    e.code = "ERR_EDITOR_SEM_MODULO";
+    marcas.set(e, { semUsuario: true, cab: "", topo: ["o editor do guia (no navegador não há node:" + nome + ")"], nomeStack: "Error [ERR_EDITOR_SEM_MODULO]" });
+    return e;
+  }
   function semSuporte(nome) {
     if (nome === "perf_hooks") return { performance: G.performance };
     if (nome === "stream") return { Readable: EventEmitter, Writable: EventEmitter, Transform: EventEmitter, EventEmitter: EventEmitter };
@@ -1485,7 +1511,7 @@
     function jsNodeRequire(esp) {
       if (typeof esp !== "string") throw tipoErrado("id", "string", esp);
       var emb = nomeEmbutido(esp);
-      if (emb !== null) { var m = embutido(emb); if (m === undefined) m = semSuporte(emb); return m; }
+      if (emb !== null) { if (SEM_SUPORTE.indexOf(emb) >= 0) throw erroSemModulo(emb); var m = embutido(emb); if (m === undefined) m = semSuporte(emb); return m; }
       var pilha = [], x = mod; while (x) { pilha.push(x.filename); x = x.parent; }
       var arq = /^\.{0,2}\//.test(esp) ? resolverArquivo(esp, mod.path) : null;
       if (!arq) throw erroNaoAchou(esp, mod, pilha);
@@ -1522,7 +1548,7 @@
   var definido = null;
   G.__jsNodeDefinir = function (f) { definido = f; };
   var PREFIXO_CJS = "__jsNodeDefinir(function (exports, require, module, __filename, __dirname) {";
-  function urlDe(codigo, tipo) { return URL.createObjectURL(new Blob([codigo], { type: tipo || "text/javascript" })); }
+  function urlDe(codigo, tipo) { return URL.createObjectURL(new NBlob([codigo], { type: tipo || "text/javascript" })); }
   function compilarCJS(arq) {
     var codigo = texto(vfs.arq[arq]);
     fontes[arq] = codigo;
@@ -1600,6 +1626,7 @@
   }
   function resolverESM0(esp, de) {
     var emb = nomeEmbutido(esp);
+    if (emb !== null && embutido(emb) === undefined || emb !== null && SEM_SUPORTE.indexOf(emb) >= 0) throw erroSemModulo(emb);
     if (emb !== null) return moduloEmbutidoESM(emb);
     if (!/^\.{0,2}\//.test(esp) && !/^file:/.test(esp)) throw erroEsmNaoAchou(esp, de);
     var alvo = path.resolve(path.dirname(de), esp.replace(/^file:\/\//, ""));
@@ -1671,7 +1698,7 @@
     return new NativePromise(function (ok) {
       var w, feito = false;
       function fim(v) { if (feito) return; feito = true; try { w && w.terminate(); } catch (e) {} ok(v); }
-      try { w = new Worker(urlDe(codigo + "\n;postMessage(0);")); } catch (e) { fim(null); return; }
+      try { w = new NWorker(urlDe(codigo + "\n;postMessage(0);")); } catch (e) { fim(null); return; }
       w.onmessage = function () { fim(null); };
       w.onerror = function (ev) { ev.preventDefault && ev.preventDefault(); fim(ev.lineno ? { linha: ev.lineno, coluna: ev.colno, msg: String(ev.message || "").replace(/^Uncaught /, "") } : null); };
       nSetTimeout(function () { fim(null); }, 3000);
@@ -1761,7 +1788,7 @@
         erroSintaxe(e, qual || arq, true).then(terminarComSintaxe);
         return;
       }
-      naoTratado(e, false);
+      naoTratado(e, false, true);
     });
     talvezFim();
   }
@@ -1770,6 +1797,29 @@
     // o 1º módulo (na ordem de carga) que não compila como script de módulo
     var lista = Object.keys(urlsESM);
     return lista.length ? lista[lista.length - 1] : null;
+  }
+  // a posição (linha, coluna) está antes do fim da instrução do 1º await do topo do módulo?
+  function antesDoAwait(info, lin, col) {
+    var c = fontes[info.caminho] || "";
+    if (info.fimSync === undefined) {
+      var i = indiceAwaitTopo(c);
+      if (i < 0) info.fimSync = Infinity;
+      else { var f = c.slice(i).search(/;|\n/); info.fimSync = f < 0 ? c.length : i + f; }
+    }
+    var linhas = c.split("\n"), off = 0;
+    for (var k = 0; k < lin - 1 && k < linhas.length; k++) off += linhas[k].length + 1;
+    return off + col - 1 < info.fimSync;
+  }
+  function indiceAwaitTopo(c) {
+    var s = c.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/g, function (t) { return t.replace(/[^\n]/g, " "); });
+    var pilha = [], re = /[{}]|\bawait\b|=>|\bfunction\b/g, m, func = false, pend = false;
+    while ((m = re.exec(s))) {
+      if (m[0] === "=>" || m[0] === "function") { pend = true; continue; }
+      if (m[0] === "{") { pilha.push(pend); pend = false; continue; }
+      if (m[0] === "}") { pilha.pop(); continue; }
+      if (pilha.indexOf(true) < 0 && !pend) return m.index;
+    }
+    return -1;
   }
   function temAwaitNoTopo(c) {
     var s = c.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/g, "\"\"");
@@ -1895,7 +1945,19 @@
   }
 
   /* ------------------------------------------------------------ globais do Node */
+  // o que o Chrome tem e o Node 24 não tem (lista gerada comparando o lab com o Chromium 155):
+  // some, para "x is not a function"/"x is not defined" sair como no Node
+  var SO_NO_NAVEGADOR = ["Date.prototype.toTemporalInstant","Intl.v8BreakIterator","Iterator.concat","Iterator.prototype.includes","Iterator.prototype.join","Iterator.zip","Iterator.zipKeyed","Map.prototype.getOrInsert","Map.prototype.getOrInsertComputed","Math.sumPrecise","Uint8Array.fromBase64","Uint8Array.fromHex","Uint8Array.prototype.setFromBase64","Uint8Array.prototype.setFromHex","Uint8Array.prototype.toBase64","Uint8Array.prototype.toHex","global.AudioData","global.AudioDecoder","global.AudioEncoder","global.BackgroundFetchManager","global.BackgroundFetchRecord","global.BackgroundFetchRegistration","global.CSSKeywordValue","global.CSSMathClamp","global.CSSMathInvert","global.CSSMathMax","global.CSSMathMin","global.CSSMathNegate","global.CSSMathProduct","global.CSSMathSum","global.CSSMathValue","global.CSSNumericArray","global.CSSNumericValue","global.CSSSkewX","global.CSSSkewY","global.CSSStyleValue","global.CSSUnitValue","global.CSSUnparsedValue","global.Cache","global.CacheStorage","global.CanvasGradient","global.CanvasPattern","global.CreateMonitor","global.CropTarget","global.DOMMatrix","global.DOMMatrixReadOnly","global.DOMPoint","global.DOMPointReadOnly","global.DOMQuad","global.DOMRect","global.DOMRectReadOnly","global.DOMStringList","global.DedicatedWorkerGlobalScope","global.EncodedAudioChunk","global.EncodedVideoChunk","global.ErrorEvent","global.EventSource","global.FileList","global.FileReader","global.FileReaderSync","global.FileSystemDirectoryHandle","global.FileSystemFileHandle","global.FileSystemHandle","global.FileSystemObserver","global.FileSystemSyncAccessHandle","global.FileSystemWritableFileStream","global.FontFace","global.FontFaceSet","global.GPU","global.GPUAdapter","global.GPUAdapterInfo","global.GPUBindGroup","global.GPUBindGroupLayout","global.GPUBuffer","global.GPUBufferUsage","global.GPUCanvasContext","global.GPUColorWrite","global.GPUCommandBuffer","global.GPUCommandEncoder","global.GPUCompilationInfo","global.GPUCompilationMessage","global.GPUComputePassEncoder","global.GPUComputePipeline","global.GPUDevice","global.GPUDeviceLostInfo","global.GPUError","global.GPUExternalTexture","global.GPUInternalError","global.GPUMapMode","global.GPUOutOfMemoryError","global.GPUPipelineError","global.GPUPipelineLayout","global.GPUQuerySet","global.GPUQueue","global.GPURenderBundle","global.GPURenderBundleEncoder","global.GPURenderPassEncoder","global.GPURenderPipeline","global.GPUSampler","global.GPUShaderModule","global.GPUShaderStage","global.GPUSupportedFeatures","global.GPUSupportedLimits","global.GPUTexture","global.GPUTextureUsage","global.GPUTextureView","global.GPUUncapturedErrorEvent","global.GPUValidationError","global.HID","global.HIDConnectionEvent","global.HIDDevice","global.HIDInputReportEvent","global.IDBCursor","global.IDBCursorWithValue","global.IDBDatabase","global.IDBFactory","global.IDBIndex","global.IDBKeyRange","global.IDBObjectStore","global.IDBOpenDBRequest","global.IDBRecord","global.IDBRequest","global.IDBTransaction","global.IDBVersionChangeEvent","global.IdleDetector","global.ImageBitmap","global.ImageBitmapRenderingContext","global.ImageData","global.ImageDecoder","global.ImageTrack","global.ImageTrackList","global.Lock","global.LockManager","global.MediaCapabilities","global.MediaSource","global.MediaSourceHandle","global.NavigationPreloadManager","global.NavigatorUAData","global.NetworkInformation","global.Notification","global.Observable","global.OffscreenCanvas","global.OffscreenCanvasRenderingContext2D","global.Origin","global.Path2D","global.PerformanceServerTiming","global.PeriodicSyncManager","global.PermissionStatus","global.Permissions","global.PressureObserver","global.PressureRecord","global.ProgressEvent","global.PromiseRejectionEvent","global.PushManager","global.PushSubscription","global.PushSubscriptionOptions","global.QuotaExceededError","global.RTCDataChannel","global.RTCEncodedAudioFrame","global.RTCEncodedVideoFrame","global.RTCRtpScriptTransformer","global.RTCTransformEvent","global.ReportBody","global.ReportingObserver","global.RestrictionTarget","global.Scheduler","global.SecurityPolicyViolationEvent","global.Serial","global.SerialPort","global.ServiceWorkerRegistration","global.SourceBuffer","global.SourceBufferList","global.StorageBucket","global.StorageBucketManager","global.StorageManager","global.Subscriber","global.SyncManager","global.TaskController","global.TaskPriorityChangeEvent","global.TaskSignal","global.Temporal","global.TextMetrics","global.TrustedHTML","global.TrustedScript","global.TrustedScriptURL","global.TrustedTypePolicy","global.TrustedTypePolicyFactory","global.USB","global.USBAlternateInterface","global.USBConfiguration","global.USBConnectionEvent","global.USBDevice","global.USBEndpoint","global.USBInTransferResult","global.USBInterface","global.USBIsochronousInTransferPacket","global.USBIsochronousInTransferResult","global.USBIsochronousOutTransferPacket","global.USBIsochronousOutTransferResult","global.USBOutTransferResult","global.UserActivation","global.VideoColorSpace","global.VideoDecoder","global.VideoEncoder","global.VideoFrame","global.WGSLLanguageFeatures","global.WebGL2RenderingContext","global.WebGLActiveInfo","global.WebGLBuffer","global.WebGLContextEvent","global.WebGLFramebuffer","global.WebGLObject","global.WebGLProgram","global.WebGLQuery","global.WebGLRenderbuffer","global.WebGLRenderingContext","global.WebGLSampler","global.WebGLShader","global.WebGLShaderPrecisionFormat","global.WebGLSync","global.WebGLTexture","global.WebGLTransformFeedback","global.WebGLUniformLocation","global.WebGLVertexArrayObject","global.WebSocketError","global.WebSocketStream","global.WebTransport","global.WebTransportBidirectionalStream","global.WebTransportDatagramDuplexStream","global.WebTransportError","global.Worker","global.WorkerGlobalScope","global.WorkerLocation","global.WorkerNavigator","global.XMLHttpRequest","global.XMLHttpRequestEventTarget","global.XMLHttpRequestUpload","global.cancelAnimationFrame","global.close","global.importScripts","global.location","global.name","global.onerror","global.onlanguagechange","global.onmessage","global.onmessageerror","global.onoffline","global.ononline","global.onrejectionhandled","global.onrtctransform","global.onunhandledrejection","global.postMessage","global.requestAnimationFrame","global.self","global.webkitRequestFileSystem","global.webkitRequestFileSystemSync","global.webkitResolveLocalFileSystemSyncURL","global.webkitResolveLocalFileSystemURL"];
+  function esconderExtras() {
+    SO_NO_NAVEGADOR.forEach(function (k) {
+      var p = k.split("."), dono = p[0] === "global" ? G : G[p[0]];
+      if (!dono) return;
+      if (p[1] === "prototype" && p.length === 3) { dono = dono.prototype; p = [p[0], p[2]]; }
+      try { delete dono[p[1]]; } catch (e) {}
+    });
+  }
   function instalarGlobais() {
+    esconderExtras();
     var ocultar = ["postMessage", "importScripts", "onmessage", "onmessageerror", "close", "WorkerGlobalScope", "DedicatedWorkerGlobalScope", "location", "WorkerLocation", "WorkerNavigator", "onerror", "onunhandledrejection", "onrejectionhandled", "onlanguagechange", "onoffline", "ononline", "requestAnimationFrame", "cancelAnimationFrame", "name"];
     ocultar.forEach(function (k) { try { Object.defineProperty(G, k, { value: undefined, configurable: true, writable: true, enumerable: false }); } catch (e) {} });
     var defs = {
