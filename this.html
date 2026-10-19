@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript this, call, apply e bind — quem é o this | Guia JavaScript</title>
+<meta name="description" content="O this do JavaScript para quem está começando: a regra do 'quem está antes do ponto', o this perdido ao guardar um método numa variável, o this dentro do forEach, arrow functions (que pegam o this de fora), call, apply e bind para escolher o this, o this no topo do arquivo e os erros reais do Node.js 24 (Cannot read properties of undefined (reading 'nome')).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">this</span>, call, apply e bind</h1>
+
+<p class="intro">Na aula <a href="objetos-metodos.html">Métodos e this</a>, você viu que, dentro de um método, <code>this</code> ("este") é o objeto dono do método. Isso é verdade quase sempre, e esse "quase" é uma das maiores fontes de confusão do JavaScript. Nesta aula você vai entender a <strong>regra de verdade</strong>: o <code>this</code> não é decidido quando a função é <strong>escrita</strong>, e sim quando ela é <strong>chamada</strong>. E vai aprender as três ferramentas para escolher o <code>this</code> na mão: <code>call</code>, <code>apply</code> e <code>bind</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A regra principal: o <code>this</code> é <strong>quem está antes do ponto</strong> na hora da chamada.</li>
+  <li>Por que o <code>this</code> se <strong>perde</strong> quando você guarda um método numa variável ou o passa para o <code>forEach</code>.</li>
+  <li>Por que as <strong>arrow functions</strong> resolvem o <code>forEach</code>, mas estragam um método.</li>
+  <li><code>call</code> e <code>apply</code>: chamar uma função escolhendo o <code>this</code>.</li>
+  <li><code>bind</code>: criar uma cópia da função com o <code>this</code> "colado".</li>
+  <li>O <code>this</code> fora de qualquer função, e o erro que você mais vai ver: <code>Cannot read properties of undefined (reading 'nome')</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a palavra "eu"</h2>
+<p>A palavra "<strong>eu</strong>" não tem dono fixo. Quando a Ana diz "eu moro aqui", "eu" é a Ana; quando o Caio lê exatamente a mesma frase em voz alta, "eu" passa a ser o Caio. A frase é a mesma; quem é o "eu" depende de <strong>quem está falando agora</strong>.</p>
+<p>O <code>this</code> é o "eu" de uma função. A mesma função, chamada por objetos diferentes, tem <code>this</code> diferentes. E se ninguém estiver "falando" (a função é chamada sozinha, sem objeto), o <code>this</code> fica sem dono: <code>undefined</code>.</p>
+
+<hr>
+
+<h2>1. A regra: quem está antes do ponto</h2>
+
+<pre class="file" data-file="quem.js">const leite = {
+  nome: "Leite 1 L",
+  apresentar() {
+    return `Eu sou o ${this.nome}`;
+  },
+};
+
+const pao = {
+  nome: "Pão francês",
+  apresentar: leite.apresentar,
+};
+
+console.log(leite.apresentar());
+console.log(pao.apresentar());
+console.log(leite.apresentar === pao.apresentar);
+</pre>
+
+<pre class="term">$ node quem.js
+Eu sou o Leite 1 L
+Eu sou o Pão francês
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>apresentar: leite.apresentar</dt><dd>O pão não ganhou um método novo: ganhou <strong>a mesma função</strong> do leite (o <code>true</code> da última linha confirma). Funções são valores e podem ser guardadas em qualquer lugar (aula <a href="funcoes-valores.html">Funções como Valores</a>).</dd>
+  <dt>leite.apresentar()</dt><dd>Antes do ponto está o <code>leite</code>: nesta chamada, <code>this</code> é o leite.</dd>
+  <dt>pao.apresentar()</dt><dd>A mesma função, mas agora antes do ponto está o <code>pao</code>: <code>this</code> é o pão, e o texto muda.</dd>
+</dl>
+
+<p>Essa é a regra que resolve a maioria dos casos: <strong>olhe a linha da chamada</strong>, não a linha onde a função foi escrita. <code>objeto.metodo()</code> → <code>this</code> é o <code>objeto</code>.</p>
+
+<hr>
+
+<h2>2. O <code>this</code> perdido</h2>
+<p>Agora o problema. A Ana quer guardar o método <code>descrever</code> do leite numa variável, para chamar depois com um nome mais curto:</p>
+
+<pre class="file" data-file="perdido.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+console.log(leite.descrever());
+
+const anunciar = leite.descrever;
+console.log(anunciar());
+</pre>
+
+<pre class="term">$ node perdido.js
+Leite 1 L: R$ 5.49
+/home/ana/perdido.js:8
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+                   ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at descrever (/home/ana/perdido.js:8:20)
+    at Object.&lt;anonymous&gt; (/home/ana/perdido.js:16:13)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Leite 1 L: R$ 5.49</dt><dd>A primeira chamada, <code>leite.descrever()</code>, funcionou: tinha o <code>leite</code> antes do ponto.</dd>
+  <dt>/home/ana/perdido.js:8</dt><dd>O erro aconteceu na linha 8, <strong>dentro</strong> do <code>descrever</code>…</dd>
+  <dt>return `${this.nome}… e o ^</dt><dd>…e o <code>^</code> aponta o <code>.nome</code> de <code>this.nome</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'nome')</dt><dd>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>nome</code>)". Ou seja: o <code>this</code> era <code>undefined</code>.</dd>
+  <dt>at descrever (…:8:20)</dt><dd>A função onde o erro aconteceu. Repare: aparece só <code>descrever</code>, e não <code>Produto.descrever</code>. O Node está dizendo que ela foi chamada <strong>sozinha</strong>, sem objeto.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:16:13)</dt><dd>Quem a chamou: a linha 16, o <code>anunciar()</code>.</dd>
+</dl>
+
+<p>O que aconteceu: <code>const anunciar = leite.descrever</code> guardou <strong>só a função</strong>, sem o leite. Na linha 16, <code>anunciar()</code> não tem nada antes do ponto (nem ponto tem), então a função foi chamada sem "eu", e o <code>this</code> ficou <code>undefined</code>. A função "esqueceu" de quem era. (Dentro de uma <code>class</code> o JavaScript usa sempre o <strong>modo estrito</strong>, em que o <code>this</code> de uma função chamada sozinha é <code>undefined</code>; veja a seção 6 para o que acontece fora das classes.)</p>
+
+<div class="tryjs" data-goal="out:Oferta do dia: Leite 1 L: R$ 5.49;;src:\.bind\(\s*leite\s*\)">
+<p class="try-task"><strong>Missão:</strong> rode e veja o <code>this</code> se perder. Conserte a linha do <code>const anunciar</code> colando o leite no método com <code>.bind(leite)</code> (seção 5): <code>leite.descrever.bind(leite)</code>. A saída deve ser <code>Oferta do dia: Leite 1 L: R$ 5.49</code>.</p>
+<pre class="script" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+const anunciar = leite.descrever;
+console.log(`Oferta do dia: ${anunciar()}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+const anunciar = leite.descrever.bind(leite);
+console.log(`Oferta do dia: ${anunciar()}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O caso mais comum: uma <code>function</code> dentro do <code>forEach</code></h2>
+<p>O <code>this</code> se perde sem você guardar nada numa variável. A professora da Ana tem uma classe <code>Turma</code> e quer fazer a chamada: o nome da turma na frente de cada aluno.</p>
+
+<pre class="file" data-file="foreach.js">class Turma {
+  constructor(nome, alunos) {
+    this.nome = nome;
+    this.alunos = alunos;
+  }
+
+  chamada() {
+    this.alunos.forEach(function (aluno) {
+      console.log(`${this.nome}: ${aluno}`);
+    });
+  }
+}
+
+const turma = new Turma("5º ano B", ["Bia", "Caio", "Davi"]);
+turma.chamada();
+</pre>
+
+<pre class="term">$ node foreach.js
+/home/ana/foreach.js:9
+      console.log(`${this.nome}: ${aluno}`);
+                          ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at /home/ana/foreach.js:9:27
+    at Array.forEach (&lt;anonymous&gt;)
+    at Turma.chamada (/home/ana/foreach.js:8:17)
+    at Object.&lt;anonymous&gt; (/home/ana/foreach.js:15:7)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>A pilha <code>at</code>, lida de baixo para cima, conta a história: a linha 15 chamou <code>Turma.chamada</code>; a <code>chamada</code> (linha 8) chamou o <code>Array.forEach</code>; e o <code>forEach</code> chamou a <strong>função sem nome</strong> da linha 9 (por isso ela aparece só como <code>at /home/ana/foreach.js:9:27</code>).</p>
+<p>O <code>this.alunos</code> da linha 8 funcionou: ali o <code>this</code> é a turma. Mas a <code>function (aluno) { … }</code> é uma função <strong>nova</strong>, com o seu próprio <code>this</code>, e quem a chama é o <code>forEach</code>, assim: <code>funcao(aluno)</code>, sem nada antes do ponto. Resultado: <code>this</code> é <code>undefined</code> lá dentro.</p>
+
+<h3>A solução: arrow function</h3>
+<p>Uma <a href="arrow-functions.html">arrow function</a> (<code>=&gt;</code>) <strong>não tem <code>this</code> próprio</strong>: ela usa o <code>this</code> do lugar onde foi escrita. Escrita dentro do método <code>chamada</code>, ela usa o <code>this</code> da <code>chamada</code>, que é a turma:</p>
+
+<pre class="file" data-file="foreach-arrow.js">  chamada() {
+    this.alunos.forEach((aluno) =&gt; {
+      console.log(`${this.nome}: ${aluno}`);
+    });
+  }
+</pre>
+
+<pre class="term">$ node foreach-arrow.js
+5º ano B: Bia
+5º ano B: Caio
+5º ano B: Davi
+</pre>
+
+<p>É por isso que, desde que as arrow functions chegaram (2015), elas são o jeito preferido de escrever callbacks dentro de métodos: o <code>forEach</code>, o <code>map</code>, o <code>filter</code>, o <code>setTimeout</code> (aula <a href="timers.html">setTimeout e setInterval</a>) e os eventos.</p>
+
+<hr>
+
+<h2>4. O outro lado: arrow function como método</h2>
+<p>Se a arrow pega o <code>this</code> de fora, ela é uma péssima escolha para um <strong>método</strong> de objeto:</p>
+
+<pre class="file" data-file="arrow-metodo.js">const padaria = {
+  nome: "Padaria do Bairro",
+  saudar: () =&gt; {
+    return `Bem-vindo à ${this.nome}!`;
+  },
+  saudarCerto() {
+    return `Bem-vindo à ${this.nome}!`;
+  },
+};
+
+console.log(padaria.saudar());
+console.log(padaria.saudarCerto());
+</pre>
+
+<pre class="term">$ node arrow-metodo.js
+Bem-vindo à undefined!
+Bem-vindo à Padaria do Bairro!
+</pre>
+
+<p>Mesmo com <code>padaria.</code> antes do ponto, o <code>saudar</code> não enxergou a padaria: a arrow ignorou a regra do ponto e usou o <code>this</code> de fora do objeto (o topo do arquivo, seção 6), que não tem <code>nome</code>. Sem erro, só um <code>undefined</code> no texto. O <code>saudarCerto</code>, escrito como método normal, funcionou.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo de função</th><th>De onde vem o <code>this</code></th><th>Bom para</th></tr>
+<tr><td>Método (<code>saudar() { … }</code>) ou <code>function</code></td><td>De <strong>quem chama</strong> (quem está antes do ponto)</td><td>Métodos de objetos e de classes</td></tr>
+<tr><td>Arrow (<code>() =&gt; { … }</code>)</td><td>De <strong>onde foi escrita</strong> (o <code>this</code> de fora)</td><td>Callbacks dentro de métodos (<code>forEach</code>, <code>map</code>, timers, eventos)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Escolhendo o <code>this</code> na mão: <code>call</code>, <code>apply</code> e <code>bind</code></h2>
+<p>Toda função do JavaScript tem três métodos para controlar o <code>this</code>.</p>
+
+<h3><code>call</code> e <code>apply</code>: chamar agora, com o <code>this</code> que eu disser</h3>
+
+<pre class="file" data-file="call.js">function descrever(moeda) {
+  return `${this.nome}: ${moeda} ${this.preco.toFixed(2)}`;
+}
+
+const leite = { nome: "Leite 1 L", preco: 5.49 };
+const cafe = { nome: "Café 500 g", preco: 19.9 };
+
+console.log(descrever.call(leite, "R$"));
+console.log(descrever.call(cafe, "US$"));
+console.log(descrever.apply(leite, ["€"]));
+</pre>
+
+<pre class="term">$ node call.js
+Leite 1 L: R$ 5.49
+Café 500 g: US$ 19.90
+Leite 1 L: € 5.49
+</pre>
+
+<dl class="anatomy">
+  <dt>descrever.call(leite, "R$")</dt><dd><code>call</code> ("chamar") roda a função <strong>agora</strong>. O primeiro argumento vira o <code>this</code>; os outros vão para os parâmetros, um por um (<code>moeda</code> recebe <code>"R$"</code>).</dd>
+  <dt>descrever.apply(leite, ["€"])</dt><dd><code>apply</code> ("aplicar") é igual, só que os argumentos vão dentro de <strong>um array</strong>. Para lembrar: <strong>a</strong>pply, <strong>a</strong>rray.</dd>
+</dl>
+
+<p>Uma função solta (fora de objeto) que usa <code>this</code> é rara em código novo; o <code>call</code> aparece mais em código antigo, como no <code>Produto.call(this, nome, preco)</code> do <a href="heranca.html#formas">jeito antigo de fazer herança</a>. O <code>apply</code> também tinha um uso clássico, que hoje o <a href="spread-rest.html">spread</a> faz melhor:</p>
+
+<pre class="file" data-file="apply.js">const precos = [27.9, 5.49, 19.9];
+
+console.log(Math.max.apply(null, precos));
+console.log(Math.max(...precos));
+</pre>
+
+<pre class="term">$ node apply.js
+27.9
+27.9
+</pre>
+
+<p>O <code>Math.max</code> não usa <code>this</code>, por isso o primeiro argumento do <code>apply</code> é <code>null</code> ("tanto faz"). O <code>...precos</code> "espalha" o array e é bem mais fácil de ler: prefira-o.</p>
+
+<h3><code>bind</code>: uma cópia com o <code>this</code> colado</h3>
+<p>O <code>bind</code> ("amarrar") <strong>não chama</strong> a função. Ele devolve uma <strong>função nova</strong>, igual à original, mas com o <code>this</code> preso para sempre. É a solução para o <code>this</code> perdido da seção 2:</p>
+
+<pre class="file" data-file="bind.js">// (a classe Produto da seção 2 vem aqui em cima)
+
+const leite = new Produto("Leite 1 L", 5.49);
+
+const anunciar = leite.descrever.bind(leite);
+console.log(anunciar());
+console.log(anunciar);
+
+const outro = { nome: "Outro", preco: 1 };
+outro.anunciar = anunciar;
+console.log(outro.anunciar());
+</pre>
+
+<pre class="term">$ node bind.js
+Leite 1 L: R$ 5.49
+[Function: bound descrever]
+Leite 1 L: R$ 5.49
+</pre>
+
+<ul>
+  <li><code>anunciar()</code>, chamada sozinha, funcionou: o <code>this</code> estava amarrado ao leite.</li>
+  <li><code>console.log(anunciar)</code> mostra <code>[Function: bound descrever]</code>: "função <strong>amarrada</strong> (<em>bound</em>) de <code>descrever</code>".</li>
+  <li>Nem pondo a função em outro objeto (<code>outro.anunciar()</code>) o <code>this</code> muda: o <code>bind</code> ganha da regra do ponto.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ferramenta</th><th>Chama a função?</th><th>Como passa os argumentos</th><th>Exemplo</th></tr>
+<tr><td><code>call</code></td><td>Sim, agora</td><td>Um por um</td><td><code>f.call(obj, a, b)</code></td></tr>
+<tr><td><code>apply</code></td><td>Sim, agora</td><td>Num array</td><td><code>f.apply(obj, [a, b])</code></td></tr>
+<tr><td><code>bind</code></td><td><strong>Não</strong>: devolve uma função nova</td><td>Um por um (ficam presos também, se passar)</td><td><code>const g = f.bind(obj);</code> e depois <code>g()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. O <code>this</code> fora de qualquer método</h2>
+<p>E no topo do arquivo, ou numa função comum chamada sozinha? Aqui a resposta depende de <strong>onde</strong> o código roda, e é bom saber disso só para não estranhar:</p>
+
+<pre class="file" data-file="topo.js">console.log(this);
+
+function solta() {
+  return this === globalThis;
+}
+console.log(solta());
+
+function soltaEstrita() {
+  "use strict";
+  return this;
+}
+console.log(soltaEstrita());
+</pre>
+
+<pre class="term">$ node topo.js
+{}
+true
+undefined
+</pre>
+
+<ul>
+  <li><strong>No topo de um arquivo do Node</strong> (o formato tradicional, CommonJS), <code>this</code> é um objeto vazio: <code>{}</code> (é o <code>module.exports</code> da aula <a href="modulos-commonjs.html">require e module.exports</a>). Num arquivo com <code>import</code>/<code>export</code> (aula <a href="modulos.html">Módulos</a>), é <code>undefined</code>. No navegador, num <code>&lt;script&gt;</code> comum, é o <code>window</code>.</li>
+  <li><strong>Numa função comum chamada sozinha</strong>, fora do modo estrito, o JavaScript antigo dá a ela o <strong>objeto global</strong> (<code>globalThis</code>) como <code>this</code>: o <code>true</code> da segunda linha. Isso escondia erros: o código "funcionava" lendo coisas do lugar errado.</li>
+  <li>No <strong>modo estrito</strong> (<code>"use strict"</code>, que vale sozinho dentro de classes e de módulos <code>import</code>/<code>export</code>), a mesma função recebe <code>undefined</code>, e o erro aparece logo, como na seção 2. É melhor assim.</li>
+</ul>
+
+<p>Resumindo: <strong>não use <code>this</code> fora de métodos</strong>. Fora deles, o valor muda de um ambiente para outro e quase nunca é o que você quer. (No navegador, dentro de um evento escrito com <code>function</code>, o <code>this</code> é o elemento que recebeu o evento; isso aparece na aula <a href="eventos.html">Eventos</a>.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para não perder o <code>this</code> ao passar um método adiante (para um <code>forEach</code>, um timer, um evento), há quatro saídas:</p>
+
+<pre class="file" data-file="formas.js">// 1. arrow function em volta da chamada: o ponto continua lá
+botao.addEventListener("click", () =&gt; visitas.somar());
+
+// 2. bind: uma cópia com o this colado
+botao.addEventListener("click", visitas.somar.bind(visitas));
+
+// 3. arrow function DENTRO do método (o caso do forEach, seção 3)
+this.alunos.forEach((aluno) =&gt; { … this.nome … });
+
+// 4. o método já nasce como campo com arrow, dentro da classe (abaixo)
+</pre>
+<p>(Esse trecho é ilustrativo: <code>botao</code> e <code>visitas</code> são de uma página web e não rodam sozinhos.) A forma 4 cria o método como um <strong>campo</strong> da classe que guarda uma arrow function. Como a arrow é criada dentro do objeto, o <code>this</code> dela é sempre o próprio objeto:</p>
+
+<pre class="file" data-file="campo-arrow.js">class Contador {
+  total = 0;
+
+  somar = () =&gt; {
+    this.total = this.total + 1;
+  };
+}
+
+const visitas = new Contador();
+const botaoClicado = visitas.somar;
+botaoClicado();
+botaoClicado();
+[1, 2, 3].forEach(visitas.somar);
+console.log(visitas.total);
+</pre>
+
+<pre class="term">$ node campo-arrow.js
+5
+</pre>
+
+<p>Duas chamadas soltas mais três pelo <code>forEach</code>: 5, sem nenhum <code>this</code> perdido. O custo: cada objeto ganha a <strong>sua própria cópia</strong> da função (ela não fica no protótipo, aula <a href="prototipos.html">Protótipos</a>). Para poucos objetos, tudo bem.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Callback dentro de um método (<code>forEach</code>, <code>map</code>, <code>setTimeout</code>)</td><td>Arrow function (forma 3)</td></tr>
+<tr><td>Passar um método como callback, uma vez</td><td>Arrow em volta: <code>() =&gt; obj.metodo()</code> (forma 1)</td></tr>
+<tr><td>Guardar uma versão do método para usar várias vezes</td><td><code>obj.metodo.bind(obj)</code> (forma 2)</td></tr>
+<tr><td>Um método que <strong>sempre</strong> vai ser passado adiante (cliques, por exemplo)</td><td>Campo com arrow na classe (forma 4)</td></tr>
+<tr><td>Método de objeto ou de classe, no resto dos casos</td><td>Método normal: <code>nome() { … }</code>, nunca arrow</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>Cannot read properties of undefined (reading '…')</code> dentro de um método</strong>
+<p>É o erro das seções 2 e 3. Quando ele aparecer apontando um <code>this.algo</code>, a pergunta é sempre a mesma: <strong>como este método foi chamado?</strong></p>
+<ul>
+  <li>Foi guardado numa variável e chamado sozinho (<code>const f = obj.metodo; f()</code>)? Use <code>bind</code> ou chame pelo objeto.</li>
+  <li>Foi passado para outra função (<code>lista.forEach(obj.metodo)</code>, <code>setTimeout(obj.metodo, 1000)</code>)? Use uma arrow em volta: <code>lista.forEach((x) =&gt; obj.metodo(x))</code>.</li>
+  <li>Está dentro de uma <code>function</code> de callback, dentro do método? Troque a <code>function</code> por uma arrow.</li>
+</ul>
+<p>A pilha <code>at</code> ajuda: se a função do erro aparece sem o nome da classe (<code>at descrever</code> em vez de <code>at Produto.descrever</code>) ou sem nome nenhum (<code>at /home/ana/foreach.js:9:27</code>), ela foi chamada sem objeto.</p>
+</div>
+
+<div class="cenario">
+<strong><code>undefined</code> no meio do texto, sem erro</strong>
+<p>O caso da seção 4: um método escrito como arrow (<code>saudar: () =&gt; …</code>), que mostrou <code>Bem-vindo à undefined!</code>. Também acontece com uma função comum chamada sozinha fora do modo estrito: o <code>this</code> é o objeto global, que não tem a propriedade, e sai <code>undefined</code> em vez de um erro. <strong>Como consertar:</strong> escreva o método como <code>saudar() { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu que o <code>bind</code> não chama</strong>
+<pre class="file" data-file="bind-esqueceu.js">// (a classe Produto da seção 2 vem aqui em cima)
+const leite = new Produto("Leite 1 L", 5.49);
+console.log(leite.descrever.bind(leite));
+</pre>
+<pre class="term">$ node bind-esqueceu.js
+[Function: bound descrever]
+</pre>
+<p>A Ana esperava ver o texto do leite e viu a <strong>função</strong>. O <code>bind</code> só prepara a função; para rodar, faltam os parênteses: <code>leite.descrever.bind(leite)()</code>. Mas, se é para chamar na hora, nem precisa de <code>bind</code>: <code>leite.descrever()</code> basta. (Quando aparece <code>[Function: …]</code> onde você esperava um resultado, quase sempre faltou um <code>()</code>.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Como a função foi chamada</th><th>Quem é o <code>this</code></th></tr>
+<tr><td><code>obj.metodo()</code></td><td><code>obj</code> (quem está antes do ponto)</td></tr>
+<tr><td><code>funcao()</code>, sozinha (classe, módulo ou <code>"use strict"</code>)</td><td><code>undefined</code></td></tr>
+<tr><td><code>funcao()</code>, sozinha, em código antigo sem modo estrito</td><td>O objeto global (<code>globalThis</code>)</td></tr>
+<tr><td><code>new Classe()</code></td><td>O objeto novo que está sendo criado</td></tr>
+<tr><td><code>f.call(obj, a, b)</code> / <code>f.apply(obj, [a, b])</code></td><td><code>obj</code></td></tr>
+<tr><td>Função criada com <code>f.bind(obj)</code></td><td><code>obj</code>, sempre</td></tr>
+<tr><td>Arrow function <code>() =&gt; …</code></td><td>O <code>this</code> de onde ela foi escrita (ela não tem o seu)</td></tr>
+<tr><td>Topo de um arquivo do Node (CommonJS)</td><td><code>{}</code> (o <code>module.exports</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'x')</code> num <code>this.x</code></td><td>Método chamado sem objeto (guardado numa variável, passado como callback) ou <code>function</code> de callback dentro de um método</td></tr>
+<tr><td><code>undefined</code> no lugar de um dado do objeto</td><td>Método escrito como arrow, ou função solta fora do modo estrito</td></tr>
+<tr><td><code>[Function: bound …]</code> na saída</td><td>Usou <code>bind</code> e esqueceu de chamar a função</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quem é o this?</h3>
+<p>Com os objetos <code>leite</code> e <code>pao</code> da seção 1, na chamada <code>pao.apresentar()</code>, qual objeto é o <code>this</code>? (Escreva o nome da variável.)</p>
+<div class="ex-code">O this é <input data-answer="pao" aria-label="nome do objeto"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para criar uma função com o <code>this</code> preso ao leite, e chamar <code>descrever</code> com o café como <code>this</code>, agora:</p>
+<div class="ex-code">const anunciar = leite.descrever.<input data-answer="bind" aria-label="método que devolve função nova">(leite);<br>console.log(descrever.<input data-answer="call|apply" aria-label="método que chama agora">(cafe, "R$"));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Dentro de um método, você escreveu <code>this.alunos.forEach(function (a) { console.log(this.nome); })</code> e deu <code>Cannot read properties of undefined (reading 'nome')</code>. Qual conserto é o mais simples?</p>
+<label><input type="radio" name="q3"> Trocar <code>this.nome</code> por <code>nome</code></label>
+<label><input type="radio" name="q3"> Trocar o método inteiro por uma arrow function</label>
+<label><input type="radio" name="q3"> Trocar a <code>function (a) { … }</code> por <code>(a) =&gt; { … }</code></label>
+<label><input type="radio" name="q3"> Apagar o <code>forEach</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual a diferença entre <code>call</code> e <code>bind</code>?</p>
+<label><input type="radio" name="q4"> Nenhuma</label>
+<label><input type="radio" name="q4"> <code>call</code> chama a função agora; <code>bind</code> devolve uma função nova, sem chamar</label>
+<label><input type="radio" name="q4"> <code>bind</code> recebe os argumentos num array</label>
+<label><input type="radio" name="q4"> <code>call</code> só funciona com arrow functions</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>const loja = { nome: "Lojinha", ola: () =&gt; this.nome };</code> O que <code>loja.ola()</code> devolve num arquivo do Node?</p>
+<label><input type="radio" name="q5"> <code>"Lojinha"</code></label>
+<label><input type="radio" name="q5"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q5"> <code>"ola"</code></label>
+<label><input type="radio" name="q5"> <code>undefined</code>: a arrow usa o <code>this</code> de fora do objeto</label>
+</div>
+
+<h3>Missão final: a chamada da turma</h3>
+
+<div class="tryjs" data-goal="out:5º ano B: Bia;;out:5º ano B: Davi;;semerro">
+<p class="try-task"><strong>Missão:</strong> o método <code>chamada</code> quebra com <code>Cannot read properties of undefined (reading 'nome')</code>. Conserte o callback do <code>forEach</code> (sem mudar o <code>console.log</code>) para cada aluno sair com o nome da turma: <code>5º ano B: Bia</code>, <code>5º ano B: Caio</code>, <code>5º ano B: Davi</code>.</p>
+<pre class="script" data-file="main.js">class Turma {
+  constructor(nome, alunos) {
+    this.nome = nome;
+    this.alunos = alunos;
+  }
+
+  chamada() {
+    this.alunos.forEach(function (aluno) {
+      console.log(`${this.nome}: ${aluno}`);
+    });
+  }
+}
+
+const turma = new Turma("5º ano B", ["Bia", "Caio", "Davi"]);
+turma.chamada();
+</pre>
+<pre class="solucao" data-file="main.js">class Turma {
+  constructor(nome, alunos) {
+    this.nome = nome;
+    this.alunos = alunos;
+  }
+
+  chamada() {
+    this.alunos.forEach((aluno) =&gt; {
+      console.log(`${this.nome}: ${aluno}`);
+    });
+  }
+}
+
+const turma = new Turma("5º ano B", ["Bia", "Caio", "Davi"]);
+turma.chamada();
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>5º ano B: Bia</code>, <code>5º ano B: Caio</code> e <code>5º ano B: Davi</code>. Também vale outra solução: o <code>forEach</code> aceita o <code>this</code> como segundo argumento, <code>this.alunos.forEach(function (aluno) { … }, this);</code>, um jeito antigo que você ainda vai encontrar por aí.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>this</code> é decidido <strong>na hora da chamada</strong>: em <code>obj.metodo()</code>, é o <code>obj</code>, quem está antes do ponto.</li>
+  <li>Guardar um método numa variável, ou passá-lo para outra função, separa a função do objeto: chamada sozinha, ela recebe <code>this</code> <code>undefined</code> (em classes, módulos e modo estrito), e aparece <code>Cannot read properties of undefined</code>.</li>
+  <li>Arrow functions não têm <code>this</code> próprio: usam o de onde foram escritas. Ótimas para callbacks <strong>dentro</strong> de métodos; ruins <strong>como</strong> métodos.</li>
+  <li><code>f.call(obj, a, b)</code> e <code>f.apply(obj, [a, b])</code> chamam agora com o <code>this</code> escolhido; <code>f.bind(obj)</code> devolve uma função nova com o <code>this</code> preso para sempre.</li>
+  <li>Fora de métodos, o <code>this</code> muda de ambiente para ambiente (<code>{}</code> no topo de um arquivo do Node, <code>window</code> no navegador): não conte com ele.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
