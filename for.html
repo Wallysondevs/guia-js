@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript for — repetir um número certo de vezes | Guia JavaScript</title>
+<meta name="description" content="O laço for do JavaScript para quem nunca programou: as três partes (início; condição; passo), contar de 1 a 5, contar para trás, de 5 em 5, tabuada, somar de 1 a 100, percorrer uma lista com i, o laço infinito (Ctrl+C) e os erros reais do Node.js 24 (vírgula no lugar do ponto e vírgula, const no contador, i fora do laço).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">for</span></h1>
+
+<p class="intro">Na aula <a href="while.html">while</a> você viu o laço que repete "enquanto" uma condição for verdadeira. Quando você <strong>sabe quantas voltas quer</strong> (de 1 a 10, os 30 alunos da turma, os 12 meses do ano), existe um laço mais prático: o <code>for</code> (em inglês, "<strong>para</strong>"). Ele junta numa linha só as três coisas de que todo laço com contador precisa: onde começa, até onde vai e de quanto em quanto anda.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As três partes do <code>for</code>: <strong>início</strong>, <strong>condição</strong> e <strong>passo</strong>, separadas por ponto e vírgula.</li>
+  <li>Como contar de 1 a 5, de 5 a 1 e de 5 em 5.</li>
+  <li>Como usar o contador numa conta: a tabuada e a soma de 1 a 100.</li>
+  <li>Como percorrer uma lista de compras pela posição de cada item.</li>
+  <li>Por que o contador do <code>for</code> só existe dentro do laço.</li>
+  <li>O laço infinito e o <kbd>Ctrl</kbd>+<kbd>C</kbd>, e os erros reais mais comuns.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "regue os vasos, do 1 ao 5"</h2>
+<p>A Ana vai viajar e deixa um bilhete para a vizinha: <em>"Comece pelo vaso 1. Enquanto não passar do vaso 5, regue o vaso e vá para o próximo."</em> O bilhete tem três partes, e todo <code>for</code> também:</p>
+<ol class="passo">
+  <li><strong>Início:</strong> "comece pelo vaso 1". Acontece uma vez só, antes de tudo.</li>
+  <li><strong>Condição:</strong> "enquanto não passar do vaso 5". É perguntada antes de cada volta.</li>
+  <li><strong>Passo:</strong> "vá para o próximo". Acontece no fim de cada volta.</li>
+</ol>
+<p>E o trabalho de cada volta ("regue o vaso") é o <strong>corpo</strong> do laço. No <code>while</code>, essas três partes ficam espalhadas pelo programa; no <code>for</code>, elas ficam juntas, no alto, onde dá para ver tudo de uma vez.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>for</code>: contar de 1 a 5</h2>
+
+<pre class="file" data-file="contar.js">for (let i = 1; i &lt;= 5; i++) {
+  console.log(`Volta ${i}`);
+}
+console.log("Fim!");
+</pre>
+
+<dl class="anatomy">
+  <dt>for</dt><dd>A palavra-chave do laço: "para".</dd>
+  <dt>( … )</dt><dd>Os parênteses guardam as três partes, separadas por <strong>ponto e vírgula</strong> (<code>;</code>), não por vírgula.</dd>
+  <dt>let i = 1</dt><dd>O <strong>início</strong>: cria a variável contadora <code>i</code> valendo 1. Roda <strong>uma vez só</strong>. O nome <code>i</code> (de "índice") é uma tradição para contadores; poderia ser <code>vaso</code> ou <code>volta</code>. Use <code>let</code>, porque o valor vai mudar (veja <a href="variaveis.html">Variáveis</a>).</dd>
+  <dt>i &lt;= 5</dt><dd>A <strong>condição</strong>: "enquanto <code>i</code> for menor ou igual a 5". É testada <strong>antes</strong> de cada volta; quando dá <code>false</code>, o laço acaba (veja <a href="operadores-comparacao.html">Comparação</a>).</dd>
+  <dt>i++</dt><dd>O <strong>passo</strong>: soma 1 em <code>i</code> no <strong>fim</strong> de cada volta. É o mesmo que <code>i = i + 1</code> (veja <a href="incremento.html">Incremento e Decremento</a>).</dd>
+  <dt>{ … }</dt><dd>As chaves guardam o <strong>corpo</strong>: o que se repete. Os 2 espaços na frente mostram que a linha está dentro do laço.</dd>
+  <dt>console.log(`Volta ${i}`)</dt><dd>Mostra o valor atual de <code>i</code> dentro de um texto (veja <a href="template-strings.html">Template Strings</a>).</dd>
+  <dt>console.log("Fim!")</dt><dd>Depois da <code>}</code>, fora do laço: roda uma vez, quando o laço termina.</dd>
+</dl>
+
+<pre class="term">$ node contar.js
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim!
+</pre>
+
+<h3>Passo a passo: o que o JavaScript fez</h3>
+<p>Repare na ordem: início, depois <strong>condição → corpo → passo</strong>, de novo e de novo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th><code>i</code></th><th><code>i &lt;= 5</code>?</th><th>O que acontece</th></tr>
+<tr><td>Início</td><td>1</td><td>—</td><td><code>let i = 1</code> cria o contador</td></tr>
+<tr><td>1ª volta</td><td>1</td><td><code>true</code></td><td>Mostra <code>Volta 1</code>; o passo faz <code>i</code> virar 2</td></tr>
+<tr><td>2ª volta</td><td>2</td><td><code>true</code></td><td>Mostra <code>Volta 2</code>; <code>i</code> vira 3</td></tr>
+<tr><td>3ª volta</td><td>3</td><td><code>true</code></td><td>Mostra <code>Volta 3</code>; <code>i</code> vira 4</td></tr>
+<tr><td>4ª volta</td><td>4</td><td><code>true</code></td><td>Mostra <code>Volta 4</code>; <code>i</code> vira 5</td></tr>
+<tr><td>5ª volta</td><td>5</td><td><code>true</code></td><td>Mostra <code>Volta 5</code>; <code>i</code> vira 6</td></tr>
+<tr><td>Fim</td><td>6</td><td><strong><code>false</code></strong></td><td>Sai do laço e vai para o <code>console.log("Fim!")</code></td></tr>
+</table>
+</div>
+
+<p>A condição foi testada <strong>6 vezes</strong> para o corpo rodar <strong>5 vezes</strong>: a última pergunta é a que dá "não".</p>
+
+<div class="tryjs" data-goal="out:Volta 10;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> faça o programa contar até <strong>10</strong>. Depois, por curiosidade, troque o início para <code>let i = 3</code> e veja quantas voltas sobram.</p>
+<pre class="script" data-file="main.js">for (let i = 1; i &lt;= 5; i++) {
+  console.log(`Volta ${i}`);
+}
+console.log("Fim!");
+</pre>
+<pre class="solucao" data-file="main.js">for (let i = 1; i &lt;= 10; i++) {
+  console.log(`Volta ${i}`);
+}
+console.log("Fim!");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Contar para trás e de 5 em 5</h2>
+<p>As três partes podem ser o que você quiser. Para uma contagem regressiva, comece do maior, use a condição "maior que zero" e <strong>diminua</strong> com <code>--</code>:</p>
+
+<pre class="file" data-file="regressiva.js">for (let segundos = 5; segundos &gt; 0; segundos--) {
+  console.log(`${segundos}...`);
+}
+console.log("Já!");
+</pre>
+
+<pre class="term">$ node regressiva.js
+5...
+4...
+3...
+2...
+1...
+Já!
+</pre>
+
+<p>Quando <code>segundos</code> chega a 0, a pergunta <code>0 &gt; 0</code> dá <code>false</code> e o laço termina. Aqui o contador se chama <code>segundos</code>: um nome que diz o que ele conta deixa o programa mais fácil de ler.</p>
+
+<p>Para andar de 5 em 5, o passo vira <code>valor += 5</code> ("some 5 em <code>valor</code>"; veja <a href="atribuicao.html">Atribuição</a>):</p>
+
+<pre class="file" data-file="cinco.js">for (let valor = 0; valor &lt;= 20; valor += 5) {
+  console.log(`R$ ${valor}`);
+}
+</pre>
+
+<pre class="term">$ node cinco.js
+R$ 0
+R$ 5
+R$ 10
+R$ 15
+R$ 20
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Início</th><th>Condição</th><th>Passo</th></tr>
+<tr><td>1, 2, 3, 4, 5</td><td><code>let i = 1</code></td><td><code>i &lt;= 5</code></td><td><code>i++</code></td></tr>
+<tr><td>0, 1, 2, 3, 4 (5 voltas, começando do 0)</td><td><code>let i = 0</code></td><td><code>i &lt; 5</code></td><td><code>i++</code></td></tr>
+<tr><td>5, 4, 3, 2, 1</td><td><code>let i = 5</code></td><td><code>i &gt; 0</code></td><td><code>i--</code></td></tr>
+<tr><td>0, 5, 10, 15, 20</td><td><code>let i = 0</code></td><td><code>i &lt;= 20</code></td><td><code>i += 5</code></td></tr>
+<tr><td>1, 2, 4, 8, 16 (dobrando)</td><td><code>let i = 1</code></td><td><code>i &lt;= 16</code></td><td><code>i *= 2</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Usando o contador numa conta</h2>
+<p>O <code>i</code> não serve só para contar voltas: ele é um número como outro qualquer e pode entrar em contas. A tabuada do 7 é o exemplo clássico:</p>
+
+<pre class="file" data-file="tabuada.js">const numero = 7;
+for (let i = 1; i &lt;= 10; i++) {
+  console.log(`${numero} x ${i} = ${numero * i}`);
+}
+</pre>
+
+<pre class="term">$ node tabuada.js
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+7 x 4 = 28
+7 x 5 = 35
+7 x 6 = 42
+7 x 7 = 49
+7 x 8 = 56
+7 x 9 = 63
+7 x 10 = 70
+</pre>
+
+<p>Repare que <code>numero</code> é <code>const</code> (ele não muda) e <code>i</code> é <code>let</code> (muda a cada volta).</p>
+
+<div class="tryjs" data-goal="out:9 x 10 = 90;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> o sobrinho da Ana precisa da tabuada do <strong>9</strong>. Mude o programa e rode.</p>
+<pre class="script" data-file="main.js">const numero = 7;
+for (let i = 1; i &lt;= 10; i++) {
+  console.log(`${numero} x ${i} = ${numero * i}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const numero = 9;
+for (let i = 1; i &lt;= 10; i++) {
+  console.log(`${numero} x ${i} = ${numero * i}`);
+}
+</pre>
+</div>
+
+<h3>Acumulando: a soma de 1 a 100</h3>
+<p>Uma variável criada <strong>antes</strong> do laço pode ir juntando um valor a cada volta. Ela se chama <strong>acumulador</strong>:</p>
+
+<pre class="file" data-file="soma.js">let soma = 0;
+for (let n = 1; n &lt;= 100; n++) {
+  soma += n;
+}
+console.log(`A soma de 1 a 100 é ${soma}`);
+</pre>
+
+<pre class="term">$ node soma.js
+A soma de 1 a 100 é 5050
+</pre>
+
+<p>Na 1ª volta, <code>soma</code> vira 0 + 1 = 1; na 2ª, 1 + 2 = 3; na 3ª, 3 + 3 = 6… e, depois de 100 voltas, 5050. O <code>console.log</code> está <strong>fora</strong> do laço, por isso mostra só o resultado final. Se ele estivesse dentro das chaves, você veria 100 linhas, uma por volta.</p>
+
+<hr>
+
+<h2>4. Percorrendo uma lista pela posição</h2>
+<p>Um uso muito comum do <code>for</code> é passar por todos os itens de uma lista. No JavaScript, uma lista entre colchetes se chama <strong>array</strong> (você vai estudá-la a fundo em <a href="arrays.html">Arrays</a>). Por enquanto, basta saber três coisas: os itens são numerados a partir do <strong>0</strong>, <code>compras[0]</code> é o primeiro item e <code>compras.length</code> ("comprimento") é quantos itens existem.</p>
+
+<pre class="file" data-file="compras.js">const compras = ["pão", "leite", "café", "manteiga"];
+for (let i = 0; i &lt; compras.length; i++) {
+  console.log(`${i + 1}. ${compras[i]}`);
+}
+</pre>
+
+<pre class="term">$ node compras.js
+1. pão
+2. leite
+3. café
+4. manteiga
+</pre>
+
+<dl class="anatomy">
+  <dt>let i = 0</dt><dd>Começa do 0, porque o primeiro item é o <code>compras[0]</code>.</dd>
+  <dt>i &lt; compras.length</dt><dd>A lista tem 4 itens, nas posições 0, 1, 2 e 3. Por isso a condição é <strong>menor que</strong> 4 (<code>&lt;</code>), e não "menor ou igual" (a seção <a href="#errado">Quando dá errado</a> mostra o que acontece com <code>&lt;=</code>).</dd>
+  <dt>compras[i]</dt><dd>O item na posição <code>i</code>: <code>"pão"</code> na volta com <code>i</code> 0, <code>"leite"</code> com <code>i</code> 1…</dd>
+  <dt>i + 1</dt><dd>Só para a Ana ler "1." em vez de "0.". O <code>i</code> continua igual: a conta não muda a variável.</dd>
+</dl>
+
+<p>Se a Ana acrescentar <code>"ovos"</code> na lista, o <code>compras.length</code> passa a valer 5 e o laço dá 5 voltas sozinho: nada mais precisa mudar.</p>
+
+<hr>
+
+<h2 id="so-dentro">5. O contador só existe dentro do laço</h2>
+<p>Uma variável criada com <code>let</code> no início do <code>for</code> pertence ao laço: depois da <code>}</code> ela some. Tentar usá-la lá fora dá erro:</p>
+
+<pre class="file" data-file="fora.js">for (let i = 1; i &lt;= 3; i++) {
+  console.log(`Volta ${i}`);
+}
+console.log(`Depois do laço, i vale ${i}`);
+</pre>
+
+<pre class="term">$ node fora.js
+Volta 1
+Volta 2
+Volta 3
+/home/ana/fora.js:4
+console.log(`Depois do laço, i vale ${i}`);
+                                      ^
+
+ReferenceError: i is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/fora.js:4:39)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>As três voltas rodaram; o erro só veio na linha 4. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/fora.js:4</dt><dd>O arquivo e a <strong>linha</strong> do problema: a 4.</dd>
+  <dt>console.log(…) e o ^</dt><dd>A linha do código, e o <code>^</code> embaixo apontando o ponto exato: o <code>i</code> dentro do <code>${}</code>.</dd>
+  <dt>ReferenceError: i is not defined</dt><dd>"Erro de referência: <code>i</code> não está definido". O JavaScript procurou uma variável <code>i</code> ali e não achou nenhuma, porque a do laço já tinha sumido.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/fora.js:4:39)</dt><dd>O caminho que o programa fez até o erro: linha 4, coluna 39. As outras linhas <code>at</code> são do próprio Node e podem ser ignoradas.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+
+<p>Isso é uma <strong>vantagem</strong>: o <code>i</code> de um laço não atrapalha outro laço que também use <code>i</code> mais abaixo. Se você precisa do valor depois do laço, crie a variável <strong>antes</strong> dele (como o <code>soma</code> da seção 3). Mais sobre onde cada variável existe em <a href="escopo.html">Escopo</a>.</p>
+
+<hr>
+
+<h2 id="infinito">6. O laço infinito, e como pará-lo</h2>
+<p>Se a condição <strong>nunca</strong> ficar falsa, o laço não termina. O jeito mais comum de criar um sem querer é errar o passo: aqui a Ana escreveu <code>i--</code> em vez de <code>i++</code>, e o <code>i</code> vai para 0, -1, -2… sempre menor ou igual a 5.</p>
+
+<pre class="file" data-file="infinito.js">for (let i = 1; i &lt;= 5; i--) {
+  console.log(`Volta ${i}`);
+}
+console.log("Fim!");
+</pre>
+
+<p>A Ana deixou o programa rodar só 1 segundo (com o comando <code>timeout 1</code>), mostrando as 3 primeiras linhas com o <code>head -3</code> e depois contando as linhas com o <code>wc -l</code>:</p>
+
+<pre class="term">$ timeout 1 node infinito.js | head -3
+Volta 1
+Volta 0
+Volta -1
+$ timeout 1 node infinito.js | wc -l
+443088
+</pre>
+
+<p>Mais de <strong>440 mil</strong> linhas em um segundo (o número muda de um computador para outro), e o <code>Fim!</code> nunca chega.</p>
+
+<h3>No terminal: <kbd>Ctrl</kbd>+<kbd>C</kbd></h3>
+<p>Para interromper um programa que não termina, segure <kbd>Ctrl</kbd> e aperte <kbd>C</kbd>. O laço infinito também pode ser silencioso: este aqui só faz contas, e o terminal parece "travado":</p>
+
+<pre class="file" data-file="travado.js">let total = 0;
+for (let i = 1; i &lt;= 5; i--) {
+  total += i;
+}
+console.log(`Total: ${total}`);
+</pre>
+
+<pre class="term">$ node travado.js
+^C
+$ echo $?
+130
+</pre>
+
+<p>O <code>^C</code> é o terminal mostrando que você apertou <kbd>Ctrl</kbd>+<kbd>C</kbd>. O Node para na hora, sem mensagem nenhuma, e o código de saída (<code>echo $?</code>) é <code>130</code>, o número que o terminal usa para "interrompido com <kbd>Ctrl</kbd>+<kbd>C</kbd>" (0 seria "terminou bem").</p>
+
+<p>No editor do guia, enquanto o programa roda, o botão Rodar vira <strong>■ Parar</strong>: é o <kbd>Ctrl</kbd>+<kbd>C</kbd> do editor (veja <a href="simulador.html">O Editor do Guia</a>).</p>
+
+<div class="tryjs" data-sem-fim>
+<p class="try-task"><strong>Experimente:</strong> rode este programa e clique em <strong>■ Parar</strong>. Depois conserte o passo (<code>i++</code>) e rode de novo: deve aparecer <code>Total: 15</code>.</p>
+<pre class="script" data-file="main.js">let total = 0;
+for (let i = 1; i &lt;= 5; i--) {
+  total += i;
+}
+console.log(`Total: ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Contar de 1 a 5 com <code>while</code> dá o mesmo resultado: as três partes só ficam em lugares diferentes.</p>
+
+<pre class="file" data-file="comwhile.js">let i = 1;            // início
+while (i &lt;= 5) {      // condição
+  console.log(`Volta ${i}`);
+  i++;                // passo
+}
+</pre>
+
+<pre class="term">$ node comwhile.js
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+</pre>
+
+<p>Para passar por todos os itens de uma lista, quando você não precisa da posição, existe o <code>for … of</code> ("para cada … de"), que entrega cada item direto, sem <code>i</code>, sem <code>length</code>, sem risco de passar do fim. Ele tem aula própria: <a href="for-of.html">Percorrendo com for … of</a>.</p>
+
+<pre class="file" data-file="forof.js">const compras = ["pão", "leite", "café", "manteiga"];
+for (const item of compras) {
+  console.log(item);
+}
+</pre>
+
+<pre class="term">$ node forof.js
+pão
+leite
+café
+manteiga
+</pre>
+
+<p>Por fim, quando o corpo tem uma linha só, as chaves podem ser omitidas. Funciona, mas é fácil se confundir ao acrescentar uma segunda linha (ela ficaria fora do laço). Neste guia, use sempre as chaves.</p>
+
+<pre class="file" data-file="semchaves.js">for (let i = 1; i &lt;= 3; i++) console.log(`Volta ${i}`);
+</pre>
+
+<pre class="term">$ node semchaves.js
+Volta 1
+Volta 2
+Volta 3
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Sei quantas voltas quero (de 1 a 10, de 5 em 5, para trás)</td><td><code>for (início; condição; passo)</code></td></tr>
+<tr><td>Não sei quantas voltas vão ser (até a pessoa digitar 0, até juntar R$ 1000)</td><td><a href="while.html"><code>while</code></a></td></tr>
+<tr><td>O corpo tem de rodar pelo menos uma vez</td><td><a href="do-while.html"><code>do … while</code></a></td></tr>
+<tr><td>Passar por todos os itens de uma lista, sem precisar da posição</td><td><a href="for-of.html"><code>for … of</code></a></td></tr>
+<tr><td>Passar pela lista e precisar da posição (<code>i</code>)</td><td><code>for</code> com <code>i &lt; lista.length</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Vírgula no lugar do ponto e vírgula</strong>
+<pre class="file" data-file="virgula.js">for (let i = 1, i &lt;= 5, i++) {
+  console.log(`Volta ${i}`);
+}
+</pre>
+<pre class="term">$ node virgula.js
+/home/ana/virgula.js:1
+for (let i = 1, i &lt;= 5, i++) {
+                ^
+
+SyntaxError: Identifier 'i' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: o identificador <code>i</code> já foi declarado". A mensagem parece não ter nada a ver com vírgulas, e é por isso que este erro confunde. O que aconteceu: com vírgulas, o JavaScript leu <code>let i = 1, i …</code> como "crie <code>i</code> e crie <strong>outro</strong> <code>i</code>" (a vírgula serve para criar várias variáveis num <code>let</code> só), e duas variáveis com o mesmo nome não pode. É um <code>SyntaxError</code>: o programa nem começou, por isso nenhum <code>Volta</code> apareceu. <strong>Como consertar:</strong> as três partes se separam com <strong>ponto e vírgula</strong>: <code>for (let i = 1; i &lt;= 5; i++)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>const</code> no contador</strong>
+<pre class="file" data-file="constante.js">for (const i = 1; i &lt;= 3; i++) {
+  console.log(`Volta ${i}`);
+}
+</pre>
+<pre class="term">$ node constante.js
+Volta 1
+/home/ana/constante.js:1
+for (const i = 1; i &lt;= 3; i++) {
+                           ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constante.js:1:28)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: atribuição a uma variável constante". A primeira volta rodou (<code>Volta 1</code>); o erro veio no passo, o <code>i++</code> (o <code>^</code> aponta para ele), porque uma <code>const</code> não pode mudar de valor. <strong>Como consertar:</strong> o contador do <code>for</code> é sempre <code>let</code>. (No <code>for … of</code> o <code>const</code> funciona, porque lá cada volta cria uma variável nova.)</p>
+</div>
+
+<div class="cenario">
+<strong>Usar o contador depois do laço</strong>
+<p>É o <code>ReferenceError: i is not defined</code> da <a href="#so-dentro">seção 5</a>. <strong>Como consertar:</strong> se precisa do valor depois, crie a variável antes do <code>for</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A condição já começa falsa: zero voltas</strong>
+<pre class="file" data-file="zero.js">for (let i = 1; i &gt;= 5; i++) {
+  console.log(`Volta ${i}`);
+}
+console.log("Fim!");
+</pre>
+<pre class="term">$ node zero.js
+Fim!
+</pre>
+<p>Nenhum erro, e nenhuma volta. A Ana quis dizer "até 5", mas escreveu <code>i &gt;= 5</code> ("enquanto <code>i</code> for maior ou igual a 5"). Logo no primeiro teste, <code>1 &gt;= 5</code> dá <code>false</code>, e o laço é pulado inteiro. <strong>Como consertar:</strong> leia a condição em voz alta com "enquanto": ela tem de ser verdadeira para o laço <strong>continuar</strong>. Aqui, <code>i &lt;= 5</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou do fim da lista: <code>undefined</code></strong>
+<pre class="file" data-file="passou.js">const compras = ["pão", "leite", "café", "manteiga"];
+for (let i = 0; i &lt;= compras.length; i++) {
+  console.log(`${i + 1}. ${compras[i]}`);
+}
+</pre>
+<pre class="term">$ node passou.js
+1. pão
+2. leite
+3. café
+4. manteiga
+5. undefined
+</pre>
+<p>Com <code>&lt;=</code>, o laço dá uma volta a mais: <code>i</code> chega a 4, e não existe item na posição 4 (as posições vão de 0 a 3). O JavaScript não reclama: <code>compras[4]</code> só vale <code>undefined</code> ("indefinido"; veja <a href="null-undefined.html">null e undefined</a>). Esse erro de "uma volta a mais ou a menos" é tão comum que tem até apelido em inglês: <em>off-by-one</em>. <strong>Como consertar:</strong> com <code>let i = 0</code>, use <code>i &lt; compras.length</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo errado: laço infinito</strong>
+<p>É o <code>i--</code> no lugar de <code>i++</code> da <a href="#infinito">seção 6</a>: o JavaScript não acusa nada, o programa simplesmente não termina. <strong>Como consertar:</strong> aperte <kbd>Ctrl</kbd>+<kbd>C</kbd> e confira se o passo leva o contador <strong>na direção</strong> que faz a condição ficar falsa: contando para cima com <code>&lt;=</code>, o passo é <code>++</code>; contando para baixo com <code>&gt;</code>, é <code>--</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Volta 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não roda. Leia a mensagem de erro, conserte e rode de novo até aparecer <code>Volta 5</code>. (São dois erros: o JavaScript mostra um de cada vez.)</p>
+<pre class="script" data-file="main.js">for (const i = 1, i &lt;= 5, i++) {
+  console.log(`Volta ${i}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">for (let i = 1; i &lt;= 5; i++) {
+  console.log(`Volta ${i}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (let i = 1; i &lt;= 5; i++) { … }</code></td><td>Repete o bloco com <code>i</code> valendo 1, 2, 3, 4 e 5</td></tr>
+<tr><td><code>let i = 1</code> (1ª parte)</td><td>Início: roda uma vez, antes de tudo</td></tr>
+<tr><td><code>i &lt;= 5</code> (2ª parte)</td><td>Condição: testada antes de cada volta; <code>false</code> encerra o laço</td></tr>
+<tr><td><code>i++</code> (3ª parte)</td><td>Passo: roda no fim de cada volta</td></tr>
+<tr><td><code>i--</code>, <code>i += 5</code>, <code>i *= 2</code></td><td>Outros passos: para trás, de 5 em 5, dobrando</td></tr>
+<tr><td><code>for (let i = 0; i &lt; lista.length; i++)</code></td><td>Percorre todas as posições de uma lista (0 até o tamanho menos 1)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>No terminal, interrompe o programa (código de saída 130)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Identifier 'i' has already been declared</code> na linha do <code>for</code></td><td>Vírgulas no lugar dos pontos e vírgulas</td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code> no <code>i++</code></td><td>Contador criado com <code>const</code>; use <code>let</code></td></tr>
+<tr><td><code>ReferenceError: i is not defined</code> depois do laço</td><td>O <code>i</code> do <code>for</code> só existe dentro dele</td></tr>
+<tr><td>Nenhuma volta, sem erro</td><td>A condição já começa falsa (sinal trocado)</td></tr>
+<tr><td>Um <code>undefined</code> no fim da lista</td><td><code>&lt;=</code> no lugar de <code>&lt;</code> com <code>length</code></td></tr>
+<tr><td>A mesma linha sem parar, ou o terminal "travado"</td><td>Laço infinito: o passo vai na direção errada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<p>Complete para o programa mostrar os números de 1 a 3:</p>
+<div class="ex-code"><input data-answer="for" aria-label="palavra-chave do laço"> (let n = 1<input data-answer=";" aria-label="separador"> n &lt;= 3; n<input data-answer="++" aria-label="passo">) {<br>&nbsp;&nbsp;console.log(n);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes?</h3>
+<p>Quantas vezes este laço mostra <code>Oi</code>? Responda com um número.</p>
+<pre class="file" data-file="oi.js">for (let x = 10; x &gt; 4; x -= 2) {
+  console.log("Oi");
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="3" aria-label="número de vezes"> vezes.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Em que ordem o JavaScript executa as partes de <code>for (início; condição; passo) { corpo }</code>?</p>
+<label><input type="radio" name="q3"> início, passo, condição, corpo, de novo e de novo</label>
+<label><input type="radio" name="q3"> início uma vez; depois condição, corpo, passo, de novo e de novo</label>
+<label><input type="radio" name="q3"> corpo primeiro, depois as três partes</label>
+<label><input type="radio" name="q3"> as três partes a cada volta, inclusive o início</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Uma lista tem 4 itens. Qual condição percorre todos eles, começando com <code>let i = 0</code>?</p>
+<label><input type="radio" name="q4"> <code>i &lt;= lista.length</code></label>
+<label><input type="radio" name="q4"> <code>i &gt; lista.length</code></label>
+<label><input type="radio" name="q4"> <code>i &lt; lista.length</code></label>
+<label><input type="radio" name="q4"> <code>i &lt;= 4</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que acontece com <code>for (let i = 1, i &lt;= 5, i++)</code>?</p>
+<label><input type="radio" name="q5"> <code>SyntaxError</code>: as partes se separam com ponto e vírgula</label>
+<label><input type="radio" name="q5"> Funciona normalmente</label>
+<label><input type="radio" name="q5"> Laço infinito</label>
+<label><input type="radio" name="q5"> Mostra só <code>Volta 1</code></label>
+</div>
+
+<h3>Missão final: o cofrinho da Ana</h3>
+
+<div class="tryjs" data-goal="out:R$ 780;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> a Ana guarda R$ 10 na semana 1, R$ 20 na semana 2, R$ 30 na semana 3, e assim por diante (sempre <code>semana * 10</code>). Quanto ela terá depois de <strong>12 semanas</strong>? Escreva um <code>for</code> no lugar do comentário, com <code>semana</code> indo de 1 a 12, somando <code>semana * 10</code> no <code>total</code>.</p>
+<pre class="script" data-file="main.js">let total = 0;
+// escreva o for aqui
+
+console.log(`Em 12 semanas a Ana juntou R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">let total = 0;
+for (let semana = 1; semana &lt;= 12; semana++) {
+  total += semana * 10;
+}
+console.log(`Em 12 semanas a Ana juntou R$ ${total}`);
+</pre>
+</div>
+
+<p>No lab, a resposta foi <code>Em 12 semanas a Ana juntou R$ 780</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (início; condição; passo) { … }</code> junta numa linha as três partes de um laço com contador, separadas por <strong>ponto e vírgula</strong>.</li>
+  <li>O início roda uma vez; depois, a cada volta: condição → corpo → passo. Quando a condição dá <code>false</code>, o laço acaba.</li>
+  <li>O contador é <code>let</code> (nunca <code>const</code>) e só existe dentro do laço.</li>
+  <li>O passo pode ser <code>i++</code>, <code>i--</code>, <code>i += 5</code>… e tem de levar o contador na direção que encerra o laço; senão, é laço infinito (<kbd>Ctrl</kbd>+<kbd>C</kbd> no terminal, ■ Parar no editor).</li>
+  <li>Para percorrer uma lista pela posição: <code>for (let i = 0; i &lt; lista.length; i++)</code>. Sem precisar da posição, prefira o <a href="for-of.html"><code>for … of</code></a>.</li>
+  <li>Para sair do laço no meio ou pular uma volta, veja a próxima aula: <a href="break-continue.html">break e continue</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
