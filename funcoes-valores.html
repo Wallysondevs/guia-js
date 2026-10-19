@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Funções como Valores — callbacks | Guia JavaScript</title>
+<meta name="description" content="Funções como valores no JavaScript para quem está começando: guardar uma função numa variável, a diferença entre f e f(), passar uma função para outra (callback), funções anônimas, callbacks em map, filter, forEach e toSorted, funções que devolvem funções, funções dentro de objetos e os erros reais do Node.js 24 (is not a function, o map sem return).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Funções como Valores</span> (Callbacks)</h1>
+
+<p class="intro">No JavaScript, uma função é um <strong>valor</strong>, como um número ou um texto. Dá para guardá-la numa variável, colocá-la num objeto, passá-la para outra função e até devolvê-la com <code>return</code>. Quando você entrega uma função para outra função chamar depois, ela se chama <strong>callback</strong> (em inglês, "ligar de volta", como quem deixa o telefone para retorno). Você já usou callbacks sem saber: em <code>lista.map(…)</code> e <code>lista.filter(…)</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que uma função pode ser guardada numa variável e mostrada com <code>console.log</code> (<code>[Function: saudar]</code>).</li>
+  <li>A diferença entre <code>saudar</code> (a função) e <code>saudar()</code> (o resultado de chamá-la).</li>
+  <li>Como escrever uma função que recebe outra função (o callback), com nome ou anônima.</li>
+  <li>Os callbacks dos arrays: <code>forEach</code>, <code>map</code>, <code>filter</code>, <code>toSorted</code>.</li>
+  <li>Funções que devolvem funções, e funções guardadas em objetos.</li>
+  <li>Os erros reais: <code>acao is not a function</code>, <code>number 10 is not a function</code> e o <code>map</code> que devolve <code>undefined</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Se precisar relembrar como se cria uma função, veja <a href="funcoes.html">Funções</a> e <a href="arrow-functions.html">Arrow Functions</a>.</p>
+
+<hr>
+
+<h2>A ideia: entregar a receita, e não o bolo</h2>
+<p>A Ana vai viajar e deixa instruções para a vizinha que vai cuidar da padaria. Ela pode deixar duas coisas bem diferentes:</p>
+<ul>
+  <li><strong>Um bolo pronto</strong>: a vizinha recebe o <strong>resultado</strong>. É o que acontece quando você escreve <code>fazerBolo()</code>, com parênteses: a função roda agora e o que chega é o que ela devolveu.</li>
+  <li><strong>O cartão com a receita</strong>: a vizinha recebe as <strong>instruções</strong>, e decide <strong>quando</strong> e <strong>quantas vezes</strong> fazer o bolo (um por dia, dois no sábado). É o que acontece quando você escreve <code>fazerBolo</code>, sem parênteses: você entrega a função em si.</li>
+</ul>
+<p>Passar uma função para outra é entregar o cartão da receita. Quem recebe é que vai "fazer o bolo" (chamar a função) na hora certa.</p>
+
+<hr>
+
+<h2>1. Uma função é um valor</h2>
+
+<pre class="file" data-file="valor.js">function saudar(nome) {
+  return `Olá, ${nome}!`;
+}
+
+const cumprimentar = saudar;
+console.log(cumprimentar("Ana"));
+console.log(typeof saudar);
+console.log(saudar);
+console.log(cumprimentar === saudar);
+</pre>
+
+<dl class="anatomy">
+  <dt>const cumprimentar = saudar;</dt><dd>Sem parênteses: a variável recebe <strong>a própria função</strong>, não o resultado. Agora a mesma função tem dois nomes (como os objetos, ela é guardada por referência; veja <a href="objetos-referencia.html">Objetos são Referências</a>).</dd>
+  <dt>cumprimentar("Ana")</dt><dd>Com parênteses: chama a função pelo nome novo.</dd>
+  <dt>typeof saudar</dt><dd>O tipo de uma função é <code>"function"</code>.</dd>
+  <dt>console.log(saudar)</dt><dd>Mostrar uma função sem chamá-la: o Node escreve <code>[Function: nome]</code>.</dd>
+</dl>
+
+<pre class="term">$ node valor.js
+Olá, Ana!
+function
+[Function: saudar]
+true
+</pre>
+
+<p>As formas que você já conhece de criar funções guardando-as direto numa variável (a <strong>expressão de função</strong> e a <strong>arrow function</strong>) são exatamente isso: um valor do tipo função posto numa <code>const</code>. O Node até usa o nome da variável como nome da função:</p>
+
+<pre class="file" data-file="expressao.js">const dobro = function (n) {
+  return n * 2;
+};
+const triplo = (n) =&gt; n * 3;
+console.log(dobro(5), triplo(5));
+console.log(dobro);
+console.log(triplo);
+</pre>
+
+<pre class="term">$ node expressao.js
+10 15
+[Function: dobro]
+[Function: triplo]
+</pre>
+
+<hr>
+
+<h2>2. <code>f</code> × <code>f()</code>: a função ou o resultado</h2>
+<p>É a diferença mais importante da aula, e a origem da maioria dos erros com callbacks:</p>
+
+<pre class="file" data-file="parenteses.js">function precoDoPao() {
+  return 0.8;
+}
+
+console.log(precoDoPao());
+console.log(precoDoPao);
+console.log("Total: " + precoDoPao);
+</pre>
+
+<pre class="term">$ node parenteses.js
+0.8                       « com parênteses: chamou e mostrou o que ela devolveu
+[Function: precoDoPao]    « sem parênteses: a própria função
+Total: function precoDoPao() {     « juntada a um texto, a função vira... o código dela!
+  return 0.8;
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th><th>Na receita</th></tr>
+<tr><td><code>precoDoPao</code></td><td>A função (um valor do tipo <code>function</code>)</td><td>O cartão com a receita</td></tr>
+<tr><td><code>precoDoPao()</code></td><td>Chama a função agora; vale o que ela devolver (<code>0.8</code>)</td><td>O bolo pronto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Passando uma função para outra: o callback</h2>
+<p>Esta função repete uma ação várias vezes. <strong>Qual</strong> ação? Quem chama é que decide, entregando uma função:</p>
+
+<pre class="file" data-file="callback.js">function repetir(vezes, acao) {
+  for (let i = 1; i &lt;= vezes; i++) {
+    acao(i);
+  }
+}
+
+function mostrarVolta(numero) {
+  console.log("Volta", numero);
+}
+
+repetir(3, mostrarVolta);
+</pre>
+
+<dl class="anatomy">
+  <dt>function repetir(vezes, acao)</dt><dd><code>acao</code> é um parâmetro como outro qualquer. A diferença é que esperamos que ele receba uma <strong>função</strong>.</dd>
+  <dt>acao(i);</dt><dd>Dentro do laço, <code>repetir</code> <strong>chama</strong> a função que recebeu, passando o número da volta. É aqui que o callback "liga de volta".</dd>
+  <dt>repetir(3, mostrarVolta);</dt><dd>Entrega <code>mostrarVolta</code> <strong>sem parênteses</strong>: o cartão da receita. Quem vai chamá-la (3 vezes) é o <code>repetir</code>.</dd>
+</dl>
+
+<pre class="term">$ node callback.js
+Volta 1
+Volta 2
+Volta 3
+</pre>
+
+<h3>Callbacks anônimos</h3>
+<p>Quando a função só é usada ali, é comum escrevê-la <strong>direto na chamada</strong>, sem nome (uma função <strong>anônima</strong>), com <code>function</code> ou com arrow:</p>
+
+<pre class="file" data-file="anonima.js">function repetir(vezes, acao) {
+  for (let i = 1; i &lt;= vezes; i++) {
+    acao(i);
+  }
+}
+
+repetir(2, function (numero) {
+  console.log(`Pão nº ${numero} saindo do forno`);
+});
+
+repetir(3, (numero) =&gt; console.log("*".repeat(numero)));
+</pre>
+
+<pre class="term">$ node anonima.js
+Pão nº 1 saindo do forno
+Pão nº 2 saindo do forno
+*
+**
+***
+</pre>
+
+<p>Repare no fim da primeira chamada: <code>});</code>. A <code>}</code> fecha a função, o <code>)</code> fecha a chamada do <code>repetir</code>, e o <code>;</code> termina a instrução. É o formato que você mais vai ver em código JavaScript.</p>
+
+<h3>Um callback que devolve valor</h3>
+<p>O callback também pode <strong>devolver</strong> algo para quem o chamou. Aqui, a mesma <code>calcular</code> faz contas diferentes conforme a função que recebe:</p>
+
+<pre class="file" data-file="calcular.js">function calcular(a, b, operacao) {
+  const resultado = operacao(a, b);
+  console.log(`Resultado: ${resultado}`);
+}
+
+const somar = (x, y) =&gt; x + y;
+const multiplicar = (x, y) =&gt; x * y;
+
+calcular(6, 3, somar);
+calcular(6, 3, multiplicar);
+calcular(6, 3, (x, y) =&gt; x - y);
+</pre>
+
+<pre class="term">$ node calcular.js
+Resultado: 9
+Resultado: 18
+Resultado: 3
+</pre>
+
+<div class="tryjs" data-goal="out:Bom dia, Ana!;;out:Bom dia, Bia!;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função <code>cumprimentarTodos</code> recebe uma lista e um callback, e chama o callback para cada nome. Crie a função <code>bomDia</code> (que recebe um nome e mostra <code>Bom dia, NOME!</code>) e passe-a, <strong>sem parênteses</strong>, na chamada.</p>
+<pre class="script" data-file="main.js">function cumprimentarTodos(nomes, callback) {
+  for (const nome of nomes) {
+    callback(nome);
+  }
+}
+
+// crie a função bomDia aqui
+
+cumprimentarTodos(["Ana", "Bia"]);
+</pre>
+<pre class="solucao" data-file="main.js">function cumprimentarTodos(nomes, callback) {
+  for (const nome of nomes) {
+    callback(nome);
+  }
+}
+
+function bomDia(nome) {
+  console.log(`Bom dia, ${nome}!`);
+}
+
+cumprimentarTodos(["Ana", "Bia"], bomDia);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Os callbacks dos arrays</h2>
+<p>Os métodos de array que percorrem os itens são o uso mais comum de callbacks. Cada um chama a sua função <strong>uma vez por item</strong> e faz algo diferente com o que ela devolve:</p>
+
+<pre class="file" data-file="arrays.js">const precos = [4.5, 12, 0.8, 25];
+
+const caro = (preco) =&gt; preco &gt; 10;
+const comAumento = (preco) =&gt; preco + 1;
+
+console.log(precos.filter(caro));
+console.log(precos.map(comAumento));
+console.log(precos.toSorted((a, b) =&gt; a - b));
+precos.forEach((preco, i) =&gt; console.log(`${i}: R$ ${preco}`));
+</pre>
+
+<pre class="term">$ node arrays.js
+[ 12, 25 ]              « filter: ficou com os itens em que o callback devolveu true
+[ 5.5, 13, 1.8, 26 ]    « map: um array novo com o que o callback devolveu
+[ 0.8, 4.5, 12, 25 ]    « toSorted: o callback compara dois itens
+0: R$ 4.5               « forEach: só chama, para cada item (e passa também a posição)
+1: R$ 12
+2: R$ 0.8
+3: R$ 25
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O callback recebe</th><th>O que é feito com o que ele devolve</th><th>Aula</th></tr>
+<tr><td><code>forEach</code></td><td>item, posição</td><td>Nada (é ignorado)</td><td><a href="foreach.html">forEach</a></td></tr>
+<tr><td><code>map</code></td><td>item, posição</td><td>Vira o item do array novo</td><td><a href="map.html">map</a></td></tr>
+<tr><td><code>filter</code></td><td>item, posição</td><td><code>true</code>: o item fica; <code>false</code>: sai</td><td><a href="filter.html">filter</a></td></tr>
+<tr><td><code>find</code></td><td>item, posição</td><td>O primeiro item com <code>true</code> é devolvido</td><td><a href="arrays-buscar.html">Procurando</a></td></tr>
+<tr><td><code>sort</code> / <code>toSorted</code></td><td>dois itens <code>a</code>, <code>b</code></td><td>Negativo: <code>a</code> antes; positivo: <code>b</code> antes</td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td><code>reduce</code></td><td>acumulador, item</td><td>Vira o acumulador da próxima volta</td><td><a href="reduce.html">reduce</a></td></tr>
+</table>
+</div>
+
+<p>Repare que <strong>você nunca chama</strong> o <code>caro</code> nem o <code>comAumento</code>: só os entrega. Quem chama é o <code>filter</code> e o <code>map</code>, uma vez para cada preço.</p>
+
+<hr>
+
+<h2>5. Funções que devolvem funções</h2>
+<p>Se uma função é um valor, ela pode ser devolvida com <code>return</code>. Isto é uma "fábrica" de funções:</p>
+
+<pre class="file" data-file="fabrica.js">function criarMultiplicador(fator) {
+  return (n) =&gt; n * fator;
+}
+
+const dobro = criarMultiplicador(2);
+const triplo = criarMultiplicador(3);
+console.log(dobro(10));
+console.log(triplo(10));
+console.log(typeof dobro);
+</pre>
+
+<pre class="term">$ node fabrica.js
+20
+30
+function
+</pre>
+
+<p><code>criarMultiplicador(2)</code> não multiplica nada: ela <strong>fabrica e devolve</strong> uma função nova, que multiplica por 2. Repare num detalhe curioso: quando <code>dobro(10)</code> roda, a <code>criarMultiplicador</code> já terminou faz tempo, e mesmo assim a função devolvida ainda lembra que <code>fator</code> era 2. Esse "lembrar" tem nome, <strong>closure</strong>, e é o assunto da próxima aula: <a href="closures.html">Closures</a>.</p>
+
+<hr>
+
+<h2>6. Funções dentro de objetos e arrays</h2>
+<p>Como qualquer valor, funções podem ser propriedades de um objeto (é isso que um <a href="objetos-metodos.html">método</a> é) ou itens de um array. Um uso prático: uma "tabela" que escolhe a função pelo nome.</p>
+
+<pre class="file" data-file="tabela.js">const operacoes = {
+  "+": (a, b) =&gt; a + b,
+  "-": (a, b) =&gt; a - b,
+  "*": (a, b) =&gt; a * b,
+  "/": (a, b) =&gt; a / b,
+};
+
+const sinal = "*";
+console.log(operacoes[sinal](7, 6));
+console.log(Object.keys(operacoes));
+</pre>
+
+<pre class="term">$ node tabela.js
+42
+[ '+', '-', '*', '/' ]
+</pre>
+
+<p><code>operacoes[sinal]</code> pega a função guardada na chave <code>"*"</code>, e o <code>(7, 6)</code> logo depois a chama. Uma calculadora sem nenhum <code>if</code> nem <code>switch</code>.</p>
+
+<div class="note">
+<strong>Callbacks que esperam: um gostinho do assíncrono</strong>
+<p>Alguns callbacks não são chamados na hora, e sim <strong>mais tarde</strong>. O <code>setTimeout</code> recebe uma função e a chama depois de um tempo (em milissegundos):</p>
+<pre class="file" data-file="timeout.js">console.log("Pus o bolo no forno.");
+setTimeout(() =&gt; {
+  console.log("Bolo pronto!");
+}, 1000);
+console.log("Enquanto isso, lavo a louça.");
+</pre>
+<pre class="term">$ node timeout.js
+Pus o bolo no forno.
+Enquanto isso, lavo a louça.
+Bolo pronto!     « apareceu 1 segundo depois
+</pre>
+<p>A terceira linha do código aparece antes da segunda! Esse é o mundo do código assíncrono, das aulas <a href="timers.html">setTimeout e setInterval</a> e <a href="callbacks.html">Callbacks Assíncronos</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de passar um callback</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Função com nome, criada antes</td><td><code>precos.filter(caro)</code></td><td>A lógica é usada em vários lugares, ou merece um nome que explique</td></tr>
+<tr><td>Arrow anônima, curta</td><td><code>precos.filter((p) =&gt; p &gt; 10)</code></td><td>Uma linha, usada só ali (o mais comum)</td></tr>
+<tr><td>Arrow anônima com chaves</td><td><code>precos.map((p) =&gt; { … return …; })</code></td><td>Várias linhas (não esqueça o <code>return</code>)</td></tr>
+<tr><td><code>function</code> anônima</td><td><code>repetir(2, function (n) { … })</code></td><td>Código mais antigo; funciona igual na maioria dos casos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Passou o resultado em vez da função (parênteses a mais)</strong>
+<pre class="file" data-file="chamou.js">function repetir(vezes, acao) {
+  for (let i = 1; i &lt;= vezes; i++) {
+    acao(i);
+  }
+}
+
+function mostrarVolta(numero) {
+  console.log("Volta", numero);
+}
+
+repetir(3, mostrarVolta());
+</pre>
+<pre class="term">$ node chamou.js
+Volta undefined
+/home/ana/chamou.js:3
+    acao(i);
+    ^
+
+TypeError: acao is not a function
+    at repetir (/home/ana/chamou.js:3:5)
+    at Object.&lt;anonymous&gt; (/home/ana/chamou.js:11:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>Volta undefined</dt><dd>A pista: <code>mostrarVolta()</code>, com parênteses, rodou <strong>na hora</strong>, sem número (<code>undefined</code>), antes mesmo do <code>repetir</code> começar.</dd>
+  <dt>/home/ana/chamou.js:3 e o ^</dt><dd>O erro estourou na linha 3, dentro do <code>repetir</code>, na tentativa de chamar <code>acao</code>.</dd>
+  <dt>TypeError: acao is not a function</dt><dd>"<code>acao</code> não é uma função". O <code>repetir</code> recebeu o <strong>resultado</strong> de <code>mostrarVolta()</code>, que é <code>undefined</code> (ela não tem <code>return</code>), e <code>undefined</code> não pode ser chamado.</dd>
+  <dt>at repetir (…:3:5) / at Object.&lt;anonymous&gt; (…:11:1)</dt><dd>De baixo para cima: a linha 11 chamou <code>repetir</code>, que quebrou na linha 3. A culpa está na linha 11.</dd>
+</dl>
+<p><strong>Como consertar:</strong> entregue a receita, não o bolo: <code>repetir(3, mostrarVolta);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou algo que não é função</strong>
+<pre class="file" data-file="naofuncao.js">const precos = [4.5, 12, 0.8];
+const caro = 10;
+console.log(precos.filter(caro));
+</pre>
+<pre class="term">$ node naofuncao.js
+/home/ana/naofuncao.js:3
+console.log(precos.filter(caro));
+                   ^
+
+TypeError: number 10 is not a function
+    at Array.filter (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/naofuncao.js:3:20)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O número 10 não é uma função". O <code>filter</code> precisa de uma função para perguntar "este item fica?", e recebeu um número. A primeira linha <code>at Array.filter (&lt;anonymous&gt;)</code> mostra que o erro nasceu dentro do <code>filter</code>; a seguinte, que foi a linha 3 do seu arquivo que o chamou. O mesmo tipo de erro aparece ao chamar qualquer coisa que não é função: <code>const nome = "Ana"; nome();</code> deu <code>TypeError: nome is not a function</code> no lab. <strong>Como consertar:</strong> <code>precos.filter((preco) =&gt; preco &gt; 10)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Callback com chaves e sem <code>return</code></strong>
+<pre class="file" data-file="semreturn.js">const precos = [4.5, 12, 0.8];
+const comAumento = precos.map((preco) =&gt; {
+  preco + 1;
+});
+console.log(comAumento);
+</pre>
+<pre class="term">$ node semreturn.js
+[ undefined, undefined, undefined ]
+</pre>
+<p>Sem mensagem de erro, só o resultado errado. Uma arrow function <strong>com chaves</strong> precisa de <code>return</code>; sem ele, devolve <code>undefined</code>, e o <code>map</code> monta um array de <code>undefined</code>. <strong>Como consertar:</strong> <code>return preco + 1;</code> dentro das chaves (no lab, deu <code>[ 5.5, 13, 1.8 ]</code>), ou tire as chaves: <code>precos.map((preco) =&gt; preco + 1)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const g = f;</code></td><td>Guarda a função <code>f</code> com outro nome (sem chamar)</td></tr>
+<tr><td><code>f</code> × <code>f()</code></td><td>A função × o resultado de chamá-la</td></tr>
+<tr><td><code>typeof f</code></td><td><code>"function"</code></td></tr>
+<tr><td><code>function usar(callback) { callback(x); }</code></td><td>Recebe uma função e a chama</td></tr>
+<tr><td><code>usar(minhaFuncao)</code></td><td>Passa um callback com nome</td></tr>
+<tr><td><code>usar((x) =&gt; …)</code></td><td>Passa um callback anônimo</td></tr>
+<tr><td><code>return (x) =&gt; …;</code></td><td>Devolve uma função nova</td></tr>
+<tr><td><code>obj[chave](a, b)</code></td><td>Pega uma função guardada num objeto e chama</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<p>Com <code>function oi() { return "oi"; }</code>, o que mostra <code>console.log(typeof oi);</code>?</p>
+<div class="ex-code"><input data-answer="function" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E este?</h3>
+<p>Com a mesma função, o que mostra <code>console.log(typeof oi());</code>?</p>
+<div class="ex-code"><input data-answer="string" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete</h3>
+<p>Passe a função <code>dobrar</code> como callback para o <code>map</code>:</p>
+<div class="ex-code">const dobrados = numeros.map(<input data-answer="dobrar" aria-label="callback">);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que é um callback?</p>
+<label><input type="radio" name="q4"> Uma função que chama a si mesma</label>
+<label><input type="radio" name="q4"> Uma função entregue a outra função, para ser chamada por ela</label>
+<label><input type="radio" name="q4"> O valor que uma função devolve</label>
+<label><input type="radio" name="q4"> Uma função sem parâmetros</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>botao(avisar())</code> deu <code>TypeError: acao is not a function</code>. Qual a causa mais provável?</p>
+<label><input type="radio" name="q5"> Os parênteses em <code>avisar()</code>: foi passado o resultado, não a função</label>
+<label><input type="radio" name="q5"> A função <code>avisar</code> não tem parâmetros</label>
+<label><input type="radio" name="q5"> Faltou <code>const</code> antes de <code>botao</code></label>
+</div>
+
+<h3>Missão final: o relatório da padaria</h3>
+
+<div class="tryjs" data-goal="out:[ 'BOLO', 'TORTA' ];;out:[ 'Pão', 'Bolo', 'Torta', 'Café' ];;semerro;;src:function\s+relatorio\s*\(\s*\w+\s*,\s*\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>relatorio(produtos, transformar)</code>: ela deve devolver um array novo com o resultado de chamar <code>transformar</code> em cada produto (use um <code>for … of</code> com <code>push</code>, ou o <code>map</code>). A primeira chamada já passa um callback que deixa em maiúsculas os produtos de mais de 10 reais; a segunda deve só pegar os nomes.</p>
+<pre class="script" data-file="main.js">const produtos = [
+  { nome: "Pão", preco: 0.8 },
+  { nome: "Bolo", preco: 25 },
+  { nome: "Torta", preco: 40 },
+  { nome: "Café", preco: 6 },
+];
+
+function relatorio(produtos) {
+  // devolva um array com transformar(produto) para cada produto
+}
+
+const caros = relatorio(produtos.filter((p) =&gt; p.preco &gt; 10), (p) =&gt; p.nome.toUpperCase());
+console.log(caros);
+console.log(relatorio(produtos, (p) =&gt; p.nome));
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = [
+  { nome: "Pão", preco: 0.8 },
+  { nome: "Bolo", preco: 25 },
+  { nome: "Torta", preco: 40 },
+  { nome: "Café", preco: 6 },
+];
+
+function relatorio(produtos, transformar) {
+  const resultado = [];
+  for (const produto of produtos) {
+    resultado.push(transformar(produto));
+  }
+  return resultado;
+}
+
+const caros = relatorio(produtos.filter((p) =&gt; p.preco &gt; 10), (p) =&gt; p.nome.toUpperCase());
+console.log(caros);
+console.log(relatorio(produtos, (p) =&gt; p.nome));
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Função é um valor: dá para guardar em variável, pôr em objeto/array, passar como argumento e devolver com <code>return</code>.</li>
+  <li><code>f</code> é a função; <code>f()</code> é o resultado de chamá-la. Para entregar uma função, <strong>sem parênteses</strong>.</li>
+  <li>Callback é a função entregue para outra chamar: <code>repetir(3, mostrarVolta)</code>, <code>precos.filter(caro)</code>, <code>setTimeout(() =&gt; …, 1000)</code>.</li>
+  <li><code>forEach</code>, <code>map</code>, <code>filter</code>, <code>find</code>, <code>toSorted</code> e <code>reduce</code> chamam o seu callback uma vez por item.</li>
+  <li>Uma função pode fabricar e devolver outra, que lembra os valores de onde nasceu (próxima aula: <a href="closures.html">Closures</a>).</li>
+  <li><code>… is not a function</code> = tentou chamar algo que não é função (quase sempre um <code>()</code> a mais na hora de passar o callback).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
