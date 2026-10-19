@@ -140,7 +140,8 @@ function analisarHtml(html) {
   for (const v of src.matchAll(/class="[^"]*\b(trypy|trysql|tryc|trycpp|tryhtml|trycs|tryscript|tryphp|tryjshell|trylua|trypwsh)\b/g))
     problemas.push({ grav: "FALHA", linha: linhaDe(v.index), msg: 'caixa "' + v[1] + '" é de outro guia: aqui é <div class="tryjs"> ou <div class="tryweb">' });
 
-  for (const l of src.matchAll(/\bhref\s*=\s*"([^"#?:]+\.html)(?:[#?][^"]*)?"/g)) {
+  // só os <a href> de verdade (o texto escapado dentro de um <pre> é "&lt;a href=…", não conta)
+  for (const l of src.matchAll(/<a\b[^>]*?\bhref\s*=\s*"([^"#?:]+\.html)(?:[#?][^"]*)?"/g)) {
     const alvo = l[1];
     if (NIVEIS && !NIVEIS.has(alvo) && !alvo.includes("/"))
       problemas.push({ grav: "aviso", linha: linhaDe(l.index), msg: 'link para "' + alvo + '", que não está na NIVEIS' });

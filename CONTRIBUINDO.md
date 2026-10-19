@@ -139,7 +139,7 @@ No `.exercise`, `data-answer="a|b"` aceita respostas alternativas (a comparaçã
 
 ### Como testar (na VPS)
 ```bash
-timeout 300 node ~/guia-js/tools/testar-missoes.js pagina.html          # caixas, metas, escapes, links, privacidade
+timeout 300 node ~/guia-js/tools/testar-missoes.js pagina.html          # caixas .tryjs e .tryweb, metas, escapes, links, privacidade
 timeout 600 node ~/guia-js/tools/testar-missoes.js --nativo pagina.html # + compara cada .tryjs com o node do lab
 timeout 60 node ~/guia-js/tools/sim.js main.js [contas.js dados.txt] [--stdin "Ana\n30" | --digitar "Ana\n30"] [--args "a b"] [--goal "out:…"]
 timeout 60 node ~/guia-js/tools/sim.js -e 'console.log([1, 2, 3])'
@@ -156,6 +156,16 @@ O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/js
 - Globais: `setTimeout`/`setInterval`/`setImmediate`, `queueMicrotask`, `process.nextTick`, `structuredClone`, `fetch` (o do navegador: só sites que permitem CORS; o lab não tem internet), `Intl` (pt-BR, fuso do navegador do leitor), `URL`, `TextEncoder`, `crypto`, `performance`.
 - **O motor é o do navegador, a versão é a do Node 24:** o Chrome recente tem recursos que o Node 24 (V8 13.6) **ainda não tem** — `Temporal`, `Math.sumPrecise`, `Uint8Array.fromBase64`/`toBase64`/`toHex`, `Iterator.concat`/`zip`, `Map.prototype.getOrInsert` — e APIs de navegador (`XMLHttpRequest`, `Worker`, `FileReader`, `indexedDB`…). O editor **esconde** esses (dão `TypeError: Math.sumPrecise is not a function` / `ReferenceError: Temporal is not defined`, como no Node 24). Não ensine nada disso como "do Node"; em `novidades.html`, marque como futuro/ilustrativo.
 - **Fim do programa** como no Node: quando não há mais timers, entrada sendo lida nem `fetch` pendente. `process.exit(n)` e `process.exitCode` funcionam.
+
+### O que a caixa `.tryweb` faz
+- **Rodar** abre o `index.html` num quadro **Resultado** (um `<iframe>` da própria página do guia, em pt-BR) e as outras abas viram arquivos de verdade: `<script src="script.js">` e `<link rel="stylesheet" href="style.css">` acham as abas (com `charset=utf-8`). Se o `index.html` for só um pedaço (sem `<html>`), o editor completa com `<!DOCTYPE html>`, `<head>` e `<body>`.
+- É o **navegador de verdade**: DOM, eventos, `localStorage` (funciona; é o do site do guia), `fetch`, `setTimeout`. **Nada do Node**: `typeof process`, `require`, `module` dão `"undefined"`.
+- **Console** (embaixo do quadro): o que `console.log/info/warn/error/table/count/assert` escreveram, em texto, **como o Console do Chrome mostra**: `{nome: Ana, idade: 30}`, `(3) [1, 2, 3]`, `Map(1) {a => 1}`, objetos dentro de objetos como `{…}` e `Array(2)`, elementos como o HTML deles, funções com o código (`ƒ soma(a, b) {…}`). Erros não tratados em vermelho: `Uncaught TypeError: Cannot read properties of null (reading x)` e a linha `    at script.js:3:7`; Promise rejeitada: `Uncaught (in promise) …`. `console.warn` em amarelo.
+- `prompt`/`alert`/`confirm`: no editor são as **janelas de verdade** do navegador (o leitor responde). No testador, `responder TEXTO` do `data-acoes` dá a resposta do próximo `prompt` (todas as respostas ficam numa fila, na ordem; `alert`/`confirm` são aceitos e aparecem no Console como `[alert] …`).
+- Formulário enviado sem `preventDefault()`: o quadro não recarrega; o Console mostra `[editor] o formulário foi enviado…`. Links para outras páginas não navegam (o Console avisa); `#âncora` funciona.
+- **Missão:** conferida depois de Rodar (quando a página termina de carregar) e de novo a cada clique, tecla, `input` e `change` no quadro. `console:` olha o texto do Console (os `[editor]`/`[alert]` também aparecem lá; não use esses textos numa meta).
+- **`data-acoes` no testador:** `clicar SELETOR` (o resto da linha é o seletor, pode ter espaços: `clicar #lista li:nth-child(2) .apagar`), `digitar SELETOR TEXTO` (o seletor é a 1ª palavra; o testador digita letra a letra: `keydown`, `input`, `keyup`, e no fim `change`), `tecla SELETOR TECLA` (`Enter`, `Escape`, `ArrowUp`…; Enter num `<input>` de formulário envia o formulário), `esperar MS`, `responder TEXTO`.
+- **Diferença do Chrome de verdade:** o Console do editor é texto (não dá para abrir `{…}` com o mouse); diga ao leitor que no F12 ele vê o mesmo e pode clicar para abrir.
 
 ### Entrada (teclado)
 - **Sem `data-stdin`** o leitor **digita** no terminal da caixa (Enter manda a linha; Ctrl+D = fim da entrada; Ctrl+C ou ■ Parar = interromper). Ctrl+D com um `await rl.question()` esperando dá `AbortError: Aborted with Ctrl+D` (código 1), como no terminal; quando o `data-digitar` acaba, o testador manda Ctrl+D. O que ele digita aparece no terminal (cinza) e **não entra** na saída das metas `out:`.

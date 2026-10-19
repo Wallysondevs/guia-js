@@ -22,7 +22,7 @@ const CHROMIUM = process.env.CHROMIUM || "/usr/bin/chromium";
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp",
   ".json": "application/json", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8" };
-const PAGINA_SIM = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>sim</title></head><body><script src="assets/jssim.js"></script></body></html>';
+const PAGINA_SIM = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>sim</title></head><body><script src="assets/jssim.js"></script><script src="assets/jssim/web.js"></script></body></html>';
 
 function servidor(extra) {
   const srv = http.createServer((req, res) => {
@@ -51,9 +51,10 @@ async function abrirMotor(opc = {}) {
   const pg = await nav.newPage();
   const errosPagina = [];
   pg.on("pageerror", (e) => errosPagina.push(String(e && e.message || e)));
+  pg.on("dialog", (d) => { d.accept().catch(() => {}); });
   await pg.emulateTimezone(opc.tz || "America/Sao_Paulo");
   await pg.goto(origem + "/__sim.html");
-  await pg.waitForFunction("window.JsSim && JsSim.montado", { timeout: 15000 });
+  await pg.waitForFunction("window.JsSim && JsSim.montado && JsSim.testarWeb", { timeout: 15000 });
   const info = await pg.evaluate(() => ({ ua: navigator.userAgent, node: JsSim.NODE, motor: JsSim.motor }));
   info.chromium = (info.ua.match(/Chrome\/([\d.]+)/) || [])[1];
 
@@ -65,9 +66,13 @@ async function abrirMotor(opc = {}) {
       h.promessa.then((r) => { r.pediuTeclado = window.__esperou || !!(o.digitar && r.eco && r.eco.length); ok(r); });
     }), req, { tempo: o.tempo || 10000, digitar: o.digitar || null });
   }
+  // .tryweb: abas [{nome, codigo}], opc {acoes, goal} → {falhas, console, excecao, traceback, falhaAcao}
+  async function web(abas, o = {}) {
+    return pg.evaluate((abas, o) => JsSim.testarWeb(abas, o), abas.map((a) => ({ nome: a.nome, codigo: a.codigo })), { acoes: o.acoes || "", goal: o.goal || "" });
+  }
   return {
     info, origem, pagina: pg, navegador: nav, extra, errosPagina,
-    rodar,
+    rodar, web,
     async fechar() { try { await nav.close(); } catch (e) {} srv.close(); },
   };
 }
