@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Números — inteiros, decimais, 1_000_000 e os limites do number | Guia JavaScript</title>
+<meta name="description" content="Números no JavaScript para quem nunca programou: um tipo só (number) para inteiros e decimais, o ponto decimal, as quatro contas, a divisão que dá decimal, o separador 1_000_000, a notação 1e6, hexadecimal e binário, o maior inteiro seguro (Number.MAX_SAFE_INTEGER) e as pegadinhas reais do Node.js 24: a vírgula, o 1.500 e o CEP com zero.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Números</span></h1>
+
+<p class="intro">Preço do pão, quantidade de itens, nota da prova, temperatura de hoje: números aparecem em quase todo programa. No JavaScript eles são do tipo <code>number</code> (em inglês, "número"), e um tipo só serve para todos: inteiros, decimais, negativos. Nesta aula você vai ver como escrever números, como o Node os mostra, e as pegadinhas que pegam quem está acostumado a escrever números "à brasileira".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que inteiros e decimais são o mesmo tipo, e que a casa decimal usa <strong>ponto</strong>.</li>
+  <li>As quatro contas, e por que <code>7 / 2</code> dá <code>3.5</code>.</li>
+  <li>Como escrever números grandes de forma legível: <code>1_000_000</code> e <code>1e6</code>.</li>
+  <li>As outras bases: <code>0xff</code>, <code>0b1010</code>.</li>
+  <li>O <strong>maior inteiro seguro</strong> e o que acontece depois dele.</li>
+  <li>As pegadinhas reais: a vírgula decimal, o <code>1.500</code> que vira 1,5 e o CEP que começa com zero.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: a calculadora da padaria</h2>
+<p>A calculadora do caixa da padaria não tem um botão para "inteiro" e outro para "decimal": você digita <code>6</code> ou <code>0.75</code> do mesmo jeito, e ela faz a conta. E ela usa <strong>ponto</strong> na tecla das casas decimais, como as calculadoras do mundo inteiro. O <code>number</code> do JavaScript é essa calculadora: um tipo só para todo número, com ponto decimal.</p>
+
+<hr>
+
+<h2>1. Um tipo só para todos os números</h2>
+
+<pre class="file" data-file="tipos.js">const paes = 6;
+const preco = 0.75;
+const temperatura = -3;
+const altura = 1.68;
+console.log(paes, preco, temperatura, altura);
+console.log(typeof paes, typeof preco, typeof temperatura);
+</pre>
+
+<pre class="term">$ node tipos.js
+6 0.75 -3 1.68
+number number number
+</pre>
+
+<dl class="anatomy">
+  <dt>6</dt><dd>Um inteiro: escreva só os dígitos, sem aspas.</dd>
+  <dt>0.75</dt><dd>Um decimal: <strong>ponto</strong> no lugar da vírgula. "Setenta e cinco centavos" se escreve <code>0.75</code>.</dd>
+  <dt>-3</dt><dd>Um negativo: o sinal de menos colado na frente.</dd>
+  <dt>number number number</dt><dd>O <code>typeof</code> (veja <a href="typeof.html">typeof</a>) responde o mesmo tipo para todos. Muitas linguagens separam "inteiro" de "decimal"; o JavaScript, não.</dd>
+</dl>
+
+<h3>O Node escreve o número do jeito mais curto</h3>
+
+<pre class="file" data-file="iguais.js">console.log(6);
+console.log(6.0);
+console.log(6.50);
+console.log(.5);
+console.log(5.);
+console.log(6 === 6.0);
+console.log(Number.isInteger(6), Number.isInteger(6.5));
+</pre>
+
+<pre class="term">$ node iguais.js
+6
+6
+6.5
+0.5
+5
+true
+true false
+</pre>
+
+<p><code>6.0</code> e <code>6</code> são o <strong>mesmo número</strong> (a comparação <code>6 === 6.0</code> deu <code>true</code>), e o Node mostra <code>6</code>. O zero final de <code>6.50</code> some; <code>.5</code> vira <code>0.5</code>. Ou seja: o número não "lembra" como foi escrito. Se você precisa mostrar <code>6.50</code> com duas casas (um preço, por exemplo), isso é <strong>formatação</strong>, e se faz na hora de mostrar (aula <a href="numeros-formatar.html">Formatando Números</a>). Para saber se um número é inteiro, existe o <code>Number.isInteger(n)</code> ("é inteiro?").</p>
+
+<hr>
+
+<h2>2. As quatro contas</h2>
+
+<pre class="file" data-file="contas.js">console.log(10 + 4);
+console.log(10 - 4);
+console.log(10 * 4);
+console.log(10 / 4);
+console.log(7 / 2);
+console.log(10 / 3);
+console.log(2 / 3);
+</pre>
+
+<pre class="term">$ node contas.js
+14
+6
+40
+2.5
+3.5
+3.3333333333333335
+0.6666666666666666
+</pre>
+
+<dl class="anatomy">
+  <dt>+ e -</dt><dd>Soma e subtração, como na escola.</dd>
+  <dt>*</dt><dd>A multiplicação é o <strong>asterisco</strong> (o <code>x</code> seria confundido com uma letra).</dd>
+  <dt>/</dt><dd>A divisão é a <strong>barra</strong>. Ela dá o resultado completo, com casas decimais: <code>7 / 2</code> é <code>3.5</code>, e não 3. (Em algumas linguagens, dividir dois inteiros joga fora a parte decimal; no JavaScript, não.)</dd>
+  <dt>3.3333333333333335</dt><dd>Dízimas são cortadas em cerca de 16 algarismos, e o último pode sair "torto" (o <code>5</code> no fim). Isso tem a ver com a forma como o computador guarda decimais, explicada na próxima aula, <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>.</dd>
+</dl>
+
+<p>Há mais operadores (o resto da divisão <code>%</code>, a potência <code>**</code>) e regras de quem vem primeiro numa conta: tudo isso está em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+
+<div class="tryjs" data-goal="out:Por ano: 18000;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana ganha <strong>mil e quinhentos</strong> reais por mês e quer saber quanto ganha por ano. Mas o programa mostra <code>Por ano: 18</code>. O número foi escrito "à brasileira". Conserte para aparecer <code>Por ano: 18000</code>.</p>
+<pre class="script" data-file="main.js">const salario = 1.500;
+const meses = 12;
+console.log("Por ano:", salario * meses);
+</pre>
+<pre class="solucao" data-file="main.js">const salario = 1500;
+const meses = 12;
+console.log("Por ano:", salario * meses);
+</pre>
+</div>
+
+<p>No português, o ponto separa os milhares (<code>1.500</code> = mil e quinhentos). No JavaScript, o ponto é a <strong>vírgula decimal</strong>: <code>1.500</code> é "um vírgula cinco zero zero", ou seja, 1,5. Sem erro nenhum, o programa calculou 1,5 × 12 = 18. Para escrever o milhar de forma legível, existe outro jeito, que vem agora.</p>
+
+<hr>
+
+<h2>3. Números grandes: <code>1_000_000</code> e <code>1e6</code></h2>
+
+<h3>O separador <code>_</code></h3>
+<p>Para não se perder nos zeros, você pode separar os grupos de algarismos com um <strong>sublinhado</strong>. O JavaScript ignora os <code>_</code>; eles servem só para você ler:</p>
+
+<pre class="file" data-file="separador.js">const premio = 1_000_000;
+const populacao = 214_000_000;
+console.log(premio);
+console.log(populacao);
+console.log(premio === 1000000);
+</pre>
+
+<pre class="term">$ node separador.js
+1000000
+214000000
+true
+</pre>
+
+<p><code>1_000_000</code> e <code>1000000</code> são o mesmo número. Na hora de mostrar, o Node escreve sem os separadores. O <code>_</code> só pode ficar <strong>entre</strong> dois algarismos: dois seguidos (<code>1__000</code>) ou no fim (<code>1000_</code>) dão erro (veja <a href="#errado">Quando dá errado</a>). Esse separador chegou na versão ES2021 da linguagem.</p>
+
+<h3>A notação científica: <code>e</code></h3>
+<p><code>2.5e6</code> quer dizer "2,5 vezes 10 elevado a 6", ou seja, 2,5 seguido do ponto andando 6 casas para a direita: 2.500.000. Com expoente negativo, o ponto anda para a esquerda:</p>
+
+<pre class="file" data-file="cientifica.js">console.log(1e3);
+console.log(2.5e6);
+console.log(1e-3);
+console.log(1e21);
+console.log(123456789012345678901234);
+console.log(0.0000001);
+console.log(0.000001);
+</pre>
+
+<pre class="term">$ node cientifica.js
+1000
+2500000
+0.001
+1e+21
+1.2345678901234569e+23
+1e-7
+0.000001
+</pre>
+
+<p>Repare nas linhas 4, 5 e 6: números <strong>muito grandes</strong> (a partir de 10<sup>21</sup>) e <strong>muito pequenos</strong> (menores que 0,000001) o próprio Node escreve na notação científica. Se um dia aparecer <code>1e+21</code> na sua tela, não é defeito: é "1 seguido de 21 zeros". E veja a linha 5: o número digitado tinha 24 algarismos, mas o Node mostrou só os primeiros 17 (<code>1.2345678901234569</code>), e o último ainda saiu diferente do digitado. É a seção 5.</p>
+
+<hr>
+
+<h2>4. Outras bases: hexadecimal, binário e octal</h2>
+<p>Você conta na base 10 (algarismos de 0 a 9). Os computadores também usam outras bases, e o JavaScript aceita números escritos nelas com um <strong>prefixo</strong>:</p>
+
+<pre class="file" data-file="bases.js">console.log(0xff);
+console.log(0b1010);
+console.log(0o17);
+</pre>
+
+<pre class="term">$ node bases.js
+255
+10
+15
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Prefixo</th><th>Base</th><th>Algarismos</th><th>Exemplo</th><th>Onde aparece</th></tr>
+<tr><td><code>0x</code></td><td>16 (hexadecimal)</td><td>0–9 e a–f</td><td><code>0xff</code> = 255</td><td>Cores de sites (<code>#ff0000</code> é vermelho)</td></tr>
+<tr><td><code>0b</code></td><td>2 (binário)</td><td>0 e 1</td><td><code>0b1010</code> = 10</td><td>Como o computador guarda tudo por dentro</td></tr>
+<tr><td><code>0o</code></td><td>8 (octal)</td><td>0–7</td><td><code>0o17</code> = 15</td><td>Permissões de arquivo no Linux</td></tr>
+</table>
+</div>
+
+<p>O Node sempre mostra o resultado na base 10. Você não vai precisar disso tão cedo; o importante é reconhecer quando encontrar um <code>0x</code> num código.</p>
+
+<hr>
+
+<h2>5. O maior inteiro seguro</h2>
+<p>O <code>number</code> guarda inteiros com exatidão até um limite: <strong>9.007.199.254.740.991</strong> (mais de 9 quatrilhões). O JavaScript tem esse número pronto, com o nome <code>Number.MAX_SAFE_INTEGER</code> ("o maior inteiro seguro"):</p>
+
+<pre class="file" data-file="limite.js">console.log(Number.MAX_SAFE_INTEGER);
+console.log(9007199254740991 + 1);
+console.log(9007199254740991 + 2);
+console.log(9007199254740993);
+console.log(Number.MAX_VALUE);
+console.log(Number.MIN_VALUE);
+</pre>
+
+<pre class="term">$ node limite.js
+9007199254740991
+9007199254740992
+9007199254740992
+9007199254740992
+1.7976931348623157e+308
+5e-324
+</pre>
+
+<dl class="anatomy">
+  <dt>9007199254740991 + 1 → 9007199254740992</dt><dd>Ainda certo.</dd>
+  <dt>9007199254740991 + 2 → 9007199254740992</dt><dd><strong>Errado</strong>: devia dar …993. Passou do limite, o <code>number</code> não consegue mais guardar todos os inteiros, e "arredonda" para o vizinho mais próximo que ele consegue.</dd>
+  <dt>9007199254740993 → 9007199254740992</dt><dd>Nem escrevendo direto: o número digitado já é guardado arredondado.</dd>
+  <dt>Number.MAX_VALUE e Number.MIN_VALUE</dt><dd>O maior número que o <code>number</code> guarda (cerca de 1,8 × 10<sup>308</sup>, mas sem exatidão nos algarismos) e o menor número positivo (5 × 10<sup>-324</sup>, um zero vírgula com 323 zeros antes do 5).</dd>
+</dl>
+
+<p>Para o dia a dia (preços, notas, quantidades, datas), o limite está tão longe que você nunca vai encostar nele. Mas números como o CPF de 11 dígitos, um código de barras ou o identificador de um tweet podem passar do limite ou não ser "números de fazer conta". Para inteiros gigantes existe o <code>bigint</code> (aula <a href="bigint.html">BigInt</a>); para códigos, use texto (seção 6).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de escrever o mesmo número</h2>
+<p>Um milhão pode ser escrito de vários jeitos, todos iguais para o JavaScript:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Vale</th><th>Quando usar</th></tr>
+<tr><td><code>1000000</code></td><td>1000000</td><td>Números pequenos, onde os zeros não confundem</td></tr>
+<tr><td><code>1_000_000</code></td><td>1000000</td><td><strong>Números grandes no código</strong>: o mais fácil de ler</td></tr>
+<tr><td><code>1e6</code></td><td>1000000</td><td>Ordens de grandeza (ciência, "um milhão de vezes")</td></tr>
+<tr><td><code>1.000.000</code></td><td>— (erro)</td><td>Nunca: o ponto é a vírgula decimal</td></tr>
+<tr><td><code>"1000000"</code></td><td>texto, não número</td><td>Só se não for usado em contas</td></tr>
+</table>
+</div>
+
+<p>E o meio real:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Vale</th><th>Quando usar</th></tr>
+<tr><td><code>0.5</code></td><td>0.5</td><td><strong>Sempre</strong>: o mais claro</td></tr>
+<tr><td><code>.5</code></td><td>0.5</td><td>Funciona, mas o ponto sozinho passa despercebido</td></tr>
+<tr><td><code>5e-1</code></td><td>0.5</td><td>Não há motivo aqui</td></tr>
+<tr><td><code>0,5</code></td><td>— (não é 0,5!)</td><td>Nunca (seção <a href="#errado">Quando dá errado</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Vírgula no lugar do ponto</strong>
+<pre class="file" data-file="virgula.js">const preco = 0,75;
+</pre>
+<pre class="term">$ node virgula.js
+/home/ana/virgula.js:1
+const preco = 0,75;
+                ^^
+
+SyntaxError: Unexpected number
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o erro está na linha 1 de <code>virgula.js</code>; as setinhas marcam o <code>75</code>; e a mensagem diz "número inesperado". Para o JavaScript, a vírgula <strong>separa coisas</strong> (lembra do <code>let a = 1, b = 2</code>?). Ele leu <code>const preco = 0</code>, uma vírgula, e depois esperava o nome de outra variável, mas encontrou o número <code>75</code>.</p>
+<p>Dentro do <code>console.log</code>, a vírgula é ainda mais traiçoeira, porque <strong>não dá erro</strong>:</p>
+<pre class="file" data-file="virgula2.js">console.log(0,75);
+console.log(0.75);
+</pre>
+<pre class="term">$ node virgula2.js
+0 75
+0.75
+</pre>
+<p><code>console.log(0,75)</code> mostrou <strong>dois</strong> números, <code>0</code> e <code>75</code>, separados por espaço (como em <code>console.log("A", "B")</code>). <strong>Como consertar:</strong> ponto decimal sempre: <code>0.75</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto de milhar: <code>1.500</code></strong>
+<pre class="file" data-file="milhar.js">const salario = 1.500;
+console.log(salario);
+console.log(salario * 12);
+</pre>
+<pre class="term">$ node milhar.js
+1.5
+18
+</pre>
+<p>Nenhum erro, e a conta saiu completamente errada: <code>1.500</code> é 1,5. Esse é o defeito mais perigoso, porque o programa roda. <strong>Como consertar:</strong> <code>1500</code>, ou <code>1_500</code> se quiser marcar o milhar. Com <code>1.500.000</code> (dois pontos), aí sim, é erro de sintaxe.</p>
+</div>
+
+<div class="cenario">
+<strong>Número começando com zero: o CEP</strong>
+<pre class="file" data-file="cep.js">const cep = 01310;
+console.log(cep);
+</pre>
+<pre class="term">$ node cep.js
+712
+</pre>
+<p>O CEP <code>01310</code> virou <code>712</code>! Por uma regra antiga do JavaScript, um número que começa com <code>0</code> e só tem algarismos de 0 a 7 é lido como <strong>octal</strong> (base 8, seção 4): 1310 na base 8 é 712 na base 10. Com um 8 ou 9 no meio (<code>01390</code>), a regra não vale e sai <code>1390</code>, perdendo o zero. No modo estrito, a regra antiga é proibida:</p>
+<pre class="term">$ node cep2.js
+/home/ana/cep2.js:2
+const cep = 01310;
+            ^^^^^
+
+SyntaxError: Octal literals are not allowed in strict mode.
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>("Números octais não são permitidos no modo estrito".) <strong>Como consertar:</strong> CEP, telefone, CPF, número de cartão… não são números "de fazer conta", e o zero da frente importa. Guarde como <strong>texto</strong>: <code>const cep = "01310-100";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Separador <code>_</code> no lugar errado</strong>
+<pre class="term">$ node dois.js
+/home/ana/dois.js:1
+const premio = 1__000;
+                 ^
+
+SyntaxError: Only one underscore is allowed as numeric separator
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+$ node fim.js
+/home/ana/fim.js:1
+const premio = 1000_;
+                    ^
+
+SyntaxError: Numeric separators are not allowed at the end of numeric literals
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Só um sublinhado é permitido como separador" e "separadores não são permitidos no fim do número". <strong>Como consertar:</strong> um <code>_</code> de cada vez, sempre entre dois algarismos: <code>1_000</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto logo depois de um inteiro: <code>5.toString()</code></strong>
+<pre class="term">$ node metodo.js
+/home/ana/metodo.js:1
+console.log(5.toString());
+            ^^
+
+SyntaxError: Invalid or unexpected token
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Logo depois de um número, o JavaScript acha que o ponto é a vírgula decimal, e <code>5.t</code> não é um número válido. É raro escrever isso; se precisar, use uma variável (<code>const n = 5; n.toString()</code>) ou parênteses (<code>(5).toString()</code>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 25.8;;semerro">
+<p class="try-task"><strong>Missão:</strong> o queijo custa doze reais e noventa centavos o quilo, e a Ana levou 2 quilos. O programa não roda. Leia a mensagem de erro, conserte e rode até aparecer <code>Total: 25.8</code>.</p>
+<pre class="script" data-file="main.js">const precoKg = 12,90;
+const quilos = 2;
+console.log("Total:", precoKg * quilos);
+</pre>
+<pre class="solucao" data-file="main.js">const precoKg = 12.90;
+const quilos = 2;
+console.log("Total:", precoKg * quilos);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>6</code>, <code>-3</code>, <code>0.75</code></td><td>Inteiro, negativo, decimal: todos <code>number</code></td></tr>
+<tr><td><code>+ - * /</code></td><td>Soma, subtração, multiplicação, divisão (com decimais)</td></tr>
+<tr><td><code>1_000_000</code></td><td>Separador de milhar (ignorado pelo JavaScript; ES2021)</td></tr>
+<tr><td><code>2.5e6</code>, <code>1e-3</code></td><td>Notação científica: 2.500.000 e 0,001</td></tr>
+<tr><td><code>0xff</code>, <code>0b1010</code>, <code>0o17</code></td><td>Hexadecimal, binário, octal (255, 10, 15)</td></tr>
+<tr><td><code>Number.isInteger(n)</code></td><td><code>true</code> se <code>n</code> for inteiro</td></tr>
+<tr><td><code>Number.MAX_SAFE_INTEGER</code></td><td>9007199254740991: o maior inteiro exato</td></tr>
+<tr><td><code>Number.MAX_VALUE</code> / <code>Number.MIN_VALUE</code></td><td>O maior número e o menor positivo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected number</code></td><td>Vírgula decimal (<code>0,75</code>)</td></tr>
+<tr><td><code>console.log(0,75)</code> mostra <code>0 75</code></td><td>Vírgula decimal dentro do <code>console.log</code></td></tr>
+<tr><td>Uma conta deu mil vezes menos (<code>18</code> em vez de <code>18000</code>)</td><td>Ponto de milhar (<code>1.500</code> = 1,5)</td></tr>
+<tr><td>Um número com zero na frente mudou (<code>01310</code> → <code>712</code>)</td><td>Regra antiga do octal: use texto para CEP, telefone, códigos</td></tr>
+<tr><td>Inteiro enorme com os últimos algarismos errados</td><td>Passou do <code>Number.MAX_SAFE_INTEGER</code>: use <code>bigint</code> ou texto</td></tr>
+<tr><td>Apareceu <code>1e+21</code></td><td>Não é erro: o Node escreve números enormes assim</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Escreva no JavaScript</h3>
+<div class="ex-code">Três reais e cinquenta centavos: <input data-answer="3.5|3.50" aria-label="três e cinquenta"><br>Dez mil, com separador: <input data-answer="10_000" aria-label="dez mil com separador"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<div class="ex-code"><code>console.log(9 / 2);</code> → <input data-answer="4.5" aria-label="nove dividido por dois"><br><code>console.log(2.50);</code> → <input data-answer="2.5" aria-label="dois e cinquenta"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Quanto vale <code>const x = 2.000;</code>?</p>
+<label><input type="radio" name="q3"> Dois mil</label>
+<label><input type="radio" name="q3"> Dois</label>
+<label><input type="radio" name="q3"> Dá erro de sintaxe</label>
+<label><input type="radio" name="q3"> O texto <code>"2.000"</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual é o melhor jeito de guardar o telefone <code>011 98765-4321</code>?</p>
+<label><input type="radio" name="q4"> <code>const telefone = 01198765;</code></label>
+<label><input type="radio" name="q4"> <code>const telefone = 011_98765_4321;</code></label>
+<label><input type="radio" name="q4"> <code>const telefone = "011 98765-4321";</code></label>
+<label><input type="radio" name="q4"> <code>const telefone = 11987654321n;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que significa <code>3e4</code>?</p>
+<label><input type="radio" name="q5"> 30000</label>
+<label><input type="radio" name="q5"> 3 elevado a 4 (81)</label>
+<label><input type="radio" name="q5"> 34</label>
+<label><input type="radio" name="q5"> É um erro: falta o operador</label>
+</div>
+
+<h3>Missão final: a média de vendas</h3>
+
+<div class="tryjs" data-goal="out:Média por dia: 5000;;src:1_250_000;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria vendeu <strong>um milhão, duzentos e cinquenta mil</strong> pães em 250 dias. Crie a constante <code>vendidos</code> com esse número, escrito com o separador <code>_</code> (<code>1_250_000</code>), e a constante <code>media</code>, que é <code>vendidos</code> dividido por <code>dias</code>. Tem de aparecer <code>Média por dia: 5000</code>.</p>
+<pre class="script" data-file="main.js">const dias = 250;
+// crie vendidos e media aqui
+
+console.log("Média por dia:", media);
+</pre>
+<pre class="solucao" data-file="main.js">const dias = 250;
+// crie vendidos e media aqui
+const vendidos = 1_250_000;
+const media = vendidos / dias;
+console.log("Média por dia:", media);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Média por dia: 5000</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>No JavaScript, todo número (inteiro, decimal, negativo) é do tipo <code>number</code>.</li>
+  <li>A casa decimal usa <strong>ponto</strong>: <code>0.75</code>. A vírgula separa coisas (<code>0,75</code> dá erro ou vira dois números) e o ponto de milhar engana (<code>1.500</code> é 1,5).</li>
+  <li>O Node mostra o número do jeito mais curto: <code>6.0</code> vira <code>6</code>, <code>6.50</code> vira <code>6.5</code>. Casas fixas são formatação.</li>
+  <li>A divisão <code>/</code> dá decimais: <code>7 / 2</code> é <code>3.5</code>.</li>
+  <li>Para ler números grandes: <code>1_000_000</code> (separador) ou <code>1e6</code> (notação científica). Números enormes ou minúsculos aparecem como <code>1e+21</code>, <code>1e-7</code>.</li>
+  <li>Inteiros são exatos até <code>Number.MAX_SAFE_INTEGER</code> (9007199254740991). Depois disso, use <code>bigint</code>.</li>
+  <li>CEP, telefone e códigos com zero na frente são <strong>texto</strong>, não número.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
