@@ -63,7 +63,7 @@ console.log("Bilhete escrito!");
 
 <p>Não precisa passar o <code>"utf8"</code>: para escrever texto, ele já é o padrão.</p>
 
-<pre class="term">$ ls
+<pre class="term" data-cwd="~/escrever">$ ls
 $ node bilhete.js
 Bilhete escrito!
 $ ls
@@ -82,7 +82,7 @@ Comprar farinha e fermento.
 fs.writeFileSync("bilhete.txt", "Ligar para o fornecedor.\n");
 </pre>
 
-<pre class="term">$ node bilhete2.js
+<pre class="term" data-cwd="~/escrever">$ node bilhete2.js
 $ cat bilhete.txt
 Ligar para o fornecedor.
 </pre>
@@ -103,6 +103,10 @@ fs.writeFileSync("recado.txt", recado);
 console.log("Recado gravado.");
 </pre>
 </div>
+<div class="note">
+<strong>No editor do guia</strong>
+<p>Os arquivos que o programa grava ficam numa pasta de mentira, na memória da caixa: valem até o programa terminar, e cada <strong>Rodar</strong> começa de novo só com as abas. Por isso, na caixa, o arquivo não "lembra" de uma execução para a outra (o <code>vender.js</code> da seção 3 diria sempre <code>Restam 11.</code>). Para ver o que foi gravado, leia o arquivo no fim do próprio programa, como a missão sugere. Na sua máquina, com <code>node</code>, os arquivos ficam no disco de verdade.</p>
+</div>
 
 <hr>
 
@@ -122,7 +126,7 @@ console.log(`Anotado: ${venda}`);
   <dt>venda + "\n"</dt><dd>A quebra de linha no fim de cada venda. Sem ela, as vendas ficariam todas grudadas numa linha só: <code>3 sonhos2 broas</code>.</dd>
 </dl>
 
-<pre class="term">$ node diario.js 3 sonhos
+<pre class="term" data-cwd="~/escrever">$ node diario.js 3 sonhos
 Anotado: 3 sonhos
 $ node diario.js 2 broas
 Anotado: 2 broas
@@ -150,7 +154,7 @@ fs.writeFileSync("compras.txt", compras.join("\n") + "\n");
 console.log(fs.readFileSync("compras.txt", "utf8"));
 </pre>
 
-<pre class="term">$ node lista.js
+<pre class="term" data-cwd="~/escrever">$ node lista.js
 leite
 pão francês
 café
@@ -176,7 +180,7 @@ fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2) + "\n");
 console.log("Estoque salvo.");
 </pre>
 
-<pre class="term">$ node salvar.js
+<pre class="term" data-cwd="~/escrever">$ node salvar.js
 Estoque salvo.
 $ cat estoque.json
 {
@@ -212,7 +216,7 @@ console.log(`Vendi um sonho. Restam ${sonho.qtd}.`);
   <li><strong>Gravar:</strong> <code>JSON.stringify</code> + <code>writeFileSync</code> levam o objeto inteiro de volta para o arquivo, substituindo a versão antiga. Aqui o "quadro branco" é o certo: o arquivo tem de ter o estoque <strong>atual</strong>.</li>
 </ol>
 
-<pre class="term">$ node vender.js
+<pre class="term" data-cwd="~/escrever">$ node vender.js
 Vendi um sonho. Restam 11.
 $ node vender.js
 Vendi um sonho. Restam 10.
@@ -236,7 +240,7 @@ fs.writeFileSync("relatorios/outubro.txt", "Vendas de outubro\n");
 console.log(fs.readdirSync("relatorios"));
 </pre>
 
-<pre class="term">$ node pasta2.js
+<pre class="term" data-cwd="~/escrever">$ node pasta2.js
 [ 'outubro.txt' ]
 $ node pasta2.js
 [ 'outubro.txt' ]
@@ -260,7 +264,7 @@ try {
 }
 </pre>
 
-<pre class="term">$ node novo.js
+<pre class="term" data-cwd="~/escrever">$ node novo.js
 Cadastro criado.
 $ node novo.js
 O cadastro já existe; não vou apagar.
@@ -273,7 +277,7 @@ fs.unlinkSync("bilhete.txt");
 console.log(fs.existsSync("bilhete.txt"));
 </pre>
 
-<pre class="term">$ node apagar.js
+<pre class="term" data-cwd="~/escrever">$ node apagar.js
 false
 </pre>
 
@@ -291,7 +295,7 @@ await appendFile("caixa.txt", "Venda: R$ 7.50\n");
 console.log("Caixa anotado.");
 </pre>
 
-<pre class="term">$ node assinc.mjs
+<pre class="term" data-cwd="~/escrever">$ node assinc.mjs
 Caixa anotado.
 $ cat caixa.txt
 Abertura: R$ 100.00
@@ -326,7 +330,7 @@ Venda: R$ 7.50
 const total = 42;
 fs.writeFileSync("total.txt", total);
 </pre>
-<pre class="term">$ node numero.js
+<pre class="term" data-cwd="~/escrever">$ node numero.js
 node:internal/errors:543
       throw error;
       ^
@@ -358,7 +362,7 @@ const pedido = { cliente: "Bia", itens: 3 };
 fs.writeFileSync("pedido.txt", String(pedido));
 console.log(fs.readFileSync("pedido.txt", "utf8"));
 </pre>
-<pre class="term">$ node objeto.js
+<pre class="term" data-cwd="~/escrever">$ node objeto.js
 [object Object]
 </pre>
 <p>Não houve erro, o que é pior: o arquivo foi gravado com o texto <code>[object Object]</code>, e os dados do pedido se perderam. É o que acontece quando um objeto vira texto do jeito "automático" (o mesmo de <code>"" + pedido</code> ou de <code>`${pedido}`</code>). <strong>Conserto:</strong> <code>JSON.stringify(pedido)</code>.</p>
@@ -369,7 +373,7 @@ console.log(fs.readFileSync("pedido.txt", "utf8"));
 <pre class="file" data-file="pasta.js">const fs = require("node:fs");
 fs.writeFileSync("relatorios/outubro.txt", "Vendas de outubro\n");
 </pre>
-<pre class="term">$ node pasta.js
+<pre class="term" data-cwd="~/escrever">$ node pasta.js
 node:fs:2482
     return binding.writeFileUtf8(
                    ^
@@ -394,7 +398,7 @@ Node.js v24.22.0
 <div class="cenario">
 <h3>4. <code>EACCES</code>: o arquivo está protegido</h3>
 <p>A Ana deixou a receita da vovó só para leitura (<code>chmod 444</code>), para ninguém estragar:</p>
-<pre class="term">$ chmod 444 receita.txt
+<pre class="term" data-cwd="~/escrever">$ chmod 444 receita.txt
 $ node mexer.js
 node:fs:2482
     return binding.writeFileUtf8(
@@ -501,7 +505,7 @@ console.log(`Anotado: ${venda}`);
 
 <p>No lab, com o <code>diario.js</code> da seção 2 (que usa <code>appendFileSync</code>) e um <code>vendas.txt</code> que tinha só <code>3 sonhos</code>:</p>
 
-<pre class="term">$ node diario.js 2 broas
+<pre class="term" data-cwd="~/escrever">$ node diario.js 2 broas
 Anotado: 2 broas
 $ cat vendas.txt
 3 sonhos

@@ -45,7 +45,7 @@
 <h2>1. O primeiro arquivo: <code>readFileSync</code></h2>
 <p>Na pasta da Ana há um arquivo de texto, <code>compras.txt</code>:</p>
 
-<pre class="term">$ cat compras.txt
+<pre class="term" data-cwd="~/ler">$ cat compras.txt
 leite
 pão francês
 café
@@ -68,7 +68,7 @@ console.log(typeof texto, texto.length);
   <dt>"utf8"</dt><dd>A codificação: diz como transformar os bytes do arquivo em letras. <code>"utf8"</code> é o padrão de hoje, e é o que faz o <code>ã</code> e o <code>é</code> saírem certos.</dd>
 </dl>
 
-<pre class="term">$ node ler.js
+<pre class="term" data-cwd="~/ler">$ node ler.js
 leite
 pão francês
 café
@@ -89,7 +89,7 @@ console.log(dados);
 console.log(dados.toString());
 </pre>
 
-<pre class="term">$ node sem.js
+<pre class="term" data-cwd="~/ler">$ node sem.js
 &lt;Buffer 6c 65 69 74 65 0a 70 c3 a3 6f 20 66 72 61 6e 63 c3 aa 73 0a 63 61 66 c3 a9 0a 6d 61 6e 74 65 69 67 61 0a&gt;
 leite
 pão francês
@@ -112,7 +112,7 @@ const linhas = texto.split("\n");
 console.log(linhas);
 </pre>
 
-<pre class="term">$ node linhas.js
+<pre class="term" data-cwd="~/ler">$ node linhas.js
 [ 'leite', 'pão francês', 'café', 'manteiga', '' ]
 </pre>
 
@@ -125,7 +125,7 @@ console.log(`A lista tem ${itens.length} itens:`);
 itens.forEach((item, i) =&gt; console.log(`${i + 1}. ${item}`));
 </pre>
 
-<pre class="term">$ node linhas2.js
+<pre class="term" data-cwd="~/ler">$ node linhas2.js
 A lista tem 4 itens:
 1. leite
 2. pão francês
@@ -183,7 +183,7 @@ for (const p of estoque.produtos) {
 }
 </pre>
 
-<pre class="term">$ node json.js
+<pre class="term" data-cwd="~/ler">$ node json.js
 Padaria da Ana
 sonho: 12 unidades a R$ 3.50
 broa: 7 unidades a R$ 2.00
@@ -193,7 +193,7 @@ rosca: 3 unidades a R$ 6.00
 <h3>CSV: uma linha por registro, campos separados</h3>
 <p>Um <strong>CSV</strong> (<em>comma-separated values</em>, "valores separados por vírgula") é uma planilha em texto: cada linha é um registro, e os campos são separados por um sinal. Nas planilhas brasileiras, o separador costuma ser o <strong>ponto e vírgula</strong>, porque a vírgula já é o separador decimal. A primeira linha, o <strong>cabeçalho</strong>, dá o nome das colunas:</p>
 
-<pre class="term">$ cat precos.csv
+<pre class="term" data-cwd="~/ler">$ cat precos.csv
 produto;preco
 sonho;3.50
 broa;2.00
@@ -220,7 +220,7 @@ console.log(`Total: R$ ${total.toFixed(2)}`);
   <dt>Number(preco)</dt><dd>O que vem do arquivo é <strong>texto</strong>: converta antes de somar (veja <a href="conversao.html">Conversão</a>).</dd>
 </dl>
 
-<pre class="term">$ node csv.js
+<pre class="term" data-cwd="~/ler">$ node csv.js
 sonho    R$ 3.50
 broa     R$ 2.00
 rosca    R$ 6.00
@@ -244,7 +244,7 @@ const texto = await readFile("compras.txt", "utf8");
 console.log(texto.trim().split("\n"));
 </pre>
 
-<pre class="term">$ node assinc.mjs
+<pre class="term" data-cwd="~/ler">$ node assinc.mjs
 Pedindo o arquivo...
 [ 'leite', 'pão francês', 'café', 'manteiga' ]
 </pre>
@@ -262,7 +262,7 @@ main();
 console.log("Enquanto isso, o programa segue...");
 </pre>
 
-<pre class="term">$ node assinc.js
+<pre class="term" data-cwd="~/ler">$ node assinc.js
 Enquanto isso, o programa segue...
 Primeiro item: leite
 </pre>
@@ -284,7 +284,7 @@ fs.readFile("compras.txt", "utf8", (erro, texto) =&gt; {
 console.log("Pedi o arquivo.");
 </pre>
 
-<pre class="term">$ node callback.js
+<pre class="term" data-cwd="~/ler">$ node callback.js
 Pedi o arquivo.
 Li 32 caracteres.
 </pre>
@@ -303,7 +303,7 @@ for (const nome of ["compras.txt", "receitas.txt"]) {
 }
 </pre>
 
-<pre class="term">$ node existe.js
+<pre class="term" data-cwd="~/ler">$ node existe.js
 compras.txt true
 receitas.txt false
 </pre>
@@ -338,7 +338,7 @@ console.log(lerLista("receitas.txt"));
   <dt>throw erro;</dt><dd>Qualquer <strong>outro</strong> problema (sem permissão, é uma pasta…) é relançado (veja <a href="throw.html">throw</a>): esconder um erro que você não esperava só atrasa a descoberta.</dd>
 </dl>
 
-<pre class="term">$ node seguro.js
+<pre class="term" data-cwd="~/ler">$ node seguro.js
 [ 'leite', 'pão francês', 'café', 'manteiga' ]
 O arquivo receitas.txt não existe. Começando com a lista vazia.
 []
@@ -349,7 +349,7 @@ O arquivo receitas.txt não existe. Começando com a lista vazia.
 <h2 id="pasta">6. Onde o Node procura o arquivo</h2>
 <p>Um nome sem pasta, como <code>"compras.txt"</code>, é um <strong>caminho relativo</strong>: o Node procura na <strong>pasta atual do terminal</strong> (a que o <code>pwd</code> mostra), e <strong>não</strong> na pasta onde está o <code>.js</code>. Enquanto a Ana roda tudo de dentro de <code>/home/ana/ler</code>, funciona. Se ela voltar para a pasta pessoal e rodar o mesmo programa:</p>
 
-<pre class="term">$ cd ..
+<pre class="term" data-cwd="~/ler">$ cd ..
 $ pwd
 /home/ana
 $ node ler/linhas2.js
@@ -398,7 +398,7 @@ Node.js v24.22.0
 const texto = fs.readFileSync("receitas.txt", "utf8");
 console.log(texto);
 </pre>
-<pre class="term">$ node falta.js
+<pre class="term" data-cwd="~/ler">$ node falta.js
 node:fs:483
     return binding.readFileUtf8(path, stringToFlags(options.flag));
                    ^
@@ -428,7 +428,7 @@ Node.js v24.22.0
 
 <div class="cenario">
 <h3>2. <code>EISDIR</code>: isso é uma pasta</h3>
-<pre class="term">$ mkdir receitas
+<pre class="term" data-cwd="~/ler">$ mkdir receitas
 $ node pasta.js
 node:fs:483
     return binding.readFileUtf8(path, stringToFlags(options.flag));
@@ -452,7 +452,7 @@ Node.js v24.22.0
 
 <div class="cenario">
 <h3>3. <code>EACCES</code>: sem permissão</h3>
-<pre class="term">$ chmod 000 trancado.txt
+<pre class="term" data-cwd="~/ler">$ chmod 000 trancado.txt
 $ node trancado.js
 node:fs:483
     return binding.readFileUtf8(path, stringToFlags(options.flag));
@@ -477,7 +477,7 @@ Node.js v24.22.0
 
 <div class="cenario">
 <h3>4. O arquivo abriu, mas o JSON está quebrado</h3>
-<pre class="term">$ cat quebrado.json
+<pre class="term" data-cwd="~/ler">$ cat quebrado.json
 { "loja": "Padaria da Ana", }
 $ node quebrado.js
 &lt;anonymous_script&gt;:1

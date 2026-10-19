@@ -66,7 +66,7 @@ console.log(path.dirname(arquivo));
 console.log(path.parse(arquivo));
 </pre>
 
-<pre class="term">$ node partes.js
+<pre class="term" data-cwd="~/caminhos">$ node partes.js
 compras.txt
 compras
 .txt
@@ -101,7 +101,7 @@ for (const f of fotos) {
 }
 </pre>
 
-<pre class="term">$ node ext.js
+<pre class="term" data-cwd="~/caminhos">$ node ext.js
 bolo.JPG → ".JPG"
 pao.png → ".png"
 recibo.pdf → ".pdf"
@@ -141,7 +141,7 @@ console.log(path.join("/home/ana", "caminhos", "dados"));
 console.log("dados" + "compras.txt");
 </pre>
 
-<pre class="term">$ node juntar.js
+<pre class="term" data-cwd="~/caminhos">$ node juntar.js
 dados/compras.txt
 dados/compras.txt
 fotos/bolo.jpg
@@ -172,7 +172,7 @@ console.log(path.relative("/home/ana/caminhos", "/home/ana/caminhos/dados/compra
 console.log(path.normalize("/home/ana/caminhos/./dados/../dados//compras.txt"));
 </pre>
 
-<pre class="term">$ node resolver.js
+<pre class="term" data-cwd="~/caminhos">$ node resolver.js
 /home/ana/caminhos
 /home/ana/caminhos/dados/compras.txt
 /tmp/relatorio.txt
@@ -192,7 +192,7 @@ dados/compras.txt
 
 <p>Agora o ponto que importa. A Ana entra na subpasta <code>dados</code> e roda o <strong>mesmo</strong> programa:</p>
 
-<pre class="term">$ cd dados
+<pre class="term" data-cwd="~/caminhos">$ cd dados
 $ node ../resolver.js
 /home/ana/caminhos/dados
 /home/ana/caminhos/dados/dados/compras.txt
@@ -214,7 +214,7 @@ console.log("__dirname: ", __dirname);
 console.log("cwd:       ", process.cwd());
 </pre>
 
-<pre class="term">$ node onde.js
+<pre class="term" data-cwd="~/caminhos">$ node onde.js
 __filename: /home/ana/caminhos/onde.js
 __dirname:  /home/ana/caminhos
 cwd:        /home/ana/caminhos
@@ -244,7 +244,7 @@ const itens = fs.readFileSync(arquivo, "utf8").trim().split("\n");
 console.log(`Li ${itens.length} itens de ${arquivo}`);
 </pre>
 
-<pre class="term">$ node ler.js
+<pre class="term" data-cwd="~/caminhos">$ node ler.js
 Li 3 itens de /home/ana/caminhos/dados/compras.txt
 $ cd /
 $ node /home/ana/caminhos/ler.js
@@ -263,7 +263,7 @@ console.log(import.meta.dirname);
 console.log(path.join(import.meta.dirname, "dados", "compras.txt"));
 </pre>
 
-<pre class="term">$ node onde.mjs
+<pre class="term" data-cwd="~/caminhos">$ node onde.mjs
 /home/ana/caminhos/onde.mjs
 /home/ana/caminhos
 /home/ana/caminhos/dados/compras.txt
@@ -285,7 +285,7 @@ console.log(path.win32.basename("C:\\Users\\Ana\\Documentos\\compras.txt"));
 console.log(path.posix.join("dados", "compras.txt"));
 </pre>
 
-<pre class="term">$ node windows.js
+<pre class="term" data-cwd="~/caminhos">$ node windows.js
 /
 \
 C:\Users\Ana\Documentos\compras.txt
@@ -319,7 +319,7 @@ dados/compras.txt
 const pasta = "dados";
 const texto = fs.readFileSync(pasta + "compras.txt", "utf8");
 </pre>
-<pre class="term">$ node grudado.js
+<pre class="term" data-cwd="~/caminhos">$ node grudado.js
 node:fs:483
     return binding.readFileUtf8(path, stringToFlags(options.flag));
                    ^
@@ -347,7 +347,7 @@ Node.js v24.22.0
 const nome = process.argv[2];
 console.log(path.join(__dirname, "dados", nome));
 </pre>
-<pre class="term">$ node indefinido.js compras.txt
+<pre class="term" data-cwd="~/caminhos">$ node indefinido.js compras.txt
 /home/ana/caminhos/dados/compras.txt
 $ node indefinido.js
 node:internal/errors:543
@@ -379,7 +379,7 @@ Node.js v24.22.0
 <pre class="file" data-file="errado.mjs">import path from "node:path";
 console.log(path.join(__dirname, "dados"));
 </pre>
-<pre class="term">$ node errado.mjs
+<pre class="term" data-cwd="~/caminhos">$ node errado.mjs
 file:///home/ana/caminhos/errado.mjs:2
 console.log(path.join(__dirname, "dados"));
                       ^
@@ -400,7 +400,7 @@ Node.js v24.22.0
 <p>Um caminho como <code>"C:\Users\Ana\novo.txt"</code> escrito assim, com barras simples, se estraga dentro da string:</p>
 <pre class="file" data-file="win.js">console.log(JSON.stringify("C:\Users\Ana\novo.txt"));
 </pre>
-<pre class="term">$ node win.js
+<pre class="term" data-cwd="~/caminhos">$ node win.js
 "C:UsersAna\novo.txt"
 </pre>
 <p>O <code>\U</code> e o <code>\A</code> perderam a barra, e o <code>\n</code> virou uma quebra de linha (o <code>JSON.stringify</code> a mostra como <code>\n</code>; veja <a href="strings-escape.html">Caracteres Especiais</a>). <strong>Conserto:</strong> dobre as barras (<code>"C:\\Users\\Ana\\novo.txt"</code>) ou, melhor, monte com <code>path.join</code> e deixe o Node escolher a barra.</p>
