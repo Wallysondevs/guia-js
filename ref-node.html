@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript no Node.js: console, process e fs — referência com saídas reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida do Node.js 24: console (log, error, warn, table, group, count, dir), process (argv, env, exit, exitCode, cwd, stdout.write), fs (readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, fs/promises) e path (join, resolve, basename, extname, dirname), com saídas reais do terminal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript no Node.js: <span class="hl">console, process e fs</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida das ferramentas que o <strong>Node.js</strong> dá aos seus programas: o <code>console</code> (escrever no terminal), o <code>process</code> (o programa em execução: argumentos, variáveis de ambiente, código de saída), o <code>fs</code> (<em>file system</em>, "sistema de arquivos": ler e escrever arquivos) e o <code>path</code> (montar e desmontar caminhos de pasta).</p>
+
+<div class="warning">
+<strong>Só no Node</strong>
+<p>O <code>process</code>, o <code>fs</code>, o <code>path</code> e o <code>require</code> são do <strong>Node</strong>. No navegador eles não existem (lá, o <code>console</code> existe, mas escreve no Console do F12). As caixas "Experimente" deste guia imitam o Node, com uma pasta só da caixa para os arquivos (veja <a href="simulador.html">O Editor do Guia</a>).</p>
+</div>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Aqui os exemplos são <strong>programas</strong> (arquivos <code>.js</code>) rodados com <code>node arquivo.js</code> na pasta da Ana, <code>/home/ana</code>, com o Node.js v24.22.0. Cada tabela vem com o programa completo e a saída real logo abaixo.</li>
+  <li>O <code>fs</code> e o <code>path</code> precisam ser importados: <code>const fs = require("node:fs");</code> (CommonJS, o padrão de um arquivo <code>.js</code>) ou <code>import fs from "node:fs";</code> (módulos). O <code>node:</code> na frente avisa que é um módulo que já vem com o Node. Veja <a href="modulos.html">Módulos</a> e <a href="modulos-commonjs.html">require e module.exports</a>.</li>
+</ul>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#console">console</a>: <code>log</code> <code>error</code> <code>warn</code> <code>info</code> <code>table</code> <code>group</code> <code>count</code> <code>dir</code> <code>assert</code></li>
+  <li><a href="#process">process</a>: <code>argv</code> <code>env</code> <code>exit</code> <code>exitCode</code> <code>cwd</code> <code>platform</code> <code>version</code> <code>stdout.write</code> <code>on("exit")</code></li>
+  <li><a href="#fs">fs</a>: <code>readFileSync</code> <code>writeFileSync</code> <code>appendFileSync</code> <code>existsSync</code> <code>mkdirSync</code> <code>readdirSync</code> <code>renameSync</code> <code>statSync</code> <code>unlinkSync</code> <code>rmSync</code> <code>fs/promises</code></li>
+  <li><a href="#path">path</a>: <code>join</code> <code>resolve</code> <code>basename</code> <code>extname</code> <code>dirname</code> <code>parse</code> <code>__dirname</code></li>
+  <li><a href="#outros">Outros módulos que vêm com o Node</a></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="console"><code>console</code></h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Saída</th><th>Aula</th></tr>
+<tr><td><code>console.log(…)</code></td><td>escreve na saída padrão, separando os valores por espaço e pulando linha no fim</td><td><code>console.log("Olá,", "Ana", 30, true)</code></td><td><code>Olá, Ana 30 true</code></td><td><a href="console-log.html">console.log()</a></td></tr>
+<tr><td></td><td>objetos e arrays saem no formato do Node</td><td><code>console.log({ nome: "Ana", idade: 30 }, [1, 2, 3])</code></td><td><code>{ nome: 'Ana', idade: 30 } [ 1, 2, 3 ]</code></td><td></td></tr>
+<tr><td></td><td>com <code>%d</code> (número), <code>%s</code> (texto), <code>%o</code> (objeto)</td><td><code>console.log("Total: %d itens", 3)</code></td><td><code>Total: 3 itens</code></td><td></td></tr>
+<tr><td><code>console.error(…)</code></td><td>escreve na <strong>saída de erros</strong> (<em>stderr</em>)</td><td><code>console.error("Deu erro!")</code></td><td><code>Deu erro!</code></td><td><a href="console-outros.html">console.error, warn e table</a></td></tr>
+<tr><td><code>console.warn(…)</code></td><td>também vai para a saída de erros</td><td><code>console.warn("Cuidado!")</code></td><td><code>Cuidado!</code></td><td></td></tr>
+<tr><td><code>console.info(…)</code></td><td>igual ao <code>log</code></td><td><code>console.info("Informação")</code></td><td><code>Informação</code></td><td></td></tr>
+<tr><td><code>console.table(lista)</code></td><td>desenha uma tabela</td><td><code>console.table([{ nome: "pão", preco: 4.5 }, { nome: "leite", preco: 6 }])</code></td><td>(veja a saída abaixo)</td><td><a href="console-outros.html">console.error, warn e table</a></td></tr>
+<tr><td><code>console.group(t)</code> / <code>groupEnd()</code></td><td>as linhas entre os dois saem com recuo</td><td><code>console.group("Compras")</code>, dois <code>log</code>, <code>console.groupEnd()</code></td><td>(veja abaixo)</td><td></td></tr>
+<tr><td><code>console.count(t)</code></td><td>conta quantas vezes foi chamado com aquele nome</td><td>duas vezes <code>console.count("clique")</code></td><td><code>clique: 1</code>, <code>clique: 2</code></td><td><a href="depuracao.html">Depurando</a></td></tr>
+<tr><td><code>console.dir(obj, { depth })</code></td><td>mostra um objeto escolhendo até que profundidade abrir; o <code>log</code> abre 2 níveis e troca o resto por <code>[Object]</code></td><td><code>console.dir({ a: { b: { c: { d: 1 } } } }, { depth: 0 })</code> e o mesmo objeto no <code>console.log</code></td><td><code>{ a: [Object] }</code>, <code>{ a: { b: { c: [Object] } } }</code></td><td><a href="depuracao.html">Depurando</a></td></tr>
+<tr><td><code>console.assert(cond, msg)</code></td><td>escreve a mensagem (na saída de erros) só se a condição for falsa</td><td><code>console.assert(1 === 2, "1 não é 2")</code></td><td><code>Assertion failed: 1 não é 2</code></td><td></td></tr>
+<tr><td><code>console.time(t)</code> / <code>timeEnd(t)</code></td><td>mede quanto tempo passou entre os dois (o número muda a cada vez)</td><td colspan="2">veja <a href="depuracao.html">Depurando</a></td><td></td></tr>
+</table>
+</div>
+
+<pre class="term">$ node console-ref.js
+Olá, Ana 30 true
+{ nome: 'Ana', idade: 30 } [ 1, 2, 3 ]
+Total: 3 itens
+Deu erro!
+Cuidado!
+Informação
+┌─────────┬─────────┬───────┐
+│ (index) │ nome    │ preco │
+├─────────┼─────────┼───────┤
+│ 0       │ 'pão'   │ 4.5   │
+│ 1       │ 'leite' │ 6     │
+└─────────┴─────────┴───────┘
+Compras
+  pão
+  leite
+clique: 1
+clique: 2
+{ a: [Object] }
+{ a: { b: { c: [Object] } } }
+Assertion failed: 1 não é 2
+</pre>
+
+<p>No terminal, tudo aparece misturado. Mas o <code>error</code>, o <code>warn</code> e o <code>assert</code> foram para a <strong>saída de erros</strong>: quando a Ana jogou essa saída fora com <code>2&gt; /dev/null</code> (um recurso do terminal), as linhas <code>Deu erro!</code>, <code>Cuidado!</code> e <code>Assertion failed: 1 não é 2</code> sumiram, e todo o resto continuou.</p>
+
+<hr>
+
+<h2 id="process"><code>process</code></h2>
+
+<p>O <code>process</code> já existe em todo programa Node, sem <code>require</code>.</p>
+
+<pre class="file" data-file="process-ref.js">console.log(process.argv);
+console.log(process.argv.slice(2));
+console.log(process.env.HOME);
+console.log(process.env.NAO_EXISTE);
+console.log(process.cwd());
+console.log(process.platform);
+console.log(process.version);
+console.log(process.versions.node);
+process.stdout.write("sem quebra de linha");
+process.stdout.write(" | continua\n");
+process.on("exit", (codigo) =&gt; console.log("saindo com", codigo));
+process.exitCode = 3;
+</pre>
+
+<pre class="term">$ node process-ref.js um "dois três"
+[
+  '/usr/local/bin/node',
+  '/home/ana/process-ref.js',
+  'um',
+  'dois três'
+]
+[ 'um', 'dois três' ]
+/home/ana
+undefined
+/home/ana
+linux
+v24.22.0
+24.22.0
+sem quebra de linha | continua
+saindo com 3
+$ echo $?
+3
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade ou método</th><th>O que é</th><th>No exemplo</th><th>Aula</th></tr>
+<tr><td><code>process.argv</code></td><td>um array com o caminho do <code>node</code>, o do programa e depois cada argumento digitado (as aspas juntam palavras)</td><td><code>[ '/usr/local/bin/node', '/home/ana/process-ref.js', 'um', 'dois três' ]</code></td><td><a href="process-argv.html">process.argv</a></td></tr>
+<tr><td><code>process.argv.slice(2)</code></td><td>só os argumentos da pessoa</td><td><code>[ 'um', 'dois três' ]</code></td><td></td></tr>
+<tr><td><code>process.env.NOME</code></td><td>uma variável de ambiente (sempre texto), ou <code>undefined</code></td><td><code>/home/ana</code>, <code>undefined</code></td><td><a href="process-env.html">process.env e process.exit</a></td></tr>
+<tr><td><code>process.cwd()</code></td><td>a pasta onde o terminal estava quando o programa começou (<em>current working directory</em>)</td><td><code>/home/ana</code></td><td><a href="path.html">Caminhos de Arquivo</a></td></tr>
+<tr><td><code>process.platform</code></td><td>o sistema: <code>'linux'</code>, <code>'win32'</code> (Windows) ou <code>'darwin'</code> (macOS)</td><td><code>linux</code></td><td></td></tr>
+<tr><td><code>process.version</code>, <code>process.versions.node</code></td><td>a versão do Node</td><td><code>v24.22.0</code>, <code>24.22.0</code></td><td><a href="versoes.html">Versões</a></td></tr>
+<tr><td><code>process.stdout.write(t)</code></td><td>escreve sem pular linha (o <code>\n</code> pula)</td><td><code>sem quebra de linha | continua</code></td><td></td></tr>
+<tr><td><code>process.exitCode = n</code></td><td>define o código de saída, deixando o programa terminar normalmente</td><td>o <code>echo $?</code> mostrou <code>3</code></td><td><a href="process-env.html">process.env e process.exit</a></td></tr>
+<tr><td><code>process.on("exit", f)</code></td><td>chama <code>f</code> quando o programa vai terminar</td><td><code>saindo com 3</code></td><td></td></tr>
+<tr><td><code>process.exit(n)</code></td><td>termina <strong>na hora</strong>, com o código <code>n</code> (0 = deu certo; outro número = deu errado). O que vem depois não roda</td><td>veja abaixo</td><td><a href="process-env.html">process.env e process.exit</a></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="exit.js">console.log("antes");
+process.exit(2);
+console.log("depois");
+</pre>
+
+<pre class="term">$ node exit.js
+antes
+$ echo $?
+2
+</pre>
+
+<div class="tryjs" data-args="Bia" data-goal="out:Olá, Bia!">
+<p class="try-task"><strong>Missão:</strong> esta caixa roda o programa como <code>node main.js Bia</code>. O programa deveria cumprimentar a Bia, mas pegou a posição errada do <code>process.argv</code> e mostrou o caminho do arquivo. Corrija o número para que saia <code>Olá, Bia!</code>.</p>
+<pre class="script" data-file="main.js">const nome = process.argv[1];
+
+console.log(`Olá, ${nome}!`);
+</pre>
+<pre class="solucao" data-file="main.js">const nome = process.argv[2];
+
+console.log(`Olá, ${nome}!`);
+</pre>
+</div>
+
+<pre class="term">$ node ola-arg.js Bia
+Olá, /home/ana/ola-arg.js!
+$ node ola-arg2.js Bia
+Olá, Bia!
+</pre>
+
+<hr>
+
+<h2 id="fs"><code>fs</code>: arquivos</h2>
+
+<p>As funções terminadas em <code>Sync</code> ("síncrono") esperam o arquivo ficar pronto antes de ir para a próxima linha: são as mais simples para scripts. As da <code>node:fs/promises</code> são usadas com <code>await</code>. Os caminhos sem barra no começo (<code>"compras.txt"</code>) são procurados na pasta do <code>process.cwd()</code>.</p>
+
+<pre class="file" data-file="fs-ref.js">const fs = require("node:fs");
+
+fs.writeFileSync("compras.txt", "pão\nleite\n");
+fs.appendFileSync("compras.txt", "café\n");
+console.log(fs.readFileSync("compras.txt", "utf8"));
+console.log(fs.readFileSync("compras.txt", "utf8").trim().split("\n"));
+console.log(fs.readFileSync("compras.txt"));
+console.log(fs.existsSync("compras.txt"), fs.existsSync("nada.txt"));
+fs.mkdirSync("notas", { recursive: true });
+fs.writeFileSync("notas/turma.json", JSON.stringify({ ana: 9 }, null, 2));
+console.log(JSON.parse(fs.readFileSync("notas/turma.json", "utf8")));
+console.log(fs.readdirSync("notas"));
+fs.renameSync("notas/turma.json", "notas/turma-a.json");
+console.log(fs.readdirSync("notas"));
+console.log(fs.statSync("compras.txt").size, fs.statSync("notas").isDirectory());
+fs.unlinkSync("notas/turma-a.json");
+fs.rmSync("notas", { recursive: true });
+console.log(fs.existsSync("notas"));
+</pre>
+
+<pre class="term">$ node fs-ref.js
+pão
+leite
+café
+
+[ 'pão', 'leite', 'café' ]
+&lt;Buffer 70 c3 a3 6f 0a 6c 65 69 74 65 0a 63 61 66 c3 a9 0a&gt;
+true false
+{ ana: 9 }
+[ 'turma.json' ]
+[ 'turma-a.json' ]
+17 true
+false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>No exemplo</th><th>Aula</th></tr>
+<tr><td><code>writeFileSync(arq, texto)</code></td><td>cria o arquivo com o texto; se ele já existe, <strong>apaga o conteúdo antigo</strong></td><td>criou <code>compras.txt</code> com <code>pão</code> e <code>leite</code></td><td><a href="fs-escrever.html">Escrevendo Arquivos</a></td></tr>
+<tr><td><code>appendFileSync(arq, texto)</code></td><td>acrescenta no fim (cria se não existe)</td><td>acrescentou <code>café</code></td><td><a href="fs-escrever.html">Escrevendo Arquivos</a></td></tr>
+<tr><td><code>readFileSync(arq, "utf8")</code></td><td>lê o arquivo inteiro como texto</td><td>as três linhas (e uma linha vazia: o arquivo termina com <code>\n</code> e o <code>log</code> pula mais uma)</td><td><a href="fs-ler.html">Lendo Arquivos</a></td></tr>
+<tr><td></td><td>linhas num array: <code>.trim().split("\n")</code></td><td><code>[ 'pão', 'leite', 'café' ]</code></td><td><a href="strings-split.html">split</a></td></tr>
+<tr><td><code>readFileSync(arq)</code></td><td>sem o <code>"utf8"</code>: os <strong>bytes</strong> (um <code>Buffer</code>); quase nunca é o que você quer</td><td><code>&lt;Buffer 70 c3 a3 6f …&gt;</code> (o <code>ã</code> ocupa 2 bytes: <code>c3 a3</code>)</td><td></td></tr>
+<tr><td><code>existsSync(caminho)</code></td><td>o arquivo ou pasta existe?</td><td><code>true false</code></td><td><a href="fs-ler.html">Lendo Arquivos</a></td></tr>
+<tr><td><code>mkdirSync(pasta, { recursive: true })</code></td><td>cria a pasta (e as do meio); com <code>recursive</code>, não reclama se já existe</td><td>criou <code>notas</code></td><td></td></tr>
+<tr><td></td><td>JSON: grave com <code>JSON.stringify</code> e leia com <code>JSON.parse</code></td><td><code>{ ana: 9 }</code></td><td><a href="json.html">JSON</a></td></tr>
+<tr><td><code>readdirSync(pasta)</code></td><td>os nomes do que há na pasta</td><td><code>[ 'turma.json' ]</code></td><td></td></tr>
+<tr><td><code>renameSync(antigo, novo)</code></td><td>renomeia ou move</td><td><code>[ 'turma-a.json' ]</code></td><td></td></tr>
+<tr><td><code>statSync(caminho)</code></td><td>informações: <code>.size</code> (tamanho em bytes), <code>.isDirectory()</code>, <code>.isFile()</code>, <code>.mtime</code> (última mudança)</td><td><code>17 true</code></td><td></td></tr>
+<tr><td><code>unlinkSync(arq)</code></td><td>apaga um arquivo (sem lixeira!)</td><td>apagou <code>turma-a.json</code></td><td></td></tr>
+<tr><td><code>rmSync(pasta, { recursive: true })</code></td><td>apaga a pasta e tudo dentro (sem lixeira!)</td><td><code>existsSync("notas")</code> virou <code>false</code></td><td></td></tr>
+</table>
+</div>
+
+<p>O mesmo com <code>await</code>, num arquivo de módulo (<code>.mjs</code>), onde o <code>await</code> pode ficar solto no arquivo:</p>
+
+<pre class="file" data-file="fs-promises.mjs">import { readFile, writeFile } from "node:fs/promises";
+
+await writeFile("recado.txt", "Comprar pão");
+const texto = await readFile("recado.txt", "utf8");
+console.log(texto);
+</pre>
+
+<pre class="term">$ node fs-promises.mjs
+Comprar pão
+</pre>
+
+<p>Veja <a href="async-await.html">async e await</a>.</p>
+
+<div class="tryjs" data-goal="arquivo:compras.txt~café;;out:3 itens;;src:appendFileSync">
+<p class="try-task"><strong>Missão:</strong> o programa grava a lista de compras com pão e leite. Use <code>fs.appendFileSync</code> (depois do <code>writeFileSync</code>) para acrescentar <code>café</code> no fim do arquivo, sem apagar o resto. A saída deve ficar <code>3 itens: [ 'pão', 'leite', 'café' ]</code>.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+fs.writeFileSync("compras.txt", "pão\nleite\n");
+
+const itens = fs.readFileSync("compras.txt", "utf8").trim().split("\n");
+console.log(`${itens.length} itens:`, itens);
+</pre>
+<pre class="solucao" data-file="main.js">const fs = require("node:fs");
+
+fs.writeFileSync("compras.txt", "pão\nleite\n");
+fs.appendFileSync("compras.txt", "café\n");
+
+const itens = fs.readFileSync("compras.txt", "utf8").trim().split("\n");
+console.log(`${itens.length} itens:`, itens);
+</pre>
+</div>
+
+<pre class="term">$ node lista-fs.js
+2 itens: [ 'pão', 'leite' ]
+$ node lista-fs2.js
+3 itens: [ 'pão', 'leite', 'café' ]
+$ cat compras.txt
+pão
+leite
+café
+</pre>
+
+<hr>
+
+<h2 id="path"><code>path</code>: caminhos</h2>
+
+<pre class="file" data-file="path-ref.js">const path = require("node:path");
+
+console.log(path.join("notas", "2026", "turma.csv"));
+console.log(path.join("/home/ana", "..", "ana", "fotos"));
+console.log(path.resolve("compras.txt"));
+console.log(path.basename("/home/ana/notas/turma.csv"));
+console.log(path.basename("/home/ana/notas/turma.csv", ".csv"));
+console.log(path.extname("foto.final.jpg"));
+console.log(path.dirname("/home/ana/notas/turma.csv"));
+console.log(path.parse("/home/ana/notas/turma.csv"));
+console.log(__dirname);
+console.log(__filename);
+</pre>
+
+<pre class="term">$ node path-ref.js
+notas/2026/turma.csv
+/home/ana/fotos
+/home/ana/compras.txt
+turma.csv
+turma
+.jpg
+/home/ana/notas
+{
+  root: '/',
+  dir: '/home/ana/notas',
+  base: 'turma.csv',
+  ext: '.csv',
+  name: 'turma'
+}
+/home/ana
+/home/ana/path-ref.js
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>No exemplo</th><th>Aula</th></tr>
+<tr><td><code>path.join(…)</code></td><td>junta pedaços com a barra certa do sistema e resolve o <code>..</code> ("a pasta de cima")</td><td><code>notas/2026/turma.csv</code>, <code>/home/ana/fotos</code></td><td><a href="path.html">Caminhos de Arquivo</a></td></tr>
+<tr><td><code>path.resolve(…)</code></td><td>o caminho <strong>completo</strong>, a partir da pasta atual</td><td><code>/home/ana/compras.txt</code></td><td></td></tr>
+<tr><td><code>path.basename(c, ext)</code></td><td>o nome do arquivo (sem a extensão, se ela for dada)</td><td><code>turma.csv</code>, <code>turma</code></td><td></td></tr>
+<tr><td><code>path.extname(c)</code></td><td>a extensão (só a última)</td><td><code>.jpg</code></td><td></td></tr>
+<tr><td><code>path.dirname(c)</code></td><td>a pasta</td><td><code>/home/ana/notas</code></td><td></td></tr>
+<tr><td><code>path.parse(c)</code></td><td>tudo isso de uma vez, num objeto</td><td><code>{ root, dir, base, ext, name }</code></td><td></td></tr>
+<tr><td><code>__dirname</code>, <code>__filename</code></td><td>a pasta e o caminho do <strong>próprio programa</strong> (em CommonJS; em módulos, <code>import.meta.dirname</code> e <code>import.meta.filename</code>)</td><td><code>/home/ana</code>, <code>/home/ana/path-ref.js</code></td><td><a href="path.html">Caminhos de Arquivo</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="outros">Outros módulos que vêm com o Node</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Módulo</th><th>Para quê</th><th>Aula</th></tr>
+<tr><td><code>node:readline</code></td><td>ler o que a pessoa digita no terminal</td><td><a href="entrada-teclado.html">Lendo o Teclado no Node</a></td></tr>
+<tr><td><code>node:test</code>, <code>node:assert</code></td><td>escrever e rodar testes</td><td><a href="testes.html">Testes (node:test)</a></td></tr>
+<tr><td><code>node:os</code></td><td>informações do computador: <code>os.homedir()</code> deu <code>/home/ana</code> e <code>os.platform()</code> deu <code>linux</code> no lab</td><td></td></tr>
+<tr><td><code>node:http</code></td><td>criar um servidor web</td><td><a href="js-no-mundo.html">JavaScript no Mundo</a></td></tr>
+<tr><td><code>setTimeout</code>, <code>setInterval</code></td><td>esperar e repetir (globais, sem <code>require</code>)</td><td><a href="timers.html">setTimeout e setInterval</a></td></tr>
+<tr><td><code>fetch</code></td><td>buscar dados da internet (global desde o Node 18)</td><td><a href="fetch.html">fetch</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<p>Ler um arquivo que não existe é o erro mais comum com <code>fs</code>:</p>
+
+<pre class="file" data-file="fs-erro.js">const fs = require("node:fs");
+const texto = fs.readFileSync("lista.txt", "utf8");
+console.log(texto);
+</pre>
+
+<pre class="term">$ node fs-erro.js
+node:fs:483
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open 'lista.txt'
+    at Object.readFileSync (node:fs:483:20)
+    at Object.&lt;anonymous&gt; (/home/ana/fs-erro.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 5 linhas "at" internas do Node, cortadas aqui
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'lista.txt'
+}
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>node:fs:483 e a linha de baixo</dt><dd>Desta vez, o começo da mensagem mostra uma linha de <strong>dentro do Node</strong> (o arquivo <code>fs</code> dele), e não do seu programa: foi lá que o erro foi lançado. Pule essas três linhas.</dd>
+  <dt>Error: ENOENT: no such file or directory, open 'lista.txt'</dt><dd>A mensagem: "não existe esse arquivo ou pasta", ao tentar abrir (<em>open</em>) <code>lista.txt</code>. <code>ENOENT</code> é o código do sistema para "não encontrado" (<em>Error NO ENTry</em>).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/fs-erro.js:2:18)</dt><dd>A primeira linha <code>at</code> com o <strong>seu</strong> arquivo: linha 2, coluna 18. É aqui que você vai olhar.</dd>
+  <dt>{ errno, code, syscall, path }</dt><dd>Os detalhes do erro, num objeto: o <code>code</code> (<code>'ENOENT'</code>) é o que você testa num <code>catch</code> (<code>if (erro.code === "ENOENT")</code>), e o <code>path</code> é o arquivo procurado.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>ENOENT</code></td><td>o arquivo ou pasta não existe</td><td>Confira o nome e a pasta: o caminho é relativo ao <code>process.cwd()</code>, não à pasta do programa. Use <code>path.join(__dirname, "lista.txt")</code> ou teste com <code>existsSync</code>.</td></tr>
+<tr><td><code>EISDIR</code></td><td>era para ser um arquivo, mas é uma pasta</td><td>Use <code>readdirSync</code> para pastas.</td></tr>
+<tr><td><code>EEXIST</code></td><td>já existe (ao criar uma pasta)</td><td><code>mkdirSync(pasta, { recursive: true })</code>.</td></tr>
+<tr><td><code>EACCES</code></td><td>sem permissão</td><td>Grave numa pasta sua (a pasta pessoal).</td></tr>
+</table>
+</div>
+
+<p>As mensagens completas de <code>EISDIR</code> e <code>EEXIST</code>, e as de <code>require</code>/<code>import</code>, estão em <a href="ref-erros.html">Mensagens de Erro Comuns</a>. Para tratar o erro sem derrubar o programa, use <a href="try-catch.html">try … catch</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>console.log</code> escreve na saída padrão; <code>console.error</code>/<code>warn</code>, na saída de erros. <code>console.table</code>, <code>group</code>, <code>count</code> e <code>dir</code> ajudam a ver dados.</li>
+  <li><code>process.argv.slice(2)</code> são os argumentos; <code>process.env.NOME</code>, as variáveis de ambiente; <code>process.exit(n)</code> termina na hora com o código <code>n</code>.</li>
+  <li><code>fs</code>: <code>readFileSync(arq, "utf8")</code> lê, <code>writeFileSync</code> grava (substituindo), <code>appendFileSync</code> acrescenta, <code>existsSync</code> confere, <code>mkdirSync</code>/<code>readdirSync</code>/<code>rmSync</code> cuidam de pastas.</li>
+  <li><code>path.join</code> monta caminhos; <code>basename</code>, <code>extname</code> e <code>dirname</code> desmontam; <code>__dirname</code> é a pasta do programa.</li>
+  <li><code>ENOENT</code> = arquivo não encontrado: confira o nome e a pasta atual.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
