@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Parâmetros e Argumentos — mandando informações para a função | Guia JavaScript</title>
+<meta name="description" content="Parâmetros e argumentos no JavaScript para quem nunca programou: a função saudar(nome), vários parâmetros e a ordem deles, variáveis e contas como argumentos, o que acontece quando falta ou sobra argumento (undefined), o parâmetro como cópia do valor, valor padrão e os erros reais do Node.js 24 (Unexpected string, missing ) after argument list, Cannot read properties of undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Parâmetros e Argumentos</span></h1>
+
+<p class="intro">Na aula <a href="funcoes.html">Funções</a>, cada função fazia sempre a mesma coisa: <code>mostrarLinha()</code> mostrava sempre a mesma linha. Uma função fica muito mais útil quando você pode <strong>mandar informações</strong> para ela: <code>saudar("Ana")</code>, <code>saudar("Bia")</code>. Essas informações entram pelos parênteses. Na declaração, elas se chamam <strong>parâmetros</strong>; na chamada, <strong>argumentos</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar uma função com um parâmetro e chamá-la com argumentos diferentes.</li>
+  <li>A diferença entre <strong>parâmetro</strong> e <strong>argumento</strong>.</li>
+  <li>Funções com vários parâmetros, e por que a <strong>ordem</strong> importa.</li>
+  <li>O que acontece quando falta argumento (<code>undefined</code>) ou sobra.</li>
+  <li>Que o parâmetro é uma variável nova, que só existe dentro da função.</li>
+  <li>Os erros reais mais comuns ao escrever e chamar funções com parâmetros.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o liquidificador</h2>
+<p>Um liquidificador faz sempre o mesmo trabalho: bater. Mas o que sai depende do que você põe no copo: morango vira suco de morango; laranja vira suco de laranja. O copo é o <strong>parâmetro</strong>: um lugar reservado, com uma etiqueta ("fruta"). A fruta que você põe numa vez específica é o <strong>argumento</strong>.</p>
+<ul>
+  <li><strong>Parâmetro:</strong> o nome que aparece na <strong>declaração</strong> da função. É uma variável que espera um valor: <code>function saudar(<strong>nome</strong>)</code>.</li>
+  <li><strong>Argumento:</strong> o valor que você manda na <strong>chamada</strong>: <code>saudar(<strong>"Ana"</strong>)</code>.</li>
+</ul>
+<p>Na prática, muita gente usa as duas palavras como se fossem a mesma coisa. Não tem problema; mas saber a diferença ajuda a entender as mensagens de erro e a documentação.</p>
+
+<hr>
+
+<h2>1. Um parâmetro</h2>
+
+<pre class="file" data-file="saudar.js">function saudar(nome) {
+  console.log(`Olá, ${nome}! Bem-vinda à padaria.`);
+}
+
+saudar("Ana");
+saudar("Bia");
+saudar("Carla");
+</pre>
+
+<pre class="term">$ node saudar.js
+Olá, Ana! Bem-vinda à padaria.
+Olá, Bia! Bem-vinda à padaria.
+Olá, Carla! Bem-vinda à padaria.
+</pre>
+
+<dl class="anatomy">
+  <dt>function saudar(nome)</dt><dd><code>nome</code> é o <strong>parâmetro</strong>: uma variável que só existe dentro da função e que, a cada chamada, recebe um valor novo. Não se escreve <code>let</code> nem <code>const</code> antes dele.</dd>
+  <dt>${nome}</dt><dd>Dentro do corpo, o parâmetro é usado como qualquer variável.</dd>
+  <dt>saudar("Ana")</dt><dd>A chamada com o <strong>argumento</strong> <code>"Ana"</code>. Antes de rodar o corpo, o JavaScript faz, por baixo dos panos, algo como <code>nome = "Ana"</code>.</dd>
+  <dt>saudar("Bia")</dt><dd>Outra chamada, outro argumento: agora <code>nome</code> vale <code>"Bia"</code>. Uma função, três saudações diferentes.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Olá, Dona Rosa!;;src:saudar\(">
+<p class="try-task"><strong>Missão:</strong> a Dona Rosa chegou à padaria. Acrescente uma chamada para ela aparecer cumprimentada: <code>Olá, Dona Rosa! Bem-vinda à padaria.</code></p>
+<pre class="script" data-file="main.js">function saudar(nome) {
+  console.log(`Olá, ${nome}! Bem-vinda à padaria.`);
+}
+
+saudar("Ana");
+</pre>
+<pre class="solucao" data-file="main.js">function saudar(nome) {
+  console.log(`Olá, ${nome}! Bem-vinda à padaria.`);
+}
+
+saudar("Ana");
+saudar("Dona Rosa");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Vários parâmetros</h2>
+<p>Para mandar mais de uma informação, separe os parâmetros com <strong>vírgula</strong>, na declaração e na chamada:</p>
+
+<pre class="file" data-file="item.js">function mostrarItem(produto, preco) {
+  console.log(`${produto} custa R$ ${preco.toFixed(2)}`);
+}
+
+mostrarItem("Pão francês", 0.8);
+mostrarItem("Café", 4.5);
+mostrarItem("Bolo de fubá", 18);
+</pre>
+
+<pre class="term">$ node item.js
+Pão francês custa R$ 0.80
+Café custa R$ 4.50
+Bolo de fubá custa R$ 18.00
+</pre>
+
+<dl class="anatomy">
+  <dt>(produto, preco)</dt><dd>Dois parâmetros, separados por vírgula.</dd>
+  <dt>mostrarItem("Café", 4.5)</dt><dd>Dois argumentos, na <strong>mesma ordem</strong>: o primeiro vai para o primeiro parâmetro (<code>produto = "Café"</code>), o segundo para o segundo (<code>preco = 4.5</code>). O JavaScript liga um ao outro <strong>pela posição</strong>, não pelo nome.</dd>
+  <dt>preco.toFixed(2)</dt><dd>Mostra o número com 2 casas decimais (<code>4.5</code> vira <code>4.50</code>). Os detalhes ficam para <a href="numeros-formatar.html">Formatando Números</a>.</dd>
+</dl>
+
+<h3 id="ordem">A ordem importa</h3>
+<p>Como a ligação é pela posição, trocar a ordem dos argumentos troca os valores, sem erro nenhum:</p>
+
+<pre class="file" data-file="trocado.js">function mostrarPedido(produto, quantidade) {
+  console.log(`Pedido: ${quantidade} x ${produto}`);
+}
+
+mostrarPedido("pão francês", 10);
+mostrarPedido(10, "pão francês");
+</pre>
+
+<pre class="term">$ node trocado.js
+Pedido: 10 x pão francês
+Pedido: pão francês x 10
+</pre>
+
+<p>Na segunda chamada, <code>produto</code> recebeu <code>10</code> e <code>quantidade</code> recebeu <code>"pão francês"</code>. O JavaScript não sabe o que "faz sentido": ele só segue a ordem. Por isso, vale dar nomes claros aos parâmetros e conferir a ordem na declaração.</p>
+
+<h3>O argumento pode ser uma variável ou uma conta</h3>
+<p>O argumento é um <strong>valor</strong>, e qualquer coisa que produza um valor serve: um texto, um número, uma variável, uma conta. O JavaScript calcula o valor <strong>antes</strong> de entrar na função:</p>
+
+<pre class="file" data-file="expressoes.js">function mostrarItem(produto, preco) {
+  console.log(`${produto} custa R$ ${preco.toFixed(2)}`);
+}
+
+const cafe = "Café";
+const precoDoCafe = 4.5;
+mostrarItem(cafe, precoDoCafe);
+mostrarItem("10 pães", 0.8 * 10);
+mostrarItem(`Pão de ${"queijo"}`, 2 + 1.5);
+</pre>
+
+<pre class="term">$ node expressoes.js
+Café custa R$ 4.50
+10 pães custa R$ 8.00
+Pão de queijo custa R$ 3.50
+</pre>
+
+<p>Repare na primeira chamada: a variável de fora se chama <code>precoDoCafe</code>, e o parâmetro se chama <code>preco</code>. Os nomes <strong>não</strong> precisam ser iguais: o que passa para dentro é o valor (<code>4.5</code>).</p>
+
+<div class="tryjs" data-goal="out:Pedido: 12 x pão francês = R$ 9.60;;src:function\s+mostrarPedido\s*\(\s*produto\s*,\s*quantidade\s*,\s*preco\s*\)">
+<p class="try-task"><strong>Missão:</strong> acrescente um terceiro parâmetro, <code>preco</code> (o preço de uma unidade), e mostre o total do pedido: <code>Pedido: 12 x pão francês = R$ 9.60</code>. A chamada já manda os três argumentos.</p>
+<pre class="script" data-file="main.js">function mostrarPedido(produto, quantidade) {
+  console.log(`Pedido: ${quantidade} x ${produto}`);
+}
+
+mostrarPedido("pão francês", 12, 0.8);
+</pre>
+<pre class="solucao" data-file="main.js">function mostrarPedido(produto, quantidade, preco) {
+  const total = quantidade * preco;
+  console.log(`Pedido: ${quantidade} x ${produto} = R$ ${total.toFixed(2)}`);
+}
+
+mostrarPedido("pão francês", 12, 0.8);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Faltou argumento? Sobrou?</h2>
+<p>Muitas linguagens reclamam quando o número de argumentos não bate com o de parâmetros. O JavaScript, não:</p>
+
+<pre class="file" data-file="faltou.js">function saudar(nome) {
+  console.log(`Olá, ${nome}!`);
+}
+
+saudar();
+saudar("Ana", "Bia");
+</pre>
+
+<pre class="term">$ node faltou.js
+Olá, undefined!
+Olá, Ana!
+</pre>
+
+<ul>
+  <li><strong>Faltou:</strong> na primeira chamada não veio nenhum argumento, e o parâmetro <code>nome</code> ficou valendo <code>undefined</code> ("indefinido"; veja <a href="null-undefined.html">null e undefined</a>). Sem erro, mas com um texto estranho.</li>
+  <li><strong>Sobrou:</strong> na segunda, o <code>"Bia"</code> não tinha parâmetro para ocupar e foi simplesmente ignorado.</li>
+</ul>
+
+<p>Com dois parâmetros, o que falta é sempre o do fim:</p>
+
+<pre class="file" data-file="faltou2.js">function mostrarItem(produto, preco) {
+  console.log(`${produto} custa R$ ${preco}`);
+}
+
+mostrarItem("Café");
+</pre>
+
+<pre class="term">$ node faltou2.js
+Café custa R$ undefined
+</pre>
+
+<p>Esse silêncio pode virar erro quando a função <strong>usa</strong> o parâmetro que faltou para fazer alguma coisa (veja em <a href="#errado">Quando dá errado</a>). Para evitar o <code>undefined</code>, dá para dar um <strong>valor padrão</strong> ao parâmetro: o valor que ele recebe quando o argumento não vem.</p>
+
+<pre class="file" data-file="padrao.js">function saudar(nome = "cliente") {
+  console.log(`Olá, ${nome}!`);
+}
+
+saudar("Ana");
+saudar();
+</pre>
+
+<pre class="term">$ node padrao.js
+Olá, Ana!
+Olá, cliente!
+</pre>
+
+<p>O <code>= "cliente"</code> na declaração diz: "se ninguém mandar um nome, use <code>"cliente"</code>". O assunto tem aula própria: <a href="parametros-padrao.html">Parâmetros Padrão</a>.</p>
+
+<hr>
+
+<h2>4. O parâmetro é uma variável nova</h2>
+<p>O parâmetro recebe uma <strong>cópia do valor</strong> do argumento. Mudar o parâmetro dentro da função não muda a variável de fora:</p>
+
+<pre class="file" data-file="copia.js">function dobrar(numero) {
+  numero = numero * 2;
+  console.log(`Dentro da função: ${numero}`);
+}
+
+let pedidos = 5;
+dobrar(pedidos);
+console.log(`Fora da função: ${pedidos}`);
+</pre>
+
+<pre class="term">$ node copia.js
+Dentro da função: 10
+Fora da função: 5
+</pre>
+
+<p>Na chamada, <code>numero</code> recebeu o valor 5. Dentro, ele passou a 10, mas <code>pedidos</code>, lá fora, continuou 5: são duas variáveis diferentes. E o parâmetro só existe dentro da função; fora dela, o nome <code>numero</code> não existe (é o mesmo caso das variáveis criadas dentro da função, da aula <a href="funcoes.html">Funções</a>). Para trazer um resultado de dentro para fora, a função usa <code>return</code>: o assunto da próxima aula, <a href="return.html">Retornando Valores</a>.</p>
+
+<div class="note">
+<strong>Com arrays e objetos é diferente</strong>
+<p>Isso vale para números, textos e booleanos. Com <a href="arrays.html">arrays</a> e <a href="objetos.html">objetos</a>, a função recebe uma referência para a <strong>mesma</strong> lista, e mudar a lista lá dentro muda a de fora. Você vai ver o porquê em <a href="objetos-referencia.html">Objetos são Referências</a>.</p>
+</div>
+
+<h3>Parâmetros e laços: a tabuada de qualquer número</h3>
+<p>Com um parâmetro, a mesma função serve para qualquer número:</p>
+
+<pre class="file" data-file="tabuada.js">function mostrarTabuada(numero) {
+  for (let i = 1; i &lt;= 3; i++) {
+    console.log(`${numero} x ${i} = ${numero * i}`);
+  }
+}
+
+mostrarTabuada(2);
+mostrarTabuada(5);
+</pre>
+
+<pre class="term">$ node tabuada.js
+2 x 1 = 2
+2 x 2 = 4
+2 x 3 = 6
+5 x 1 = 5
+5 x 2 = 10
+5 x 3 = 15
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quando a função precisa de uma informação, há alguns caminhos:</p>
+<ul>
+  <li><strong>Um parâmetro para cada informação</strong>: <code>mostrarItem(produto, preco)</code>. É o normal, para até 3 ou 4 informações.</li>
+  <li><strong>Parâmetro com valor padrão</strong>: <code>saudar(nome = "cliente")</code>, quando a informação é opcional (aula <a href="parametros-padrao.html">Parâmetros Padrão</a>).</li>
+  <li><strong>Um objeto com várias informações</strong>: <code>mostrarItem({ produto: "Café", preco: 4.5 })</code>, quando são muitas e a ordem confundiria. Você vai ver em <a href="objetos.html">Objetos</a> e <a href="desestruturacao.html">Desestruturação</a>.</li>
+  <li><strong>Quantidade variável</strong>: <code>function somar(...numeros)</code>, que recebe quantos argumentos vierem, numa lista (aula <a href="spread-rest.html">Spread e Rest</a>).</li>
+  <li><strong>Usar uma variável de fora</strong>, sem parâmetro. Funciona, mas a função fica presa àquela variável e é mais difícil de entender e de reaproveitar. Prefira o parâmetro.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>1 a 3 informações, todas necessárias</td><td>Parâmetros comuns, na ordem</td></tr>
+<tr><td>Uma informação que pode faltar</td><td>Valor padrão: <code>nome = "cliente"</code></td></tr>
+<tr><td>Muitas informações, várias opcionais</td><td>Um objeto (Nível 2)</td></tr>
+<tr><td>Não se sabe quantos valores virão</td><td>Rest: <code>...numeros</code> (Nível 2)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Faltou o argumento, e a função usou o parâmetro</strong>
+<pre class="file" data-file="undef.js">function mostrarItem(produto, preco) {
+  console.log(`${produto} custa R$ ${preco.toFixed(2)}`);
+}
+
+mostrarItem("Café");
+</pre>
+<pre class="term">$ node undef.js
+/home/ana/undef.js:2
+  console.log(`${produto} custa R$ ${preco.toFixed(2)}`);
+                                           ^
+
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+    at mostrarItem (/home/ana/undef.js:2:44)
+    at Object.&lt;anonymous&gt; (/home/ana/undef.js:5:1)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/undef.js:2</dt><dd>O erro estourou na linha 2, <strong>dentro</strong> da função.</dd>
+  <dt>a linha do código e o ^</dt><dd>O <code>^</code> aponta o <code>toFixed</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'toFixed')</dt><dd>"Não é possível ler propriedades de <code>undefined</code> (lendo <code>toFixed</code>)". O <code>preco</code> ficou <code>undefined</code>, porque a chamada não mandou o segundo argumento, e <code>undefined</code> não tem <code>toFixed</code>.</dd>
+  <dt>at mostrarItem (/home/ana/undef.js:2:44)</dt><dd>O erro aconteceu dentro da função <code>mostrarItem</code>, na linha 2…</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/undef.js:5:1)</dt><dd>… que foi chamada na linha 5. Lidas de cima para baixo, as linhas <code>at</code> contam o caminho ao contrário: onde quebrou, e quem chamou. A <strong>causa</strong> está na linha 5, na chamada.</dd>
+</dl>
+<p><strong>Como consertar:</strong> mande todos os argumentos (<code>mostrarItem("Café", 4.5)</code>) ou dê um valor padrão ao parâmetro.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu a vírgula entre os argumentos</strong>
+<pre class="file" data-file="virgula.js">function mostrarItem(produto, preco) {
+  console.log(`${produto} custa R$ ${preco.toFixed(2)}`);
+}
+
+mostrarItem("Café" 4.5);
+</pre>
+<pre class="term">$ node virgula.js
+/home/ana/virgula.js:5
+mostrarItem("Café" 4.5);
+            ^^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Falta o <code>)</code> depois da lista de argumentos". Sem a vírgula, o JavaScript leu <code>"Café"</code> e esperava, em seguida, uma vírgula ou o <code>)</code>; veio um número. Essa mesma mensagem aparece quando falta mesmo um parêntese. <strong>Como consertar:</strong> <code>mostrarItem("Café", 4.5);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs aspas no parâmetro</strong>
+<pre class="file" data-file="aspas.js">function saudar("nome") {
+  console.log(`Olá, ${nome}!`);
+}
+</pre>
+<pre class="term">$ node aspas.js
+/home/ana/aspas.js:1
+function saudar("nome") {
+                ^^^^^^
+
+SyntaxError: Unexpected string
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Texto inesperado". Na <strong>declaração</strong>, o parâmetro é um nome de variável, sem aspas. Aspas vão na <strong>chamada</strong>, quando o argumento é um texto. <strong>Como consertar:</strong> <code>function saudar(nome) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs <code>let</code> no parâmetro</strong>
+<pre class="file" data-file="letparam.js">function saudar(let nome) {
+  console.log(`Olá, ${nome}!`);
+}
+</pre>
+<pre class="term">$ node letparam.js
+/home/ana/letparam.js:1
+function saudar(let nome) {
+                    ^^^^
+
+SyntaxError: Unexpected identifier 'nome'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Identificador <code>nome</code> inesperado". O parâmetro já é uma variável; não se escreve <code>let</code> nem <code>const</code> antes dele. <strong>Como consertar:</strong> <code>function saudar(nome) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o parâmetro fora da função</strong>
+<pre class="file" data-file="fora.js">function saudar(nome) {
+  console.log(`Olá, ${nome}!`);
+}
+
+saudar("Ana");
+console.log(nome);
+</pre>
+<pre class="term">$ node fora.js
+Olá, Ana!
+/home/ana/fora.js:6
+console.log(nome);
+            ^
+
+ReferenceError: nome is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/fora.js:6:13)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>O parâmetro <code>nome</code> só existe dentro da função, durante a chamada. <strong>Como consertar:</strong> use a informação dentro da função, ou devolva-a com <a href="return.html">return</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Argumentos na ordem errada</strong>
+<p>É o <code>Pedido: pão francês x 10</code> da <a href="#ordem">seção 2</a>: nenhum erro, só um resultado esquisito. <strong>Como consertar:</strong> confira a ordem dos parâmetros na declaração e siga a mesma na chamada.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>function f(a, b) { … }</code></td><td><code>a</code> e <code>b</code> são <strong>parâmetros</strong> (na declaração)</td></tr>
+<tr><td><code>f(10, "oi")</code></td><td><code>10</code> e <code>"oi"</code> são <strong>argumentos</strong> (na chamada); <code>a = 10</code>, <code>b = "oi"</code>, pela posição</td></tr>
+<tr><td><code>f(10)</code></td><td>Faltou argumento: <code>b</code> vale <code>undefined</code></td></tr>
+<tr><td><code>f(1, 2, 3)</code></td><td>Sobrou argumento: o <code>3</code> é ignorado</td></tr>
+<tr><td><code>function f(a = 0) { … }</code></td><td>Valor padrão, usado quando o argumento não vem</td></tr>
+<tr><td><code>f(x)</code></td><td>O parâmetro recebe uma cópia do valor de <code>x</code> (números, textos, booleanos)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>undefined</code> no meio do texto</td><td>Faltou argumento na chamada</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined</code> dentro da função</td><td>Faltou argumento, e a função usou o parâmetro</td></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td>Faltou vírgula entre argumentos (ou um <code>)</code>)</td></tr>
+<tr><td><code>SyntaxError: Unexpected string</code> na declaração</td><td>Aspas no parâmetro</td></tr>
+<tr><td><code>SyntaxError: Unexpected identifier</code> na declaração</td><td><code>let</code>/<code>const</code> antes do parâmetro</td></tr>
+<tr><td>Valores trocados, sem erro</td><td>Argumentos fora de ordem</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Parâmetro ou argumento?</h3>
+<p>Em <code>function cobrar(valor) { … }</code> e <code>cobrar(25)</code>:</p>
+<div class="ex-code"><code>valor</code> é o <input data-answer="parâmetro|parametro" aria-label="parâmetro ou argumento">; <code>25</code> é o <input data-answer="argumento" aria-label="parâmetro ou argumento">.</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<pre class="file" data-file="ex2.js">function mostrar(a, b) {
+  console.log(`${b}-${a}`);
+}
+
+mostrar(1, 2);
+</pre>
+<div class="ex-code">A saída é <input data-answer="2-1" aria-label="saída">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>function saudar(nome) { console.log(`Oi, ${nome}`); }</code> chamada como <code>saudar()</code> mostra:</p>
+<label><input type="radio" name="q3"> Um erro: faltou argumento</label>
+<label><input type="radio" name="q3"> <code>Oi, </code></label>
+<label><input type="radio" name="q3"> <code>Oi, undefined</code></label>
+<label><input type="radio" name="q3"> <code>Oi, nome</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>let x = 3;</code> e <code>function f(n) { n = 100; }</code>. Depois de <code>f(x)</code>, quanto vale <code>x</code>?</p>
+<label><input type="radio" name="q4"> 100</label>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Como o JavaScript decide qual argumento vai para qual parâmetro?</p>
+<label><input type="radio" name="q5"> Pelo nome da variável usada na chamada</label>
+<label><input type="radio" name="q5"> Pelo tipo do valor (texto para texto, número para número)</label>
+<label><input type="radio" name="q5"> Em ordem alfabética</label>
+<label><input type="radio" name="q5"> Pela posição: o 1º argumento vai para o 1º parâmetro, e assim por diante</label>
+</div>
+
+<h3>Missão final: a tabuada de qualquer número</h3>
+
+<div class="tryjs" data-goal="out:6 x 10 = 60;;out:9 x 10 = 90;;src:function\s+mostrarTabuada\s*\(\s*\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>mostrarTabuada</code>: ela recebe um <code>numero</code> e mostra a tabuada dele de 1 a 10 (<code>6 x 1 = 6</code> … <code>6 x 10 = 60</code>). As chamadas para o 6 e o 9 já estão prontas.</p>
+<pre class="script" data-file="main.js">function mostrarTabuada() {
+  // escreva o for aqui
+}
+
+mostrarTabuada(6);
+mostrarTabuada(9);
+</pre>
+<pre class="solucao" data-file="main.js">function mostrarTabuada(numero) {
+  for (let i = 1; i &lt;= 10; i++) {
+    console.log(`${numero} x ${i} = ${numero * i}`);
+  }
+}
+
+mostrarTabuada(6);
+mostrarTabuada(9);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Parâmetros são os nomes entre parênteses na <strong>declaração</strong>; argumentos são os valores na <strong>chamada</strong>.</li>
+  <li>Vários parâmetros e argumentos se separam com vírgula e se ligam <strong>pela posição</strong>.</li>
+  <li>O argumento pode ser qualquer valor: texto, número, variável, conta. O valor é calculado antes de entrar.</li>
+  <li>Argumento que falta vira <code>undefined</code>; argumento que sobra é ignorado. Um valor padrão (<code>nome = "cliente"</code>) evita o <code>undefined</code>.</li>
+  <li>O parâmetro é uma variável nova, só da função: mudá-lo não muda a variável de fora.</li>
+  <li>Para trazer um resultado de volta, a função usa <a href="return.html">return</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
