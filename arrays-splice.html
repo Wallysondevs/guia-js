@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript splice e slice — tirando, pondo e copiando pedaços de um array | Guia JavaScript</title>
+<meta name="description" content="Os métodos slice e splice do JavaScript para quem nunca programou: slice copia um pedaço sem mexer no array (início incluído, fim não), índices negativos, splice tira, põe e troca itens no meio do array e devolve o que tirou, toSpliced que faz o mesmo numa cópia, a confusão entre os dois nomes e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">splice e slice</span></h1>
+
+<p class="intro">Com <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>, você mexeu nas <strong>pontas</strong> do array. Mas e quando a Ana quer tirar o feijão, que está <strong>no meio</strong> da lista? Ou pôr um aluno novo na terceira posição da chamada? Ou só <strong>olhar</strong> os três primeiros colocados de uma corrida, sem mexer no resultado? Para isso existem dois métodos de nomes quase iguais e trabalhos bem diferentes: <code>slice</code> e <code>splice</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>slice</code> ("fatia"): copiar um pedaço do array, <strong>sem mudar</strong> o original.</li>
+  <li>A regra do início e do fim: o início entra, o fim <strong>não</strong> entra.</li>
+  <li>Índices negativos, que contam a partir do fim.</li>
+  <li><code>splice</code> ("emendar"): <strong>tirar</strong>, <strong>pôr</strong> e <strong>trocar</strong> itens em qualquer lugar do array, mudando o original.</li>
+  <li>O que o <code>splice</code> devolve: um array com os itens que ele tirou.</li>
+  <li><code>toSpliced</code>, que faz o mesmo que o <code>splice</code> numa cópia.</li>
+  <li>Como não confundir os dois, e os erros reais mais comuns.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a fotocópia e a tesoura</h2>
+<p>A Ana tem a lista da chamada da turma num papel. Ela pode fazer duas coisas bem diferentes com ela:</p>
+<ul>
+  <li>Tirar uma <strong>fotocópia de um pedaço</strong> (só os cinco primeiros nomes, para o time de vôlei). O papel original fica intacto. Isso é o <code>slice</code>.</li>
+  <li>Pegar a <strong>tesoura e a cola</strong>: recortar um nome que saiu da turma, colar um nome novo no meio. Agora o papel original <strong>mudou</strong>. Isso é o <code>splice</code>.</li>
+</ul>
+<p>Os nomes ajudam a lembrar: <strong>slice</strong> é "fatia" (como uma fatia de pão: você pega um pedaço e o pão continua lá); <strong>splice</strong> é "emendar" (como se emendam duas pontas de corda: você corta e junta). O <code>splice</code> tem um <strong>p</strong> a mais, de "<strong>p</strong>erigoso": ele mexe no original.</p>
+
+<hr>
+
+<h2>1. <code>slice</code>: copiar um pedaço</h2>
+
+<pre class="file" data-file="slice.js">const alunos = ["Ana", "Bia", "Caio", "Duda", "Edu", "Fabi"];
+const time = alunos.slice(1, 4);
+console.log(time);
+console.log(alunos);
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos.slice(1, 4)</dt><dd>"Uma fatia de <code>alunos</code>, da posição 1 até a posição 4". Os dois números são índices (começando do 0, como sempre).</dd>
+  <dt>1 (o início)</dt><dd>A posição onde a fatia começa. <strong>Entra</strong> na fatia: a Bia.</dd>
+  <dt>4 (o fim)</dt><dd>A posição onde a fatia <strong>para</strong>. <strong>Não entra</strong> na fatia: o Edu (posição 4) fica de fora. A fatia vai até a posição 3.</dd>
+  <dt>const time = …</dt><dd>O <code>slice</code> devolve um array <strong>novo</strong> com o pedaço.</dd>
+</dl>
+
+<pre class="term">$ node slice.js
+[ 'Bia', 'Caio', 'Duda' ]
+[ 'Ana', 'Bia', 'Caio', 'Duda', 'Edu', 'Fabi' ]
+</pre>
+
+<p>A segunda linha mostra que o <code>alunos</code> continuou com os seis nomes: o <code>slice</code> só copiou.</p>
+
+<div class="tip">
+<strong>Por que o fim não entra?</strong>
+<p>Parece estranho, mas tem uma vantagem: <strong>fim − início = quantos itens</strong> vêm na fatia. <code>slice(1, 4)</code> traz <code>4 − 1 = 3</code> itens. E <code>slice(0, 3)</code> traz os 3 primeiros. É a mesma regra do <code>slice</code> das strings (aula <a href="strings-fatiar.html">Pedaços de String</a>).</p>
+</div>
+
+<h3>Sem o fim, com números negativos, sem nada</h3>
+
+<pre class="file" data-file="slice_formas.js">const alunos = ["Ana", "Bia", "Caio", "Duda", "Edu", "Fabi"];
+console.log(alunos.slice(0, 3));
+console.log(alunos.slice(4));
+console.log(alunos.slice(-2));
+console.log(alunos.slice(1, -1));
+console.log(alunos.slice());
+console.log(alunos.slice(10));
+</pre>
+
+<pre class="term">$ node slice_formas.js
+[ 'Ana', 'Bia', 'Caio' ]
+[ 'Edu', 'Fabi' ]
+[ 'Edu', 'Fabi' ]
+[ 'Bia', 'Caio', 'Duda', 'Edu' ]
+[ 'Ana', 'Bia', 'Caio', 'Duda', 'Edu', 'Fabi' ]
+[]
+</pre>
+
+<dl class="anatomy">
+  <dt>slice(0, 3)</dt><dd>Os 3 primeiros.</dd>
+  <dt>slice(4)</dt><dd>Sem o fim: da posição 4 até o fim do array.</dd>
+  <dt>slice(-2)</dt><dd>Número negativo conta a partir do fim, como no <code>at(-1)</code>: começa no penúltimo e vai até o fim. São os 2 últimos.</dd>
+  <dt>slice(1, -1)</dt><dd>Da posição 1 até o último, sem incluir o último: tira o primeiro e o último.</dd>
+  <dt>slice()</dt><dd>Sem nada: uma cópia do array inteiro (mais sobre cópias em <a href="arrays-copiar.html">Copiando Arrays</a>).</dd>
+  <dt>slice(10)</dt><dd>Começar depois do fim não dá erro: dá um array vazio.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Pódio: [ 'Bia', 'Duda', 'Ana' ];;src:\.slice\(">
+<p class="try-task"><strong>Missão:</strong> a corrida da escola terminou e o array <code>chegada</code> está na ordem de chegada. Use o <code>slice</code> para guardar em <code>podio</code> só os <strong>3 primeiros</strong>.</p>
+<pre class="script" data-file="main.js">const chegada = ["Bia", "Duda", "Ana", "Caio", "Edu"];
+const podio = chegada;
+console.log("Pódio:", podio);
+</pre>
+<pre class="solucao" data-file="main.js">const chegada = ["Bia", "Duda", "Ana", "Caio", "Edu"];
+const podio = chegada.slice(0, 3);
+console.log("Pódio:", podio);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>splice</code>: tirar itens do meio</h2>
+<p>O feijão (posição 1) saiu da lista de compras. O <code>splice</code> recorta a partir de uma posição, a quantidade de itens que você disser:</p>
+
+<pre class="file" data-file="splice_tirar.js">const compras = ["arroz", "feijão", "café", "leite"];
+const tirados = compras.splice(1, 1);
+console.log(tirados);
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.splice(1, 1)</dt><dd>"A partir da posição 1, tire 1 item".</dd>
+  <dt>1 (o primeiro número)</dt><dd>A posição onde o corte começa (o índice).</dd>
+  <dt>1 (o segundo número)</dt><dd><strong>Quantos</strong> itens tirar. Atenção: no <code>splice</code>, o segundo número é uma <strong>quantidade</strong>; no <code>slice</code>, é uma <strong>posição</strong>. Essa diferença confunde muita gente.</dd>
+  <dt>const tirados = …</dt><dd>O <code>splice</code> devolve um <strong>array</strong> com os itens tirados (mesmo que seja um só). Se você não precisa deles, escreva só <code>compras.splice(1, 1);</code>.</dd>
+</dl>
+
+<pre class="term">$ node splice_tirar.js
+[ 'feijão' ]
+[ 'arroz', 'café', 'leite' ]
+</pre>
+
+<p>Agora o <code>compras</code> <strong>mudou</strong>: tem 3 itens, e o café, que era a posição 2, agora é a posição 1 (os que estavam depois do corte andaram para a frente, como no <code>shift</code>).</p>
+
+<p>Para tirar vários de uma vez, aumente a quantidade. E, como no <code>slice</code>, a posição pode ser negativa:</p>
+
+<pre class="file" data-file="splice_varios.js">const alunos = ["Ana", "Bia", "Caio", "Duda", "Edu", "Fabi"];
+alunos.splice(2, 3);
+console.log(alunos);
+
+const notas = [7, 8, 5, 9, 10];
+notas.splice(-2, 1);
+console.log(notas);
+
+const fila = ["Ana", "Bia", "Caio", "Duda"];
+fila.splice(1);
+console.log(fila);
+</pre>
+
+<pre class="term">$ node splice_varios.js
+[ 'Ana', 'Bia', 'Fabi' ]
+[ 7, 8, 5, 10 ]
+[ 'Ana' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos.splice(2, 3)</dt><dd>A partir da posição 2, tirou 3: Caio, Duda e Edu.</dd>
+  <dt>notas.splice(-2, 1)</dt><dd>A partir do penúltimo, tirou 1: o 9.</dd>
+  <dt>fila.splice(1)</dt><dd><strong>Sem a quantidade</strong>, o <code>splice</code> tira <strong>tudo</strong> dali até o fim. Cuidado: esquecer o segundo número apaga muito mais do que você queria.</dd>
+</dl>
+
+<hr>
+
+<h2>3. <code>splice</code>: pôr itens no meio</h2>
+<p>Depois da quantidade, você pode escrever valores: eles são <strong>colados</strong> no lugar do corte. Se a quantidade for <code>0</code>, nada é tirado, e o <code>splice</code> só põe:</p>
+
+<pre class="file" data-file="splice_por.js">const chamada = ["Ana", "Bia", "Duda"];
+chamada.splice(2, 0, "Caio");
+console.log(chamada);
+chamada.splice(4, 0, "Edu", "Fabi");
+console.log(chamada);
+</pre>
+
+<dl class="anatomy">
+  <dt>chamada.splice(2, 0, "Caio")</dt><dd>"Na posição 2, tire 0 itens e ponha o Caio". O Caio entra na posição 2, e a Duda (que estava lá) anda para a posição 3. A chamada continua em ordem alfabética.</dd>
+  <dt>chamada.splice(4, 0, "Edu", "Fabi")</dt><dd>Vários valores entram todos, nessa ordem. A posição 4 era o fim do array, então funcionou como um <code>push</code>.</dd>
+</dl>
+
+<pre class="term">$ node splice_por.js
+[ 'Ana', 'Bia', 'Caio', 'Duda' ]
+[ 'Ana', 'Bia', 'Caio', 'Duda', 'Edu', 'Fabi' ]
+</pre>
+
+<hr>
+
+<h2>4. <code>splice</code>: trocar itens</h2>
+<p>Tirar e pôr ao mesmo tempo é <strong>trocar</strong>. O café em pó (posição 2) acabou na loja; a Ana troca por café em cápsula e ainda acrescenta açúcar:</p>
+
+<pre class="file" data-file="splice_trocar.js">const compras = ["arroz", "feijão", "café em pó", "leite"];
+const saiu = compras.splice(2, 1, "café em cápsula", "açúcar");
+console.log("Saiu:", saiu);
+console.log(compras);
+</pre>
+
+<pre class="term">$ node splice_trocar.js
+Saiu: [ 'café em pó' ]
+[ 'arroz', 'feijão', 'café em cápsula', 'açúcar', 'leite' ]
+</pre>
+
+<p>Saiu 1 item e entraram 2: o array cresceu um. O <code>splice</code> não exige que a quantidade que sai seja igual à que entra.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para…</th><th>Escreva</th><th>Lê-se</th></tr>
+<tr><td>Tirar</td><td><code>lista.splice(i, n)</code></td><td>"Na posição i, tire n"</td></tr>
+<tr><td>Tirar tudo dali em diante</td><td><code>lista.splice(i)</code></td><td>"Da posição i, tire tudo"</td></tr>
+<tr><td>Pôr</td><td><code>lista.splice(i, 0, a, b)</code></td><td>"Na posição i, tire 0 e ponha a e b"</td></tr>
+<tr><td>Trocar</td><td><code>lista.splice(i, 1, a)</code></td><td>"Na posição i, tire 1 e ponha a"</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'Ana', 'Bia', 'Caio', 'Duda', 'Edu' ];;src:\.splice\(">
+<p class="try-task"><strong>Missão:</strong> a chamada está quase certa: o <code>"Zeca"</code> mudou de escola, e o <code>"Caio"</code>, que é novo, ainda não está na lista. Use o <code>splice</code> (um só, ou dois) para tirar o Zeca e pôr o Caio no lugar dele.</p>
+<pre class="script" data-file="main.js">const chamada = ["Ana", "Bia", "Zeca", "Duda", "Edu"];
+
+console.log(chamada);
+</pre>
+<pre class="solucao" data-file="main.js">const chamada = ["Ana", "Bia", "Zeca", "Duda", "Edu"];
+chamada.splice(2, 1, "Caio");
+console.log(chamada);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. <code>toSpliced</code>: o <code>splice</code> numa cópia <span class="versao">ES2023</span></h2>
+<p>Às vezes você quer o resultado do <code>splice</code>, mas sem estragar o original. O <code>toSpliced</code> recebe exatamente os mesmos números e valores, e devolve um array <strong>novo</strong> já recortado e colado:</p>
+
+<pre class="file" data-file="tospliced.js">const compras = ["arroz", "feijão", "café", "leite"];
+const semFeijao = compras.toSpliced(1, 1);
+const comPao = compras.toSpliced(2, 0, "pão");
+console.log(semFeijao);
+console.log(comPao);
+console.log(compras);
+</pre>
+
+<pre class="term">$ node tospliced.js
+[ 'arroz', 'café', 'leite' ]
+[ 'arroz', 'feijão', 'pão', 'café', 'leite' ]
+[ 'arroz', 'feijão', 'café', 'leite' ]
+</pre>
+
+<p>Repare na diferença do que cada um devolve: o <code>splice</code> devolve os itens <strong>tirados</strong>; o <code>toSpliced</code> devolve o array <strong>inteiro</strong>, já modificado. O <code>toSpliced</code> chegou em 2023, junto com o <code>with</code> (aula <a href="arrays-acessar.html">Acessando e Alterando Itens</a>), e funciona no Node 24 e nos navegadores atuais.</p>
+
+<hr>
+
+<h2>6. No modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), dá para ver lado a lado o que cada um devolve e o que acontece com o original:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const n = [10, 20, 30, 40, 50]
+undefined
+&gt; n.slice(1, 3)
+[ 20, 30 ]
+&gt; n
+[ 10, 20, 30, 40, 50 ]
+&gt; n.splice(1, 2)
+[ 20, 30 ]
+&gt; n
+[ 10, 40, 50 ]
+&gt; .exit
+</pre>
+
+<p>Depois do <code>slice</code>, o <code>n</code> continuou com 5 itens; depois do <code>splice</code>, ficou com 3. O <code>splice</code> devolveu o pedaço que <strong>saiu</strong> (<code>[ 20, 30 ]</code>), e não o que sobrou.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual usar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>slice(início, fim)</code></th><th><code>splice(início, quantos, …novos)</code></th><th><code>toSpliced(início, quantos, …novos)</code></th></tr>
+<tr><th>Muda o original?</th><td>Não</td><td><strong>Sim</strong></td><td>Não</td></tr>
+<tr><th>O 2º número é…</th><td>uma <strong>posição</strong> (o fim, que não entra)</td><td>uma <strong>quantidade</strong></td><td>uma <strong>quantidade</strong></td></tr>
+<tr><th>Devolve</th><td>O pedaço copiado</td><td>Os itens tirados</td><td>O array novo, já modificado</td></tr>
+<tr><th>Use para</th><td>Pegar um pedaço (os 3 primeiros, os 2 últimos)</td><td>Tirar, pôr ou trocar no meio da própria lista</td><td>Ter uma versão modificada e manter a original</td></tr>
+</table>
+</div>
+
+<p>Para tirar itens por <strong>valor</strong> ("tire todos os que estão em falta"), e não por posição, existe um jeito mais fácil: o <a href="filter.html">filter</a>. E para tirar ou pôr nas pontas, prefira <code>push</code>/<code>pop</code>/<code>shift</code>/<code>unshift</code>, que são mais claros que um <code>splice(0, 1)</code>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>slice</code> achando que ia tirar o item</strong>
+<pre class="file" data-file="slice_nao_tira.js">const compras = ["arroz", "feijão", "café"];
+compras.slice(1, 2);
+console.log(compras);
+</pre>
+<pre class="term">$ node slice_nao_tira.js
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+<p>Nada mudou, e o Node não reclamou. O <code>slice</code> fez uma cópia do feijão e devolveu essa cópia, que ninguém guardou. <strong>Como consertar:</strong> para tirar, é <code>splice</code>: <code>compras.splice(1, 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o 2º número do <code>splice</code> como se fosse o fim</strong>
+<pre class="file" data-file="splice_fim.js">const alunos = ["Ana", "Bia", "Caio", "Duda", "Edu", "Fabi"];
+alunos.splice(3, 4);
+console.log(alunos);
+</pre>
+<pre class="term">$ node splice_fim.js
+[ 'Ana', 'Bia', 'Caio' ]
+</pre>
+<p>A ideia era tirar só a Duda (da posição 3 "até a 4", pensando como no <code>slice</code>). Mas no <code>splice</code> o 4 é <strong>quantos</strong>: "tire 4 a partir da posição 3". Como só havia 3 itens dali em diante, foram todos. <strong>Como consertar:</strong> <code>alunos.splice(3, 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou o resultado do <code>splice</code> achando que era a lista</strong>
+<pre class="file" data-file="splice_resultado.js">let compras = ["arroz", "feijão", "café"];
+compras = compras.splice(1, 1);
+console.log(compras);
+</pre>
+<pre class="term">$ node splice_resultado.js
+[ 'feijão' ]
+</pre>
+<p>Sobrou só o feijão, justamente o que devia sair. O <code>splice</code> devolve os itens <strong>tirados</strong>, e a linha 2 guardou isso em <code>compras</code>. <strong>Como consertar:</strong> não guarde: <code>compras.splice(1, 1);</code>. Ou, se queria um array novo sem o feijão, use <code>const semFeijao = compras.toSpliced(1, 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou <code>splice</code> numa string</strong>
+<pre class="file" data-file="splice_string.js">const nome = "Ana Maria";
+console.log(nome.slice(0, 3));
+console.log(nome.splice(0, 3));
+</pre>
+<pre class="term">$ node splice_string.js
+Ana
+/home/ana/splice_string.js:3
+console.log(nome.splice(0, 3));
+                 ^
+
+TypeError: nome.splice is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/splice_string.js:3:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A primeira linha funcionou: as strings têm <code>slice</code>. Mas não têm <code>splice</code>, e o Node avisa: "Erro de tipo: <code>nome.splice</code> não é uma função". O motivo: uma string <strong>não pode ser mudada</strong> por dentro, então não faria sentido ela ter um método que recorta e cola no original. O mesmo erro aparece se você escrever o nome errado (<code>compras.splise</code>, <code>compras.Splice</code>). <strong>Como consertar:</strong> nas strings, use <code>slice</code>; <code>splice</code> é só de arrays.</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'café', 'leite' ];;out:Saiu: [ 'feijão' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa devia tirar só o feijão e mostrar o que saiu, mas está fazendo outra coisa. Rode, compare com a missão e conserte.</p>
+<pre class="script" data-file="main.js">let compras = ["arroz", "feijão", "café", "leite"];
+const saiu = compras.slice(1, 1);
+console.log("Saiu:", saiu);
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">let compras = ["arroz", "feijão", "café", "leite"];
+const saiu = compras.splice(1, 1);
+console.log("Saiu:", saiu);
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista.slice(i, f)</code></td><td>Cópia do pedaço da posição <code>i</code> até antes de <code>f</code></td></tr>
+<tr><td><code>lista.slice(i)</code></td><td>Cópia de <code>i</code> até o fim</td></tr>
+<tr><td><code>lista.slice(-n)</code></td><td>Cópia dos <code>n</code> últimos</td></tr>
+<tr><td><code>lista.slice()</code></td><td>Cópia inteira</td></tr>
+<tr><td><code>lista.splice(i, n)</code></td><td>Tira <code>n</code> itens a partir de <code>i</code>; devolve os tirados</td></tr>
+<tr><td><code>lista.splice(i)</code></td><td>Tira tudo a partir de <code>i</code></td></tr>
+<tr><td><code>lista.splice(i, 0, a, b)</code></td><td>Põe <code>a</code> e <code>b</code> na posição <code>i</code></td></tr>
+<tr><td><code>lista.splice(i, 1, a)</code></td><td>Troca o item <code>i</code> por <code>a</code></td></tr>
+<tr><td><code>lista.toSpliced(…)</code></td><td>Igual ao <code>splice</code>, mas devolve um array novo e não mexe no original <span class="versao">ES2023</span></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O array não mudou</td><td>Usou <code>slice</code> (que só copia) querendo tirar</td></tr>
+<tr><td>Saíram itens demais</td><td>Usou o 2º número do <code>splice</code> como posição final, ou o esqueceu</td></tr>
+<tr><td>A lista virou só os itens que deviam sair</td><td>Guardou o resultado do <code>splice</code> na variável da lista</td></tr>
+<tr><td><code>TypeError: nome.splice is not a function</code></td><td><code>splice</code> numa string (ou nome escrito errado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A fatia certa</h3>
+<p>Complete para pegar <code>[ 'b', 'c' ]</code> de <code>const x = ["a", "b", "c", "d"];</code>:</p>
+<div class="ex-code">x.slice(1, <input data-answer="3" aria-label="posição final">)</div>
+</div>
+
+<div class="exercise">
+<h3>2. Tirar um</h3>
+<p>Complete para tirar só o <code>"c"</code> do mesmo array:</p>
+<div class="ex-code">x.<input data-answer="splice" aria-label="nome do método">(2, <input data-answer="1" aria-label="quantidade">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantos sobraram?</h3>
+<pre class="file" data-file="ex3.js">const n = [1, 2, 3, 4, 5, 6];
+n.splice(1, 2);
+console.log(n.length);
+</pre>
+<div class="ex-code">Mostra <input data-answer="4" aria-label="tamanho">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual dos três <strong>muda</strong> o array original?</p>
+<label><input type="radio" name="q4"> <code>slice</code></label>
+<label><input type="radio" name="q4"> <code>toSpliced</code></label>
+<label><input type="radio" name="q4"> <code>splice</code></label>
+<label><input type="radio" name="q4"> Nenhum</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>const a = [10, 20, 30]; const r = a.splice(0, 1);</code>. Quanto vale <code>r</code>?</p>
+<label><input type="radio" name="q5"> <code>[ 10 ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 20, 30 ]</code></label>
+<label><input type="radio" name="q5"> <code>10</code></label>
+<label><input type="radio" name="q5"> <code>[ 10, 20, 30 ]</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Qual linha põe <code>"X"</code> na posição 1 <strong>sem tirar</strong> nada?</p>
+<label><input type="radio" name="q6"> <code>lista.splice(1, 1, "X")</code></label>
+<label><input type="radio" name="q6"> <code>lista.splice(1, 0, "X")</code></label>
+<label><input type="radio" name="q6"> <code>lista.slice(1, 0, "X")</code></label>
+<label><input type="radio" name="q6"> <code>lista[1] = "X"</code></label>
+</div>
+
+<h3>Missão final: a agenda da semana</h3>
+
+<div class="tryjs" data-goal="out:Fim de semana: [ 'sáb: feira', 'dom: almoço' ];;out:'ter: inglês';;out:'qua: academia';;out:Dias: 7;;src:\.splice\(;;semerro">
+<p class="try-task"><strong>Missão:</strong> a agenda da Ana tem um dia por item. (1) Com <code>slice</code>, guarde em <code>fimDeSemana</code> os <strong>2 últimos</strong> dias e mostre com <code>Fim de semana:</code>. (2) A aula de inglês de quarta mudou para terça: com <code>splice</code>, troque o <code>"ter: livre"</code> por <code>"ter: inglês"</code> e o <code>"qua: inglês"</code> por <code>"qua: academia"</code> (dá para fazer num <code>splice</code> só). (3) A linha que mostra a agenda e quantos dias ela tem já está pronta.</p>
+<pre class="script" data-file="main.js">const agenda = ["seg: dentista", "ter: livre", "qua: inglês", "qui: livre", "sex: cinema", "sáb: feira", "dom: almoço"];
+// (1)
+
+// (2)
+
+// (3)
+console.log(agenda);
+console.log(`Dias: ${agenda.length}`);
+</pre>
+<pre class="solucao" data-file="main.js">const agenda = ["seg: dentista", "ter: livre", "qua: inglês", "qui: livre", "sex: cinema", "sáb: feira", "dom: almoço"];
+// (1)
+const fimDeSemana = agenda.slice(-2);
+console.log("Fim de semana:", fimDeSemana);
+// (2)
+agenda.splice(1, 2, "ter: inglês", "qua: academia");
+// (3)
+console.log(agenda);
+console.log(`Dias: ${agenda.length}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Fim de semana: [ 'sáb: feira', 'dom: almoço' ]</code>, depois a agenda com <code>'ter: inglês'</code> e <code>'qua: academia'</code> (como são 7 textos compridos, o Node mostrou um item por linha) e, no fim, <code>Dias: 7</code>.</p>
+
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>slice(início, fim)</code> copia um pedaço e <strong>não muda</strong> o original. O início entra, o fim não. Sem o fim, vai até o final; negativos contam do fim.</li>
+  <li><code>splice(início, quantos, …novos)</code> <strong>muda</strong> o original: tira <code>quantos</code> itens a partir de <code>início</code> e cola os novos no lugar. Devolve os itens tirados.</li>
+  <li>Com quantidade <code>0</code>, o <code>splice</code> só põe; sem quantidade, tira tudo até o fim.</li>
+  <li><code>toSpliced</code> faz o mesmo que o <code>splice</code> numa cópia e devolve o array novo.</li>
+  <li>No <code>slice</code> o 2º número é posição; no <code>splice</code>, quantidade. Strings têm <code>slice</code>, mas não <code>splice</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
