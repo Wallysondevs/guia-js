@@ -409,7 +409,7 @@ All matched files use Prettier code style!
 
 <div class="cenario">
 <strong>A função devolve <code>undefined</code> sem motivo</strong>
-<p>Olhe o <code>return</code>: o valor começa na linha de baixo? A inserção automática pôs um <code>;</code> logo depois do <code>return</code> (seção 2). <strong>Como consertar:</strong> comece o valor na mesma linha: <code>return {</code>, <code>return (</code>, <code>return valor</code>.</p>
+<p>Olhe o <code>return</code>: o valor começa na linha de baixo? A inserção automática pôs um <code>;</code> logo depois do <code>return</code> (seção 2). Se o objeto da linha de baixo tiver <strong>duas</strong> propriedades (<code>nome: nome,</code> e <code>cidade: cidade</code>), o sintoma muda: o JavaScript lê as chaves soltas como um bloco de código, e o programa nem começa: <code>SyntaxError: Unexpected token ':'</code> ("símbolo inesperado <code>:</code>"), apontando para o <code>cidade: cidade</code>. <strong>Como consertar:</strong> comece o valor na mesma linha: <code>return {</code>, <code>return (</code>, <code>return valor</code>.</p>
 </div>
 
 <div class="cenario">
