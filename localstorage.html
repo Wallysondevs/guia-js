@@ -145,6 +145,11 @@ document.querySelector("#mostrar").addEventListener("click", () =&gt; {
 
 <p>Clique em "Mostrar" <strong>antes</strong> de salvar qualquer coisa (numa gaveta vazia) e veja o <code>Nome salvo: null</code>: é o <code>null</code> da etiqueta que não existe.</p>
 
+<div class="note">
+<strong>No editor do guia</strong>
+<p>As caixas "Experimente" usam a gaveta <strong>do próprio site do guia</strong>, no seu navegador. Por isso o que você salvar numa caixa continua lá no próximo Rodar (e até em outro dia): o <code>Nome salvo: null</code> só aparece se a etiqueta <code>"nome"</code> ainda não existir. A gaveta também tem etiquetas do guia, como <code>tema</code> (o tema claro ou escuro que você escolheu); evite o <code>localStorage.clear()</code> nas caixas, que apaga essas também. Para começar do zero, use <code>localStorage.removeItem("nome")</code>.</p>
+</div>
+
 <hr>
 
 <h2>3. A pegadinha: tudo vira texto</h2>
