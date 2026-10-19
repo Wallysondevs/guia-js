@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript percorrendo objetos — for … in, Object.keys, values e entries | Guia JavaScript</title>
+<meta name="description" content="Como percorrer as propriedades de um objeto no JavaScript para quem nunca programou: for … in, Object.keys, Object.values, Object.entries com for … of, somar os valores, transformar com Object.fromEntries, a ordem das chaves, agrupar com Object.groupBy e os erros reais do Node.js 24 (is not iterable, Cannot convert undefined or null to object).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Percorrendo Objetos</span> (for … in, Object.entries)</h1>
+
+<p class="intro">Com um array, percorrer é fácil: o <a href="for-of.html">for … of</a> entrega um item por volta. Mas e com um objeto? Às vezes você não sabe de antemão quais propriedades ele tem: o carrinho pode ter 2 ou 20 produtos, o placar pode ter qualquer comida votada. Para "ler a ficha linha por linha", o JavaScript oferece o laço <code>for … in</code> e três funções que transformam o objeto em array: <code>Object.keys</code> (as chaves), <code>Object.values</code> (os valores) e <code>Object.entries</code> (os pares).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O laço <code>for … in</code>, que passa por cada <strong>chave</strong> do objeto.</li>
+  <li><code>Object.keys</code>, <code>Object.values</code> e <code>Object.entries</code>: o objeto virando array.</li>
+  <li>O jeito moderno: <code>for (const [chave, valor] of Object.entries(obj))</code>.</li>
+  <li>Como usar os métodos de array (<code>reduce</code>, <code>filter</code>, <code>map</code>) num objeto, e voltar para objeto com <code>Object.fromEntries</code>.</li>
+  <li>Em que ordem as chaves aparecem, e por que as que parecem números vêm primeiro.</li>
+  <li>Como agrupar uma lista num objeto com <code>Object.groupBy</code> <span class="versao">ES2024</span>.</li>
+  <li>Os erros reais: <code>for … of</code> direto no objeto, <code>for … in</code> num array, <code>Object.keys</code> de <code>undefined</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: ler a ficha de cima a baixo</h2>
+<p>A Ana recebeu a ficha de um produto e quer copiar tudo para o caderno. Ela não precisa saber quais campos a ficha tem: passa o dedo de linha em linha e, em cada uma, lê o <strong>nome do campo</strong> e o <strong>valor</strong>. Percorrer um objeto é isso: uma volta por propriedade, com a chave em mãos para ler o valor.</p>
+
+<hr>
+
+<h2>1. O laço <code>for … in</code></h2>
+
+<pre class="file" data-file="forin.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+for (const chave in produto) {
+  console.log(`${chave}: ${produto[chave]}`);
+}
+</pre>
+
+<pre class="term">$ node forin.js
+nome: caderno
+preco: 18
+estoque: 40
+</pre>
+
+<dl class="anatomy">
+  <dt>for (const chave in produto)</dt><dd>"Para cada chave <strong>em</strong> <code>produto</code>" (<em>in</em> = "em"). O corpo roda uma vez por propriedade, e a cada volta <code>chave</code> vale o <strong>nome</strong> de uma delas, como texto: <code>"nome"</code>, depois <code>"preco"</code>, depois <code>"estoque"</code>.</dd>
+  <dt>const chave</dt><dd>Uma variável nova a cada volta; pode ser <code>const</code>, como no <code>for … of</code>. O nome é você quem escolhe (<code>campo</code>, <code>chave</code>, <code>item</code>).</dd>
+  <dt>produto[chave]</dt><dd>O valor da propriedade. Tem de ser com <strong>colchetes</strong>, porque o nome da chave está numa variável (aula <a href="objetos-propriedades.html">Propriedades</a>).</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:preco: 18;;out:estoque: 40;;src:for\s*\(\s*(const|let)\s+\w+\s+in\b">
+<p class="try-task"><strong>Missão:</strong> o programa mostra só o nome do produto. Troque o <code>console.log</code> por um <code>for … in</code> que mostre <strong>todas</strong> as propriedades, uma por linha, no formato <code>preco: 18</code>. Depois, acrescente <code>cor: "azul"</code> ao objeto e rode de novo: o laço pega a nova propriedade sem você mudar nada nele.</p>
+<pre class="script" data-file="main.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+console.log(`nome: ${produto.nome}`);
+</pre>
+<pre class="solucao" data-file="main.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+for (const chave in produto) {
+  console.log(`${chave}: ${produto[chave]}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O objeto virando array: <code>keys</code>, <code>values</code>, <code>entries</code></h2>
+
+<pre class="file" data-file="keys.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+console.log(Object.keys(produto));
+console.log(Object.values(produto));
+console.log(Object.entries(produto));
+console.log("Propriedades:", Object.keys(produto).length);
+</pre>
+
+<pre class="term">$ node keys.js
+[ 'nome', 'preco', 'estoque' ]
+[ 'caderno', 18, 40 ]
+[ [ 'nome', 'caderno' ], [ 'preco', 18 ], [ 'estoque', 40 ] ]
+Propriedades: 3
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.keys(produto)</dt><dd>Um <strong>array com as chaves</strong> (<em>keys</em> = "chaves"), como textos.</dd>
+  <dt>Object.values(produto)</dt><dd>Um <strong>array com os valores</strong> (<em>values</em>), na mesma ordem.</dd>
+  <dt>Object.entries(produto)</dt><dd>Um <strong>array de pares</strong> (<em>entries</em> = "entradas"): cada item é um pequeno array <code>[chave, valor]</code>. É uma <a href="arrays-matriz.html">matriz</a> de duas colunas.</dd>
+  <dt>Object.keys(produto).length</dt><dd>Quantas propriedades o objeto tem. Objetos não têm <code>.length</code>; o jeito é contar as chaves.</dd>
+</dl>
+
+<p>Essas três são funções do <code>Object</code> (com O maiúsculo): você passa o objeto <strong>entre parênteses</strong>, e não escreve <code>produto.keys()</code>. Como o resultado é um array, todos os métodos de array passam a valer.</p>
+
+<hr>
+
+<h2>3. O jeito moderno: <code>for … of</code> com <code>Object.entries</code></h2>
+
+<pre class="file" data-file="entries.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+for (const [chave, valor] of Object.entries(produto)) {
+  console.log(`${chave} → ${valor}`);
+}
+for (const par of Object.entries(produto)) {
+  console.log(par[0], "=", par[1]);
+}
+</pre>
+
+<pre class="term">$ node entries.js
+nome → caderno
+preco → 18
+estoque → 40
+nome = caderno
+preco = 18
+estoque = 40
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.entries(produto)</dt><dd>O array de pares <code>[ [ 'nome', 'caderno' ], … ]</code>.</dd>
+  <dt>for (const … of …)</dt><dd>O <code>for … of</code> de sempre: uma volta por item do array, ou seja, um <strong>par</strong> por volta.</dd>
+  <dt>const [chave, valor]</dt><dd>Em vez de um nome só para o par, dois nomes entre colchetes: o JavaScript põe o item 0 do par em <code>chave</code> e o item 1 em <code>valor</code>. Isso se chama <strong>desestruturação</strong> (aula <a href="desestruturacao.html">Desestruturação</a>). O segundo laço faz o mesmo "à mão", com <code>par[0]</code> e <code>par[1]</code>.</dd>
+</dl>
+
+<p>Com esse laço você recebe a chave <strong>e</strong> o valor prontos, sem <code>produto[chave]</code>. É o jeito mais usado hoje.</p>
+
+<hr>
+
+<h2>4. Métodos de array num objeto</h2>
+<p>O carrinho da Ana é um objeto "produto → preço". Para somar, basta pegar os valores e usar o <a href="reduce.html">reduce</a>; para escolher, as chaves e o <a href="filter.html">filter</a>:</p>
+
+<pre class="file" data-file="values.js">const carrinho = { pao: 8, leite: 6, cafe: 15, queijo: 22 };
+const total = Object.values(carrinho).reduce((soma, preco) =&gt; soma + preco, 0);
+console.log(`Total: R$ ${total}`);
+const caros = Object.keys(carrinho).filter((item) =&gt; carrinho[item] &gt; 10);
+console.log("Mais de R$ 10:", caros);
+</pre>
+
+<pre class="term">$ node values.js
+Total: R$ 51
+Mais de R$ 10: [ 'cafe', 'queijo' ]
+</pre>
+
+<h3>E de volta para objeto: <code>Object.fromEntries</code></h3>
+<p>A padaria deu 10% de desconto em tudo. A Ana quer um objeto novo com os preços com desconto. O caminho: objeto → pares (<code>entries</code>) → muda cada par (<a href="map.html">map</a>) → objeto de novo (<code>fromEntries</code>, "a partir das entradas"):</p>
+
+<pre class="file" data-file="fromentries.js">const precos = { pao: 8, leite: 6, cafe: 15 };
+const comDesconto = Object.fromEntries(
+  Object.entries(precos).map(([item, preco]) =&gt; [item, preco * 0.9]),
+);
+console.log(comDesconto);
+console.log(precos);
+</pre>
+
+<pre class="term">$ node fromentries.js
+{ pao: 7.2, leite: 5.4, cafe: 13.5 }
+{ pao: 8, leite: 6, cafe: 15 }
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.entries(precos)</dt><dd><code>[ [ 'pao', 8 ], [ 'leite', 6 ], [ 'cafe', 15 ] ]</code>.</dd>
+  <dt>.map(([item, preco]) =&gt; [item, preco * 0.9])</dt><dd>Para cada par, devolve um par novo: a mesma chave, o preço vezes 0,9. A desestruturação também funciona nos parâmetros da função.</dd>
+  <dt>Object.fromEntries(…)</dt><dd>O contrário do <code>entries</code>: transforma o array de pares num objeto.</dd>
+</dl>
+
+<p>O objeto <code>precos</code> original continuou intacto: o resultado é um objeto <strong>novo</strong>.</p>
+
+<hr>
+
+<h2>5. Em que ordem as chaves aparecem?</h2>
+<p>A agenda da Ana mistura horários (números) e períodos (textos):</p>
+
+<pre class="file" data-file="ordem.js">const agenda = {
+  manha: "padaria",
+  15: "dentista",
+  tarde: "mercado",
+  9: "academia",
+  "10": "reunião",
+};
+console.log(Object.keys(agenda));
+for (const chave in agenda) {
+  console.log(chave, typeof chave);
+}
+</pre>
+
+<pre class="term">$ node ordem.js
+[ '9', '10', '15', 'manha', 'tarde' ]
+9 string
+10 string
+15 string
+manha string
+tarde string
+</pre>
+
+<p>Duas regras do JavaScript aparecem aqui:</p>
+<ul>
+  <li><strong>Toda chave é texto.</strong> O <code>15</code> e o <code>9</code> foram escritos como números, mas viraram <code>'15'</code> e <code>'9'</code>: o <code>typeof</code> diz <code>string</code> para todas.</li>
+  <li><strong>A ordem:</strong> primeiro as chaves que parecem números inteiros (<code>'9'</code>, <code>'10'</code>, <code>'15'</code>), em ordem <strong>crescente</strong>; depois as outras, na ordem em que foram <strong>criadas</strong> (<code>manha</code> antes de <code>tarde</code>). A mesma ordem vale para <code>for … in</code>, <code>keys</code>, <code>values</code> e <code>entries</code>.</li>
+</ul>
+<p>Na prática: não dependa da ordem das chaves de um objeto. Se a ordem importa, use um array (e <a href="sort.html">ordene</a>) ou um <a href="colecao-map.html">Map</a>, que guarda tudo na ordem em que entrou.</p>
+
+<hr>
+
+<h2>6. O contrário: agrupar uma lista num objeto <span class="versao">ES2024</span></h2>
+<p>Às vezes você tem uma <strong>lista</strong> e quer um objeto: os alunos separados por situação. O <code>Object.groupBy</code> ("agrupar por") recebe a lista e uma função que diz o <strong>grupo</strong> de cada item:</p>
+
+<pre class="file" data-file="groupby.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 4 },
+  { nome: "Caio", nota: 9 },
+  { nome: "Davi", nota: 5 },
+];
+const grupos = Object.groupBy(turma, (aluno) =&gt; (aluno.nota &gt;= 7 ? "aprovados" : "recuperacao"));
+console.log(grupos);
+for (const [situacao, alunos] of Object.entries(grupos)) {
+  console.log(`${situacao}: ${alunos.map((a) =&gt; a.nome).join(", ")}`);
+}
+</pre>
+
+<pre class="term">$ node groupby.js
+[Object: null prototype] {
+  aprovados: [ { nome: 'Ana', nota: 7 }, { nome: 'Caio', nota: 9 } ],
+  recuperacao: [ { nome: 'Bia', nota: 4 }, { nome: 'Davi', nota: 5 } ]
+}
+aprovados: Ana, Caio
+recuperacao: Bia, Davi
+</pre>
+
+<ul>
+  <li>O resultado é um objeto com uma chave por grupo; o valor de cada chave é um <strong>array</strong> com os itens daquele grupo.</li>
+  <li>O <code>[Object: null prototype]</code> é só o Node avisando que este objeto foi criado "limpo", sem as propriedades herdadas que os objetos comuns têm (aula <a href="prototipos.html">Protótipos</a>). Para percorrer e ler, ele funciona como qualquer objeto.</li>
+  <li>O <code>Object.groupBy</code> entrou no JavaScript em 2024 (ECMAScript 2024). Antes dele, o mesmo se fazia com um <code>reduce</code> montando um placar (aula <a href="reduce.html">reduce</a>).</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você precisa de…</th><th>Jeito recomendado</th></tr>
+<tr><td>Chave e valor, num laço</td><td><code>for (const [chave, valor] of Object.entries(obj))</code></td></tr>
+<tr><td>Só as chaves, num laço</td><td><code>for (const chave of Object.keys(obj))</code> ou <code>for (const chave in obj)</code></td></tr>
+<tr><td>Só os valores (somar, achar o maior)</td><td><code>Object.values(obj)</code> + <code>reduce</code>, <code>Math.max(...)</code></td></tr>
+<tr><td>Quantas propriedades há</td><td><code>Object.keys(obj).length</code></td></tr>
+<tr><td>Um objeto novo transformado</td><td><code>Object.fromEntries(Object.entries(obj).map(…))</code></td></tr>
+<tr><td>Agrupar uma lista num objeto</td><td><code>Object.groupBy(lista, funcao)</code></td></tr>
+<tr><td>Percorrer um <strong>array</strong></td><td><code>for … of</code> (nunca <code>for … in</code>; veja abaixo)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong><code>for … in</code> ou <code>Object.keys</code>?</strong>
+<p>Para os objetos que você cria com <code>{ }</code>, dão o mesmo resultado. A diferença: o <code>for … in</code> também passa por propriedades <strong>herdadas</strong> (aula <a href="prototipos.html">Protótipos</a>), e o <code>Object.keys</code>/<code>entries</code> só pelas <strong>próprias</strong>. Por isso muitos guias de estilo preferem <code>Object.entries</code> com <code>for … of</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>for … of</code> direto no objeto</strong>
+<pre class="file" data-file="forof-obj.js">const produto = { nome: "caderno", preco: 18, estoque: 40 };
+for (const valor of produto) {
+  console.log(valor);
+}
+</pre>
+<pre class="term">$ node forof-obj.js
+/home/ana/forof-obj.js:2
+for (const valor of produto) {
+                    ^
+
+TypeError: produto is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/forof-obj.js:2:21)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/forof-obj.js:2 e o <code>^</code></dt><dd>Linha 2; o <code>^</code> aponta para o <code>produto</code>.</dd>
+  <dt>TypeError: produto is not iterable</dt><dd>"<code>produto</code> não é iterável": o <code>for … of</code> só funciona com coisas que têm uma <strong>sequência</strong> de itens (arrays, textos, <a href="set.html">Set</a>, <a href="colecao-map.html">Map</a>). Um objeto comum não diz qual seria "o próximo item".</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:2:21)</dt><dd>O seu programa, linha 2, coluna 21.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> percorra um dos arrays do objeto: <code>for (const valor of Object.values(produto))</code>, ou use <code>for … in</code> para as chaves.</p>
+</div>
+
+<div class="cenario">
+<strong><code>for … in</code> num array</strong>
+<pre class="file" data-file="forin-array.js">const notas = [7, 8, 9];
+for (const i in notas) {
+  console.log(i, typeof i, i + 1);
+}
+</pre>
+<pre class="term">$ node forin-array.js
+0 string 01
+1 string 11
+2 string 21
+</pre>
+<p>Funciona… mais ou menos. Num array, o <code>for … in</code> entrega os <strong>índices</strong>, e não os itens, e os índices vêm como <strong>texto</strong>: <code>i + 1</code> deu <code>"01"</code>, <code>"11"</code>, <code>"21"</code> em vez de 1, 2, 3 (aula <a href="conversao-automatica.html">Conversão Automática</a>). <strong>Como consertar:</strong> para arrays, use <code>for … of</code> (os itens) ou o <code>for</code> com contador (os índices como número). <strong>Regra:</strong> <code>in</code> para objetos, <code>of</code> para arrays.</p>
+</div>
+
+<div class="cenario">
+<strong>O ponto com a variável da chave</strong>
+<pre class="file" data-file="ponto.js">const produto = { nome: "caderno", preco: 18 };
+for (const chave in produto) {
+  console.log(chave, produto.chave);
+}
+</pre>
+<pre class="term">$ node ponto.js
+nome undefined
+preco undefined
+</pre>
+<p>As chaves aparecem, os valores não. <code>produto.chave</code> procura uma propriedade chamada <em>chave</em>, literalmente. <strong>Como consertar:</strong> <code>produto[chave]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Object.keys</code> de algo que não existe</strong>
+<pre class="file" data-file="keys-undefined.js">let cliente;
+console.log(Object.keys(cliente));
+</pre>
+<pre class="term">$ node keys-undefined.js
+/home/ana/keys-undefined.js:2
+console.log(Object.keys(cliente));
+                   ^
+
+TypeError: Cannot convert undefined or null to object
+    at Object.keys (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/keys-undefined.js:2:20)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para converter <code>undefined</code> ou <code>null</code> em objeto". A variável <code>cliente</code> nunca recebeu um objeto. A pilha mostra que o erro foi dentro do <code>Object.keys</code>, chamado pela linha 2. O mesmo vale para <code>Object.values</code> e <code>Object.entries</code>. <strong>Como consertar:</strong> confira de onde a variável deveria ter vindo; se ela pode faltar, use um objeto vazio como padrão: <code>Object.keys(cliente ?? {})</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>.length</code> num objeto</strong>
+<pre class="file" data-file="length.js">const produto = { nome: "caderno", preco: 18 };
+console.log(produto.length);
+console.log(Object.keys(produto).length);
+</pre>
+<pre class="term">$ node length.js
+undefined
+2
+</pre>
+<p>Objetos não têm <code>length</code>: <code>produto.length</code> é só uma propriedade que não existe. <strong>Como consertar:</strong> <code>Object.keys(produto).length</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (const chave in obj) { … }</code></td><td>Uma volta por chave (texto); valor com <code>obj[chave]</code></td></tr>
+<tr><td><code>Object.keys(obj)</code></td><td>Array com as chaves</td></tr>
+<tr><td><code>Object.values(obj)</code></td><td>Array com os valores</td></tr>
+<tr><td><code>Object.entries(obj)</code></td><td>Array de pares <code>[chave, valor]</code></td></tr>
+<tr><td><code>for (const [chave, valor] of Object.entries(obj))</code></td><td>Laço com chave e valor prontos</td></tr>
+<tr><td><code>Object.fromEntries(pares)</code></td><td>Cria um objeto a partir de pares <code>[chave, valor]</code></td></tr>
+<tr><td><code>Object.keys(obj).length</code></td><td>Quantas propriedades o objeto tem</td></tr>
+<tr><td><code>Object.groupBy(lista, f)</code> <span class="versao">ES2024</span></td><td>Objeto com um array por grupo (o grupo é o que <code>f</code> devolve)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: obj is not iterable</code></td><td><code>for … of</code> direto num objeto: use <code>Object.entries</code></td></tr>
+<tr><td>Índices <code>"0"</code>, <code>"1"</code> e contas como <code>"01"</code></td><td><code>for … in</code> num array: use <code>for … of</code></td></tr>
+<tr><td>Valores <code>undefined</code> no <code>for … in</code></td><td><code>obj.chave</code> no lugar de <code>obj[chave]</code></td></tr>
+<tr><td><code>TypeError: Cannot convert undefined or null to object</code></td><td><code>Object.keys/values/entries</code> de <code>undefined</code> ou <code>null</code></td></tr>
+<tr><td>Chaves numéricas fora da ordem em que foram escritas</td><td>Não é erro: inteiros vêm primeiro, em ordem crescente</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<p>Complete para mostrar cada chave e valor de <code>pet</code>:</p>
+<div class="ex-code">for (const [chave, valor] of Object.<input data-answer="entries" aria-label="função do Object">(pet)) {<br>&nbsp;&nbsp;console.log(chave, valor);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas propriedades?</h3>
+<p>Quanto vale <code>Object.keys({ a: 1, b: 2, c: 3 }).length</code>?</p>
+<div class="ex-code">Vale <input data-answer="3" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>Object.values({ x: 10, y: 20 })</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>[ 'x', 'y' ]</code></label>
+<label><input type="radio" name="q3"> <code>[ 10, 20 ]</code></label>
+<label><input type="radio" name="q3"> <code>[ [ 'x', 10 ], [ 'y', 20 ] ]</code></label>
+<label><input type="radio" name="q3"> <code>30</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Para percorrer os itens de um <strong>array</strong>, qual laço usar?</p>
+<label><input type="radio" name="q4"> <code>for … in</code>, porque dá os itens</label>
+<label><input type="radio" name="q4"> <code>Object.entries</code>, sempre</label>
+<label><input type="radio" name="q4"> Nenhum: arrays não se percorrem</label>
+<label><input type="radio" name="q4"> <code>for … of</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Em que ordem <code>Object.keys({ b: 1, 2: 1, a: 1, 1: 1 })</code> devolve as chaves?</p>
+<label><input type="radio" name="q5"> <code>[ '1', '2', 'b', 'a' ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 'b', '2', 'a', '1' ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 'a', 'b', '1', '2' ]</code></label>
+<label><input type="radio" name="q5"> Uma ordem diferente a cada execução</label>
+</div>
+
+<h3>Missão final: o que está em falta?</h3>
+
+<div class="tryjs" data-goal="out:Em falta: caneta, borracha;;src:Object\.(entries|keys)\(">
+<p class="try-task"><strong>Missão:</strong> o estoque da papelaria é um objeto "produto → quantidade". Monte o array <code>emFalta</code> com os nomes dos produtos de quantidade <code>0</code>, para aparecer <code>Em falta: caneta, borracha</code>. Use <code>Object.entries</code> (ou <code>Object.keys</code>), com <code>filter</code> e <code>map</code> ou com um laço.</p>
+<pre class="script" data-file="main.js">const estoque = { caderno: 40, caneta: 0, mochila: 5, borracha: 0 };
+const emFalta = [];
+console.log(`Em falta: ${emFalta.join(", ")}`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = { caderno: 40, caneta: 0, mochila: 5, borracha: 0 };
+const emFalta = Object.entries(estoque)
+  .filter(([produto, quantidade]) =&gt; quantidade === 0)
+  .map(([produto]) =&gt; produto);
+console.log(`Em falta: ${emFalta.join(", ")}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Em falta: caneta, borracha</code>. Outro jeito: <code>Object.keys(estoque).filter((p) =&gt; estoque[p] === 0)</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (const chave in obj)</code> dá uma volta por chave; leia o valor com <code>obj[chave]</code>.</li>
+  <li><code>Object.keys</code>, <code>Object.values</code> e <code>Object.entries</code> transformam o objeto num array de chaves, de valores ou de pares, e liberam os métodos de array.</li>
+  <li>O jeito moderno: <code>for (const [chave, valor] of Object.entries(obj))</code>.</li>
+  <li><code>Object.fromEntries</code> volta de pares para objeto: <code>entries</code> → <code>map</code> → <code>fromEntries</code> transforma um objeto inteiro.</li>
+  <li>As chaves são sempre textos; as que parecem números inteiros vêm primeiro, em ordem crescente. Não dependa da ordem das chaves.</li>
+  <li><code>Object.groupBy</code> <span class="versao">ES2024</span> agrupa uma lista num objeto de arrays.</li>
+  <li><code>in</code> para objetos, <code>of</code> para arrays. <code>for … of</code> direto num objeto dá <code>is not iterable</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
