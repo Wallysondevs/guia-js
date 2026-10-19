@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript na Página — a tag &lt;script&gt;, src, defer e type="module" | Guia JavaScript</title>
+<meta name="description" content="Como colocar JavaScript numa página HTML, para quem nunca programou: a tag script com o código dentro, o arquivo script.js com src, por que a posição da tag importa (Cannot set properties of null), defer, DOMContentLoaded, type=module e o bloqueio de CORS no file://, a ordem de vários scripts, o onclick antigo e os erros reais do Chromium (arquivo não encontrado, erro de sintaxe).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">JavaScript na Página (&lt;script&gt;)</span></h1>
+
+<p class="intro">Na aula <a href="dom.html">O que é o DOM</a>, a Ana mexeu na página digitando no Console. Mas o que se digita no Console some quando a página recarrega. Para o JavaScript rodar <strong>toda vez</strong> que alguém abre a página, ele precisa estar <strong>ligado ao HTML</strong>. Quem faz essa ligação é a tag <code>&lt;script&gt;</code> ("roteiro"). Parece simples, e é, mas <strong>onde</strong> você põe essa tag muda tudo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os dois jeitos de usar a tag <code>&lt;script&gt;</code>: com o código dentro e com um arquivo <code>script.js</code> separado (<code>src</code>).</li>
+  <li>Por que um script no <code>&lt;head&gt;</code> quebra com <code>Cannot set properties of null</code>, e três formas de resolver: no fim do <code>&lt;body&gt;</code>, <code>defer</code> e <code>DOMContentLoaded</code>.</li>
+  <li>O <code>type="module"</code>, e por que ele não funciona quando a página é aberta com dois cliques.</li>
+  <li>Como vários scripts na mesma página se enxergam, e por que a ordem deles importa.</li>
+  <li>O <code>onclick</code> escrito no HTML, que você vai ver em código antigo.</li>
+  <li>Os erros reais do Console: arquivo não encontrado, erro de sintaxe, CORS.</li>
+</ul>
+</div>
+
+<p>As páginas desta aula foram abertas no <strong>Chromium</strong> da máquina da Ana, e as mensagens do Console mostradas aqui foram colhidas lá. Em quase todas, a página foi aberta com <strong>dois cliques</strong> no arquivo <code>index.html</code> (o endereço fica <code>file:///home/ana/…</code>); quando foi aberta por um servidor, a aula avisa.</p>
+
+<hr>
+
+<h2>A ideia: o roteiro do teatro</h2>
+<p>Pense numa peça de teatro. O cenário (o HTML) é montado no palco, peça por peça, de cima para baixo. O <strong>roteiro</strong> (o JavaScript) diz o que os atores fazem com o cenário: "acenda a luz do abajur", "troque a placa da porta".</p>
+<p>O problema: se o ator ler a frase "troque a placa da porta" <strong>antes</strong> de a porta ser montada, ele não tem o que trocar. No navegador acontece exatamente isso. Ele lê o HTML <strong>de cima para baixo</strong>, construindo o DOM aos poucos, e quando encontra um <code>&lt;script&gt;</code>, <strong>para tudo e roda o script na hora</strong>. O script só enxerga o que já foi construído até ali.</p>
+
+<hr>
+
+<h2>1. O código dentro da tag</h2>
+<p>O jeito mais direto: escrever o JavaScript entre <code>&lt;script&gt;</code> e <code>&lt;/script&gt;</code>, dentro do HTML.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+  &lt;script&gt;
+    console.log("Olá do JavaScript!");
+    document.querySelector("#aviso").textContent = "Aberto das 6h às 20h";
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>Ao abrir a página, o parágrafo mostra <strong>Aberto das 6h às 20h</strong> (o <code>Carregando...</code> do HTML foi trocado tão rápido que nem aparece), e o Console mostra:</p>
+
+<pre class="devtools">Olá do JavaScript!
+</pre>
+
+<p>À direita da mensagem, o DevTools mostra de onde ela veio: <code>index.html:11</code>, a linha 11 do arquivo HTML, onde está o <code>console.log</code>.</p>
+
+<dl class="anatomy">
+  <dt>&lt;script&gt; … &lt;/script&gt;</dt><dd>Tudo o que fica entre as duas tags é JavaScript, não HTML. O navegador roda esse código quando chega nele.</dd>
+  <dt>No fim do &lt;body&gt;</dt><dd>A tag está <strong>depois</strong> do <code>&lt;p id="aviso"&gt;</code>. Quando o script roda, o parágrafo já existe no DOM e o <code>querySelector("#aviso")</code> o encontra (o <code>#</code> procura pelo <code>id</code>; veja <a href="dom-selecionar.html">Selecionando Elementos</a>).</dd>
+</dl>
+
+<p>Funciona, mas tem desvantagens: o HTML e o JavaScript ficam misturados no mesmo arquivo, e o mesmo código não pode ser usado em outras páginas. Por isso, o jeito mais comum é o próximo.</p>
+
+<hr>
+
+<h2>2. O arquivo separado: <code>&lt;script src="…"&gt;</code></h2>
+<p>A Ana criou uma pasta <code>meu-site</code> com dois arquivos lado a lado:</p>
+
+<pre class="file" data-file="a pasta meu-site">meu-site/
+├── index.html
+└── script.js
+</pre>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">console.log("Olá do script.js!");
+document.querySelector("#aviso").textContent = "Aberto das 6h às 20h";
+</pre>
+
+<pre class="devtools">Olá do script.js!
+</pre>
+
+<p>O resultado na tela é o mesmo, e agora o link à direita da mensagem diz <code>script.js:1</code>: o arquivo e a linha do <code>console.log</code>.</p>
+
+<dl class="anatomy">
+  <dt>src="script.js"</dt><dd><code>src</code> vem de <em>source</em>, "fonte": o endereço do arquivo com o código. Um nome sozinho, como <code>script.js</code>, quer dizer "na mesma pasta do <code>index.html</code>". Numa subpasta, seria <code>src="js/script.js"</code>.</dd>
+  <dt>&lt;/script&gt;</dt><dd>A tag de fechar é <strong>obrigatória</strong>, mesmo sem nada dentro. E, com <code>src</code>, o que você escrever entre as duas tags é <strong>ignorado</strong>.</dd>
+  <dt>O arquivo script.js</dt><dd>Só JavaScript, sem nenhuma tag <code>&lt;script&gt;</code> dentro. É o mesmo tipo de arquivo que você roda no Node com <code>node arquivo.js</code>; a diferença é quem roda (o navegador) e o que existe lá (o <code>document</code>).</dd>
+</dl>
+
+<div class="tip">
+<strong>Por que separar?</strong>
+<p>Cada arquivo cuida de uma coisa: o HTML da estrutura, o CSS da aparência, o JavaScript do comportamento. O editor de código colore e confere cada um direito, o mesmo <code>script.js</code> pode servir a várias páginas, e o navegador guarda o arquivo na memória (o <em>cache</em>) para abrir as próximas páginas mais rápido.</p>
+</div>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente:</strong> as caixas de página do guia já trabalham assim: a aba <code>index.html</code> tem a tag <code>&lt;script src="script.js"&gt;</code>, e o código fica na aba <code>script.js</code>. Mude o horário no <code>script.js</code> e rode de novo.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Olá do script.js!");
+document.querySelector("#aviso").textContent = "Aberto das 6h às 20h";
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A posição importa: o script no <code>&lt;head&gt;</code></h2>
+<p>Muita gente põe o <code>&lt;script&gt;</code> no <code>&lt;head&gt;</code>, junto com o <code>&lt;title&gt;</code>. Com o mesmo <code>script.js</code>:</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="devtools">Olá do script.js!
+Uncaught TypeError: Cannot set properties of null (setting 'textContent')
+    at script.js:2:46
+</pre>
+
+<p>A primeira linha do script rodou (a mensagem apareceu), mas a segunda quebrou, e o parágrafo continuou dizendo <strong>Carregando...</strong>. O que aconteceu:</p>
+<ol class="passo">
+  <li>O navegador começou a ler o HTML e chegou ao <code>&lt;script&gt;</code> no <code>&lt;head&gt;</code>. Parou e rodou o <code>script.js</code>.</li>
+  <li>Nesse momento, o <code>&lt;body&gt;</code> ainda não tinha sido lido: o <code>&lt;p id="aviso"&gt;</code> <strong>não existia</strong> no DOM.</li>
+  <li><code>document.querySelector("#aviso")</code> não achou nada e devolveu <code>null</code> ("nada").</li>
+  <li><code>null.textContent = …</code>: não dá para mudar uma propriedade de nada. Erro.</li>
+</ol>
+
+<p>Lendo a mensagem:</p>
+<dl class="anatomy">
+  <dt>Uncaught</dt><dd>"Não capturado": ninguém tratou o erro com <code>try … catch</code>.</dd>
+  <dt>TypeError: Cannot set properties of null (setting 'textContent')</dt><dd>"Erro de tipo: não é possível definir propriedades de <code>null</code> (definindo <code>textContent</code>)." O valor à esquerda do ponto era <code>null</code>.</dd>
+  <dt>at script.js:2:46</dt><dd>No arquivo <code>script.js</code>, linha 2, coluna 46: bem no <code>.textContent</code>.</dd>
+</dl>
+
+<p>Há três jeitos de consertar. Todos fazem o script rodar <strong>depois</strong> que o elemento existe.</p>
+
+<h3>Conserto 1: a tag no fim do <code>&lt;body&gt;</code></h3>
+<p>É o que as seções 1 e 2 fizeram: a tag <code>&lt;script&gt;</code> logo antes do <code>&lt;/body&gt;</code>. Quando o navegador chega nela, todo o conteúdo da página já foi lido. É o jeito tradicional, e é o que as caixas deste guia usam.</p>
+
+<h3>Conserto 2: <code>defer</code></h3>
+<p>Deixe a tag no <code>&lt;head&gt;</code> e acrescente o atributo <code>defer</code> ("adiar"):</p>
+
+<pre class="file" data-file="index.html (só a linha que mudou)">  &lt;script src="script.js" defer&gt;&lt;/script&gt;
+</pre>
+
+<pre class="devtools">Olá do script.js!
+</pre>
+
+<p>Sem erro, e o parágrafo mostrou <strong>Aberto das 6h às 20h</strong>. Com <code>defer</code>, o navegador baixa o arquivo enquanto continua lendo o HTML, e só <strong>roda</strong> o script quando terminou de ler a página inteira. É o jeito mais usado hoje: a tag fica arrumada no <code>&lt;head&gt;</code>, e o script não precisa esperar sua vez para ser baixado. (O <code>defer</code> só vale para scripts com <code>src</code>; num <code>&lt;script&gt;</code> com o código dentro, ele é ignorado.)</p>
+
+<h3>Conserto 3: esperar o evento <code>DOMContentLoaded</code></h3>
+<p>Também dá para deixar o script no <code>&lt;head&gt;</code>, sem <code>defer</code>, e pedir ao navegador: "me avise quando terminar de construir o DOM". Esse aviso é o <strong>evento</strong> <code>DOMContentLoaded</code> ("conteúdo do DOM carregado"):</p>
+
+<pre class="file" data-file="script.js">document.addEventListener("DOMContentLoaded", () =&gt; {
+  console.log("A página foi lida até o fim!");
+  document.querySelector("#aviso").textContent = "Aberto das 6h às 20h";
+});
+</pre>
+
+<pre class="devtools">A página foi lida até o fim!
+</pre>
+
+<p>O <code>addEventListener</code> ("adicionar ouvinte de evento") guarda a função e só a chama quando o evento acontece; a aula <a href="eventos.html">Eventos</a> explica em detalhes. Você vai ver muito esse jeito em código mais antigo, de antes de o <code>defer</code> ser comum.</p>
+
+<div class="tryweb" data-goal="texto:#aviso~Aberto das 6h às 20h;;semerro">
+<p class="try-task"><strong>Missão:</strong> o script está no <code>&lt;head&gt;</code> e quebra com <code>Cannot set properties of null</code> (veja o Console da caixa). Conserte de um dos três jeitos: mova a tag para o fim do <code>&lt;body&gt;</code>, ou acrescente <code>defer</code> na tag.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Olá do script.js!");
+document.querySelector("#aviso").textContent = "Aberto das 6h às 20h";
+</pre>
+<pre class="solucao" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+  &lt;script src="script.js" defer&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="aviso"&gt;Carregando...&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>type="module"</code>: o script como módulo</h2>
+<p>Na aula <a href="modulos.html">Módulos</a>, você viu o <code>import</code> e o <code>export</code>. No navegador, para um script poder usar <code>import</code>, a tag precisa de <code>type="module"</code>:</p>
+
+<pre class="file" data-file="index.html (só a linha que mudou)">  &lt;script type="module" src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<p>Um script módulo já se comporta como <code>defer</code> (espera a página ser lida), roda no <a href="strict-mode.html">modo estrito</a> e pode usar <code>await</code> no topo do arquivo. Só que, abrindo o <code>index.html</code> com dois cliques, a Ana teve uma surpresa:</p>
+
+<pre class="devtools">Access to script at 'file:///home/ana/meu-site/script.js' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-experimental-site-token-provider, chrome-extension, chrome-untrusted, data, http, https, isolated-app.
+Failed to load resource: net::ERR_FAILED
+</pre>
+
+<p>O script nem rodou. "O acesso ao script em <code>file:///…</code> a partir da origem <code>null</code> foi bloqueado pela política de CORS: pedidos entre origens só são permitidos para os protocolos chrome, data, http, https…". Traduzindo: por segurança, o Chrome <strong>não carrega módulos</strong> de uma página aberta direto do disco (<code>file://</code>). A segunda linha confirma que o arquivo não foi carregado.</p>
+<p><strong>Como consertar:</strong> abra a página por um <strong>servidor</strong>, mesmo que seja no seu computador. O mais fácil é a extensão <strong>Live Server</strong> do VS Code (botão "Go Live"). Pelo endereço <code>http://127.0.0.1:5500/index.html</code>, a mesma página funcionou:</p>
+
+<pre class="devtools">Olá do script.js!
+&gt; location.href
+'http://127.0.0.1:5500/index.html'
+</pre>
+
+<p>Os scripts comuns (sem <code>type="module"</code>) funcionam com dois cliques, sem servidor. Por isso as aulas deste grupo usam scripts comuns.</p>
+
+<hr>
+
+<h2>5. Vários scripts na mesma página</h2>
+<p>Uma página pode ter várias tags <code>&lt;script&gt;</code>. Os scripts comuns rodam <strong>na ordem em que aparecem</strong> e <strong>compartilham as variáveis</strong> do nível de cima: uma <code>const</code> criada num arquivo pode ser usada no seguinte. A Ana guardou os preços num arquivo à parte:</p>
+
+<pre class="file" data-file="precos.js">const precoPao = 0.8;
+</pre>
+
+<pre class="file" data-file="script.js">console.log(`Pão francês: R$ ${precoPao.toFixed(2)}`);
+</pre>
+
+<pre class="file" data-file="index.html (o fim do body)">  &lt;script src="precos.js"&gt;&lt;/script&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="devtools">Pão francês: R$ 0.80
+</pre>
+
+<p>Agora com as duas tags trocadas de lugar (primeiro o <code>script.js</code>):</p>
+
+<pre class="devtools">Uncaught ReferenceError: precoPao is not defined
+    at script.js:1:32
+</pre>
+
+<p>O <code>script.js</code> rodou primeiro, quando o <code>precos.js</code> ainda não tinha criado a <code>precoPao</code>. "Erro de referência: <code>precoPao</code> não está definido", na linha 1, coluna 32 do <code>script.js</code>. <strong>A ordem das tags é a ordem de execução:</strong> quem fornece vem antes de quem usa. (Com <code>type="module"</code> é diferente: cada módulo tem as suas variáveis, e um usa o do outro com <code>import</code>.)</p>
+
+<hr>
+
+<h2>6. No código antigo: <code>onclick</code> no HTML</h2>
+<p>Você ainda vai encontrar JavaScript escrito <strong>dentro de um atributo</strong> do HTML:</p>
+
+<pre class="file" data-file="index.html (trecho)">&lt;button onclick="console.log(&amp;quot;Clicou!&amp;quot;)"&gt;Clique&lt;/button&gt;
+</pre>
+
+<p>Ao clicar no botão, o Console mostrou <code>Clicou!</code>. Funciona, mas mistura de novo HTML e JavaScript, complica as aspas (repare no <code>&amp;quot;</code>, o jeito de escrever aspas dentro de um atributo) e só permite uma ação por evento. Hoje, o jeito recomendado é o <code>addEventListener</code> num arquivo <code>.js</code>, como na aula <a href="eventos.html">Eventos</a>. Reconheça o <code>onclick="…"</code> quando o vir, mas não escreva código novo assim.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Onde fica a tag</th><th>Quando o código roda</th><th>Quando usar</th></tr>
+<tr><td><code>&lt;script src="script.js"&gt;&lt;/script&gt;</code></td><td>No fim do <code>&lt;body&gt;</code></td><td>Quando o navegador chega nela (o resto da página já foi lido)</td><td>O jeito clássico; o das caixas deste guia</td></tr>
+<tr><td><code>&lt;script src="script.js" defer&gt;&lt;/script&gt;</code></td><td>No <code>&lt;head&gt;</code></td><td>Depois que a página inteira foi lida, na ordem das tags</td><td>O mais usado hoje</td></tr>
+<tr><td><code>&lt;script type="module" src="script.js"&gt;&lt;/script&gt;</code></td><td>No <code>&lt;head&gt;</code></td><td>Como o <code>defer</code></td><td>Quando o código usa <code>import</code>/<code>export</code> (precisa de servidor)</td></tr>
+<tr><td><code>&lt;script&gt; … código … &lt;/script&gt;</code></td><td>No fim do <code>&lt;body&gt;</code></td><td>Quando o navegador chega nela</td><td>Testes rápidos e trechos muito curtos</td></tr>
+<tr><td><code>DOMContentLoaded</code> dentro do script</td><td>Em qualquer lugar</td><td>Quando o DOM fica pronto</td><td>Código antigo, ou quando você não controla onde a tag fica</td></tr>
+<tr><td><code>onclick="…"</code> no HTML</td><td>No atributo</td><td>No clique</td><td>Só para reconhecer em código antigo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O nome do arquivo está errado</strong>
+<p>A Ana escreveu <code>&lt;script src="scripts.js"&gt;</code> (com um <code>s</code> a mais), mas o arquivo se chama <code>script.js</code>:</p>
+<pre class="devtools">Failed to load resource: net::ERR_FILE_NOT_FOUND
+</pre>
+<p>"Falha ao carregar o recurso: arquivo não encontrado." O link à direita diz <code>scripts.js</code>, o nome que o navegador procurou. A página aparece normal, só que <strong>nada</strong> do JavaScript acontece (o parágrafo ficou em <strong>Carregando...</strong>). Aberta por um servidor, a mesma página mostra <code>Failed to load resource: the server responded with a status of 404 (Not Found)</code> ("o servidor respondeu com o código 404, não encontrado"). <strong>Como consertar:</strong> confira o nome, a pasta e as maiúsculas/minúsculas (<code>Script.js</code> e <code>script.js</code> são arquivos diferentes no Linux e nos servidores).</p>
+</div>
+
+<div class="cenario">
+<strong>Um erro de sintaxe derruba o arquivo inteiro</strong>
+<pre class="file" data-file="script.js">console.log("Olá do script.js!");
+document.querySelector("#aviso").textContent = "Aberto das 6h às 20h;
+</pre>
+<pre class="devtools">Uncaught SyntaxError: Invalid or unexpected token
+</pre>
+<p>Faltou fechar as aspas na linha 2 (o link à direita diz <code>script.js:2</code>). "Erro de sintaxe: símbolo inválido ou inesperado." Repare que <strong>nem a linha 1 rodou</strong>: o <code>Olá do script.js!</code> não apareceu. Antes de rodar um script, o navegador lê o arquivo inteiro; com um erro de sintaxe em qualquer lugar, ele não roda nada daquele arquivo. Um erro em um arquivo não impede os outros scripts da página de rodar. <strong>Como consertar:</strong> feche as aspas: <code>"Aberto das 6h às 20h";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Cannot set properties of null</code></strong>
+<p>O elemento ainda não existia quando o script rodou (seção 3), ou o seletor está errado (<code>"aviso"</code> sem o <code>#</code>, um <code>id</code> com outro nome). Para saber qual dos dois, digite o seletor no Console depois que a página abrir: <code>document.querySelector("#aviso")</code>. Se aparecer o elemento, o problema era a hora; se aparecer <code>null</code>, o seletor está errado (veja <a href="dom-selecionar.html">Selecionando Elementos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>type="module"</code> aberto com dois cliques</strong>
+<p>O erro <code>has been blocked by CORS policy</code> da seção 4. <strong>Como consertar:</strong> use um servidor (Live Server), ou tire o <code>type="module"</code> se o código não usa <code>import</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>&lt;script src="…" /&gt;</code> sem a tag de fechar</strong>
+<p>Em HTML, <code>&lt;script&gt;</code> <strong>sempre</strong> precisa do <code>&lt;/script&gt;</code>. A barra no fim (<code>/&gt;</code>) é ignorada, e o navegador passa a tratar todo o HTML seguinte como se fosse o conteúdo do script, até achar um <code>&lt;/script&gt;</code>. No Chromium da Ana, com <code>&lt;script src="script.js" /&gt;</code> logo no começo do <code>&lt;body&gt;</code>, a página ficou <strong>em branco</strong> (no Console, <code>document.querySelectorAll("h1").length</code> deu <code>0</code>: o título virou texto do script) e o próprio <code>script.js</code> nem rodou. <strong>Como consertar:</strong> <code>&lt;script src="script.js"&gt;&lt;/script&gt;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>&lt;script&gt; código &lt;/script&gt;</code></td><td>Roda o código quando o navegador chega na tag</td></tr>
+<tr><td><code>&lt;script src="script.js"&gt;&lt;/script&gt;</code></td><td>Carrega e roda o arquivo <code>script.js</code> (da mesma pasta)</td></tr>
+<tr><td><code>defer</code></td><td>Roda depois que a página inteira foi lida (só com <code>src</code>)</td></tr>
+<tr><td><code>type="module"</code></td><td>Script como módulo: permite <code>import</code>, já é adiado como <code>defer</code>; precisa de servidor</td></tr>
+<tr><td><code>document.addEventListener("DOMContentLoaded", () =&gt; { … })</code></td><td>Roda a função quando o DOM fica pronto</td></tr>
+<tr><td>Várias tags <code>&lt;script&gt;</code></td><td>Rodam na ordem; os scripts comuns compartilham as variáveis do topo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem no Console</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot set properties of null</code> / <code>Cannot read properties of null</code></td><td>O script rodou antes de o elemento existir, ou o seletor está errado</td></tr>
+<tr><td><code>Failed to load resource: net::ERR_FILE_NOT_FOUND</code> (ou <code>404</code>)</td><td>O nome ou a pasta do <code>src</code> estão errados</td></tr>
+<tr><td><code>Uncaught SyntaxError</code> e nada do arquivo rodou</td><td>Erro de sintaxe em alguma linha do arquivo</td></tr>
+<tr><td><code>ReferenceError: … is not defined</code> entre arquivos</td><td>Os scripts estão na ordem errada</td></tr>
+<tr><td><code>blocked by CORS policy</code> com <code>file:///</code></td><td><code>type="module"</code> (ou <code>fetch</code>) numa página aberta com dois cliques</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a tag</h3>
+<p>Complete para carregar o arquivo <code>app.js</code> no <code>&lt;head&gt;</code>, rodando só depois que a página for lida:</p>
+<div class="ex-code">&lt;script <input data-answer="src" aria-label="atributo do endereço">="app.js" <input data-answer="defer" aria-label="atributo para adiar">&gt;&lt;/<input data-answer="script" aria-label="nome da tag">&gt;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual valor?</h3>
+<p>Um script no <code>&lt;head&gt;</code>, sem <code>defer</code>, faz <code>document.querySelector("h1")</code>, e o <code>&lt;h1&gt;</code> está no <code>&lt;body&gt;</code>. O que o <code>querySelector</code> devolve?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor devolvido"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O <code>script.js</code> tem um erro de sintaxe na linha 10. O que acontece com as linhas 1 a 9?</p>
+<label><input type="radio" name="q3"> Rodam normalmente; só a linha 10 falha</label>
+<label><input type="radio" name="q3"> Nenhuma roda: com erro de sintaxe, o arquivo inteiro não roda</label>
+<label><input type="radio" name="q3"> Rodam duas vezes</label>
+<label><input type="radio" name="q3"> O navegador conserta o erro sozinho</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. A página tem <code>&lt;script src="a.js"&gt;</code> e depois <code>&lt;script src="b.js"&gt;</code>. O <code>b.js</code> usa uma <code>const</code> criada no <code>a.js</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Erro: cada arquivo tem as suas variáveis</label>
+<label><input type="radio" name="q4"> Funciona só com <code>type="module"</code></label>
+<label><input type="radio" name="q4"> Depende do navegador</label>
+<label><input type="radio" name="q4"> Funciona: scripts comuns rodam na ordem e compartilham as variáveis do topo</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que um <code>&lt;script type="module"&gt;</code> não roda quando a Ana abre o <code>index.html</code> com dois cliques?</p>
+<label><input type="radio" name="q5"> O Chrome bloqueia módulos em páginas <code>file://</code> (CORS); é preciso um servidor</label>
+<label><input type="radio" name="q5"> Módulos só funcionam no Node</label>
+<label><input type="radio" name="q5"> Faltou o <code>defer</code></label>
+<label><input type="radio" name="q5"> O arquivo precisa terminar em <code>.module</code></label>
+</div>
+
+<h3>Missão final: a ordem dos scripts</h3>
+
+<div class="tryweb" data-goal="console:Pão francês: R$ 0.80;;semerro">
+<p class="try-task"><strong>Missão:</strong> o Console mostra <code>ReferenceError: precoPao is not defined</code>. Na aba <code>index.html</code>, ponha as duas tags <code>&lt;script&gt;</code> na ordem certa, para o <code>script.js</code> conseguir usar o preço criado no <code>precos.js</code>.</p>
+<pre class="script" data-file="index.html">&lt;p&gt;Veja o preço no Console.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;script src="precos.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="precos.js">const precoPao = 0.8;
+</pre>
+<pre class="script" data-file="script.js">console.log(`Pão francês: R$ ${precoPao.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="index.html">&lt;p&gt;Veja o preço no Console.&lt;/p&gt;
+&lt;script src="precos.js"&gt;&lt;/script&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A tag <code>&lt;script&gt;</code> liga o JavaScript à página: com o código dentro, ou, melhor, com <code>src="script.js"</code> apontando para um arquivo separado (e sempre com <code>&lt;/script&gt;</code>).</li>
+  <li>O navegador lê o HTML de cima para baixo e roda cada script quando chega nele; o script só enxerga o que já foi construído.</li>
+  <li>Script no <code>&lt;head&gt;</code> sem cuidado dá <code>Cannot set properties of null</code>. Soluções: tag no fim do <code>&lt;body&gt;</code>, <code>defer</code>, ou <code>DOMContentLoaded</code>.</li>
+  <li><code>type="module"</code> permite <code>import</code> e já é adiado, mas precisa de um servidor (com <code>file://</code>, o Chrome bloqueia por CORS).</li>
+  <li>Vários scripts comuns rodam na ordem das tags e compartilham as variáveis: quem fornece vem antes de quem usa.</li>
+  <li>Um erro de sintaxe impede o arquivo inteiro de rodar; um <code>src</code> errado dá <code>ERR_FILE_NOT_FOUND</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
