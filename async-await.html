@@ -71,6 +71,11 @@ Olá, Ana!
   <dt>resultado.then(…)</dt><dd>Como é uma Promise, o valor se tira com <code>.then()</code>, igual na aula <a href="promises.html">Promises</a>. A seguir você vai ver o jeito mais curto: o <code>await</code>.</dd>
 </dl>
 
+<div class="note">
+<strong>No editor do guia</strong>
+<p>Se você rodar este programa numa caixa do guia, a primeira linha sai <code>Promise { &lt;pending&gt; }</code>, e não <code>Promise { 'Olá, Ana!' }</code>. O editor roda no navegador, que não deixa espiar o valor guardado numa Promise de função <code>async</code>; o Node deixa. A segunda linha, a do <code>.then</code>, sai igual nos dois.</p>
+</div>
+
 <div class="tip">
 <strong>Regra de ouro</strong>
 <p>Uma função <code>async</code> <strong>sempre</strong> devolve uma Promise. Se ela fizer <code>return 10</code>, quem chamou recebe uma Promise que se resolve com <code>10</code>. Se ela lançar um erro com <code>throw</code>, quem chamou recebe uma Promise <strong>rejeitada</strong> (a seção 4 mostra isso).</p>
