@@ -28,7 +28,7 @@
   <li>O <code>type="module"</code>, e por que ele não funciona quando a página é aberta com dois cliques.</li>
   <li>Como vários scripts na mesma página se enxergam, e por que a ordem deles importa.</li>
   <li>O <code>onclick</code> escrito no HTML, que você vai ver em código antigo.</li>
-  <li>Os erros reais do Console: arquivo não encontrado, erro de sintaxe, CORS.</li>
+  <li>Os erros reais do Console: arquivo não encontrado, erro de sintaxe, CORS, e os acentos estragados quando falta o <code>&lt;meta charset="utf-8"&gt;</code>.</li>
 </ul>
 </div>
 
@@ -71,6 +71,7 @@
 
 <dl class="anatomy">
   <dt>&lt;script&gt; … &lt;/script&gt;</dt><dd>Tudo o que fica entre as duas tags é JavaScript, não HTML. O navegador roda esse código quando chega nele.</dd>
+  <dt>&lt;meta charset="utf-8"&gt;</dt><dd>Avisa ao navegador que o arquivo foi salvo em <strong>UTF-8</strong>, o jeito de guardar letras com acento que os editores de código usam. Ponha sempre, logo no começo do <code>&lt;head&gt;</code>: sem ele, os acentos podem sair estragados (veja <a href="#errado">Quando dá errado</a>).</dd>
   <dt>No fim do &lt;body&gt;</dt><dd>A tag está <strong>depois</strong> do <code>&lt;p id="aviso"&gt;</code>. Quando o script roda, o parágrafo já existe no DOM e o <code>querySelector("#aviso")</code> o encontra (o <code>#</code> procura pelo <code>id</code>; veja <a href="dom-selecionar.html">Selecionando Elementos</a>).</dd>
 </dl>
 
@@ -321,6 +322,14 @@ Failed to load resource: net::ERR_FAILED
 </div>
 
 <div class="cenario">
+<strong>Os acentos saem estranhos: <code>OlÃ¡</code></strong>
+<p>A Ana esqueceu a linha <code>&lt;meta charset="utf-8"&gt;</code> no <code>&lt;head&gt;</code> do <code>index.html</code> da seção 2 e abriu a página com dois cliques. O <code>script.js</code> era o mesmo, salvo em UTF-8:</p>
+<pre class="devtools">OlÃ¡ do script.js!
+</pre>
+<p>E o parágrafo mostrou <strong>Aberto das 6h Ã s 20h</strong>. Sem o aviso, o Chromium leu os arquivos com outra tabela de letras (no Console, <code>document.characterSet</code> deu <code>'windows-1252'</code>): cada letra com acento, que em UTF-8 ocupa dois bytes, virou duas letras estranhas. O <code>script.js</code> é lido com a mesma tabela da página, então o erro aparece nele também. <strong>Como consertar:</strong> <code>&lt;meta charset="utf-8"&gt;</code> logo no começo do <code>&lt;head&gt;</code>, como em todos os exemplos desta aula. (Nas caixas do guia isso não acontece: o editor já entrega as abas como UTF-8, mesmo quando o <code>index.html</code> é só um pedaço da página.)</p>
+</div>
+
+<div class="cenario">
 <strong>Um erro de sintaxe derruba o arquivo inteiro</strong>
 <pre class="file" data-file="script.js">console.log("Olá do script.js!");
 document.querySelector("#aviso").textContent = "Aberto das 6h às 20h;
@@ -367,6 +376,7 @@ document.querySelector("#aviso").textContent = "Aberto das 6h às 20h;
 <tr><td><code>Failed to load resource: net::ERR_FILE_NOT_FOUND</code> (ou <code>404</code>)</td><td>O nome ou a pasta do <code>src</code> estão errados</td></tr>
 <tr><td><code>Uncaught SyntaxError</code> e nada do arquivo rodou</td><td>Erro de sintaxe em alguma linha do arquivo</td></tr>
 <tr><td><code>ReferenceError: … is not defined</code> entre arquivos</td><td>Os scripts estão na ordem errada</td></tr>
+<tr><td>Acentos estragados (<code>OlÃ¡</code>, <code>Ã s</code>)</td><td>Faltou <code>&lt;meta charset="utf-8"&gt;</code> no <code>&lt;head&gt;</code></td></tr>
 <tr><td><code>blocked by CORS policy</code> com <code>file:///</code></td><td><code>type="module"</code> (ou <code>fetch</code>) numa página aberta com dois cliques</td></tr>
 </table>
 </div>
@@ -438,6 +448,7 @@ document.querySelector("#aviso").textContent = "Aberto das 6h às 20h;
   <li>Script no <code>&lt;head&gt;</code> sem cuidado dá <code>Cannot set properties of null</code>. Soluções: tag no fim do <code>&lt;body&gt;</code>, <code>defer</code>, ou <code>DOMContentLoaded</code>.</li>
   <li><code>type="module"</code> permite <code>import</code> e já é adiado, mas precisa de um servidor (com <code>file://</code>, o Chrome bloqueia por CORS).</li>
   <li>Vários scripts comuns rodam na ordem das tags e compartilham as variáveis: quem fornece vem antes de quem usa.</li>
+  <li>Comece o <code>&lt;head&gt;</code> com <code>&lt;meta charset="utf-8"&gt;</code>: sem ele, os acentos da página e do <code>script.js</code> podem sair como <code>OlÃ¡</code>.</li>
   <li>Um erro de sintaxe impede o arquivo inteiro de rodar; um <code>src</code> errado dá <code>ERR_FILE_NOT_FOUND</code>.</li>
 </ul>
 
