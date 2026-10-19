@@ -364,7 +364,7 @@ Node.js v24.22.0
 
 <div class="cenario">
 <strong>Funciona no editor do guia, mas não no Node 24 (ou ao contrário)</strong>
-<p>O editor usa o motor do <strong>seu navegador</strong>. Um Chrome recente pode ter recursos que o V8 13.6 do Node 24 ainda não tem (como o <code>Math.sumPrecise</code>); um Safari antigo pode não ter os métodos de <code>Set</code>. <strong>Como evitar:</strong> para um programa que vai rodar no Node, confira no Node (<code>node -p "typeof Map.prototype.getOrInsert"</code>).</p>
+<p>O editor usa o motor do <strong>seu navegador</strong>, mas imita o Node 24. Um Chrome recente tem recursos que o V8 13.6 do Node 24 ainda não tem (<code>Math.sumPrecise</code>, <code>Temporal</code>, <code>Uint8Array.fromBase64</code>, <code>Iterator.concat</code>, <code>getOrInsert</code>): o editor os <strong>esconde</strong>, e eles dão no editor o mesmo erro do Node 24. Fora do editor (no Console do F12 de um Chrome novo), eles podem funcionar. E um Safari antigo pode não ter os métodos de <code>Set</code>, nem dentro do editor. <strong>Como evitar:</strong> para um programa que vai rodar no Node, confira no Node (<code>node -p "typeof Map.prototype.getOrInsert"</code>).</p>
 </div>
 
 <div class="cenario">
