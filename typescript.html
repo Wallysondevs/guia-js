@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript e TypeScript — uma olhada nos tipos | Guia JavaScript</title>
+<meta name="description" content="Uma primeira olhada no TypeScript para quem aprendeu JavaScript: o que são anotações de tipo, interface, por que o Node.js 24 roda arquivos .ts direto (type stripping) mas não confere os tipos, o tsc que confere (npx tsc --noEmit), o enum que o Node recusa, e as mensagens reais (TS2345, TS2322, ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Uma Olhada no <span class="hl">TypeScript</span></h1>
+
+<p class="intro">Em vagas de emprego e em projetos grandes, você vai esbarrar num nome parecido: <strong>TypeScript</strong>. Não é outra linguagem do zero: é o <strong>JavaScript com tipos</strong>. Você escreve o mesmo JavaScript que aprendeu neste guia e acrescenta, aqui e ali, etiquetas dizendo "isto aqui é um número", "isto é um texto". Um programa chamado <code>tsc</code> lê essas etiquetas e avisa, <strong>antes</strong> de você rodar, quando algo não combina. Esta aula é só uma olhada: o suficiente para você reconhecer TypeScript quando vir e saber por onde começar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que problema o TypeScript resolve, com um defeito real do JavaScript.</li>
+  <li>Como se lê uma <strong>anotação de tipo</strong> (<code>preco: number</code>) e uma <code>interface</code>.</li>
+  <li>Que o <strong>Node.js 24 roda arquivos <code>.ts</code> direto</strong>, apagando os tipos, mas <strong>sem conferi-los</strong>.</li>
+  <li>Como conferir os tipos de verdade com o <code>tsc</code> (<code>npx tsc --noEmit</code>) e ler o erro dele.</li>
+  <li>O que o Node não aceita (<code>enum</code>) e o que acontece com tipos num arquivo <code>.js</code>.</li>
+</ul>
+</div>
+
+<p>Os comandos desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>ts</code>, com o TypeScript instalado pelo npm. O editor do guia roda <strong>JavaScript</strong>, e não TypeScript: as caixas "Experimente" desta aula são em JavaScript.</p>
+
+<hr>
+
+<h2>A ideia: a etiqueta na tomada</h2>
+<p>Na casa da Ana, algumas tomadas têm uma etiqueta "220 V". Ninguém precisa colar essa etiqueta; a tomada funciona sem ela. Mas, com a etiqueta, você percebe <strong>antes</strong> de ligar a cafeteira de 110 V que ela vai queimar. Os tipos do TypeScript são essas etiquetas: o programa roda sem elas, mas com elas um "fiscal" (o <code>tsc</code>) pega a combinação errada antes de ela virar defeito.</p>
+
+<hr>
+
+<h2>1. O problema: o JavaScript aceita tudo</h2>
+<p>Esta função deveria somar dois números. Mas o JavaScript não reclama se alguém passar um texto:</p>
+
+<pre class="file" data-file="soma.js">function somar(a, b) {
+  return a + b;
+}
+
+console.log(somar(2, 3));
+console.log(somar("2", 3));
+</pre>
+
+<p>Com <code>2</code>, sai 5. Com <code>"2"</code> (um texto, que veio de um formulário ou do teclado), o <code>+</code> <strong>junta</strong> em vez de somar, e sai <code>23</code> (veja <a href="conversao-automatica.html">Conversão Automática</a>). Nenhum erro, nenhum aviso: o defeito só aparece quando alguém percebe o 23 na tela. Num programa de 50 mil linhas, isso pode levar meses.</p>
+
+<div class="tryjs" data-goal="outre:^5\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> a <code>entrada</code> veio do teclado, como texto, e a soma sai <code>23</code>. Converta a entrada para número antes de somar (com <code>Number(entrada)</code>; veja <a href="conversao.html">Conversão</a>) para o programa mostrar <code>5</code>.</p>
+<pre class="script" data-file="main.js">function somar(a, b) {
+  return a + b;
+}
+
+const entrada = "2";
+console.log(somar(entrada, 3));
+</pre>
+<pre class="solucao" data-file="main.js">function somar(a, b) {
+  return a + b;
+}
+
+const entrada = "2";
+console.log(somar(Number(entrada), 3));
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A mesma função em TypeScript</h2>
+<p>Em TypeScript, o arquivo termina em <code>.ts</code>, e você pode dizer o tipo de cada parâmetro e do que a função devolve:</p>
+
+<pre class="file" data-file="soma.ts">function somar(a: number, b: number): number {
+  return a + b;
+}
+
+console.log(somar(2, 3));
+console.log(somar("2", 3));
+</pre>
+
+<dl class="anatomy">
+  <dt>a: number</dt><dd>Uma <strong>anotação de tipo</strong>: "o parâmetro <code>a</code> é um número". Os dois-pontos depois do nome são a etiqueta.</dd>
+  <dt>b: number</dt><dd>O mesmo para o <code>b</code>.</dd>
+  <dt>): number {</dt><dd>Depois dos parênteses: "esta função <strong>devolve</strong> um número".</dd>
+  <dt>o resto</dt><dd>É JavaScript comum, igualzinho. Tirando as etiquetas, sobra o <code>soma.js</code> da seção 1.</dd>
+</dl>
+
+<p>Os tipos básicos têm os nomes que você já conhece do <a href="typeof.html">typeof</a>, em minúsculas:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Anotação</th><th>Quer dizer</th><th>Exemplo</th></tr>
+<tr><td><code>number</code></td><td>número</td><td><code>let preco: number = 0.75;</code></td></tr>
+<tr><td><code>string</code></td><td>texto</td><td><code>let nome: string = "Ana";</code></td></tr>
+<tr><td><code>boolean</code></td><td><code>true</code> ou <code>false</code></td><td><code>let aberto: boolean = true;</code></td></tr>
+<tr><td><code>string[]</code></td><td>array de textos</td><td><code>let lista: string[] = ["pão", "leite"];</code></td></tr>
+<tr><td><code>string | null</code></td><td>texto <strong>ou</strong> <code>null</code></td><td><code>let apelido: string | null = null;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. O Node 24 roda <code>.ts</code> direto, sem conferir</h2>
+<p>Até pouco tempo atrás, para rodar TypeScript era obrigatório "traduzir" o <code>.ts</code> para <code>.js</code> primeiro. O Node.js 24 roda o arquivo <code>.ts</code> direto:</p>
+
+<pre class="term">$ node soma.ts
+5
+23
+</pre>
+
+<p>Rodou, e sem nenhum aviso. Mas repare: o <code>23</code> continua lá! O Node faz o que a documentação dele chama de <strong>remoção de tipos</strong> (em inglês, <em>type stripping</em>): ele <strong>apaga</strong> as anotações (troca por espaços) e roda o JavaScript que sobra. Ele <strong>não confere</strong> se os tipos combinam. Nas palavras da documentação do Node 24: "nenhuma conferência de tipos é feita".</p>
+
+<div class="note">
+<strong>Em que versão isso entrou</strong>
+<p>Pela documentação oficial do Node: a remoção de tipos chegou no Node 22.6 (atrás de uma opção), passou a vir <strong>ligada</strong> no Node 23.6, deixou de mostrar o aviso de "experimental" no 24.3 e foi declarada <strong>estável</strong> no 24.12. No Node 24 que a Ana usa (24.22), <code>node arquivo.ts</code> simplesmente roda, como você viu acima. Em versões mais antigas do Node, o mesmo comando dá erro.</p>
+</div>
+
+<hr>
+
+<h2>4. O fiscal: <code>tsc</code></h2>
+<p>Quem confere os tipos é o <strong>compilador do TypeScript</strong>, o <code>tsc</code>, que vem no pacote <code>typescript</code> do <a href="npm.html">npm</a>. A Ana o instalou na pasta do projeto:</p>
+
+<pre class="term">$ npm install --save-dev typescript
+
+added 2 packages, and audited 3 packages in 795ms
+
+found 0 vulnerabilities
+$ npx tsc --version
+Version 7.0.2
+$ npx tsc --noEmit soma.ts
+soma.ts(6,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+$ echo $?
+1
+</pre>
+
+<dl class="anatomy">
+  <dt>npx tsc --version</dt><dd>A versão instalada: TypeScript 7.0.2.</dd>
+  <dt>npx tsc --noEmit soma.ts</dt><dd>"Confira o <code>soma.ts</code>". O <code>--noEmit</code> ("não gere") diz para só conferir, sem criar o arquivo <code>.js</code> traduzido (sem ele, o <code>tsc</code> também escreve um <code>soma.js</code>).</dd>
+  <dt>soma.ts(6,19)</dt><dd>O arquivo, a <strong>linha 6</strong> e a <strong>coluna 19</strong>: bem no <code>"2"</code> do <code>somar("2", 3)</code>.</dd>
+  <dt>error TS2345</dt><dd>Um erro, com o número dele no catálogo do TypeScript (dá para pesquisar "TS2345" na internet).</dd>
+  <dt>Argument of type 'string' is not assignable to parameter of type 'number'.</dt><dd>"Um argumento do tipo texto não pode ser passado para um parâmetro do tipo número."</dd>
+  <dt>echo $? → 1</dt><dd>O código de saída 1: o <code>tsc</code> achou problema.</dd>
+</dl>
+
+<p>Esse é o ganho do TypeScript: o defeito do <code>23</code> foi apontado <strong>sem rodar o programa</strong>, na linha e coluna exatas. Nos editores de código como o VS Code, isso acontece enquanto você digita: o <code>"2"</code> fica sublinhado em vermelho na hora.</p>
+
+<div class="tip">
+<strong>O jeito comum de trabalhar</strong>
+<p>Você escreve <code>.ts</code>, o editor de código mostra os erros de tipo enquanto você digita, e o <code>tsc</code> confere o projeto todo antes de publicar. Projetos de verdade têm um arquivo de configuração do <code>tsc</code>, o <code>tsconfig.json</code>, criado com <code>npx tsc --init</code> (o Node ignora esse arquivo; ele é só para o <code>tsc</code>). Com ele na pasta, o comando fica <strong>sem nome de arquivo</strong>, e o <code>tsc</code> confere todos os <code>.ts</code> de uma vez:</p>
+<pre class="term">$ npx tsc --init
+
+Created a new tsconfig.json
+
+You can learn more at https://aka.ms/tsconfig
+$ npx tsc --noEmit
+produto.ts(8,41): error TS2322: Type 'string' is not assignable to type 'number'.
+soma.ts(6,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+</pre>
+<p>(O <code>produto.ts</code> é o exemplo da próxima seção.) Para rodar, continua sendo <code>node arquivo.ts</code>.</p>
+</div>
+
+<hr>
+
+<h2>5. <code>interface</code>: o formato de um objeto</h2>
+<p>O TypeScript brilha com <a href="objetos.html">objetos</a>. Uma <code>interface</code> descreve quais propriedades um objeto tem e de que tipo:</p>
+
+<pre class="file" data-file="produto.ts">interface Produto {
+  nome: string;
+  preco: number;
+  emEstoque: boolean;
+}
+
+const pao: Produto = { nome: "Pão francês", preco: 0.75, emEstoque: true };
+const sonho: Produto = { nome: "Sonho", preco: "4,50", emEstoque: true };
+
+function etiqueta(p: Produto): string {
+  return `${p.nome}: R$ ${p.preco.toFixed(2)}`;
+}
+
+console.log(etiqueta(pao));
+console.log(etiqueta(sonho));
+</pre>
+
+<dl class="anatomy">
+  <dt>interface Produto { … }</dt><dd>"Um <code>Produto</code> é um objeto com <code>nome</code> (texto), <code>preco</code> (número) e <code>emEstoque</code> (booleano)". A interface não vira código: é só a descrição, e o Node a apaga.</dd>
+  <dt>const pao: Produto = { … }</dt><dd>"O <code>pao</code> é um <code>Produto</code>": o <code>tsc</code> confere se o objeto tem o formato combinado.</dd>
+  <dt>preco: "4,50"</dt><dd>O erro de propósito: alguém digitou o preço como texto, com vírgula.</dd>
+  <dt>function etiqueta(p: Produto): string</dt><dd>Recebe um <code>Produto</code> e devolve um texto.</dd>
+</dl>
+
+<p>Rodando direto no Node, o problema só aparece quando o programa chega no sonho:</p>
+
+<pre class="term">$ node produto.ts
+Pão francês: R$ 0.75
+file:///home/ana/ts/produto.ts:11
+  return `${p.nome}: R$ ${p.preco.toFixed(2)}`;
+                                  ^
+
+TypeError: p.preco.toFixed is not a function
+    at etiqueta (file:///home/ana/ts/produto.ts:11:35)
+    at Object.&lt;anonymous&gt; (file:///home/ana/ts/produto.ts:15:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>p.preco.toFixed</code> não é uma função": um texto não tem o método <code>toFixed</code> dos números. O erro aponta a linha 11, dentro da <code>etiqueta</code>, mas a culpa está na linha 8, onde o preço foi escrito como texto. O <code>tsc</code> aponta direto o lugar certo, sem rodar nada:</p>
+
+<pre class="term">$ npx tsc --noEmit produto.ts
+produto.ts(8,41): error TS2322: Type 'string' is not assignable to type 'number'.
+</pre>
+
+<p>"O tipo texto não pode ser atribuído ao tipo número", na linha 8, coluna 41: o <code>"4,50"</code>.</p>
+
+<hr>
+
+<h2 id="formas">JavaScript ou TypeScript?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>JavaScript</th><th>TypeScript</th></tr>
+<tr><td>Arquivo</td><td><code>.js</code></td><td><code>.ts</code></td></tr>
+<tr><td>Roda no navegador</td><td>Direto</td><td>Precisa ser traduzido para <code>.js</code> antes (pelo <code>tsc</code> ou outra ferramenta)</td></tr>
+<tr><td>Roda no Node 24</td><td>Direto</td><td>Direto, apagando os tipos (sem conferir)</td></tr>
+<tr><td>Quem acha o <code>somar("2", 3)</code></td><td>Você, quando vê o <code>23</code></td><td>O <code>tsc</code> e o editor, antes de rodar</td></tr>
+<tr><td>Para quem</td><td>Aprender, scripts, programas pequenos</td><td>Projetos grandes, equipes, bibliotecas</td></tr>
+</table>
+</div>
+<p>Para aprender, comece pelo JavaScript, como neste guia: todo o TypeScript é JavaScript por baixo, então nada do que você aprendeu se perde. Quando seus programas crescerem, o TypeScript é o passo natural.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tipos num arquivo <code>.js</code></strong>
+<p>A Ana copiou o <code>soma.ts</code> para <code>soma.js</code> e rodou:</p>
+<pre class="term">$ node soma.js
+/home/ana/ts/soma.js:1
+function somar(a: number, b: number): number {
+                ^
+
+SyntaxError: Unexpected token ':'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado <code>:</code>". As anotações de tipo <strong>não são JavaScript</strong>: o Node só as apaga em arquivos <code>.ts</code>. Num <code>.js</code>, a primeira anotação (o <code>: number</code> do <code>a</code>, apontado pelo <code>^</code>) é um erro de sintaxe. O mesmo acontece no navegador e no editor do guia. <strong>Como consertar:</strong> renomeie para <code>.ts</code> (no Node) ou tire as anotações.</p>
+</div>
+
+<div class="cenario">
+<strong><code>enum</code>: o Node recusa</strong>
+<pre class="file" data-file="enum.ts">enum Cor {
+  Vermelho,
+  Verde,
+}
+console.log(Cor.Verde);
+</pre>
+<pre class="term">$ node enum.ts
+file:///home/ana/ts/enum.ts:1
+  &gt; enum Cor {
+      Vermelho,
+      Verde,
+  &gt; }
+    console.log(Cor.Verde);
+
+SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript enum is not supported in strip-only mode
+    at parseTypeScript (node:internal/modules/typescript:68:40)  « linhas internas do Node cortadas
+    …
+  code: 'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"<code>enum</code> do TypeScript não é suportado no modo só-remoção". O <code>enum</code> (uma lista de constantes com nome) é um recurso do TypeScript que <strong>gera código</strong> JavaScript; o Node só sabe <strong>apagar</strong> tipos, não gerar código. As linhas com <code>&gt;</code> marcam o trecho problemático. A documentação do Node lista outros casos assim: <code>namespace</code> com código, <em>parameter properties</em> nas classes. <strong>Como consertar:</strong> use um objeto congelado no lugar (<code>const Cor = Object.freeze({ Vermelho: 0, Verde: 1 });</code>, veja <a href="imutabilidade.html">Imutabilidade</a>), ou rode pelo <code>tsc</code>, que traduz o <code>enum</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>TS5112</code>: o <code>tsc</code> com nome de arquivo e <code>tsconfig.json</code> na pasta</strong>
+<pre class="term">$ npx tsc --noEmit soma.ts
+error TS5112: tsconfig.json is present but will not be loaded if files are specified on commandline. Use '--ignoreConfig' to skip this error.
+</pre>
+<p>"O <code>tsconfig.json</code> existe, mas não seria lido, porque você deu nomes de arquivo na linha de comando. Use <code>--ignoreConfig</code> para pular este erro." Depois do <code>npx tsc --init</code>, o <code>tsc</code> quer que você use a configuração. <strong>Como consertar:</strong> rode sem o nome do arquivo (<code>npx tsc --noEmit</code>), ou, se quer mesmo conferir um arquivo solto, acrescente <code>--ignoreConfig</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Rodou no Node, então os tipos estão certos"</strong>
+<p>Não estão necessariamente: o Node não confere tipos (seção 3). O <code>soma.ts</code> rodou e mostrou <code>23</code>. <strong>Como evitar:</strong> confira com <code>npx tsc --noEmit</code> (ou no editor de código) antes de confiar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita / comando</th><th>O que faz</th></tr>
+<tr><td><code>let preco: number = 0.75;</code></td><td>Variável com tipo</td></tr>
+<tr><td><code>function f(a: number): string { … }</code></td><td>Parâmetro e retorno com tipo</td></tr>
+<tr><td><code>interface Produto { nome: string; preco: number; }</code></td><td>O formato de um objeto</td></tr>
+<tr><td><code>node arquivo.ts</code></td><td>Roda no Node 24, apagando os tipos (sem conferir)</td></tr>
+<tr><td><code>npm install --save-dev typescript</code></td><td>Instala o <code>tsc</code> no projeto</td></tr>
+<tr><td><code>npx tsc --noEmit arquivo.ts</code></td><td>Confere os tipos, sem gerar <code>.js</code></td></tr>
+<tr><td><code>npx tsc --init</code></td><td>Cria o <code>tsconfig.json</code> (configuração do <code>tsc</code>)</td></tr>
+<tr><td><code>npx tsc --noEmit</code></td><td>Com <code>tsconfig.json</code>: confere todos os <code>.ts</code> do projeto</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>TS2345: Argument of type 'X' is not assignable to parameter of type 'Y'</code></td><td>Passou um valor do tipo errado para uma função</td></tr>
+<tr><td><code>TS2322: Type 'X' is not assignable to type 'Y'</code></td><td>Guardou um valor do tipo errado numa variável/propriedade</td></tr>
+<tr><td><code>SyntaxError: Unexpected token ':'</code> num <code>.js</code></td><td>Anotação de tipo num arquivo JavaScript</td></tr>
+<tr><td><code>TS5112: tsconfig.json is present but will not be loaded…</code></td><td>Deu nome de arquivo ao <code>tsc</code> numa pasta com <code>tsconfig.json</code></td></tr>
+<tr><td><code>ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX</code></td><td><code>enum</code> (ou outro recurso que gera código) rodando direto no Node</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a anotação</h3>
+<p>Complete para dizer que <code>nome</code> é um texto e <code>idade</code> é um número:</p>
+<div class="ex-code">const nome: <input data-answer="string" aria-label="tipo texto"> = "Ana";<br>const idade: <input data-answer="number" aria-label="tipo número"> = 30;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual comando confere os tipos?</h3>
+<p>Escreva o comando que confere o <code>loja.ts</code> sem gerar arquivo <code>.js</code> (sem o <code>$</code>):</p>
+<div class="ex-code"><input data-answer="npx tsc --noEmit loja.ts" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. No Node 24, <code>node soma.ts</code> com <code>somar("2", 3)</code> (o parâmetro é <code>number</code>) faz o quê?</p>
+<label><input type="radio" name="q3"> Mostra um erro TS2345 e não roda</label>
+<label><input type="radio" name="q3"> Roda e mostra <code>23</code>: o Node apaga os tipos sem conferir</label>
+<label><input type="radio" name="q3"> Converte o <code>"2"</code> para número e mostra 5</label>
+<label><input type="radio" name="q3"> Diz que não conhece arquivos <code>.ts</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que acontece com uma <code>interface</code> quando o programa roda?</p>
+<label><input type="radio" name="q4"> Vira um objeto JavaScript</label>
+<label><input type="radio" name="q4"> Vira uma classe</label>
+<label><input type="radio" name="q4"> Confere os objetos enquanto o programa roda</label>
+<label><input type="radio" name="q4"> Some: ela só existe para o <code>tsc</code> conferir</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Você tem um arquivo <code>.js</code> e escreveu <code>let preco: number = 2;</code> nele. O que o Node faz?</p>
+<label><input type="radio" name="q5"> <code>SyntaxError: Unexpected token ':'</code></label>
+<label><input type="radio" name="q5"> Apaga o <code>: number</code> e roda</label>
+<label><input type="radio" name="q5"> Mostra um aviso e roda</label>
+<label><input type="radio" name="q5"> <code>TS2322</code></label>
+</div>
+
+<h3>Missão final: de TypeScript para JavaScript</h3>
+
+<div class="tryjs" data-goal="out:Pão francês: R$ 0.75;;out:Sonho: R$ 4.50;;semerro">
+<p class="try-task"><strong>Missão:</strong> este código é TypeScript, e o editor roda JavaScript: ele para com <code>SyntaxError</code>. Transforme em JavaScript: apague a <code>interface</code> inteira e as anotações (<code>: Produto</code>, <code>: Produto[]</code>, <code>: string</code>). O resto fica igual.</p>
+<pre class="script" data-file="main.js">interface Produto {
+  nome: string;
+  preco: number;
+}
+
+const produtos: Produto[] = [
+  { nome: "Pão francês", preco: 0.75 },
+  { nome: "Sonho", preco: 4.5 },
+];
+
+function etiqueta(p: Produto): string {
+  return `${p.nome}: R$ ${p.preco.toFixed(2)}`;
+}
+
+for (const p of produtos) {
+  console.log(etiqueta(p));
+}
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = [
+  { nome: "Pão francês", preco: 0.75 },
+  { nome: "Sonho", preco: 4.5 },
+];
+
+function etiqueta(p) {
+  return `${p.nome}: R$ ${p.preco.toFixed(2)}`;
+}
+
+for (const p of produtos) {
+  console.log(etiqueta(p));
+}
+</pre>
+</div>
+
+<p>É exatamente o que o Node faz com um <code>.ts</code>: apaga os tipos e roda o que sobra. No lab, o código original salvo como <code>main.ts</code> rodou com <code>node main.ts</code> e mostrou as mesmas duas etiquetas da solução.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>TypeScript</strong> é JavaScript com <strong>anotações de tipo</strong> (<code>preco: number</code>) e <code>interface</code> para o formato dos objetos. Os arquivos terminam em <code>.ts</code>.</li>
+  <li>O <strong>Node.js 24</strong> roda <code>node arquivo.ts</code> direto (remoção de tipos, estável desde o 24.12), mas <strong>não confere</strong> os tipos, e recusa recursos que geram código, como <code>enum</code>.</li>
+  <li>Quem confere é o <code>tsc</code>: <code>npm install --save-dev typescript</code> e <code>npx tsc --noEmit arquivo.ts</code>. Os erros vêm com arquivo, linha, coluna e código (<code>TS2345</code>, <code>TS2322</code>).</li>
+  <li>Num arquivo <code>.js</code>, no navegador e no editor do guia, anotações de tipo são <code>SyntaxError</code>.</li>
+  <li>Tudo o que você aprendeu de JavaScript vale no TypeScript: ele é o mesmo JavaScript, com etiquetas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
