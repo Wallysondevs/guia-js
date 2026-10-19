@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Promise.all, allSettled, race e any — várias Promises ao mesmo tempo | Guia JavaScript</title>
+<meta name="description" content="Várias Promises de uma vez no JavaScript, para quem nunca programou: esperar uma por uma × todas juntas, Promise.all com desestruturação e com map, a falha que derruba o all, Promise.allSettled (o relatório de tudo), Promise.race (a primeira que terminar, e o limite de tempo) e Promise.any (a primeira que der certo), com as saídas e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Várias Promises</span></h1>
+
+<p class="intro">Na aula <a href="async-await.html">async e await</a>, cada <code>await</code> esperava a tarefa anterior terminar para começar a próxima. Às vezes é isso mesmo que você quer (só dá para passar o café depois de ferver a água). Mas quando as tarefas <strong>não dependem umas das outras</strong>, esperar uma por uma é perder tempo. O objeto <code>Promise</code> tem quatro funções para lidar com <strong>várias Promises de uma vez</strong>: <code>Promise.all</code>, <code>Promise.allSettled</code>, <code>Promise.race</code> e <code>Promise.any</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença de tempo entre esperar as tarefas <strong>uma por uma</strong> e <strong>todas juntas</strong>.</li>
+  <li><code>Promise.all</code>: espera todas e entrega os resultados num array, na ordem; com desestruturação e com <code>map</code>.</li>
+  <li>O que acontece com o <code>Promise.all</code> quando uma das tarefas falha.</li>
+  <li><code>Promise.allSettled</code>: o relatório de todas, deu certo ou não.</li>
+  <li><code>Promise.race</code>: a primeira que terminar (e como usá-la para pôr um limite de tempo).</li>
+  <li><code>Promise.any</code>: a primeira que <strong>der certo</strong>, e o <code>AggregateError</code> quando todas falham.</li>
+  <li>Os erros reais: esquecer os colchetes, esquecer o <code>await</code> e passar a função sem chamá-la.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>node arquivo.js</code>. Eles usam o <code>await</code> no topo do arquivo, que o Node 24 aceita direto (veja <a href="async-await.html">async e await</a>).</p>
+
+<hr>
+
+<h2>A ideia: as encomendas da festa</h2>
+<p>A Ana está organizando o aniversário da sobrinha e precisa de três coisas: o <strong>bolo</strong> (a confeitaria leva 3 horas), os <strong>salgados</strong> (2 horas) e o <strong>suco</strong> (1 hora). Ela tem dois jeitos de encomendar:</p>
+<ol class="passo">
+  <li><strong>Uma por uma:</strong> liga para a confeitaria, espera o bolo chegar, só então liga para os salgados, espera, e depois liga para o suco. Total: 3 + 2 + 1 = <strong>6 horas</strong>.</li>
+  <li><strong>Todas juntas:</strong> liga para as três lojas logo de manhã e espera tudo chegar. As três trabalham ao mesmo tempo, e o tempo total é o da mais demorada: <strong>3 horas</strong>.</li>
+</ol>
+<p>O segundo jeito é o <code>Promise.all</code>. Ele não deixa as lojas mais rápidas; só faz você não esperar uma para começar a outra.</p>
+
+<hr>
+
+<h2>1. Uma por uma × todas juntas</h2>
+<p>Nos programas, as horas viraram segundos. A função <code>encomendar(item, segundos)</code> devolve uma Promise que se resolve depois de tantos segundos. O <code>console.time</code> e o <code>console.timeEnd</code> medem quanto tempo passou entre os dois (veja <a href="console-outros.html">console.error, warn e table</a>).</p>
+
+<p>Primeiro, uma por uma, com três <code>await</code> seguidos:</p>
+
+<pre class="file" data-file="sequencia.js">function encomendar(item, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${item} chegou`), segundos * 1000);
+  });
+}
+
+console.time("tempo total");
+const bolo = await encomendar("bolo", 3);
+const salgados = await encomendar("salgados", 2);
+const suco = await encomendar("suco", 1);
+console.log(bolo, "|", salgados, "|", suco);
+console.timeEnd("tempo total");
+</pre>
+
+<pre class="term">$ node sequencia.js
+bolo chegou | salgados chegou | suco chegou
+tempo total: 6.011s
+</pre>
+
+<p>Agora todas juntas, com <code>Promise.all</code>:</p>
+
+<pre class="file" data-file="paralelo.js">function encomendar(item, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${item} chegou`), segundos * 1000);
+  });
+}
+
+console.time("tempo total");
+const [bolo, salgados, suco] = await Promise.all([
+  encomendar("bolo", 3),
+  encomendar("salgados", 2),
+  encomendar("suco", 1),
+]);
+console.log(bolo, "|", salgados, "|", suco);
+console.timeEnd("tempo total");
+</pre>
+
+<pre class="term">$ node paralelo.js
+bolo chegou | salgados chegou | suco chegou
+tempo total: 3.006s
+</pre>
+
+<p>O mesmo resultado na <strong>metade</strong> do tempo: 3 segundos, o da encomenda mais demorada. (Os milésimos, como o <code>.011</code> e o <code>.006</code>, mudam a cada vez que você roda.)</p>
+
+<dl class="anatomy">
+  <dt>Promise.all( … )</dt><dd>"Promise, todas". Recebe <strong>um array</strong> de Promises e devolve <strong>uma</strong> Promise nova, que se resolve quando <strong>todas</strong> as do array se resolverem.</dd>
+  <dt>[ encomendar("bolo", 3), … ]</dt><dd>O array com as três Promises. Repare: as três funções são <strong>chamadas</strong> aqui, uma logo depois da outra, sem <code>await</code> entre elas. É nesse momento que as três "lojas" começam a trabalhar.</dd>
+  <dt>await</dt><dd>Espera a Promise do <code>Promise.all</code>, ou seja, espera a última encomenda chegar.</dd>
+  <dt>const [bolo, salgados, suco] =</dt><dd>O resultado é um array com os valores, <strong>na mesma ordem do array de entrada</strong> (não na ordem em que chegaram: o suco chegou primeiro, mas está em terceiro). A <a href="desestruturacao.html">desestruturação</a> dá um nome a cada posição.</dd>
+</dl>
+
+<p>Sem a desestruturação, você recebe o array inteiro:</p>
+
+<pre class="file" data-file="all-array.js">const resultados = await Promise.all([
+  encomendar("bolo", 3),
+  encomendar("salgados", 2),
+  encomendar("suco", 1),
+]);
+console.log(resultados);
+</pre>
+
+<pre class="term">$ node all-array.js
+[ 'bolo chegou', 'salgados chegou', 'suco chegou' ]
+</pre>
+
+<p>(Este arquivo tem a mesma função <code>encomendar</code> no começo; ela foi omitida aqui para encurtar.)</p>
+
+<div class="tryjs" data-goal="out:bolo chegou | salgados chegou | suco chegou;;src:Promise\.all\(">
+<p class="try-task"><strong>Missão:</strong> este programa encomenda uma coisa de cada vez e leva 1,5 segundo. Troque os três <code>await</code> por <strong>um</strong> <code>await Promise.all([…])</code> com desestruturação, como em <code>paralelo.js</code>. Repare no tempo que o <code>console.timeEnd</code> mostra antes e depois.</p>
+<pre class="script" data-file="main.js">function encomendar(item, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${item} chegou`), segundos * 1000);
+  });
+}
+
+console.time("tempo total");
+const bolo = await encomendar("bolo", 0.75);
+const salgados = await encomendar("salgados", 0.5);
+const suco = await encomendar("suco", 0.25);
+console.log(bolo, "|", salgados, "|", suco);
+console.timeEnd("tempo total");
+</pre>
+<pre class="solucao" data-file="main.js">function encomendar(item, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${item} chegou`), segundos * 1000);
+  });
+}
+
+console.time("tempo total");
+const [bolo, salgados, suco] = await Promise.all([
+  encomendar("bolo", 0.75),
+  encomendar("salgados", 0.5),
+  encomendar("suco", 0.25),
+]);
+console.log(bolo, "|", salgados, "|", suco);
+console.timeEnd("tempo total");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>Promise.all</code> com <code>map</code>: uma Promise para cada item</h2>
+<p>Quando a lista vem de um array, você não escreve as Promises uma a uma: o <a href="map.html">map</a> transforma cada item numa Promise, e o <code>Promise.all</code> espera todas. A Ana consulta o preço de cada produto da lista de compras (cada consulta leva meio segundo):</p>
+
+<pre class="file" data-file="all-map.js">function consultarPreco(produto) {
+  const precos = { arroz: 6.5, feijao: 8.9, cafe: 19.9 };
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(precos[produto]), 500);
+  });
+}
+
+const lista = ["arroz", "feijao", "cafe"];
+const precos = await Promise.all(lista.map((produto) =&gt; consultarPreco(produto)));
+console.log(precos);
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+
+<pre class="term">$ node all-map.js
+[ 6.5, 8.9, 19.9 ]
+Total: R$ 35.30
+</pre>
+
+<dl class="anatomy">
+  <dt>lista.map((produto) =&gt; consultarPreco(produto))</dt><dd>Para cada produto, chama <code>consultarPreco</code>. O resultado é um array de <strong>Promises</strong> (três "senhas"), todas começando ao mesmo tempo.</dd>
+  <dt>await Promise.all(…)</dt><dd>Espera as três. Tudo leva meio segundo, e não um segundo e meio.</dd>
+  <dt>precos.reduce(…)</dt><dd>Com os números na mão, soma tudo com o <a href="reduce.html">reduce</a>.</dd>
+</dl>
+
+<p>É o par mais comum do dia a dia: <code>await Promise.all(lista.map(…))</code>. Funciona igual com 3 ou com 300 itens.</p>
+
+<div class="note">
+<strong>Valores que não são Promises</strong>
+<p>O array pode misturar Promises e valores comuns: os valores comuns passam direto. No lab, <code>await Promise.all([1, "dois", Promise.resolve(3)])</code> deu <code>[ 1, 'dois', 3 ]</code>, e <code>await Promise.all([])</code>, com o array vazio, deu <code>[]</code> na hora.</p>
+</div>
+
+<hr>
+
+<h2>3. Quando uma falha, o <code>Promise.all</code> inteiro falha</h2>
+<p>O <code>Promise.all</code> é "tudo ou nada". Se <strong>uma</strong> das Promises for rejeitada, a Promise do <code>all</code> é rejeitada na mesma hora, com o erro dessa, e os outros resultados se perdem. Agora a função <code>encomendar</code> tem um terceiro parâmetro, <code>deuCerto</code> (com valor padrão <code>true</code>; veja <a href="parametros-padrao.html">Parâmetros Padrão</a>), e a loja dos salgados fechou:</p>
+
+<pre class="file" data-file="all-falha.js">function encomendar(item, segundos, deuCerto = true) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (deuCerto) {
+        resolve(`${item} chegou`);
+      } else {
+        reject(new Error(`a loja do ${item} fechou`));
+      }
+    }, segundos * 1000);
+  });
+}
+
+try {
+  const itens = await Promise.all([
+    encomendar("bolo", 3),
+    encomendar("salgados", 2, false),
+    encomendar("suco", 1),
+  ]);
+  console.log(itens);
+} catch (erro) {
+  console.log(`A festa atrasou: ${erro.message}`);
+}
+</pre>
+
+<pre class="term">$ node all-falha.js
+A festa atrasou: a loja do salgados fechou      « depois de 2 segundos, não de 3
+</pre>
+
+<p>O suco chegou (em 1 segundo) e o bolo também ia chegar, mas o <code>catch</code> só recebe o erro dos salgados. O <code>Promise.all</code> desistiu no segundo 2, sem esperar o bolo. (O bolo continuou "assando": o <code>Promise.all</code> não cancela as outras tarefas, só para de esperar por elas.)</p>
+
+<p>Use o <code>Promise.all</code> quando <strong>precisa de todos</strong> os resultados e qualquer falha estraga o conjunto: sem um dos preços, o total da compra não serve. Quando cada resultado vale por si, use o próximo.</p>
+
+<hr>
+
+<h2>4. <code>Promise.allSettled</code>: o relatório de todas <span class="versao">ES2020</span></h2>
+<p><em>Settled</em> quer dizer "resolvida", no sentido de "decidida": deu certo ou deu errado, mas acabou. O <code>Promise.allSettled</code> espera <strong>todas</strong> acabarem, nunca é rejeitado, e entrega um relatório com um objeto para cada Promise:</p>
+
+<pre class="file" data-file="settled.js">const relatorio = await Promise.allSettled([
+  encomendar("bolo", 3),
+  encomendar("salgados", 2, false),
+  encomendar("suco", 1),
+]);
+console.log(relatorio);
+</pre>
+
+<pre class="term">$ node settled.js
+[
+  { status: 'fulfilled', value: 'bolo chegou' },
+  {
+    status: 'rejected',
+    reason: Error: a loja do salgados fechou
+        at Timeout._onTimeout (file:///home/ana/settled.js:7:16)
+        at listOnTimeout (node:internal/timers:685:17)
+        at process.processTimers (node:internal/timers:618:7)
+  },
+  { status: 'fulfilled', value: 'suco chegou' }
+]
+</pre>
+
+<p>(Mesma função <code>encomendar</code> de <code>all-falha.js</code> no começo do arquivo.) Cada objeto do relatório tem:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>Quando aparece</th><th>O que tem</th></tr>
+<tr><td><code>status: 'fulfilled'</code></td><td>A Promise deu certo ("cumprida")</td><td>o valor em <code>value</code></td></tr>
+<tr><td><code>status: 'rejected'</code></td><td>A Promise foi rejeitada</td><td>o erro em <code>reason</code> ("motivo"); o Node mostra o erro com as linhas <code>at</code> de onde ele nasceu</td></tr>
+</table>
+</div>
+
+<p>Mostrar o relatório cru é bom para entender; num programa de verdade, você percorre o array e decide o que fazer com cada um:</p>
+
+<pre class="file" data-file="settled2.js">const relatorio = await Promise.allSettled([
+  encomendar("bolo", 3),
+  encomendar("salgados", 2, false),
+  encomendar("suco", 1),
+]);
+for (const r of relatorio) {
+  if (r.status === "fulfilled") {
+    console.log(`OK: ${r.value}`);
+  } else {
+    console.log(`FALHOU: ${r.reason.message}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node settled2.js
+OK: bolo chegou
+FALHOU: a loja do salgados fechou
+OK: suco chegou
+</pre>
+
+<p>Nada de <code>try … catch</code>: o <code>allSettled</code> nunca é rejeitado, porque as falhas viram itens do relatório.</p>
+
+<div class="tryjs" data-goal="out:FALHOU: a loja do salgados fechou;;out:OK: suco chegou;;semerro">
+<p class="try-task"><strong>Missão:</strong> com <code>Promise.all</code>, a falha dos salgados derruba o programa inteiro. Troque <code>Promise.all</code> por <code>Promise.allSettled</code> e troque o <code>console.log(itens)</code> por um <code>for … of</code> que mostre <code>OK: …</code> para quem chegou e <code>FALHOU: …</code> (com <code>r.reason.message</code>) para quem falhou.</p>
+<pre class="script" data-file="main.js">function encomendar(item, segundos, deuCerto = true) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (deuCerto) {
+        resolve(`${item} chegou`);
+      } else {
+        reject(new Error(`a loja do ${item} fechou`));
+      }
+    }, segundos * 1000);
+  });
+}
+
+const itens = await Promise.all([
+  encomendar("bolo", 0.6),
+  encomendar("salgados", 0.4, false),
+  encomendar("suco", 0.2),
+]);
+console.log(itens);
+</pre>
+<pre class="solucao" data-file="main.js">function encomendar(item, segundos, deuCerto = true) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (deuCerto) {
+        resolve(`${item} chegou`);
+      } else {
+        reject(new Error(`a loja do ${item} fechou`));
+      }
+    }, segundos * 1000);
+  });
+}
+
+const itens = await Promise.allSettled([
+  encomendar("bolo", 0.6),
+  encomendar("salgados", 0.4, false),
+  encomendar("suco", 0.2),
+]);
+for (const r of itens) {
+  if (r.status === "fulfilled") {
+    console.log(`OK: ${r.value}`);
+  } else {
+    console.log(`FALHOU: ${r.reason.message}`);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. <code>Promise.race</code>: a primeira que terminar</h2>
+<p><em>Race</em> é "corrida". O <code>Promise.race</code> se decide pela <strong>primeira</strong> Promise que terminar, dando certo ou errado; as outras são ignoradas. Três entregadores saíram com a mesma encomenda:</p>
+
+<pre class="file" data-file="race.js">function entregador(nome, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${nome} chegou primeiro`), segundos * 1000);
+  });
+}
+
+const vencedor = await Promise.race([
+  entregador("Bia, de bicicleta", 2),
+  entregador("Caio, de moto", 1),
+  entregador("Davi, a pé", 3),
+]);
+console.log(vencedor);
+</pre>
+
+<pre class="term">$ node race.js
+Caio, de moto chegou primeiro
+</pre>
+
+<h3>O uso clássico: um limite de tempo</h3>
+<p>O <code>race</code> brilha para dizer "espero no máximo tanto tempo". Ponha na corrida a tarefa de verdade e uma Promise que é <strong>rejeitada</strong> depois do limite. Quem chegar primeiro decide:</p>
+
+<pre class="file" data-file="race-tempo.js">function esperar(ms) {
+  return new Promise((resolve) =&gt; setTimeout(resolve, ms));
+}
+
+function limiteDeTempo(ms) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; reject(new Error(`passou de ${ms} ms`)), ms);
+  });
+}
+
+async function buscarCardapio() {
+  await esperar(3000);
+  return "cardápio do dia";
+}
+
+try {
+  const cardapio = await Promise.race([buscarCardapio(), limiteDeTempo(1000)]);
+  console.log(cardapio);
+} catch (erro) {
+  console.log(`Desisti: ${erro.message}`);
+}
+</pre>
+
+<pre class="term">$ node race-tempo.js
+Desisti: passou de 1000 ms
+</pre>
+
+<p>O cardápio levaria 3 segundos; o limite, 1. O limite "ganhou a corrida" com uma rejeição, e o <code>catch</code> a pegou. Troque o <code>3000</code> por <code>500</code> e o cardápio é que vence.</p>
+
+<hr>
+
+<h2>6. <code>Promise.any</code>: a primeira que der certo <span class="versao">ES2021</span></h2>
+<p>O <code>Promise.any</code> ("qualquer uma") parece o <code>race</code>, mas <strong>ignora as falhas</strong>: ele fica com a primeira Promise que <strong>der certo</strong>. A Ana liga para três lojas perguntando quem tem bolo de chocolate:</p>
+
+<pre class="file" data-file="any.js">function perguntar(loja, segundos, temBolo) {
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if (temBolo) {
+        resolve(`${loja} tem bolo`);
+      } else {
+        reject(new Error(`${loja} não tem bolo`));
+      }
+    }, segundos * 1000);
+  });
+}
+
+const resposta = await Promise.any([
+  perguntar("Padaria Sol", 1, false),
+  perguntar("Doce Lar", 2, true),
+  perguntar("Confeitaria Lua", 3, true),
+]);
+console.log(resposta);
+</pre>
+
+<pre class="term">$ node any.js
+Doce Lar tem bolo
+</pre>
+
+<p>A Padaria Sol respondeu primeiro, mas com um "não" (rejeição): o <code>any</code> ignorou e esperou a próxima. Com o <code>race</code>, esse "não" teria decidido a corrida.</p>
+
+<p>Se <strong>todas</strong> falharem, o <code>any</code> é rejeitado com um erro especial, o <code>AggregateError</code> ("erro agregado", que junta vários). A lista dos erros fica na propriedade <code>errors</code>:</p>
+
+<pre class="file" data-file="any-catch.js">try {
+  await Promise.any([
+    perguntar("Padaria Sol", 1, false),
+    perguntar("Doce Lar", 2, false),
+  ]);
+} catch (erro) {
+  console.log(erro.message);
+  for (const e of erro.errors) {
+    console.log(`- ${e.message}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node any-catch.js
+All promises were rejected
+- Padaria Sol não tem bolo
+- Doce Lar não tem bolo
+</pre>
+
+<p><code>All promises were rejected</code> quer dizer "todas as Promises foram rejeitadas". Sem o <code>try … catch</code>, o programa cai mostrando o <code>AggregateError</code> inteiro (veja em <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Termina quando…</th><th>Dá certo com…</th><th>É rejeitada quando…</th><th>Exemplo de uso</th></tr>
+<tr><td><code>Promise.all</code></td><td>todas deram certo, ou a primeira falhou</td><td>o array de valores, na ordem</td><td><strong>uma</strong> falha</td><td>preços de todos os itens da lista</td></tr>
+<tr><td><code>Promise.allSettled</code></td><td>todas acabaram</td><td>o relatório (<code>status</code>, <code>value</code>/<code>reason</code>)</td><td>nunca</td><td>mandar 10 avisos e saber quais falharam</td></tr>
+<tr><td><code>Promise.race</code></td><td>a primeira acabou</td><td>o valor da primeira</td><td>a primeira a acabar falhou</td><td>limite de tempo</td></tr>
+<tr><td><code>Promise.any</code></td><td>a primeira deu certo, ou todas falharam</td><td>o valor da primeira que deu certo</td><td><strong>todas</strong> falham (<code>AggregateError</code>)</td><td>o mesmo dado em vários servidores; fica o mais rápido que responder</td></tr>
+</table>
+</div>
+
+<p>E quando <strong>não</strong> usar nenhuma: se uma tarefa precisa do resultado da outra (passar o café depois de ferver a água, buscar o pedido e depois o cliente daquele pedido), elas não podem andar juntas; aí são <code>await</code> seguidos, como na aula anterior.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os colchetes do array</strong>
+<pre class="file" data-file="semarray.js">function encomendar(item, segundos) {
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(`${item} chegou`), segundos * 1000);
+  });
+}
+
+const itens = await Promise.all(encomendar("bolo", 1), encomendar("suco", 1));
+console.log(itens);
+</pre>
+<pre class="term">$ node semarray.js
+file:///home/ana/semarray.js:7
+const itens = await Promise.all(encomendar("bolo", 1), encomendar("suco", 1));
+                            ^
+
+TypeError: object is not iterable (cannot read property Symbol(Symbol.iterator))
+    at Promise.all (&lt;anonymous&gt;)
+    at file:///home/ana/semarray.js:7:29
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    «  … mais 2 linhas "at" internas do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>file:///home/ana/semarray.js:7</dt><dd>O arquivo (com <code>file://</code> porque o <code>await</code> no topo fez o Node rodá-lo como módulo) e a linha 7.</dd>
+  <dt>O ^ embaixo de all</dt><dd>Aponta a chamada do <code>Promise.all</code>.</dd>
+  <dt>TypeError: object is not iterable (cannot read property Symbol(Symbol.iterator))</dt><dd>"Erro de tipo: o objeto não é percorrível." O <code>Promise.all</code> quer <strong>uma lista</strong> que ele possa percorrer, e recebeu uma Promise solta (a primeira; a segunda foi ignorada). O <code>Symbol.iterator</code> é o mecanismo que torna algo percorrível (aula <a href="iteradores.html">Iteradores</a>).</dd>
+  <dt>at Promise.all (&lt;anonymous&gt;) e at file:///home/ana/semarray.js:7:29</dt><dd>O erro aconteceu dentro do <code>Promise.all</code>, chamado da linha 7, coluna 29, do seu arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> as Promises vão <strong>dentro de um array</strong>: <code>Promise.all([encomendar("bolo", 1), encomendar("suco", 1)])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code></strong>
+<p>(Com a mesma função <code>encomendar</code> do começo da aula.)</p>
+<pre class="file" data-file="semawait.js">const itens = Promise.all([encomendar("bolo", 1), encomendar("suco", 1)]);
+console.log(itens);
+console.log(itens[0]);
+</pre>
+<pre class="term">$ node semawait.js
+Promise { &lt;pending&gt; }
+undefined
+</pre>
+<p>O <code>Promise.all</code> devolve <strong>uma Promise</strong>, e não o array. Sem o <code>await</code>, <code>itens</code> é essa Promise, ainda pendente, e <code>itens[0]</code> não existe. <strong>Como consertar:</strong> <code>const itens = await Promise.all([…]);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs a função no array, sem chamá-la</strong>
+<pre class="file" data-file="semchamar.js">function encomendarBolo() {
+  return new Promise((resolve) =&gt; setTimeout(() =&gt; resolve("bolo chegou"), 1000));
+}
+function encomendarSuco() {
+  return new Promise((resolve) =&gt; setTimeout(() =&gt; resolve("suco chegou"), 1000));
+}
+
+const itens = await Promise.all([encomendarBolo, encomendarSuco]);
+console.log(itens);
+</pre>
+<pre class="term">$ node semchamar.js
+[ [Function: encomendarBolo], [Function: encomendarSuco] ]
+</pre>
+<p>Nenhum erro, e a resposta vem <strong>na hora</strong>, sem esperar o segundo. Sem os parênteses, as funções não foram chamadas: o array tinha duas <strong>funções</strong> (que não são Promises), e o <code>Promise.all</code> as devolveu como vieram. <strong>Como consertar:</strong> <code>[encomendarBolo(), encomendarSuco()]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma falhou e ninguém pegou o erro</strong>
+<pre class="file" data-file="all-semtry.js">const itens = await Promise.all([
+  encomendar("bolo", 3),
+  encomendar("salgados", 2, false),
+]);
+console.log(itens);
+</pre>
+<pre class="term">$ node all-semtry.js
+file:///home/ana/all-semtry.js:7
+        reject(new Error(`a loja do ${item} fechou`));
+               ^
+
+Error: a loja do salgados fechou
+    at Timeout._onTimeout (file:///home/ana/all-semtry.js:7:16)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>(Com a função <code>encomendar</code> de <code>all-falha.js</code>.) A rejeição dos salgados derrubou o programa: a linha 7 é o <code>reject</code> dentro da função. O bolo, que deu certo, nunca foi mostrado. <strong>Como consertar:</strong> <code>try … catch</code> em volta do <code>await</code> (seção 3), ou <code>Promise.allSettled</code> se cada resultado vale por si (seção 4).</p>
+</div>
+
+<div class="cenario">
+<strong>Todas falharam no <code>Promise.any</code></strong>
+<pre class="term">$ node any-falha.js
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[AggregateError: All promises were rejected] {
+  [errors]: [
+    Error: Padaria Sol não tem bolo
+        at Timeout._onTimeout (file:///home/ana/any-falha.js:7:16)
+        at listOnTimeout (node:internal/timers:685:17)
+        at process.processTimers (node:internal/timers:618:7),
+    Error: Doce Lar não tem bolo
+        at Timeout._onTimeout (file:///home/ana/any-falha.js:7:16)
+        at listOnTimeout (node:internal/timers:685:17)
+        at process.processTimers (node:internal/timers:618:7)
+  ]
+}
+
+Node.js v24.22.0
+</pre>
+<p>É o <code>any.js</code> com as duas lojas sem bolo e sem <code>try … catch</code>. Desta vez, as primeiras linhas apontam para dentro do Node (<code>node:internal/modules/run_main:107</code>), e não para o seu arquivo: o <code>AggregateError</code> foi criado pelo próprio <code>Promise.any</code>. A informação útil está embaixo: <code>[AggregateError: All promises were rejected]</code> e, em <code>[errors]</code>, cada erro com a linha onde nasceu. <strong>Como consertar:</strong> <code>try … catch</code> em volta do <code>await Promise.any(…)</code>, como em <code>any-catch.js</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>await Promise.all([p1, p2])</code></td><td>Espera todas; dá o array de valores, na ordem do array de entrada; falha na primeira rejeição</td></tr>
+<tr><td><code>const [a, b] = await Promise.all([p1, p2]);</code></td><td>O mesmo, com um nome para cada resultado</td></tr>
+<tr><td><code>await Promise.all(lista.map((x) =&gt; f(x)))</code></td><td>Uma Promise para cada item da lista, todas juntas</td></tr>
+<tr><td><code>await Promise.allSettled([p1, p2])</code></td><td>Espera todas; dá <code>{ status: 'fulfilled', value }</code> ou <code>{ status: 'rejected', reason }</code> para cada uma; nunca falha</td></tr>
+<tr><td><code>await Promise.race([p1, p2])</code></td><td>Fica com a primeira que terminar (certo ou errado)</td></tr>
+<tr><td><code>await Promise.any([p1, p2])</code></td><td>Fica com a primeira que der certo; se todas falharem, <code>AggregateError</code> (com <code>.errors</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: object is not iterable</code> no <code>Promise.all</code></td><td>Faltaram os colchetes <code>[ ]</code> do array</td></tr>
+<tr><td><code>Promise { &lt;pending&gt; }</code></td><td>Faltou o <code>await</code> antes do <code>Promise.all</code></td></tr>
+<tr><td><code>[ [Function: …] ]</code> no resultado</td><td>Pôs a função no array sem os parênteses</td></tr>
+<tr><td><code>AggregateError: All promises were rejected</code></td><td>Todas as Promises do <code>Promise.any</code> falharam</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto tempo?</h3>
+<p>Três tarefas levam 4, 1 e 2 segundos. Quantos segundos leva para todas terminarem…</p>
+<div class="ex-code">…com três <code>await</code> seguidos? <input data-answer="7" aria-label="segundos em sequência"><br>…com <code>await Promise.all([…])</code>? <input data-answer="4" aria-label="segundos com Promise.all"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para esperar todas as consultas de preço juntas:</p>
+<div class="ex-code">const precos = await Promise.<input data-answer="all" aria-label="nome da função">(lista.<input data-answer="map" aria-label="método de array">((p) =&gt; consultarPreco(p)));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Você manda 5 mensagens e quer saber, no fim, quais foram entregues e quais falharam. Qual usar?</p>
+<label><input type="radio" name="q3"> <code>Promise.all</code></label>
+<label><input type="radio" name="q3"> <code>Promise.race</code></label>
+<label><input type="radio" name="q3"> <code>Promise.allSettled</code></label>
+<label><input type="radio" name="q3"> <code>Promise.any</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>await Promise.all([encomendar("suco", 1), encomendar("bolo", 3)])</code>: em que ordem vêm os resultados?</p>
+<label><input type="radio" name="q4"> Na ordem em que chegaram: bolo, depois suco</label>
+<label><input type="radio" name="q4"> Na ordem do array: suco, depois bolo</label>
+<label><input type="radio" name="q4"> Em ordem alfabética</label>
+<label><input type="radio" name="q4"> Cada vez numa ordem diferente</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. A primeira loja responde "não tenho" em 1 s; a segunda, "tenho" em 2 s. Qual função entrega o "tenho"?</p>
+<label><input type="radio" name="q5"> <code>Promise.race</code></label>
+<label><input type="radio" name="q5"> <code>Promise.all</code></label>
+<label><input type="radio" name="q5"> Nenhuma: todas falham por causa da primeira</label>
+<label><input type="radio" name="q5"> <code>Promise.any</code></label>
+</div>
+
+<h3>Missão final: o total da compra, rápido</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 35.30;;src:Promise\.all\(">
+<p class="try-task"><strong>Missão:</strong> o programa consulta o preço de cada produto num <code>for … of</code>, um por vez. Reescreva a parte do meio com <code>await Promise.all(lista.map(…))</code> para fazer as três consultas juntas, e some os preços para mostrar <code>Total: R$ 35.30</code>.</p>
+<pre class="script" data-file="main.js">function consultarPreco(produto) {
+  const precos = { arroz: 6.5, feijao: 8.9, cafe: 19.9 };
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(precos[produto]), 500);
+  });
+}
+
+const lista = ["arroz", "feijao", "cafe"];
+let total = 0;
+for (const produto of lista) {
+  const preco = await consultarPreco(produto);
+  console.log(`${produto}: ${preco}`);
+}
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">function consultarPreco(produto) {
+  const precos = { arroz: 6.5, feijao: 8.9, cafe: 19.9 };
+  return new Promise((resolve) =&gt; {
+    setTimeout(() =&gt; resolve(precos[produto]), 500);
+  });
+}
+
+const lista = ["arroz", "feijao", "cafe"];
+const precos = await Promise.all(lista.map((produto) =&gt; consultarPreco(produto)));
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<p>Repare que o código inicial ainda tem um defeito: ele nunca soma nada no <code>total</code>, e mostra <code>Total: R$ 0.00</code>. Na solução, o <code>reduce</code> resolve isso.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Tarefas que não dependem umas das outras podem andar <strong>juntas</strong>: o tempo total vira o da mais demorada, e não a soma.</li>
+  <li><code>await Promise.all([…])</code> espera todas e dá os valores num array, <strong>na ordem do array de entrada</strong>. Combina com desestruturação e com <code>lista.map(…)</code>.</li>
+  <li>No <code>Promise.all</code>, uma falha derruba tudo: use <code>try … catch</code>.</li>
+  <li><code>Promise.allSettled</code> nunca falha: entrega um relatório com <code>status</code> (<code>'fulfilled'</code>/<code>'rejected'</code>), <code>value</code> ou <code>reason</code>.</li>
+  <li><code>Promise.race</code> fica com a primeira que terminar (bom para limite de tempo); <code>Promise.any</code>, com a primeira que der certo (ou <code>AggregateError</code>).</li>
+  <li>As Promises vão dentro de <code>[ ]</code>, as funções são <strong>chamadas</strong> com <code>()</code>, e o resultado precisa de <code>await</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
