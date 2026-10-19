@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Formulários — value, submit, preventDefault e FormData | Guia JavaScript</title>
+<meta name="description" content="Formulários no JavaScript para quem nunca programou: ler o que a pessoa digitou com value, por que o value é sempre texto (\"2\" + 1 dá \"21\"), checkbox, radio, select e textarea, o evento submit com preventDefault, a página que recarrega, FormData e Object.fromEntries, a validação do próprio navegador (required, type=email, min e max) e a sua, reset, e os erros reais (value is not a function, null, o valor lido cedo demais).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Formulários</span></h1>
+
+<p class="intro">Login, cadastro, busca, pedido de pizza, comentário: quase tudo o que uma pessoa <strong>escreve</strong> numa página passa por um formulário. O HTML desenha os campos; o JavaScript <strong>lê</strong> o que foi digitado, <strong>confere</strong> se está certo e <strong>faz alguma coisa</strong> com isso. Nesta aula, a Ana monta o formulário de pedidos da pizzaria do bairro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ler o que foi digitado num campo com <code>.value</code>, e <strong>quando</strong> ler (na hora do clique, não quando a página abre).</li>
+  <li>Por que o <code>value</code> é sempre <strong>texto</strong>, e como transformar em número.</li>
+  <li>Como ler <code>checkbox</code>, <code>radio</code>, <code>select</code> e <code>textarea</code>.</li>
+  <li>O evento <code>submit</code> e o <code>preventDefault()</code>, que impede a página de recarregar.</li>
+  <li>Como pegar o formulário inteiro de uma vez com <code>FormData</code>.</li>
+  <li>A validação que o navegador já faz sozinho (<code>required</code>, <code>type="email"</code>, <code>min</code>, <code>max</code>) e a validação feita por você.</li>
+  <li>Os erros reais mais comuns: o valor lido cedo demais, o <code>"2" + 1</code>, o <code>value()</code> com parênteses e o <code>null</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula é do <strong>navegador</strong> e continua as aulas <a href="eventos.html">Eventos</a> e <a href="eventos-objeto.html">O Objeto do Evento</a>. As respostas do Console foram colhidas no Chromium da máquina da Ana, com a digitação e os cliques feitos de verdade.</p>
+
+<hr>
+
+<h2>A ideia: a comanda da pizzaria</h2>
+<p>Na pizzaria do bairro, o atendente anota o pedido numa <strong>comanda</strong> de papel: nome do cliente, tamanho, sabor, "borda recheada? sim/não". Quando o cliente diz "pode fechar", o atendente <strong>confere</strong> a comanda (faltou o sabor?) e só então a <strong>entrega</strong> na cozinha.</p>
+<ul>
+  <li>Os <strong>campos</strong> do formulário (<code>&lt;input&gt;</code>, <code>&lt;select&gt;</code>…) são as linhas da comanda.</li>
+  <li>O <strong>valor</strong> de cada campo (<code>.value</code>) é o que está escrito naquela linha <strong>agora</strong>.</li>
+  <li>O botão de enviar é o "pode fechar": dispara o evento <code>submit</code> ("enviar").</li>
+  <li>O seu código é o atendente: confere e decide o que fazer com o pedido.</li>
+</ul>
+
+<hr>
+
+<h2>1. Lendo um campo: <code>.value</code></h2>
+
+<pre class="file" data-file="index.html">&lt;label&gt;Seu nome: &lt;input id="nome"&gt;&lt;/label&gt;
+&lt;button id="ok"&gt;Cumprimentar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const nome = document.querySelector("#nome");
+const saida = document.querySelector("#saida");
+
+console.log(`Na hora que a página abriu: "${nome.value}"`);
+
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  console.log(`Na hora do clique: "${nome.value}"`);
+  saida.textContent = `Olá, ${nome.value}!`;
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>const nome = document.querySelector("#nome")</dt><dd>Guarda o <strong>campo</strong> (o elemento <code>&lt;input&gt;</code>), e não o texto dele. O campo é sempre o mesmo; o texto muda a cada letra digitada.</dd>
+  <dt>nome.value</dt><dd>"Valor": o texto que está escrito no campo <strong>neste instante</strong>. É uma propriedade, sem parênteses.</dd>
+  <dt>dentro do ouvinte do clique</dt><dd>É ali que se lê o <code>value</code>: na hora em que a pessoa clica, quando ela já terminou de digitar.</dd>
+</dl>
+
+<p>A Ana abriu a página, digitou <code>Ana</code> e clicou. Depois, pelo Console, trocou o texto do campo para <code>Bia</code> (sim, dá para <strong>escrever</strong> num campo: <code>nome.value = "Bia"</code>) e clicou de novo:</p>
+
+<pre class="devtools">Na hora que a página abriu: ""
+Na hora do clique: "Ana"
+&gt; document.querySelector("#nome").value = "Bia"
+'Bia'
+Na hora do clique: "Bia"
+</pre>
+
+<p>A primeira linha mostra o ponto mais importante desta seção: quando o script rodou, o campo estava <strong>vazio</strong> (<code>""</code>, uma string vazia). Ninguém tinha digitado nada ainda. Por isso, ler o <code>value</code> fora do ouvinte, logo que a página abre, quase nunca é o que você quer. O parágrafo mostrou <code>Olá, Ana!</code> e, depois, <code>Olá, Bia!</code>.</p>
+
+<div class="tryweb" data-goal="texto:#saida~Olá, Ana!;;semerro" data-acoes="digitar #nome Ana;;clicar #ok">
+<p class="try-task"><strong>Missão:</strong> este script lê o nome <strong>cedo demais</strong>: digite <code>Ana</code>, clique e veja o <code>Olá, !</code>. Conserte para o parágrafo mostrar o nome digitado (dica: o <code>.value</code> tem de ser lido dentro do ouvinte).</p>
+<pre class="script" data-file="index.html">&lt;label&gt;Seu nome: &lt;input id="nome"&gt;&lt;/label&gt;
+&lt;button id="ok"&gt;Cumprimentar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const nome = document.querySelector("#nome").value;
+const saida = document.querySelector("#saida");
+
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  saida.textContent = `Olá, ${nome}!`;
+});
+</pre>
+<pre class="solucao" data-file="script.js">const nome = document.querySelector("#nome");
+const saida = document.querySelector("#saida");
+
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  saida.textContent = `Olá, ${nome.value}!`;
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O <code>value</code> é sempre texto</h2>
+<p>A Ana quer saber quanto vai gastar na padaria: preço do pão vezes a quantidade. Os dois campos são do tipo número (<code>type="number"</code>), que só deixam digitar algarismos. Mesmo assim:</p>
+
+<pre class="file" data-file="index.html">&lt;label&gt;Preço do pão: &lt;input id="preco" type="number"&gt;&lt;/label&gt;
+&lt;label&gt;Quantidade: &lt;input id="qtd" type="number"&gt;&lt;/label&gt;
+&lt;button id="calcular"&gt;Calcular&lt;/button&gt;
+&lt;p id="total"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const preco = document.querySelector("#preco");
+const qtd = document.querySelector("#qtd");
+
+document.querySelector("#calcular").addEventListener("click", () =&gt; {
+  console.log(typeof qtd.value, qtd.value);
+  console.log(qtd.value + 1);
+  console.log(Number(qtd.value) + 1);
+  console.log(qtd.valueAsNumber + 1);
+  const total = Number(preco.value) * Number(qtd.value);
+  document.querySelector("#total").textContent = `Total: R$ ${total.toFixed(2)}`;
+});
+</pre>
+
+<p>Com <code>0.75</code> no preço e <code>6</code> na quantidade:</p>
+
+<pre class="devtools">string 6
+61
+7
+7
+</pre>
+
+<p>E o parágrafo mostrou <code>Total: R$ 4.50</code>. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>string 6</dt><dd>O <code>typeof</code> confirma: o valor é uma <strong>string</strong> (texto), <code>"6"</code>, mesmo num campo de número. <strong>Todo</strong> <code>value</code> de campo de texto é string.</dd>
+  <dt>61</dt><dd><code>"6" + 1</code> não soma: <strong>junta</strong> os textos (veja <a href="conversao-automatica.html">Conversão Automática</a>). É o erro clássico de formulário.</dd>
+  <dt>7</dt><dd><code>Number("6") + 1</code>: convertido para número antes, a conta dá certo (veja <a href="conversao.html">Conversão</a>).</dd>
+  <dt>7</dt><dd><code>valueAsNumber</code> ("valor como número"): os campos <code>type="number"</code> já entregam o número pronto.</dd>
+</dl>
+
+<p>Um cuidado com campo vazio: <code>Number("")</code> dá <code>0</code> (sem aviso nenhum), e <code>valueAsNumber</code> de um campo vazio dá <code>NaN</code>. A Ana conferiu no Console:</p>
+
+<pre class="devtools">&gt; document.querySelector("#qtd").value = ""
+''
+&gt; Number(document.querySelector("#qtd").value)
+0
+&gt; document.querySelector("#qtd").valueAsNumber
+NaN
+</pre>
+
+<p>Por isso, antes de calcular, confira se o campo foi preenchido (seção 6).</p>
+
+<div class="tryweb" data-goal="texto:#total~Total: 5 itens;;semerro" data-acoes="digitar #paes 2;;digitar #bolos 3;;clicar #somar">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 2 pães e 3 bolos, mas o programa diz <code>Total: 23 itens</code>. Conserte a soma para mostrar <code>Total: 5 itens</code>.</p>
+<pre class="script" data-file="index.html">&lt;label&gt;Pães: &lt;input id="paes" type="number"&gt;&lt;/label&gt;
+&lt;label&gt;Bolos: &lt;input id="bolos" type="number"&gt;&lt;/label&gt;
+&lt;button id="somar"&gt;Somar&lt;/button&gt;
+&lt;p id="total"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const paes = document.querySelector("#paes");
+const bolos = document.querySelector("#bolos");
+
+document.querySelector("#somar").addEventListener("click", () =&gt; {
+  const total = paes.value + bolos.value;
+  document.querySelector("#total").textContent = `Total: ${total} itens`;
+});
+</pre>
+<pre class="solucao" data-file="script.js">const paes = document.querySelector("#paes");
+const bolos = document.querySelector("#bolos");
+
+document.querySelector("#somar").addEventListener("click", () =&gt; {
+  const total = Number(paes.value) + Number(bolos.value);
+  document.querySelector("#total").textContent = `Total: ${total} itens`;
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os outros campos: checkbox, radio, select e textarea</h2>
+<p>Cada tipo de campo guarda a resposta de um jeito. A comanda completa da pizzaria:</p>
+
+<pre class="file" data-file="index.html">&lt;form id="pedido"&gt;
+  &lt;label&gt;Nome: &lt;input name="nome" id="nome" required&gt;&lt;/label&gt;
+  &lt;label&gt;Telefone: &lt;input name="telefone" type="tel"&gt;&lt;/label&gt;
+  &lt;p&gt;Tamanho:
+    &lt;label&gt;&lt;input type="radio" name="tamanho" value="P"&gt; Pequena&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" name="tamanho" value="M" checked&gt; Média&lt;/label&gt;
+    &lt;label&gt;&lt;input type="radio" name="tamanho" value="G"&gt; Grande&lt;/label&gt;
+  &lt;/p&gt;
+  &lt;label&gt;Sabor:
+    &lt;select name="sabor"&gt;
+      &lt;option value="calabresa"&gt;Calabresa&lt;/option&gt;
+      &lt;option value="quatro-queijos"&gt;Quatro queijos&lt;/option&gt;
+      &lt;option value="margherita"&gt;Marguerita&lt;/option&gt;
+    &lt;/select&gt;
+  &lt;/label&gt;
+  &lt;label&gt;&lt;input type="checkbox" name="borda"&gt; Borda recheada&lt;/label&gt;
+  &lt;label&gt;Observação: &lt;textarea name="obs" id="obs"&gt;&lt;/textarea&gt;&lt;/label&gt;
+  &lt;button&gt;Fazer pedido&lt;/button&gt;
+&lt;/form&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Campo</th><th>Como ler</th><th>O que vem</th></tr>
+<tr><td><code>&lt;input&gt;</code> de texto, número, e-mail, telefone</td><td><code>campo.value</code></td><td>o texto digitado (string)</td></tr>
+<tr><td><code>&lt;textarea&gt;</code> (texto de várias linhas)</td><td><code>campo.value</code></td><td>o texto, com as quebras de linha</td></tr>
+<tr><td><code>&lt;select&gt;</code> (lista de opções)</td><td><code>campo.value</code></td><td>o <code>value</code> da opção escolhida (<code>"margherita"</code>, e não o texto "Marguerita")</td></tr>
+<tr><td><code>&lt;input type="checkbox"&gt;</code> (caixinha de marcar)</td><td><code>campo.checked</code></td><td><code>true</code> ou <code>false</code></td></tr>
+<tr><td><code>&lt;input type="radio"&gt;</code> (bolinha: escolha uma)</td><td><code>document.querySelector('input[name="tamanho"]:checked').value</code></td><td>o <code>value</code> da bolinha marcada</td></tr>
+</table>
+</div>
+
+<p>O <code>radio</code> é o mais diferente: são <strong>vários</strong> <code>input</code>s com o mesmo <code>name</code>, e só um pode estar marcado. O seletor <code>:checked</code> ("marcado") acha esse um. No Console, depois de a Ana clicar em Grande e marcar a borda:</p>
+
+<pre class="devtools">&gt; document.querySelector("input[name=\"tamanho\"]:checked").value
+'G'
+&gt; form.elements.borda.checked
+true
+</pre>
+
+<p>O <code>form.elements</code> ("os elementos do formulário") é outro jeito de achar um campo: pelo <code>name</code> dele. (No Console, o <code>\"</code> é só uma aspa dentro de outra; no seu código, use aspas simples por fora, como na tabela.)</p>
+
+<hr>
+
+<h2>4. O evento <code>submit</code> e o <code>preventDefault()</code></h2>
+<p>Até aqui o botão era um botão solto, com um ouvinte de <code>click</code>. Com um <code>&lt;form&gt;</code> de verdade, o jeito certo é ouvir o <strong>formulário</strong>, no evento <code>submit</code>. Ele acontece quando a pessoa clica no botão <strong>e também</strong> quando ela aperta Enter num campo: o atendente fecha a comanda de qualquer jeito que o cliente pedir.</p>
+
+<p>Mas o <code>submit</code> tem um comportamento padrão antigo: <strong>enviar os dados para outro endereço e carregar a página de novo</strong>. Veja o que acontece com um ouvinte simples, sem nada para impedir:</p>
+
+<pre class="file" data-file="script.js">const form = document.querySelector("#pedido");
+console.log("A página carregou.");
+form.addEventListener("submit", () =&gt; {
+  console.log("Pedido enviado!");
+});
+</pre>
+
+<p>A Ana preencheu o nome, clicou em "Fazer pedido" e, depois, olhou o endereço da página:</p>
+
+<pre class="devtools">A página carregou.
+Pedido enviado!
+A página carregou.
+&gt; location.href
+'file:///home/ana/pizzaria/index.html?nome=Ana&amp;telefone=&amp;tamanho=M&amp;sabor=calabresa&amp;obs='
+</pre>
+
+<p>O ouvinte rodou (<code>Pedido enviado!</code>), mas logo em seguida a página <strong>recarregou</strong>: o script rodou de novo (o segundo <code>A página carregou.</code>), os campos voltaram vazios e o endereço ganhou os dados no fim, depois do <code>?</code>. Num Console comum, as mensagens antigas até somem na recarga. Para o JavaScript cuidar do pedido sozinho, cancele o envio com o <code>preventDefault()</code> que você conheceu em <a href="eventos-objeto.html">O Objeto do Evento</a>:</p>
+
+<pre class="file" data-file="script.js">const form = document.querySelector("#pedido");
+const saida = document.querySelector("#saida");
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = document.querySelector("#nome").value;
+  const sabor = form.elements.sabor.value;
+  saida.textContent = `Pedido de ${nome}: ${sabor}.`;
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>form.addEventListener("submit", …)</dt><dd>O ouvinte vai no <strong><code>&lt;form&gt;</code></strong>, e não no botão. Assim o Enter também funciona.</dd>
+  <dt>(evento) =&gt;</dt><dd>Recebe o objeto do evento, porque vai precisar dele na linha seguinte.</dd>
+  <dt>evento.preventDefault()</dt><dd>"Não envie, não recarregue: deixe comigo." Fica na <strong>primeira</strong> linha do ouvinte; se alguma linha depois dela der erro, pelo menos a página não recarrega e você consegue ler a mensagem.</dd>
+</dl>
+
+<div class="note">
+<strong>Por que o formulário recarrega?</strong>
+<p>Os formulários são mais velhos que o JavaScript. O jeito original era mandar os dados para um <strong>servidor</strong> (o computador do site), que respondia com uma página nova. Isso ainda existe e funciona (o atributo <code>action</code> do <code>&lt;form&gt;</code> diz para onde mandar). Mas quando é o seu JavaScript que vai cuidar dos dados, na própria página, o <code>preventDefault()</code> é obrigatório.</p>
+</div>
+
+<hr>
+
+<h2>5. O formulário inteiro de uma vez: <code>FormData</code></h2>
+<p>Com muitos campos, ler um por um cansa. O <code>FormData</code> ("dados do formulário") pega <strong>todos</strong> os campos que têm <code>name</code> de uma vez, e o <code>Object.fromEntries</code> transforma tudo num objeto comum (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>):</p>
+
+<pre class="file" data-file="script.js">const form = document.querySelector("#pedido");
+const saida = document.querySelector("#saida");
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const dados = new FormData(form);
+  const pedido = Object.fromEntries(dados);
+  console.log(pedido);
+  saida.textContent = `Pedido de ${pedido.nome}: pizza ${pedido.tamanho} de ${pedido.sabor}.`;
+});
+</pre>
+
+<p>A Ana digitou o nome e a observação "Sem cebola", escolheu Grande e Marguerita e enviou. Depois marcou a borda e enviou de novo:</p>
+
+<pre class="devtools">{nome: 'Ana', telefone: '', tamanho: 'G', sabor: 'margherita', obs: 'Sem cebola'}
+{nome: 'Ana', telefone: '', tamanho: 'G', sabor: 'margherita', borda: 'on', …}
+</pre>
+
+<p>E o parágrafo mostrou <code>Pedido de Ana: pizza G de margherita.</code> Três detalhes:</p>
+<ul>
+  <li>As <strong>chaves</strong> do objeto são os <code>name</code> dos campos. <strong>Campo sem <code>name</code> não entra</strong> no <code>FormData</code>.</li>
+  <li>Na primeira vez <strong>não há</strong> <code>borda</code>: checkbox desmarcado não é enviado. Marcado, ele entra com o valor <code>'on'</code> ("ligado"). Por isso, para checkbox, o <code>form.elements.borda.checked</code> (<code>true</code>/<code>false</code>) costuma ser mais claro.</li>
+  <li>O <code>…</code> no fim da segunda linha é o Chrome encurtando a prévia de um objeto grande; clicando nele, aparece o <code>obs</code>. Os valores continuam todos <strong>strings</strong>.</li>
+</ul>
+
+<div class="tryweb" data-goal="texto:#saida~Pedido de Ana: Calabresa;;src:preventDefault;;semerro" data-acoes="digitar #nome Ana;;clicar #enviar">
+<p class="try-task"><strong>Missão:</strong> escreva o ouvinte do <code>submit</code> do formulário: cancele o envio com <code>preventDefault()</code> e mostre no parágrafo <code>Pedido de NOME: SABOR</code> (com o nome digitado e o sabor escolhido). Rode, digite <code>Ana</code> e clique em "Fazer pedido" (ou aperte Enter no campo).</p>
+<pre class="script" data-file="index.html">&lt;form id="pedido"&gt;
+  &lt;label&gt;Nome: &lt;input name="nome" id="nome"&gt;&lt;/label&gt;
+  &lt;select name="sabor"&gt;
+    &lt;option&gt;Calabresa&lt;/option&gt;
+    &lt;option&gt;Frango&lt;/option&gt;
+  &lt;/select&gt;
+  &lt;button id="enviar"&gt;Fazer pedido&lt;/button&gt;
+&lt;/form&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const form = document.querySelector("#pedido");
+const saida = document.querySelector("#saida");
+
+// ouça o "submit" do form aqui
+</pre>
+<pre class="solucao" data-file="script.js">const form = document.querySelector("#pedido");
+const saida = document.querySelector("#saida");
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const pedido = Object.fromEntries(new FormData(form));
+  saida.textContent = `Pedido de ${pedido.nome}: ${pedido.sabor}`;
+});
+</pre>
+</div>
+
+<p>Repare que as <code>&lt;option&gt;</code> daqui não têm <code>value</code>: aí o valor é o próprio texto da opção (<code>"Calabresa"</code>).</p>
+
+<hr>
+
+<h2>6. Conferindo os dados: validação</h2>
+
+<h3>A validação que o navegador já faz</h3>
+<p>Alguns atributos do HTML mandam o navegador conferir o campo <strong>antes</strong> do <code>submit</code>:</p>
+
+<pre class="file" data-file="index.html">&lt;form id="cadastro"&gt;
+  &lt;label&gt;Nome: &lt;input name="nome" id="nome" required minlength="2"&gt;&lt;/label&gt;
+  &lt;label&gt;E-mail: &lt;input name="email" id="email" type="email" required&gt;&lt;/label&gt;
+  &lt;label&gt;Idade: &lt;input name="idade" id="idade" type="number" min="0" max="120"&gt;&lt;/label&gt;
+  &lt;button&gt;Cadastrar&lt;/button&gt;
+&lt;/form&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const form = document.querySelector("#cadastro");
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  console.log("O submit aconteceu!");
+});
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atributo</th><th>Exige que…</th></tr>
+<tr><td><code>required</code></td><td>o campo não fique vazio ("obrigatório")</td></tr>
+<tr><td><code>minlength="2"</code> / <code>maxlength="40"</code></td><td>o texto tenha pelo menos 2 / no máximo 40 caracteres</td></tr>
+<tr><td><code>type="email"</code></td><td>o texto tenha cara de e-mail (com <code>@</code>)</td></tr>
+<tr><td><code>min="0"</code> / <code>max="120"</code></td><td>o número fique entre esses limites</td></tr>
+</table>
+</div>
+
+<p>A Ana clicou em "Cadastrar" com tudo vazio, e depois com <code>A</code> no nome, <code>ana</code> no e-mail e <code>130</code> na idade. Nas duas vezes, o navegador mostrou um balão de aviso ao lado do primeiro campo errado e <strong>não</strong> disparou o <code>submit</code>: o Console continuou sem nenhum <code>O submit aconteceu!</code>. A mensagem de cada campo fica em <code>validationMessage</code>:</p>
+
+<pre class="devtools">&gt; document.querySelector("#nome").validationMessage
+'Please lengthen this text to 2 characters or more (you are currently using 1 character).'
+&gt; document.querySelector("#email").validationMessage
+'Please include an \'@\' in the email address. \'ana\' is missing an \'@\'.'
+&gt; document.querySelector("#idade").validationMessage
+'Value must be less than or equal to 120.'
+&gt; form.checkValidity()
+false
+</pre>
+
+<p>As mensagens saíram em inglês porque o Chromium do lab está em inglês; num navegador em português, elas vêm traduzidas (algo como "Inclua um @ no endereço de e-mail"). O <code>checkValidity()</code> ("conferir a validade") devolve <code>true</code> se o formulário inteiro está válido.</p>
+
+<div class="warning">
+<strong>A validação do navegador ajuda, mas não basta</strong>
+<p>Ela evita erros de digitação de quem está usando o site de boa-fé. Mas qualquer pessoa pode desligá-la (é só apagar o <code>required</code> pelo F12). Por isso, um site de verdade confere os dados <strong>de novo no servidor</strong>. Na página, use as duas coisas: os atributos do HTML para o básico e o seu JavaScript para as regras do seu negócio.</p>
+</div>
+
+<h3>A sua validação</h3>
+<p>Para regras que o HTML não conhece ("nota de 0 a 10, aceitando vírgula"; "a senha e a confirmação têm de ser iguais"), confira no ouvinte do <code>submit</code> e mostre a mensagem <strong>na página</strong>. Se estiver errado, <code>return</code> sai do ouvinte antes de fazer o resto (veja <a href="return.html">return</a>):</p>
+
+<pre class="file" data-file="script.js">form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nota = Number(form.elements.nota.value.replace(",", "."));
+
+  if (form.elements.nota.value === "" || nota &lt; 0 || nota &gt; 10) {
+    erro.textContent = "A nota tem de ser de 0 a 10.";
+    return;
+  }
+
+  erro.textContent = "";
+  console.log(`Nota aceita: ${nota}`);
+  form.reset();
+});
+</pre>
+
+<p>O <code>form.reset()</code> ("reiniciar") devolve todos os campos ao valor inicial do HTML: o jeito de limpar a comanda para o próximo pedido.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para ler o campo <code>&lt;input name="nome" id="nome"&gt;</code> de dentro do ouvinte do <code>submit</code>, há três caminhos, todos com o mesmo resultado:</p>
+
+<pre class="file" data-file="script.js">const a = document.querySelector("#nome").value;     // pelo id
+const b = form.elements.nome.value;                  // pelo name, dentro do form
+const c = new FormData(form).get("nome");            // pelo name, com FormData
+</pre>
+
+<p>E para reagir, também há escolhas: <code>submit</code> no formulário (quando a pessoa termina), <code>input</code> no campo (a cada letra, como o contador de caracteres de <a href="eventos.html">Eventos</a>) ou <code>change</code> (quando o campo muda e a pessoa sai dele, ou escolhe outra opção num <code>select</code>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um ou dois campos</td><td><code>querySelector("#id").value</code></td></tr>
+<tr><td>Formulário com muitos campos</td><td><code>Object.fromEntries(new FormData(form))</code> (lembre dos <code>name</code>)</td></tr>
+<tr><td>Checkbox</td><td><code>.checked</code> (<code>true</code>/<code>false</code>)</td></tr>
+<tr><td>Fazer algo quando a pessoa termina</td><td><code>submit</code> no <code>&lt;form&gt;</code> + <code>preventDefault()</code></td></tr>
+<tr><td>Reagir a cada letra (busca, contador)</td><td><code>input</code> no campo</td></tr>
+<tr><td>Reagir à troca de opção</td><td><code>change</code> no <code>select</code> ou no checkbox</td></tr>
+<tr><td>Número</td><td><code>Number(campo.value)</code> ou <code>campo.valueAsNumber</code>, e confira se está vazio</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O valor foi lido quando a página abriu</strong>
+<pre class="file" data-file="script.js">const nome = document.querySelector("#nome").value;
+const saida = document.querySelector("#saida");
+
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  saida.textContent = `Olá, ${nome}!`;
+});
+</pre>
+<p>A Ana digitou <code>Ana</code>, clicou, e o parágrafo mostrou <code>Olá, !</code>. Nenhum erro no Console. A primeira linha guardou o <strong>texto</strong> do campo no instante em que o script rodou (vazio), e não o campo. <strong>Como consertar:</strong> guarde o elemento (<code>const nome = document.querySelector("#nome")</code>) e leia o <code>nome.value</code> dentro do ouvinte.</p>
+</div>
+
+<div class="cenario">
+<strong>Somou e deu um número "colado"</strong>
+<p><code>paes.value + bolos.value</code> com 2 e 3 deu <code>23</code>, e <code>qtd.value + 1</code> com 6 deu <code>61</code> (seção 2). Não há erro: o <code>+</code> juntou dois textos. (Curiosamente, <code>*</code>, <code>-</code> e <code>/</code> convertem sozinhos, por isso o <code>preco.value * qtd.value</code> até daria certo, o que confunde ainda mais.) <strong>Como consertar:</strong> converta sempre: <code>Number(paes.value) + Number(bolos.value)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>value()</code>, com parênteses</strong>
+<pre class="file" data-file="script.js">const nome = document.querySelector("#nome");
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  console.log(nome.value());
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: nome.value is not a function
+    at script.js:3:20
+</pre>
+<p>"<code>nome.value</code> não é uma função". O <code>value</code> é uma propriedade (um valor guardado), e não um método: não se chama com <code>()</code>. O erro só aparece no clique, quando o ouvinte roda. <strong>Como consertar:</strong> <code>nome.value</code>, sem parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>O seletor não achou o campo</strong>
+<pre class="file" data-file="script.js">const nome = document.querySelector("#name");
+document.querySelector("#ok").addEventListener("click", () =&gt; {
+  console.log(nome.value);
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'value')
+    at script.js:3:20
+</pre>
+<p>O campo é <code>#nome</code>, e o código procurou <code>#name</code> (em inglês). O <code>querySelector</code> devolveu <code>null</code>, e o erro estourou no clique, ao ler o <code>value</code> desse <code>null</code>. <strong>Como consertar:</strong> confira o <code>id</code> no HTML.</p>
+</div>
+
+<div class="cenario">
+<strong>A página "pisca" e tudo some</strong>
+<p>Você preenche, clica em enviar, a página pisca, os campos voltam vazios e a mensagem que o seu código escreveu não aparece (ou aparece por um instante). É o <code>submit</code> sem <code>preventDefault()</code> (seção 4): a página recarregou. Outra pista é o endereço com <code>?nome=…</code> no fim. <strong>Como consertar:</strong> receba o <code>evento</code> e chame <code>evento.preventDefault()</code> na primeira linha do ouvinte do <code>submit</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um campo não aparece no <code>FormData</code></strong>
+<p>O objeto do <code>Object.fromEntries(new FormData(form))</code> veio sem o telefone? Confira se o <code>&lt;input&gt;</code> tem o atributo <code>name</code>: o <code>id</code> não basta. E checkbox desmarcado também não aparece (seção 5).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>campo.value</code></td><td>O texto do campo agora (sempre string)</td></tr>
+<tr><td><code>campo.value = "…"</code></td><td>Escreve no campo</td></tr>
+<tr><td><code>Number(campo.value)</code> / <code>campo.valueAsNumber</code></td><td>O valor como número (vazio: <code>0</code> / <code>NaN</code>)</td></tr>
+<tr><td><code>caixa.checked</code></td><td><code>true</code> se o checkbox (ou radio) está marcado</td></tr>
+<tr><td><code>document.querySelector('input[name="x"]:checked').value</code></td><td>O valor do radio escolhido</td></tr>
+<tr><td><code>form.elements.nome</code></td><td>O campo com <code>name="nome"</code> dentro do formulário</td></tr>
+<tr><td><code>form.addEventListener("submit", (e) =&gt; { e.preventDefault(); … })</code></td><td>Cuida do envio sem recarregar a página</td></tr>
+<tr><td><code>Object.fromEntries(new FormData(form))</code></td><td>Todos os campos com <code>name</code> num objeto</td></tr>
+<tr><td><code>required</code>, <code>minlength</code>, <code>type="email"</code>, <code>min</code>, <code>max</code></td><td>Validação feita pelo próprio navegador</td></tr>
+<tr><td><code>campo.validationMessage</code> / <code>form.checkValidity()</code></td><td>A mensagem de erro do campo / se o formulário está válido</td></tr>
+<tr><td><code>form.reset()</code></td><td>Volta os campos aos valores iniciais</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O valor sai vazio</td><td>O <code>.value</code> foi lido quando a página abriu, fora do ouvinte</td></tr>
+<tr><td><code>2 + 3</code> dá <code>23</code></td><td>Somou strings: falta <code>Number(…)</code></td></tr>
+<tr><td><code>… .value is not a function</code></td><td>Escreveu <code>value()</code> com parênteses</td></tr>
+<tr><td><code>Cannot read properties of null (reading 'value')</code></td><td>O <code>querySelector</code> não achou o campo</td></tr>
+<tr><td>A página pisca e os campos esvaziam</td><td>Faltou <code>evento.preventDefault()</code> no <code>submit</code></td></tr>
+<tr><td>O ouvinte do <code>submit</code> não roda</td><td>Algum campo está inválido (<code>required</code>…), e o navegador barrou o envio</td></tr>
+<tr><td>Campo faltando no <code>FormData</code></td><td>O campo não tem <code>name</code> (ou é um checkbox desmarcado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o envio</h3>
+<p>Complete para o formulário não recarregar a página:</p>
+<div class="ex-code">form.addEventListener("<input data-answer="submit" aria-label="nome do evento">", (evento) =&gt; {<br>&nbsp;&nbsp;evento.<input data-answer="preventDefault()|preventDefault();" aria-label="método">;<br>});</div>
+</div>
+
+<div class="exercise">
+<h3>2. Que tipo?</h3>
+<p>Num <code>&lt;input type="number"&gt;</code> com <code>42</code> digitado, o que mostra <code>typeof campo.value</code>? (sem aspas)</p>
+<div class="ex-code"><input data-answer="string" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Como saber se a caixinha <code>&lt;input type="checkbox" id="borda"&gt;</code> está marcada?</p>
+<label><input type="radio" name="q3"> <code>borda.value === "on"</code></label>
+<label><input type="radio" name="q3"> <code>borda.marked</code></label>
+<label><input type="radio" name="q3"> <code>borda.checked</code></label>
+<label><input type="radio" name="q3"> <code>borda.value()</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que ouvir o <code>submit</code> do <code>&lt;form&gt;</code> em vez do <code>click</code> do botão?</p>
+<label><input type="radio" name="q4"> Porque o <code>click</code> não existe em botões de formulário</label>
+<label><input type="radio" name="q4"> Porque o <code>submit</code> também acontece quando a pessoa aperta Enter num campo</label>
+<label><input type="radio" name="q4"> Porque o <code>submit</code> nunca recarrega a página</label>
+<label><input type="radio" name="q4"> Não há diferença</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>Object.fromEntries(new FormData(form))</code> veio sem o campo do e-mail, que é <code>&lt;input id="email" type="email"&gt;</code>. Por quê?</p>
+<label><input type="radio" name="q5"> Falta o atributo <code>name</code> no campo</label>
+<label><input type="radio" name="q5"> O <code>FormData</code> não lê campos de e-mail</label>
+<label><input type="radio" name="q5"> Faltou o <code>preventDefault()</code></label>
+<label><input type="radio" name="q5"> O <code>id</code> tem de ser maiúsculo</label>
+</div>
+
+<h3>Missão final: o lançador de notas</h3>
+
+<div class="tryweb" data-goal="texto:#lista~Bia: 8;;texto:#erro~0 a 10;;src:preventDefault;;semerro" data-acoes="digitar #nome Bia;;digitar #nota 8;;clicar #lancar;;digitar #nome Caio;;digitar #nota 15;;clicar #lancar">
+<p class="try-task"><strong>Missão:</strong> a professora da Ana lança as notas da turma por este formulário. No <code>submit</code>: cancele o envio; se a nota estiver vazia ou fora de 0 a 10, escreva <code>A nota tem de ser de 0 a 10.</code> no parágrafo <code>#erro</code> e pare (<code>return</code>); se estiver certa, acrescente um <code>li</code> com <code>NOME: NOTA</code> na lista <code>#lista</code> (veja <a href="dom-criar.html">Criando Elementos</a>) e limpe o formulário com <code>form.reset()</code>. O testador vai lançar <code>Bia</code> com 8 e depois <code>Caio</code> com 15 (inválida).</p>
+<pre class="script" data-file="index.html">&lt;form id="notas"&gt;
+  &lt;label&gt;Aluno: &lt;input name="nome" id="nome" required&gt;&lt;/label&gt;
+  &lt;label&gt;Nota: &lt;input name="nota" id="nota"&gt;&lt;/label&gt;
+  &lt;button id="lancar"&gt;Lançar&lt;/button&gt;
+&lt;/form&gt;
+&lt;p id="erro"&gt;&lt;/p&gt;
+&lt;ul id="lista"&gt;&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const form = document.querySelector("#notas");
+const erro = document.querySelector("#erro");
+const lista = document.querySelector("#lista");
+
+form.addEventListener("submit", (evento) =&gt; {
+  // 1. cancele o envio
+  // 2. leia o nome e a nota (converta a nota para número)
+  // 3. nota vazia ou fora de 0 a 10? mostre o erro e return
+  // 4. crie o li "NOME: NOTA", anexe na lista e dê form.reset()
+});
+</pre>
+<pre class="solucao" data-file="script.js">const form = document.querySelector("#notas");
+const erro = document.querySelector("#erro");
+const lista = document.querySelector("#lista");
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = form.elements.nome.value;
+  const texto = form.elements.nota.value;
+  const nota = Number(texto);
+
+  if (texto === "" || nota &lt; 0 || nota &gt; 10) {
+    erro.textContent = "A nota tem de ser de 0 a 10.";
+    return;
+  }
+
+  const item = document.createElement("li");
+  item.textContent = `${nome}: ${nota}`;
+  lista.append(item);
+  form.reset();
+});
+</pre>
+</div>
+
+<p>Para ir além: na solução, se a professora errar uma nota e depois lançar uma certa, a mensagem de erro continua lá. Limpe o <code>#erro</code> (<code>erro.textContent = ""</code>) quando a nota estiver certa; e aceite vírgula com <code>texto.replace(",", ".")</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>campo.value</code> é o texto do campo <strong>agora</strong>: leia dentro do ouvinte, nunca quando a página abre.</li>
+  <li>O <code>value</code> é sempre <strong>string</strong>: converta com <code>Number(…)</code> (ou <code>valueAsNumber</code>) antes de fazer contas.</li>
+  <li>Checkbox: <code>.checked</code>. Radio: <code>querySelector('input[name="x"]:checked').value</code>. Select e textarea: <code>.value</code>.</li>
+  <li>Ouça o <code>submit</code> do <code>&lt;form&gt;</code> e chame <code>evento.preventDefault()</code> primeiro; sem isso, a página recarrega.</li>
+  <li><code>Object.fromEntries(new FormData(form))</code> junta todos os campos com <code>name</code> num objeto.</li>
+  <li><code>required</code>, <code>minlength</code>, <code>type="email"</code>, <code>min</code>/<code>max</code>: o navegador barra o envio sozinho. Regras próprias, você confere no <code>submit</code> e mostra a mensagem na página.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
