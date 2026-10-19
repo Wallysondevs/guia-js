@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript else e else if — escolhendo entre caminhos | Guia JavaScript</title>
+<meta name="description" content="else e else if em JavaScript para quem nunca programou: o caminho do senão, escolher entre dois e entre vários caminhos, a ordem das condições, o else final, a diferença entre uma cadeia de else if e vários if soltos, e os erros reais do Node.js 24 (else sem if, elseif junto, else com condição).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">else e else if</span></h1>
+
+<p class="intro">Na aula <a href="if.html">if</a>, o programa decidia entre fazer uma coisa ou <strong>não fazer nada</strong>. Mas muitas decisões têm dois lados: aprovado <strong>ou</strong> reprovado, maior de idade <strong>ou</strong> menor, frete grátis <strong>ou</strong> frete pago. Para isso existe o <code>else</code>, que em inglês quer dizer "<strong>senão</strong>". E quando são mais de dois caminhos (nota A, B, C ou D), entra o <code>else if</code>: "<strong>senão, se</strong>".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>else</code> dá ao <code>if</code> um caminho para quando a condição é falsa.</li>
+  <li>Que, num <code>if … else</code>, <strong>exatamente um</strong> dos dois blocos roda, nunca os dois e nunca nenhum.</li>
+  <li>Como escolher entre vários caminhos com <code>else if</code>, e por que a <strong>ordem</strong> das condições importa.</li>
+  <li>Quando o <code>else</code> final é útil, e quando ele pode faltar.</li>
+  <li>A diferença entre uma cadeia de <code>else if</code> e vários <code>if</code> soltos.</li>
+  <li>Os erros reais: <code>else</code> sem <code>if</code>, <code>elseif</code> junto e <code>else</code> com condição.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a bifurcação na estrada</h2>
+<p>A Ana vai de bicicleta para a escola. No meio do caminho, a rua se divide em duas. Ela combinou consigo mesma: <em>"Se estiver atrasada, pego o atalho pela avenida; senão, vou pela praça, que é mais bonita."</em></p>
+<ul>
+  <li>Ela sempre pega <strong>um</strong> dos dois caminhos. Nunca os dois ao mesmo tempo, e nunca fica parada na bifurcação.</li>
+  <li>Quem decide é <strong>uma pergunta só</strong>: estou atrasada? Sim → avenida. Não → praça.</li>
+  <li>Depois de qualquer um dos dois, ela chega ao mesmo lugar: a escola.</li>
+</ul>
+<p>É exatamente o que o <code>if … else</code> faz com o seu programa.</p>
+
+<hr>
+
+<h2>1. <code>if … else</code>: dois caminhos</h2>
+<p>A professora da Ana quer um programa que diga se a aluna passou. A média para passar é 7:</p>
+
+<pre class="file" data-file="aprovacao.js">const nota = 5.5;
+
+if (nota &gt;= 7) {
+  console.log("Aprovada!");
+} else {
+  console.log("Reprovada. Vai para a recuperação.");
+}
+
+console.log("Boletim conferido.");
+</pre>
+
+<dl class="anatomy">
+  <dt>if (nota &gt;= 7) { … }</dt><dd>O <code>if</code> que você já conhece: se a nota for 7 ou mais, roda este bloco.</dd>
+  <dt>else</dt><dd>"Senão". Vem <strong>logo depois</strong> da <code>}</code> do <code>if</code>, na mesma linha (é o costume; veja a dica abaixo).</dd>
+  <dt>{ console.log("Reprovada…"); }</dt><dd>O bloco do <code>else</code>: roda quando a condição do <code>if</code> é <strong>falsa</strong>. Repare que o <code>else</code> <strong>não tem condição</strong>: ele é simplesmente "todo o resto".</dd>
+  <dt>console.log("Boletim conferido.");</dt><dd>Fora dos dois blocos: roda sempre, depois de qualquer um dos caminhos. É a escola, no fim da bifurcação.</dd>
+</dl>
+
+<pre class="term">$ node aprovacao.js
+Reprovada. Vai para a recuperação.
+Boletim conferido.
+</pre>
+
+<p><code>5.5 &gt;= 7</code> é <code>false</code>, então o Node pulou o bloco do <code>if</code> e rodou o do <code>else</code>. Com a nota 8, seria o contrário:</p>
+
+<pre class="file" data-file="aprovacao8.js">const nota = 8;
+
+if (nota &gt;= 7) {
+  console.log("Aprovada!");
+} else {
+  console.log("Reprovada. Vai para a recuperação.");
+}
+
+console.log("Boletim conferido.");
+</pre>
+
+<pre class="term">$ node aprovacao8.js
+Aprovada!
+Boletim conferido.
+</pre>
+
+<div class="tip">
+<strong>Onde fica o <code>else</code></strong>
+<p>O estilo mais comum em JavaScript é <code>} else {</code>, tudo na mesma linha: fecha o bloco do <code>if</code> e já abre o do <code>else</code>. Para o Node, tanto faz pôr o <code>else</code> na linha de baixo; mas, como quase todo mundo escreve assim, o seu código fica parecido com o que você vai ler por aí.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Frete: R$ 15;;out:Frete grátis!;;src:\belse\b">
+<p class="try-task"><strong>Missão:</strong> a lojinha dá frete grátis a partir de R$ 100; abaixo disso, o frete custa R$ 15. O programa confere dois pedidos, um de R$ 80 e um de R$ 130, e já tem os <code>if</code>. Acrescente um <code>else</code> em <strong>cada</strong> <code>if</code>, mostrando <code>Frete: R$ 15</code>. Ao rodar, os dois caminhos vão aparecer.</p>
+<pre class="script" data-file="main.js">const total1 = 80;
+if (total1 &gt;= 100) {
+  console.log("Frete grátis!");
+}
+
+const total2 = 130;
+if (total2 &gt;= 100) {
+  console.log("Frete grátis!");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const total1 = 80;
+if (total1 &gt;= 100) {
+  console.log("Frete grátis!");
+} else {
+  console.log("Frete: R$ 15");
+}
+
+const total2 = 130;
+if (total2 &gt;= 100) {
+  console.log("Frete grátis!");
+} else {
+  console.log("Frete: R$ 15");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>else if</code>: mais de dois caminhos</h2>
+<p>A escola da Ana não dá só "aprovada" ou "reprovada": ela dá um <strong>conceito</strong>. De 9 a 10 é A, de 7 a 8,9 é B, de 5 a 6,9 é C, e abaixo de 5 é D. São quatro caminhos. Para isso, encaixe <code>else if</code> entre o <code>if</code> e o <code>else</code>:</p>
+
+<pre class="file" data-file="conceito.js">const nota = 7.5;
+
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+} else if (nota &gt;= 7) {
+  console.log("Conceito B");
+} else if (nota &gt;= 5) {
+  console.log("Conceito C");
+} else {
+  console.log("Conceito D");
+}
+</pre>
+
+<pre class="term">$ node conceito.js
+Conceito B
+</pre>
+
+<p>O Node lê a cadeia <strong>de cima para baixo</strong> e para na <strong>primeira</strong> condição verdadeira:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Pergunta</th><th>Com nota 7.5</th><th>O que acontece</th></tr>
+<tr><td>1</td><td><code>nota &gt;= 9</code>?</td><td><code>false</code></td><td>Pula o bloco do A e vai para o próximo teste</td></tr>
+<tr><td>2</td><td><code>nota &gt;= 7</code>?</td><td><code>true</code></td><td>Roda o bloco do B e <strong>sai da cadeia inteira</strong></td></tr>
+<tr><td>3</td><td><code>nota &gt;= 5</code>?</td><td>nem é perguntado</td><td>(seria <code>true</code>, mas a cadeia já terminou)</td></tr>
+<tr><td>4</td><td><code>else</code></td><td>nem é olhado</td><td></td></tr>
+</table>
+</div>
+
+<p>Repare num detalhe esperto: o segundo teste é só <code>nota &gt;= 7</code>, e não <code>nota &gt;= 7 &amp;&amp; nota &lt; 9</code>. Não precisa: se a nota fosse 9 ou mais, o primeiro teste já teria pegado. Quem chega ao segundo teste <strong>já sabe</strong> que a nota é menor que 9.</p>
+
+<p>Testando várias notas de uma vez (o <code>for … of</code> que repete o teste para cada nota é assunto de <a href="for-of.html">Percorrendo com for … of</a>; por enquanto, só olhe a saída):</p>
+
+<pre class="file" data-file="conceitos.js">for (const nota of [10, 9, 8.9, 7, 6.9, 5, 4.9, 0]) {
+  if (nota &gt;= 9) {
+    console.log(`${nota} → A`);
+  } else if (nota &gt;= 7) {
+    console.log(`${nota} → B`);
+  } else if (nota &gt;= 5) {
+    console.log(`${nota} → C`);
+  } else {
+    console.log(`${nota} → D`);
+  }
+}
+</pre>
+
+<pre class="term">$ node conceitos.js
+10 → A
+9 → A
+8.9 → B
+7 → B
+6.9 → C
+5 → C
+4.9 → D
+0 → D
+</pre>
+
+<p>Cada nota caiu em <strong>exatamente um</strong> conceito, inclusive as que ficam bem na "divisa" (9, 7, 5).</p>
+
+<div class="tryjs" data-goal="out:Conceito A;;src:const nota = (9|10)\b">
+<p class="try-task"><strong>Missão:</strong> mude a nota para que o programa mostre <code>Conceito A</code>. Depois experimente 5, 4.9 e 7 e confira com a tabela acima.</p>
+<pre class="script" data-file="main.js">const nota = 7.5;
+
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+} else if (nota &gt;= 7) {
+  console.log("Conceito B");
+} else if (nota &gt;= 5) {
+  console.log("Conceito C");
+} else {
+  console.log("Conceito D");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const nota = 9;
+
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+} else if (nota &gt;= 7) {
+  console.log("Conceito B");
+} else if (nota &gt;= 5) {
+  console.log("Conceito C");
+} else {
+  console.log("Conceito D");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A ordem importa</h2>
+<p>Como a cadeia para na primeira condição verdadeira, a <strong>ordem</strong> dos testes muda o resultado. Veja o que acontece se a Ana testar do menor para o maior:</p>
+
+<pre class="file" data-file="ordem.js">const nota = 9.5;
+
+if (nota &gt;= 5) {
+  console.log("Conceito C");
+} else if (nota &gt;= 7) {
+  console.log("Conceito B");
+} else if (nota &gt;= 9) {
+  console.log("Conceito A");
+} else {
+  console.log("Conceito D");
+}
+</pre>
+
+<pre class="term">$ node ordem.js
+Conceito C
+</pre>
+
+<p>Um 9,5 virou C! O primeiro teste, <code>9.5 &gt;= 5</code>, já deu <code>true</code>, e a cadeia acabou ali. Os testes do B e do A nunca chegam a ser feitos: qualquer nota que passaria neles também passa no <code>&gt;= 5</code>. Não há erro, nenhuma mensagem; o programa só fica errado.</p>
+
+<p><strong>Regra prática:</strong> com <code>&gt;=</code>, comece pela condição <strong>mais difícil</strong> de cumprir (a maior nota) e desça. Com <code>&lt;</code>, o contrário: comece pela menor.</p>
+
+<hr>
+
+<h2>4. O <code>else</code> final é opcional</h2>
+<p>A cadeia pode terminar num <code>else if</code>, sem o <code>else</code>. Aí, se nenhuma condição for verdadeira, <strong>nenhum</strong> bloco roda. A Ana quer um aviso só para estoques críticos:</p>
+
+<pre class="file" data-file="semelse.js">const estoque = 20;
+
+if (estoque === 0) {
+  console.log("Produto esgotado!");
+} else if (estoque &lt; 5) {
+  console.log("Estoque baixo.");
+}
+
+console.log(`Estoque: ${estoque}`);
+</pre>
+
+<pre class="term">$ node semelse.js
+Estoque: 20
+</pre>
+
+<p>Com 20 unidades, nem o <code>=== 0</code> nem o <code>&lt; 5</code> são verdadeiros, e não há <code>else</code>: nada de aviso. Use o <code>else</code> final quando <strong>tem de</strong> acontecer alguma coisa em qualquer caso (todo aluno recebe um conceito); deixe sem quando "nenhum dos casos" for uma resposta normal.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<h3>Cadeia de <code>else if</code> × vários <code>if</code> soltos</h3>
+<p>Parece a mesma coisa, mas não é. Compare a cadeia de conceitos com a mesma lógica escrita com <code>if</code> separados:</p>
+
+<pre class="file" data-file="soltos.js">const nota = 9.5;
+
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+}
+if (nota &gt;= 7) {
+  console.log("Conceito B");
+}
+if (nota &gt;= 5) {
+  console.log("Conceito C");
+}
+</pre>
+
+<pre class="term">$ node soltos.js
+Conceito A
+Conceito B
+Conceito C
+</pre>
+
+<p>Três conceitos para a mesma aluna! Cada <code>if</code> solto é uma pergunta independente; todos são testados, e todos os verdadeiros rodam. Na cadeia de <code>else if</code>, só o <strong>primeiro</strong> verdadeiro roda. Use <code>if</code> soltos quando as coisas podem acontecer <strong>juntas</strong> (a compra pode ter frete grátis <strong>e</strong> brinde); use <code>else if</code> quando é <strong>uma coisa ou outra</strong>.</p>
+
+<h3>Dois caminhos numa linha: o ternário</h3>
+<p>Quando os dois caminhos só escolhem um <strong>valor</strong>, existe uma forma curta, o operador ternário (aula <a href="ternario.html">O Operador Ternário</a>):</p>
+
+<pre class="file" data-file="ternario.js">const nota = 8;
+const situacao = nota &gt;= 7 ? "Aprovada" : "Reprovada";
+console.log(situacao);
+</pre>
+
+<pre class="term">$ node ternario.js
+Aprovada
+</pre>
+
+<h3>Muitos valores fixos: o <code>switch</code></h3>
+<p>Quando cada caminho corresponde a um valor <strong>exato</strong> (o dia da semana é <code>"sábado"</code>, <code>"domingo"</code>…), em vez de uma faixa, o <code>switch</code> pode ficar mais organizado. Ele tem aula própria: <a href="switch.html">switch</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Fazer algo ou nada</td><td><code>if</code> sozinho</td></tr>
+<tr><td>Um caminho ou o outro</td><td><code>if … else</code></td></tr>
+<tr><td>Um entre vários caminhos, por faixas (notas, preços, idades)</td><td><code>if … else if … else</code></td></tr>
+<tr><td>Várias coisas independentes, que podem acontecer juntas</td><td>vários <code>if</code> soltos</td></tr>
+<tr><td>Só escolher entre dois valores</td><td>ternário <code>? :</code></td></tr>
+<tr><td>Um entre vários valores exatos</td><td><code>switch</code> (ou <code>else if</code> com <code>===</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Uma linha entre o <code>}</code> e o <code>else</code></strong>
+<pre class="file" data-file="elsesolto.js">const nota = 5;
+if (nota &gt;= 7) {
+  console.log("Aprovada!");
+}
+console.log("Conferindo…");
+else {
+  console.log("Reprovada.");
+}
+</pre>
+<pre class="term">$ node elsesolto.js
+/home/ana/elsesolto.js:6
+else {
+^^^^
+
+SyntaxError: Unexpected token 'else'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/elsesolto.js:6</dt><dd>O arquivo e a linha onde o Node percebeu o problema: a 6, a do <code>else</code>.</dd>
+  <dt>else {</dt><dd>A linha 6, copiada, com a setinha <code>^^^^</code> embaixo do <code>else</code>.</dd>
+  <dt>SyntaxError: Unexpected token 'else'</dt><dd>"Erro de sintaxe: <code>else</code> inesperado". Um <code>else</code> só pode vir <strong>colado</strong> no bloco de um <code>if</code>. Aqui, o <code>console.log</code> da linha 5 ficou no meio: o <code>if</code> terminou na linha 4, e o <code>else</code> ficou "órfão".</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>O Node ainda estava lendo o arquivo. Com erro de sintaxe, nenhuma linha roda, nem o <code>const</code>.</dd>
+</dl>
+<p>O mesmo erro aparece quando você põe <code>;</code> depois da <code>}</code> do <code>if</code> (<code>};</code> com o <code>else</code> na linha seguinte): o <code>;</code> também fica "no meio". <strong>Como consertar:</strong> o <code>else</code> vem logo depois da <code>}</code> do <code>if</code>; o que é comum aos dois caminhos vai antes do <code>if</code> ou depois do bloco do <code>else</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>elseif</code> tudo junto</strong>
+<pre class="file" data-file="elseif.js">const nota = 8;
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+} elseif (nota &gt;= 7) {
+  console.log("Conceito B");
+}
+</pre>
+<pre class="term">$ node elseif.js
+/home/ana/elseif.js:4
+} elseif (nota &gt;= 7) {
+                     ^
+
+SyntaxError: Unexpected token '{'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Em PHP existe <code>elseif</code>, e em Python <code>elif</code>. Em JavaScript são <strong>duas palavras</strong>: <code>else if</code>. O Node achou que <code>elseif(…)</code> era a chamada de uma função chamada <code>elseif</code> e reclamou da <code>{</code> que veio logo depois. <strong>Como consertar:</strong> <code>} else if (nota &gt;= 7) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Condição no <code>else</code></strong>
+<pre class="file" data-file="elsecond.js">const nota = 4;
+if (nota &gt;= 7) {
+  console.log("Aprovada!");
+} else (nota &lt; 7) {
+  console.log("Reprovada.");
+}
+</pre>
+<pre class="term">$ node elsecond.js
+/home/ana/elsecond.js:4
+} else (nota &lt; 7) {
+                  ^
+
+SyntaxError: Unexpected token '{'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>O <code>else</code> não tem condição: ele já quer dizer "em todos os outros casos". Com <code>else (nota &lt; 7)</code>, o Node entende que o bloco do <code>else</code> é a expressão <code>(nota &lt; 7)</code> e não sabe o que fazer com a <code>{</code> seguinte. <strong>Como consertar:</strong> tire a condição (<code>} else {</code>) ou, se ela for mesmo necessária, escreva <code>} else if (nota &lt; 7) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um buraco entre as faixas</strong>
+<p>Este não dá mensagem nenhuma. A Ana escreveu as faixas pensando em números inteiros:</p>
+<pre class="file" data-file="buraco.js">const nota = 6.5;
+if (nota &gt;= 7) {
+  console.log("Aprovada!");
+} else if (nota &lt;= 6) {
+  console.log("Reprovada.");
+}
+console.log("Fim.");
+</pre>
+<pre class="term">$ node buraco.js
+Fim.
+</pre>
+<p>A nota 6,5 não é <code>&gt;= 7</code> nem <code>&lt;= 6</code>: caiu no "buraco" entre as faixas, e a aluna ficou sem resultado. <strong>Como consertar:</strong> use <code>else</code> para "todo o resto", em vez de tentar descrever cada faixa: <code>} else {</code>. Se as faixas forem necessárias, faça cada uma começar exatamente onde a anterior termina (<code>&gt;= 7</code> e depois <code>&lt; 7</code>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Conceito A;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem um erro de sintaxe e, depois de consertado, ainda um erro de lógica (a nota 9.5 sai com o conceito errado). Conserte os dois até aparecer <code>Conceito A</code>.</p>
+<pre class="script" data-file="main.js">const nota = 9.5;
+
+if (nota &gt;= 7) {
+  console.log("Conceito B");
+} elseif (nota &gt;= 9) {
+  console.log("Conceito A");
+} else {
+  console.log("Conceito C");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const nota = 9.5;
+
+if (nota &gt;= 9) {
+  console.log("Conceito A");
+} else if (nota &gt;= 7) {
+  console.log("Conceito B");
+} else {
+  console.log("Conceito C");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>if (c) { … } else { … }</code></td><td>Roda o primeiro bloco se <code>c</code> for verdadeira; senão, o segundo. Sempre exatamente um</td></tr>
+<tr><td><code>if (a) { … } else if (b) { … } else { … }</code></td><td>Testa de cima para baixo; roda só o bloco da <strong>primeira</strong> condição verdadeira; o <code>else</code> pega o resto</td></tr>
+<tr><td>Cadeia sem <code>else</code> no fim</td><td>Se nenhuma condição for verdadeira, nenhum bloco roda</td></tr>
+<tr><td>Faixas com <code>&gt;=</code></td><td>Comece pela maior (<code>&gt;= 9</code>, <code>&gt;= 7</code>, <code>&gt;= 5</code>, <code>else</code>)</td></tr>
+<tr><td>Vários <code>if</code> soltos</td><td>Cada um é testado; todos os verdadeiros rodam</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected token 'else'</code></td><td>Alguma coisa entre a <code>}</code> do <code>if</code> e o <code>else</code> (uma linha, um <code>;</code>)</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '{'</code> na linha do <code>else</code></td><td><code>elseif</code> junto, ou condição no <code>else</code></td></tr>
+<tr><td>Resultado errado, sem erro</td><td>Ordem das condições (a mais fácil veio antes)</td></tr>
+<tr><td>Mais de um bloco rodou</td><td>Eram <code>if</code> soltos, não <code>else if</code></td></tr>
+<tr><td>Nenhum bloco rodou</td><td>Faltou o <code>else</code>, ou há um buraco entre as faixas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar "Par" ou "Ímpar" (o <code>%</code> dá o resto da divisão; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>):</p>
+<div class="ex-code">if (numero % 2 === 0) {<br>&nbsp;&nbsp;console.log("Par");<br>} <input data-answer="else" aria-label="palavra-chave"> {<br>&nbsp;&nbsp;console.log("Ímpar");<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<pre class="file" data-file="ex2.js">const idade = 15;
+if (idade &gt;= 18) {
+  console.log("Adulto");
+} else if (idade &gt;= 12) {
+  console.log("Adolescente");
+} else {
+  console.log("Criança");
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="Adolescente" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Num <code>if … else if … else</code> com quatro blocos, quantos blocos rodam?</p>
+<label><input type="radio" name="q3"> Todos cujas condições forem verdadeiras</label>
+<label><input type="radio" name="q3"> Nenhum ou um</label>
+<label><input type="radio" name="q3"> Exatamente um</label>
+<label><input type="radio" name="q3"> Pelo menos dois</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas linhas está certa em JavaScript?</p>
+<label><input type="radio" name="q4"> <code>} elseif (x &gt; 5) {</code></label>
+<label><input type="radio" name="q4"> <code>} else if (x &gt; 5) {</code></label>
+<label><input type="radio" name="q4"> <code>} elif (x &gt; 5) {</code></label>
+<label><input type="radio" name="q4"> <code>} else (x &gt; 5) {</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Com <code>const preco = 120;</code>, o que mostra <code>if (preco &gt; 50) { console.log("médio"); } else if (preco &gt; 100) { console.log("caro"); }</code>?</p>
+<label><input type="radio" name="q5"> <code>médio</code>: a primeira condição verdadeira encerra a cadeia</label>
+<label><input type="radio" name="q5"> <code>caro</code></label>
+<label><input type="radio" name="q5"> <code>médio</code> e <code>caro</code></label>
+<label><input type="radio" name="q5"> Nada</label>
+</div>
+
+<h3>Missão final: a tabela de frete</h3>
+
+<div class="tryjs" data-goal="out:Frete: R$ 10;;semerro;;src:\belse if\b">
+<p class="try-task"><strong>Missão:</strong> a lojinha da Ana cobra o frete pelo peso do pacote: até 1 kg, R$ 10; até 5 kg, R$ 20; acima disso, R$ 35. Complete a cadeia de <code>else if</code> para o pacote de <code>0.8</code> kg mostrar <code>Frete: R$ 10</code>. Depois teste com 3 e com 12.</p>
+<pre class="script" data-file="main.js">const peso = 0.8;
+let frete;
+
+if (peso &gt; 5) {
+  frete = 35;
+}
+
+console.log(`Frete: R$ ${frete}`);
+</pre>
+<pre class="solucao" data-file="main.js">const peso = 0.8;
+let frete;
+
+if (peso &gt; 5) {
+  frete = 35;
+} else if (peso &gt; 1) {
+  frete = 20;
+} else {
+  frete = 10;
+}
+
+console.log(`Frete: R$ ${frete}`);
+</pre>
+</div>
+
+<p>Como está, o programa mostra <code>Frete: R$ undefined</code>: nenhum bloco deu valor ao <code>frete</code> (veja <a href="null-undefined.html">null e undefined</a>). É o sinal de que faltou um caminho.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>else</code> ("senão") dá ao <code>if</code> um segundo caminho, para quando a condição é falsa. O <code>else</code> não tem condição. Com <code>if … else</code>, roda exatamente um dos dois blocos.</li>
+  <li><code>else if</code> ("senão, se") encadeia mais caminhos. O Node testa de cima para baixo e roda só o bloco da <strong>primeira</strong> condição verdadeira.</li>
+  <li>A ordem importa: com <code>&gt;=</code>, comece pela condição mais difícil (a maior).</li>
+  <li>O <code>else</code> final é opcional; sem ele, pode ser que nenhum bloco rode.</li>
+  <li><code>if</code> soltos são perguntas independentes (vários podem rodar); <code>else if</code> é "uma coisa ou outra".</li>
+  <li>Erros comuns: algo entre <code>}</code> e <code>else</code> (<code>Unexpected token 'else'</code>), <code>elseif</code> junto e condição no <code>else</code> (<code>Unexpected token '{'</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
