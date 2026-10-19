@@ -32,7 +32,7 @@
     catch (e) { return false; } finally { Error.prepareStackTrace = o; }
   })();
   var BASE = (function () { try { return String(G.location.href).replace(/[^/]*$/, ""); } catch (e) { return ""; } })();
-  nImportScripts(BASE + "inspect.js");
+  nImportScripts(BASE + "inspect.js" + (function () { try { return G.location.search; } catch (e) { return ""; } })());
   var U = G.util; try { delete G.util; } catch (e) { G.util = undefined; }
   Error.stackTraceLimit = 80;
 

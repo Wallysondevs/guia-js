@@ -25,9 +25,13 @@ aqui ficam a arquitetura, as ferramentas e o que falta.
 Registro automático das diferenças: `tools/DIFERENCAS-AUTO.md` (fora do git). Resumo das conhecidas: `tools/DIFERENCAS.md`.
 
 ## Estado (19/10/2026)
-- Bateria `conferir-casos`: 124 de 125 iguais ao Node do lab (a diferença: a coluna do estouro de pilha, V8 mais novo).
+- Bateria `conferir-casos`: 131 de 132 iguais ao Node do lab (a diferença: a coluna do estouro de pilha, V8 mais novo).
 - `testar-navegador --todas`: 159 páginas, 0 com problema.
-- `testar-missoes --todas --nativo`: veja `/tmp/jsnat-todas.txt` e `tools/DIFERENCAS-AUTO.md` na VPS.
+- `testar-missoes --todas --nativo` (161 páginas): 517 ok, 0 FALHA; as diferenças restantes são as esperadas (sorteios, tempo medido, rede) — `tools/DIFERENCAS-AUTO.md`.
+- Firefox: `NAVEGADOR=firefox node tools/sim.js …` roda o editor no Firefox ESR da VPS (as mensagens de erro são as do SpiderMonkey).
+
+## Ao mudar o worker, o inspect ou o web.js
+Mude `VERSAO_ARQS` no `assets/jssim.js` (o navegador guarda os arquivos em cache) e rode `node tools/conferir-casos.js` e `node tools/testar-navegador.js --todas -q`.
 
 ## O que falta / ideias
 - Estado das Promises de `async function` no `console.log` (o navegador não deixa ler).
