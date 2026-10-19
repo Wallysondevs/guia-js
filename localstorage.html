@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript localStorage — guardando dados no navegador | Guia JavaScript</title>
+<meta name="description" content="O localStorage do navegador para quem nunca programou: setItem, getItem, removeItem e clear, o contador de visitas que sobrevive ao F5, por que tudo vira texto (30 vira '30', o array vira 'Pão,Leite' e o objeto vira '[object Object]'), guardar arrays e objetos com JSON.stringify e JSON.parse, a aba Application do F12, sessionStorage, o que não guardar, e os erros reais (null, is not valid JSON, QuotaExceededError, localStorage is not defined no Node).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">localStorage</span></h1>
+
+<p class="intro">Tudo o que o seu JavaScript faz numa página some quando ela é recarregada: o item que você acrescentou na lista, o placar, o nome que a pessoa digitou. Recarregou, voltou tudo ao começo. Para a página <strong>lembrar</strong> de coisas de uma visita para a outra, o navegador oferece uma gaveta: o <code>localStorage</code> ("armazenamento local"). É ele que faz o site lembrar que você prefere o tema escuro, ou manter a lista de tarefas depois que você fecha a aba.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como guardar, ler e apagar um dado: <code>setItem</code>, <code>getItem</code>, <code>removeItem</code> e <code>clear</code>.</li>
+  <li>Um contador de visitas que sobrevive ao <kbd>F5</kbd>.</li>
+  <li>Por que o <code>localStorage</code> só guarda <strong>texto</strong>, e o que acontece com números, arrays e objetos.</li>
+  <li>Como guardar arrays e objetos com <code>JSON.stringify</code> e recuperá-los com <code>JSON.parse</code>.</li>
+  <li>Onde ver a gaveta pelo F12, o que é o <code>sessionStorage</code> e o que <strong>não</strong> guardar ali.</li>
+  <li>Os erros reais: o <code>null</code> da chave que não existe, o texto que não é JSON, a gaveta cheia e o <code>localStorage</code> no Node.js.</li>
+</ul>
+</div>
+
+<p>O <code>localStorage</code> é do <strong>navegador</strong>. As respostas do Console foram colhidas no Chromium da máquina da Ana, com a página aberta como arquivo (<code>file:///home/ana/…</code>), do jeito que ela abre com dois cliques. Antes desta aula, ajuda ter visto <a href="json.html">JSON</a> e <a href="formularios.html">Formulários</a>.</p>
+
+<hr>
+
+<h2>A ideia: a gaveta com etiquetas</h2>
+<p>Pense numa gaveta da cozinha da Ana onde cada coisa fica num potinho com uma <strong>etiqueta</strong>: "açúcar", "café", "chave do portão". Para guardar, ela escreve a etiqueta e põe o conteúdo. Para pegar, procura pela etiqueta. Se procurar uma etiqueta que não existe, a mão volta vazia. E a gaveta continua lá no dia seguinte.</p>
+<ul>
+  <li>Cada <strong>site</strong> tem a sua gaveta. O site da padaria não abre a gaveta do site do banco.</li>
+  <li>A etiqueta se chama <strong>chave</strong> (<em>key</em>); o conteúdo, <strong>valor</strong> (<em>value</em>).</li>
+  <li>Os potinhos só aceitam <strong>papel escrito</strong>: tudo o que entra vira texto. (É a pegadinha da seção 3.)</li>
+  <li>A gaveta fica <strong>neste navegador, neste computador</strong>. No celular da Ana, o mesmo site tem outra gaveta, vazia.</li>
+</ul>
+
+<hr>
+
+<h2>1. Guardar, ler e apagar</h2>
+<p>Quatro métodos fazem quase tudo. A Ana testou no Console:</p>
+
+<pre class="devtools">&gt; localStorage.setItem("nome", "Ana")
+undefined
+&gt; localStorage.getItem("nome")
+'Ana'
+&gt; localStorage.getItem("idade")
+null
+&gt; localStorage.removeItem("nome")
+undefined
+&gt; localStorage.getItem("nome")
+null
+</pre>
+
+<dl class="anatomy">
+  <dt>localStorage.setItem("nome", "Ana")</dt><dd>"Definir item": guarda o valor <code>"Ana"</code> com a etiqueta <code>"nome"</code>. Se a etiqueta já existia, o valor antigo é <strong>trocado</strong>. Não devolve nada (o <code>undefined</code>).</dd>
+  <dt>localStorage.getItem("nome")</dt><dd>"Pegar item": devolve o valor guardado com essa etiqueta: <code>'Ana'</code>.</dd>
+  <dt>getItem("idade") → null</dt><dd>Etiqueta que não existe devolve <code>null</code> ("nada"; veja <a href="null-undefined.html">null e undefined</a>). Não é erro: é a mão voltando vazia.</dd>
+  <dt>localStorage.removeItem("nome")</dt><dd>"Remover item": tira o potinho da gaveta. Depois disso, o <code>getItem</code> devolve <code>null</code>.</dd>
+</dl>
+
+<p>E mais três para conhecer: <code>localStorage.clear()</code> esvazia a gaveta inteira (deste site); <code>localStorage.length</code> diz quantos itens há; <code>localStorage.key(0)</code> devolve a etiqueta do item número 0 (a ordem não é garantida, então use só para percorrer tudo). Digitando só <code>localStorage</code> no Console, aparece a gaveta inteira. Aqui a Ana estava na página do contador de visitas da seção 2 (por isso o <code>visitas</code>) e tinha guardado de novo o nome e a idade:</p>
+
+<pre class="devtools">&gt; localStorage
+Storage {nome: 'Ana', visitas: '1', idade: '30', length: 3}
+&gt; localStorage.clear()
+undefined
+&gt; localStorage.length
+0
+</pre>
+
+<hr>
+
+<h2>2. O dado que sobrevive ao <kbd>F5</kbd></h2>
+<p>O exemplo clássico: um contador de visitas. Cada vez que a página abre, ele lê o número guardado, soma 1 e guarda de novo.</p>
+
+<pre class="file" data-file="index.html">&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const visitas = Number(localStorage.getItem("visitas")) + 1;
+localStorage.setItem("visitas", visitas);
+document.querySelector("#saida").textContent = `Esta é a sua visita número ${visitas}.`;
+</pre>
+
+<dl class="anatomy">
+  <dt>localStorage.getItem("visitas")</dt><dd>Na primeira visita, a etiqueta não existe: vem <code>null</code>. Nas próximas, vem o número guardado, como texto (<code>"1"</code>, <code>"2"</code>…).</dd>
+  <dt>Number(…) + 1</dt><dd>Converte para número antes de somar (veja <a href="conversao.html">Conversão</a>). O <code>Number(null)</code> dá <code>0</code>, então a primeira visita vira <code>0 + 1 = 1</code> sem precisar de <code>if</code>. Sem o <code>Number</code>, <code>"1" + 1</code> daria <code>"11"</code>.</dd>
+  <dt>localStorage.setItem("visitas", visitas)</dt><dd>Guarda o número novo para a próxima vez.</dd>
+</dl>
+
+<p>A Ana abriu a página e recarregou duas vezes (<kbd>F5</kbd>). O parágrafo mostrou <code>Esta é a sua visita número 1.</code>, depois <code>Esta é a sua visita número 2.</code> e depois <code>Esta é a sua visita número 3.</code></p>
+
+<p>Uma variável comum (<code>let visitas = 0</code>) voltaria a 0 a cada recarga, porque o script inteiro roda de novo do zero. O <code>localStorage</code> não: a gaveta fica guardada no navegador, até alguém apagar. Ela sobrevive a fechar a aba, fechar o navegador e desligar o computador.</p>
+
+<div class="tip">
+<strong>Para ver no seu computador</strong>
+<p>Salve os dois arquivos numa pasta, abra o <code>index.html</code> no navegador e aperte <kbd>F5</kbd> algumas vezes. Depois feche o navegador, abra de novo, e veja o número continuar de onde parou.</p>
+</div>
+
+<h3>Vendo a gaveta pelo F12</h3>
+<p>Nas ferramentas do navegador (<kbd>F12</kbd>), a aba <strong>Application</strong> ("Aplicativo", no Chrome e no Edge) tem, à esquerda, <strong>Storage › Local storage</strong>. Clicando no endereço do site, aparece uma tabela com as colunas <strong>Key</strong> e <strong>Value</strong>: as etiquetas e os valores. Dá para editar e apagar itens ali mesmo, com o botão direito. No Firefox, a aba se chama <strong>Armazenamento</strong>.</p>
+
+<div class="tryweb" data-goal="texto:#saida~Nome salvo: Ana;;src:localStorage\.setItem;;src:localStorage\.getItem;;semerro" data-acoes="digitar #nome Ana;;clicar #salvar;;clicar #mostrar">
+<p class="try-task"><strong>Missão:</strong> complete os dois botões. "Salvar" guarda o que está no campo com a etiqueta <code>"nome"</code>; "Mostrar" lê essa etiqueta e escreve <code>Nome salvo: …</code> no parágrafo. Rode, digite <code>Ana</code>, clique em Salvar e depois em Mostrar.</p>
+<pre class="script" data-file="index.html">&lt;input id="nome" placeholder="Seu nome"&gt;
+&lt;button id="salvar"&gt;Salvar&lt;/button&gt;
+&lt;button id="mostrar"&gt;Mostrar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const campo = document.querySelector("#nome");
+const saida = document.querySelector("#saida");
+
+document.querySelector("#salvar").addEventListener("click", () =&gt; {
+  // guarde campo.value com a etiqueta "nome"
+});
+
+document.querySelector("#mostrar").addEventListener("click", () =&gt; {
+  // leia a etiqueta "nome" e mostre no parágrafo
+});
+</pre>
+<pre class="solucao" data-file="script.js">const campo = document.querySelector("#nome");
+const saida = document.querySelector("#saida");
+
+document.querySelector("#salvar").addEventListener("click", () =&gt; {
+  localStorage.setItem("nome", campo.value);
+});
+
+document.querySelector("#mostrar").addEventListener("click", () =&gt; {
+  saida.textContent = `Nome salvo: ${localStorage.getItem("nome")}`;
+});
+</pre>
+</div>
+
+<p>Clique em "Mostrar" <strong>antes</strong> de salvar qualquer coisa (numa gaveta vazia) e veja o <code>Nome salvo: null</code>: é o <code>null</code> da etiqueta que não existe.</p>
+
+<hr>
+
+<h2>3. A pegadinha: tudo vira texto</h2>
+<p>O <code>localStorage</code> só guarda <strong>strings</strong>. Se você entregar outra coisa, ela é convertida em texto antes de entrar, do jeito que o JavaScript converte (o mesmo do <code>String(valor)</code>). Para números e booleanos, o estrago é pequeno:</p>
+
+<pre class="devtools">&gt; localStorage.setItem("idade", 30)
+undefined
+&gt; localStorage.getItem("idade")
+'30'
+&gt; typeof localStorage.getItem("idade")
+'string'
+&gt; localStorage.setItem("tema", true)
+undefined
+&gt; localStorage.getItem("tema") === true
+false
+&gt; localStorage.getItem("tema") === "true"
+true
+</pre>
+
+<p>O <code>30</code> voltou como <code>'30'</code> (com aspas: texto), e o <code>true</code> voltou como <code>"true"</code>. Por isso o <code>Number(…)</code> no contador de visitas, e por isso o <code>=== true</code> deu <code>false</code>. Para arrays e objetos, o estrago é grande:</p>
+
+<pre class="devtools">&gt; const compras = ["Pão", "Leite", "Café"]
+undefined
+&gt; localStorage.setItem("compras", compras)
+undefined
+&gt; localStorage.getItem("compras")
+'Pão,Leite,Café'
+&gt; const ana = { nome: "Ana", idade: 30 }
+undefined
+&gt; localStorage.setItem("perfil", ana)
+undefined
+&gt; localStorage.getItem("perfil")
+'[object Object]'
+</pre>
+
+<p>O array virou um texto com vírgulas (já não é uma lista: é uma frase). E o objeto virou <code>'[object Object]'</code>, que é o jeito do JavaScript dizer "um objeto" quando o transforma em texto. O nome e a idade da Ana <strong>se perderam</strong>, sem nenhum aviso.</p>
+
+<hr>
+
+<h2>4. Guardando arrays e objetos: JSON</h2>
+<p>A solução é transformar o array ou o objeto num texto que <strong>dê para desfazer</strong>: o <strong>JSON</strong> (veja <a href="json.html">JSON</a>). Na ida, <code>JSON.stringify</code> ("transformar em string"); na volta, <code>JSON.parse</code> ("analisar", ler o texto e montar o valor de novo):</p>
+
+<pre class="devtools">&gt; localStorage.setItem("compras", JSON.stringify(compras))
+undefined
+&gt; localStorage.getItem("compras")
+'["Pão","Leite","Café"]'
+&gt; JSON.parse(localStorage.getItem("compras"))
+(3) ['Pão', 'Leite', 'Café']
+&gt; localStorage.setItem("perfil", JSON.stringify(ana))
+undefined
+&gt; JSON.parse(localStorage.getItem("perfil")).nome
+'Ana'
+</pre>
+
+<p>Guardado como JSON, o texto tem colchetes e aspas: ele "lembra" que era um array. O <code>JSON.parse</code> monta o array de volta, com 3 itens, e o objeto de volta, com o <code>.nome</code> funcionando.</p>
+
+<h3>O padrão "carregar, mudar, salvar"</h3>
+<p>Quase todo programa com <code>localStorage</code> tem duas funções pequenas, uma para ler e outra para gravar, e usa as duas assim:</p>
+
+<pre class="file" data-file="script.js">function carregar() {
+  return JSON.parse(localStorage.getItem("compras")) ?? [];
+}
+
+function salvar(lista) {
+  localStorage.setItem("compras", JSON.stringify(lista));
+}
+
+const compras = carregar();   // 1. carregar
+compras.push("Manteiga");     // 2. mudar
+salvar(compras);              // 3. salvar
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>JSON.parse(localStorage.getItem("compras"))</dt><dd>Lê o texto da gaveta e monta o array.</dd>
+  <dt>?? []</dt><dd>Na primeira vez, a etiqueta não existe: o <code>getItem</code> dá <code>null</code>, e <code>JSON.parse(null)</code> também dá <code>null</code>. O <code>??</code> ("se for nulo, use isto"; veja <a href="optional-chaining.html">?. e ??</a>) troca esse <code>null</code> por um array vazio, para o <code>push</code> funcionar.</dd>
+  <dt>salvar(compras)</dt><dd>Mudar o array na memória <strong>não</strong> muda a gaveta. É preciso gravar de novo depois de cada mudança.</dd>
+</dl>
+
+<p>A Ana abriu a página com a gaveta vazia e recarregou duas vezes. O Console mostrou:</p>
+
+<pre class="devtools">(1) ['Manteiga']
+(2) ['Manteiga', 'Manteiga']
+(3) ['Manteiga', 'Manteiga', 'Manteiga']
+</pre>
+
+<p>A cada recarga o script roda de novo, carrega o que estava guardado, acrescenta mais uma Manteiga e grava. (Numa lista de verdade, o <code>push</code> fica dentro de um ouvinte de clique, como na missão final.) E o <code>?? []</code> conferido no Console, com a etiqueta <code>"tarefas"</code>, que não existe:</p>
+
+<pre class="devtools">&gt; JSON.parse(localStorage.getItem("tarefas"))
+null
+&gt; JSON.parse(localStorage.getItem("tarefas")) ?? []
+(0) []
+</pre>
+
+<hr>
+
+<h2>5. <code>sessionStorage</code>: a gaveta que some com a aba</h2>
+<p>Existe uma irmã, o <code>sessionStorage</code> ("armazenamento da sessão"), com <strong>os mesmos métodos</strong>: <code>setItem</code>, <code>getItem</code>, <code>removeItem</code>, <code>clear</code>. A diferença é quanto tempo dura:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>localStorage</code></th><th><code>sessionStorage</code></th></tr>
+<tr><td>Sobrevive ao <kbd>F5</kbd></td><td>Sim</td><td>Sim</td></tr>
+<tr><td>Sobrevive a fechar a aba</td><td>Sim</td><td><strong>Não</strong>: some junto com a aba</td></tr>
+<tr><td>Outra aba do mesmo site enxerga</td><td>Sim</td><td>Não: cada aba tem a sua</td></tr>
+<tr><td>Bom para</td><td>Preferências, listas, rascunhos que devem ficar</td><td>Um passo a passo em andamento, dados de uma visita só</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>O que não guardar no <code>localStorage</code></strong>
+<ul>
+  <li><strong>Senhas, números de cartão, documentos.</strong> Qualquer código que rodar na página (até o de um anúncio, ou um ataque como o XSS de <a href="dom-criar.html">Criando Elementos</a>) consegue ler a gaveta inteira, e qualquer pessoa com o computador nas mãos também, pelo F12.</li>
+  <li><strong>Coisas que não podem se perder.</strong> A pessoa pode limpar os dados do navegador a qualquer momento, e a navegação anônima apaga tudo ao fechar. Para dados importantes, o lugar é um servidor.</li>
+  <li><strong>Muita coisa.</strong> Cada site tem só alguns megabytes (em geral, cerca de 5 MB). Veja o erro de gaveta cheia abaixo.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Além dos métodos, dá para usar a gaveta como um objeto comum, com ponto:</p>
+
+<pre class="devtools">&gt; localStorage.nome = "Bia"
+'Bia'
+&gt; localStorage.getItem("nome")
+'Bia'
+</pre>
+
+<p>Funciona, mas evite: uma etiqueta com o nome de um método (como <code>"length"</code>, <code>"key"</code> ou <code>"clear"</code>) não dá para ler assim, e quem lê o código não percebe que aquilo é a gaveta do navegador. Os métodos <code>setItem</code>/<code>getItem</code> deixam isso claro.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um texto simples (nome, tema)</td><td><code>setItem("tema", "escuro")</code> / <code>getItem("tema")</code></td></tr>
+<tr><td>Um número</td><td><code>setItem("visitas", n)</code> / <code>Number(getItem("visitas"))</code></td></tr>
+<tr><td>Um array ou objeto</td><td><code>setItem("x", JSON.stringify(valor))</code> / <code>JSON.parse(getItem("x")) ?? padrão</code></td></tr>
+<tr><td>Deve sumir quando a aba fechar</td><td><code>sessionStorage</code></td></tr>
+<tr><td>Senha, dado sensível, dado importante</td><td>Nenhum dos dois: um servidor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o valor de uma etiqueta que não existe</strong>
+<pre class="devtools">&gt; localStorage.getItem("nada").length
+Uncaught TypeError: Cannot read properties of null (reading 'length')
+    at &lt;anonymous&gt;:1:29
+</pre>
+<p>"Não dá para ler propriedades de <code>null</code> (lendo <code>length</code>)". O <code>getItem("nada")</code> devolveu <code>null</code>, e o <code>null</code> não tem <code>length</code>. É o que acontece na <strong>primeira visita</strong> de qualquer pessoa, quando a gaveta ainda está vazia: o programa funciona no seu computador (onde você já tinha salvo algo) e quebra no de quem abre pela primeira vez. (O <code>&lt;anonymous&gt;:1:29</code> quer dizer: código digitado no Console, linha 1, coluna 29.) <strong>Como consertar:</strong> dê um valor padrão: <code>localStorage.getItem("nome") ?? ""</code>, ou <code>JSON.parse(…) ?? []</code>. Para testar a primeira visita, apague a gaveta pelo F12 (aba Application) ou com <code>localStorage.clear()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou <code>JSON.parse</code> num texto que não é JSON</strong>
+<pre class="devtools">&gt; localStorage.setItem("lista", "Pão, Leite")
+undefined
+&gt; JSON.parse(localStorage.getItem("lista"))
+Uncaught SyntaxError: Unexpected token 'P', "Pão, Leite" is not valid JSON
+    at JSON.parse (&lt;anonymous&gt;)
+    at &lt;anonymous&gt;:1:6
+</pre>
+<p>"Símbolo inesperado <code>'P'</code>: <code>"Pão, Leite"</code> não é um JSON válido". Alguém (uma versão antiga do seu código, ou você mesmo pelo F12) guardou um texto comum nessa etiqueta, e o <code>JSON.parse</code> não sabe ler. É o caso também de quem guardou o array <strong>sem</strong> <code>JSON.stringify</code> (seção 3). <strong>Como consertar:</strong> guarde sempre com <code>JSON.stringify</code>; para se proteger de um valor estragado, use <a href="try-catch.html">try … catch</a> em volta do <code>JSON.parse</code> e, no <code>catch</code>, comece com o valor padrão.</p>
+</div>
+
+<div class="cenario">
+<strong>O objeto voltou como <code>[object Object]</code></strong>
+<p>Sem erro nenhum, o <code>getItem</code> devolveu <code>'[object Object]'</code>, e o <code>.nome</code> dele dá <code>undefined</code>. O objeto foi guardado direto, sem <code>JSON.stringify</code>, e virou esse texto (seção 3). O dado original se perdeu. <strong>Como consertar:</strong> <code>setItem("perfil", JSON.stringify(ana))</code>, e na volta <code>JSON.parse</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A gaveta encheu</strong>
+<pre class="devtools">&gt; localStorage.setItem("enorme", "x".repeat(6 * 1024 * 1024))
+Uncaught QuotaExceededError: Failed to execute 'setItem' on 'Storage': Setting the value of 'enorme' exceeded the quota.
+    at &lt;anonymous&gt;:1:14
+</pre>
+<p>"Cota excedida: guardar o valor de <code>'enorme'</code> passou do limite". A Ana tentou guardar um texto de 6 milhões de letras (o <code>repeat</code> repete o <code>"x"</code>), e o Chromium recusou: o limite de cada site é de alguns megabytes. Na prática, isso acontece com quem tenta guardar fotos ou listas gigantes. <strong>Como consertar:</strong> guarde só o necessário; fotos e arquivos grandes vão para um servidor.</p>
+</div>
+
+<div class="cenario">
+<strong>Rodou no Node.js</strong>
+<pre class="file" data-file="visitas.js">localStorage.setItem("nome", "Ana");
+console.log(localStorage.getItem("nome"));
+</pre>
+<pre class="term">$ node visitas.js
+/home/ana/visitas.js:1
+localStorage.setItem("nome", "Ana");
+^
+
+ReferenceError: localStorage is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/visitas.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"<code>localStorage</code> não está definido". O Node.js 24 não tem a gaveta do navegador ligada (ela existe lá só como recurso <strong>experimental</strong>, com a opção <code>--experimental-webstorage</code>, que avisa <code>ExperimentalWarning: Web Storage is an experimental feature</code>). No Node, o jeito de guardar dados entre uma execução e outra é escrever num arquivo: veja <a href="fs-escrever.html">Escrevendo Arquivos</a>. <strong>Como consertar:</strong> rode o código na página, com <code>&lt;script src="…"&gt;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>localStorage.setItem("chave", valor)</code></td><td>Guarda (ou troca) o valor, convertido em texto</td></tr>
+<tr><td><code>localStorage.getItem("chave")</code></td><td>Lê o valor (string), ou <code>null</code> se a chave não existe</td></tr>
+<tr><td><code>localStorage.removeItem("chave")</code></td><td>Apaga um item</td></tr>
+<tr><td><code>localStorage.clear()</code></td><td>Apaga todos os itens deste site</td></tr>
+<tr><td><code>localStorage.length</code> / <code>localStorage.key(i)</code></td><td>Quantos itens há / a chave do item número <code>i</code></td></tr>
+<tr><td><code>Number(localStorage.getItem("n"))</code></td><td>Lê um número (a chave ausente vira <code>0</code>)</td></tr>
+<tr><td><code>localStorage.setItem("x", JSON.stringify(v))</code></td><td>Guarda um array ou objeto</td></tr>
+<tr><td><code>JSON.parse(localStorage.getItem("x")) ?? []</code></td><td>Lê o array de volta (vazio na primeira vez)</td></tr>
+<tr><td><code>sessionStorage</code></td><td>Os mesmos métodos; os dados somem quando a aba fecha</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of null</code> logo depois de um <code>getItem</code></td><td>A chave não existe (primeira visita): falta um valor padrão</td></tr>
+<tr><td><code>"1" + 1</code> dá <code>"11"</code></td><td>O número voltou como texto: falta <code>Number(…)</code></td></tr>
+<tr><td><code>'[object Object]'</code> ou <code>'Pão,Leite'</code></td><td>Guardou objeto ou array sem <code>JSON.stringify</code></td></tr>
+<tr><td><code>… is not valid JSON</code></td><td><code>JSON.parse</code> num texto comum</td></tr>
+<tr><td><code>QuotaExceededError</code></td><td>Passou do limite de alguns megabytes do site</td></tr>
+<tr><td>A mudança não ficou guardada</td><td>Mudou o array na memória e esqueceu de chamar o <code>setItem</code> de novo</td></tr>
+<tr><td><code>ReferenceError: localStorage is not defined</code></td><td>Código de página rodando no Node.js</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Guardar e ler</h3>
+<p>Complete para guardar o tema <code>"escuro"</code> e depois lê-lo:</p>
+<div class="ex-code">localStorage.<input data-answer="setItem" aria-label="método de guardar">("tema", "escuro");<br>const tema = localStorage.<input data-answer="getItem" aria-label="método de ler">("tema");</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que volta?</h3>
+<p>Depois de <code>localStorage.setItem("pontos", 10)</code>, o que mostra <code>typeof localStorage.getItem("pontos")</code>? (sem aspas)</p>
+<div class="ex-code"><input data-answer="string" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é o jeito certo de guardar o array <code>tarefas</code>?</p>
+<label><input type="radio" name="q3"> <code>localStorage.setItem("tarefas", tarefas)</code></label>
+<label><input type="radio" name="q3"> <code>localStorage.setItem("tarefas", JSON.stringify(tarefas))</code></label>
+<label><input type="radio" name="q3"> <code>localStorage.setItem(JSON.parse(tarefas))</code></label>
+<label><input type="radio" name="q3"> <code>localStorage.tarefas.push(tarefas)</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que devolve <code>localStorage.getItem("cor")</code> se ninguém nunca guardou nada com essa etiqueta?</p>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> <code>""</code> (texto vazio)</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destes dados <strong>não</strong> deveria ir para o <code>localStorage</code>?</p>
+<label><input type="radio" name="q5"> A preferência de tema escuro</label>
+<label><input type="radio" name="q5"> O rascunho de um comentário</label>
+<label><input type="radio" name="q5"> A senha do banco</label>
+<label><input type="radio" name="q5"> A última aba escolhida num menu</label>
+</div>
+
+<h3>Missão final: a lista de tarefas que não esquece</h3>
+
+<div class="tryweb" data-goal="texto:#lista~Comprar pão;;texto:#lista~Pagar a luz;;src:JSON\.stringify;;src:JSON\.parse;;semerro" data-acoes="digitar #tarefa Comprar pão;;tecla #tarefa Enter;;digitar #tarefa Pagar a luz;;tecla #tarefa Enter">
+<p class="try-task"><strong>Missão:</strong> complete a lista de tarefas da Ana. As funções <code>carregar</code> e <code>salvar</code> estão vazias: faça <code>carregar</code> devolver o array guardado na etiqueta <code>"tarefas"</code> (ou <code>[]</code>, se não houver nada) e <code>salvar</code> guardar o array com <code>JSON.stringify</code>. O resto (desenhar a lista e o <code>submit</code>) já está pronto. Rode, digite duas tarefas apertando Enter depois de cada uma.</p>
+<pre class="script" data-file="index.html">&lt;form id="nova"&gt;
+  &lt;input id="tarefa" placeholder="Nova tarefa e Enter"&gt;
+&lt;/form&gt;
+&lt;ul id="lista"&gt;&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const form = document.querySelector("#nova");
+const campo = document.querySelector("#tarefa");
+const lista = document.querySelector("#lista");
+
+function carregar() {
+  // devolva o array da etiqueta "tarefas" (ou [])
+  return [];
+}
+
+function salvar(tarefas) {
+  // guarde o array na etiqueta "tarefas"
+}
+
+function desenhar(tarefas) {
+  lista.replaceChildren();
+  for (const t of tarefas) {
+    const item = document.createElement("li");
+    item.textContent = t;
+    lista.append(item);
+  }
+}
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const tarefas = carregar();
+  tarefas.push(campo.value);
+  salvar(tarefas);
+  form.reset();
+});
+</pre>
+<pre class="solucao" data-file="script.js">const form = document.querySelector("#nova");
+const campo = document.querySelector("#tarefa");
+const lista = document.querySelector("#lista");
+
+function carregar() {
+  return JSON.parse(localStorage.getItem("tarefas")) ?? [];
+}
+
+function salvar(tarefas) {
+  localStorage.setItem("tarefas", JSON.stringify(tarefas));
+}
+
+function desenhar(tarefas) {
+  lista.replaceChildren();
+  for (const t of tarefas) {
+    const item = document.createElement("li");
+    item.textContent = t;
+    lista.append(item);
+  }
+}
+
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const tarefas = carregar();
+  tarefas.push(campo.value);
+  salvar(tarefas);
+  desenhar(tarefas);
+  form.reset();
+});
+
+desenhar(carregar());
+</pre>
+</div>
+
+<p>Repare que, além das duas funções, a solução precisou de mais duas linhas: <code>desenhar(tarefas)</code> depois de salvar (para a tarefa nova aparecer) e <code>desenhar(carregar())</code> no fim do script (para a lista guardada aparecer assim que a página abre). Salve os arquivos no seu computador, abra no navegador, acrescente tarefas e aperte <kbd>F5</kbd>: elas continuam lá. Para ir além, ponha um botão "Limpar tudo" que chama <code>localStorage.removeItem("tarefas")</code> e <code>desenhar([])</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>localStorage</code> é uma gaveta do navegador, uma por site, que guarda dados entre visitas: sobrevive ao <kbd>F5</kbd> e a fechar o navegador.</li>
+  <li><code>setItem(chave, valor)</code> guarda, <code>getItem(chave)</code> lê (ou <code>null</code>), <code>removeItem</code> apaga um, <code>clear</code> apaga todos.</li>
+  <li>Tudo vira <strong>texto</strong>: números voltam como <code>"30"</code> (use <code>Number</code>), arrays como <code>"Pão,Leite"</code>, objetos como <code>"[object Object]"</code>.</li>
+  <li>Arrays e objetos: <code>JSON.stringify</code> na ida, <code>JSON.parse</code> na volta, com <code>?? []</code> para a primeira visita.</li>
+  <li>Mudou o dado? Grave de novo. A gaveta não acompanha a variável sozinha.</li>
+  <li><code>sessionStorage</code> tem os mesmos métodos e some com a aba. Nenhum dos dois serve para senhas ou dados importantes.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
