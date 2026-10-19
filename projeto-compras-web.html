@@ -129,6 +129,7 @@ formulario.addEventListener("submit", (evento) =&gt; {
 &gt; location.href
 'file:///home/ana/compras/index.html?'</pre>
 <p>A lista está vazia, e o endereço da página ganhou um <code>?</code> no fim. O formulário fez o que formulários fazem: enviou os dados para o endereço da página, que foi <strong>carregada de novo</strong>, do zero. O item foi criado, sim, mas numa página que deixou de existir um instante depois. Não aparece erro nenhum: só o <code>?</code> denuncia.</p>
+<p>Nas caixas <strong>Experimente</strong> o quadro não recarrega: o item fica na lista, e o Console da caixa avisa com uma linha <code>[editor] o formulário foi enviado…</code>. Num site de verdade, é o que está acima.</p>
 </div>
 
 <div class="cenario">
@@ -837,7 +838,7 @@ Uncaught TypeError: Cannot read properties of null (reading 'push')
 </div>
 
 <div class="tryweb" data-goal="texto:#lista~Leite;;semerro" data-acoes="digitar #item Leite;;digitar #preco 4,99;;tecla #preco Enter">
-<p class="try-task"><strong>Missão (versão 4):</strong> na primeira vez que você roda esta caixa, não há nada guardado, e a página quebra ao abrir (veja o Console). Troque a linha <code>const itens = JSON.parse(localStorage.getItem(CHAVE));</code> por uma que comece com <code>[]</code> quando não houver nada guardado. Rode e adicione <code>Leite</code> a <code>4,99</code>.</p>
+<p class="try-task"><strong>Missão (versão 4):</strong> na primeira vez que você roda esta caixa, não há nada guardado, e a página quebra ao abrir (veja o Console). (Depois que a lista é guardada, ela fica no seu navegador de um Rodar para o outro, como num site de verdade, e a página já não quebra.) Troque a linha <code>const itens = JSON.parse(localStorage.getItem(CHAVE));</code> por uma que comece com <code>[]</code> quando não houver nada guardado. Rode e adicione <code>Leite</code> a <code>4,99</code>.</p>
 <pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
 &lt;html lang="pt-BR"&gt;
 &lt;head&gt;
