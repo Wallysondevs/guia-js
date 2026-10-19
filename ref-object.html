@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Object e JSON — referência com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida de objetos e JSON no JavaScript: ler e mudar propriedades, Object.keys, values, entries, fromEntries, assign, spread, hasOwn, freeze, groupBy, desestruturação, JSON.stringify e JSON.parse, com resultado real do Node.js 24 e as mensagens de erro mais comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Object e JSON</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida dos <strong>objetos</strong> (as fichas com etiquetas: <code>{ nome: "Caderno", preco: 12.5 }</code>), das funções prontas do <code>Object</code> que os examinam e copiam, e do <strong>JSON</strong>, o formato de texto que serve para guardar objetos num arquivo ou mandá-los pela internet.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Nos exemplos, <code>produto</code> é <code>const produto = { nome: "Caderno", preco: 12.5, estoque: 30 }</code> e <code>campo</code> é <code>const campo = "estoque"</code>.</li>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana. Textos aparecem entre aspas simples (<code>'Caderno'</code>).</li>
+  <li>Cada <strong>propriedade</strong> tem uma <strong>chave</strong> (o nome, como <code>preco</code>) e um <strong>valor</strong> (<code>12.5</code>).</li>
+</ul>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#ler">Ler e mudar propriedades</a>: <code>.</code> <code>[ ]</code> <code>in</code> <code>Object.hasOwn</code></li>
+  <li><a href="#listar">Listar</a>: <code>Object.keys</code> <code>Object.values</code> <code>Object.entries</code> <code>Object.fromEntries</code> <code>Object.groupBy</code></li>
+  <li><a href="#copiar">Montar e copiar</a>: atalhos, <code>...</code>, <code>Object.assign</code>, desestruturação, <code>structuredClone</code></li>
+  <li><a href="#proteger">Proteger e comparar</a>: <code>Object.freeze</code> <code>Object.isFrozen</code> <code>Object.is</code></li>
+  <li><a href="#json">JSON</a>: <code>JSON.stringify</code> <code>JSON.parse</code></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="ler">Ler e mudar propriedades</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>obj.chave</code></td><td>lê a propriedade</td><td><code>produto.nome</code></td><td><code>'Caderno'</code></td><td><a href="objetos.html">Objetos</a></td></tr>
+<tr><td></td><td>propriedade que não existe: <code>undefined</code>, sem erro</td><td><code>produto.cor</code></td><td><code>undefined</code></td><td></td></tr>
+<tr><td><code>obj["chave"]</code></td><td>o mesmo, com a chave num texto</td><td><code>produto["preco"]</code></td><td><code>12.5</code></td><td><a href="objetos-propriedades.html">Propriedades</a></td></tr>
+<tr><td><code>obj[variavel]</code></td><td>a chave vem de uma variável</td><td><code>produto[campo]</code></td><td><code>30</code></td><td></td></tr>
+<tr><td><code>obj.chave = v</code></td><td>muda ou cria a propriedade (funciona mesmo com <code>const</code>)</td><td colspan="2">veja <a href="objetos-propriedades.html">Propriedades</a> e <a href="objetos-referencia.html">Objetos são Referências</a></td><td></td></tr>
+<tr><td><code>delete obj.chave</code></td><td>apaga a propriedade</td><td colspan="2">veja <a href="ref-operadores.html#outros">delete na referência de operadores</a></td><td></td></tr>
+<tr><td><code>"chave" in obj</code></td><td>o objeto tem essa propriedade?</td><td><code>"preco" in produto</code></td><td><code>true</code></td><td><a href="objetos-propriedades.html">Propriedades</a></td></tr>
+<tr><td><code>Object.hasOwn(obj, "chave")</code></td><td>o mesmo, sem olhar as herdadas <span class="versao">ES2022</span></td><td><code>Object.hasOwn(produto, "cor")</code></td><td><code>false</code></td><td></td></tr>
+<tr><td><code>obj?.chave</code></td><td>lê sem quebrar se <code>obj</code> for <code>null</code>/<code>undefined</code></td><td colspan="2">veja <a href="optional-chaining.html">?. e ??</a></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="listar">Listar chaves e valores</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Object.keys(obj)</code></td><td>um array com as chaves</td><td><code>Object.keys(produto)</code></td><td><code>[ 'nome', 'preco', 'estoque' ]</code></td><td><a href="objetos-percorrer.html">Percorrendo Objetos</a></td></tr>
+<tr><td></td><td>quantas propriedades o objeto tem</td><td><code>Object.keys(produto).length</code></td><td><code>3</code></td><td></td></tr>
+<tr><td><code>Object.values(obj)</code></td><td>um array com os valores</td><td><code>Object.values(produto)</code></td><td><code>[ 'Caderno', 12.5, 30 ]</code></td><td></td></tr>
+<tr><td><code>Object.entries(obj)</code></td><td>um array de pares <code>[chave, valor]</code></td><td><code>Object.entries(produto)</code></td><td><code>[ [ 'nome', 'Caderno' ], [ 'preco', 12.5 ], [ 'estoque', 30 ] ]</code></td><td><a href="objetos-percorrer.html">Percorrendo Objetos</a></td></tr>
+<tr><td></td><td>combina com <code>map</code> e desestruturação</td><td><code>Object.entries({ a: 1, b: 2 }).map(([k, v]) =&gt; `${k}=${v}`)</code></td><td><code>[ 'a=1', 'b=2' ]</code></td><td><a href="desestruturacao.html">Desestruturação</a></td></tr>
+<tr><td><code>Object.fromEntries(pares)</code></td><td>o contrário: monta o objeto a partir dos pares</td><td><code>Object.fromEntries([["a", 1], ["b", 2]])</code></td><td><code>{ a: 1, b: 2 }</code></td><td></td></tr>
+<tr><td><code>Object.groupBy(lista, f)</code></td><td>separa os itens de um array em grupos, pela chave que <code>f</code> devolve <span class="versao">ES2024</span></td><td><code>Object.groupBy(itens, i =&gt; i.tipo)</code> (veja abaixo)</td><td>um objeto com um array por tipo</td><td><a href="reduce.html">reduce</a></td></tr>
+<tr><td></td><td>a ordem das chaves: primeiro as que parecem números (em ordem crescente), depois as outras, na ordem em que foram criadas</td><td><code>({ b: 1, a: 2, 10: "x", 2: "y" })</code></td><td><code>{ '2': 'y', '10': 'x', b: 1, a: 2 }</code></td><td></td></tr>
+</table>
+</div>
+
+<p>O <code>Object.groupBy</code> com a lista de compras da Ana, no modo interativo:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const itens = [{ nome: "pão", tipo: "padaria" }, { nome: "leite", tipo: "laticínio" }, { nome: "bolo", tipo: "padaria" }]
+undefined
+&gt; Object.groupBy(itens, i =&gt; i.tipo)
+[Object: null prototype] {
+  padaria: [
+    { nome: 'pão', tipo: 'padaria' },
+    { nome: 'bolo', tipo: 'padaria' }
+  ],
+  'laticínio': [ { nome: 'leite', tipo: 'laticínio' } ]
+}
+</pre>
+
+<p>O <code>[Object: null prototype]</code> é o Node avisando que esse objeto foi criado "limpo", sem as propriedades herdadas que todo objeto tem; para você, ele funciona como qualquer objeto. E a chave <code>'laticínio'</code> saiu entre aspas porque tem acento: o Node só tira as aspas das chaves escritas com letras simples.</p>
+
+<hr>
+
+<h2 id="copiar">Montar e copiar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>{ nome, idade }</code></td><td>atalho: a chave tem o mesmo nome da variável (com <code>const nome = "Ana", idade = 30</code>)</td><td><code>({ nome, idade })</code></td><td><code>{ nome: 'Ana', idade: 30 }</code></td><td><a href="objetos.html">Objetos</a></td></tr>
+<tr><td><code>{ [expr]: v }</code></td><td>a chave é calculada</td><td><code>({ [campo]: 5 })</code></td><td><code>{ estoque: 5 }</code></td><td></td></tr>
+<tr><td><code>{ ...obj, chave: v }</code></td><td>copia e troca (ou acrescenta) propriedades; o original não muda</td><td><code>const p = { ...produto, preco: 15 }</code></td><td><code>p</code> = <code>{ nome: 'Caderno', preco: 15, estoque: 30 }</code>; <code>produto.preco</code> continua <code>12.5</code></td><td><a href="spread-rest.html">Spread e Rest</a></td></tr>
+<tr><td><code>Object.assign(destino, …)</code></td><td>o jeito antigo do spread: copia as propriedades para o destino</td><td><code>Object.assign({}, produto, { estoque: 0 })</code></td><td><code>{ nome: 'Caderno', preco: 12.5, estoque: 0 }</code></td><td></td></tr>
+<tr><td><code>const { a, ...resto } = obj</code></td><td>desestruturação: tira propriedades para variáveis</td><td><code>const { preco, ...outros } = produto</code></td><td><code>preco</code> = <code>12.5</code>, <code>outros</code> = <code>{ nome: 'Caderno', estoque: 30 }</code></td><td><a href="desestruturacao.html">Desestruturação</a></td></tr>
+<tr><td><code>structuredClone(obj)</code></td><td>cópia profunda (os objetos de dentro também são copiados)</td><td colspan="2">veja <a href="arrays-copiar.html">Copiando Arrays</a> e <a href="objetos-referencia.html">Objetos são Referências</a></td><td></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>O spread copia só o primeiro nível</strong>
+<p><code>{ ...obj }</code> faz uma cópia <strong>rasa</strong>: se uma propriedade guarda outro objeto ou array, a cópia e o original continuam apontando para o mesmo. Para copiar tudo, use <code>structuredClone</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="proteger">Proteger e comparar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Object.freeze(obj)</code></td><td>"congela": ninguém mais muda, cria nem apaga propriedades. Fora do modo estrito, a tentativa é ignorada sem aviso</td><td><code>const fixo = Object.freeze({ x: 1 })</code>, depois <code>fixo.x = 2</code> e <code>fixo</code></td><td><code>2</code>, mas <code>fixo</code> continua <code>{ x: 1 }</code></td><td><a href="imutabilidade.html">Object.freeze e Imutabilidade</a></td></tr>
+<tr><td><code>Object.isFrozen(obj)</code></td><td>está congelado?</td><td><code>Object.isFrozen(fixo)</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>Object.is(a, b)</code></td><td>igual ao <code>===</code>, menos em dois casos: acha <code>NaN</code> igual a <code>NaN</code> e separa <code>0</code> de <code>-0</code></td><td><code>Object.is(NaN, NaN)</code>, <code>Object.is(0, -0)</code></td><td><code>true</code>, <code>false</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="json">JSON</h2>
+
+<p>O <strong>JSON</strong> (<em>JavaScript Object Notation</em>, "notação de objetos do JavaScript") é um <strong>texto</strong> que se parece com um objeto, mas com regras mais rígidas: chaves sempre entre <strong>aspas duplas</strong>, textos só com aspas duplas, sem vírgula sobrando no fim e sem funções nem <code>undefined</code>. A aula completa é <a href="json.html">JSON (stringify e parse)</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>JSON.stringify(x)</code></td><td>objeto → texto JSON</td><td><code>JSON.stringify(produto)</code></td><td><code>'{"nome":"Caderno","preco":12.5,"estoque":30}'</code></td></tr>
+<tr><td></td><td>arrays, textos, <code>true</code>, <code>null</code> funcionam</td><td><code>JSON.stringify([1, "dois", true, null])</code></td><td><code>'[1,"dois",true,null]'</code></td></tr>
+<tr><td></td><td>o que o JSON não tem: <code>undefined</code> e funções somem, <code>NaN</code> vira <code>null</code>, data vira texto</td><td><code>JSON.stringify({ a: undefined, f() {}, n: NaN, d: new Date(0) })</code></td><td><code>'{"n":null,"d":"1970-01-01T00:00:00.000Z"}'</code></td></tr>
+<tr><td><code>JSON.stringify(x, null, 2)</code></td><td>com quebras de linha e 2 espaços (para gente ler ou salvar em arquivo)</td><td><code>JSON.stringify(produto, null, 2)</code></td><td><code>'{\n  "nome": "Caderno",\n  "preco": 12.5,\n  "estoque": 30\n}'</code> (o <code>\n</code> é a quebra de linha; veja o <code>console.log</code> abaixo)</td></tr>
+<tr><td><code>JSON.stringify(x, [chaves])</code></td><td>só as chaves da lista</td><td><code>JSON.stringify(produto, ["nome"])</code></td><td><code>'{"nome":"Caderno"}'</code></td></tr>
+<tr><td><code>JSON.parse(texto)</code></td><td>texto JSON → objeto</td><td><code>JSON.parse('{"nome":"Ana","idade":30}')</code></td><td><code>{ nome: 'Ana', idade: 30 }</code></td></tr>
+<tr><td></td><td>qualquer valor JSON</td><td><code>JSON.parse("[1, 2, 3]")</code>, <code>JSON.parse("42")</code></td><td><code>[ 1, 2, 3 ]</code>, <code>42</code></td></tr>
+<tr><td></td><td>já dá para ler a propriedade direto</td><td><code>JSON.parse('{"nome":"Ana"}').nome</code></td><td><code>'Ana'</code></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Cidade: Recife;;src:JSON\.parse">
+<p class="try-task"><strong>Missão:</strong> os dados da Ana chegaram como <strong>texto</strong> JSON, e por isso <code>pessoa.cidade</code> deu <code>undefined</code> (um texto não tem a propriedade <code>cidade</code>). Use <code>JSON.parse</code> para transformar o texto em objeto, e o programa vai mostrar <code>Cidade: Recife</code>.</p>
+<pre class="script" data-file="main.js">const texto = '{"nome":"Ana","cidade":"Recife"}';
+
+const pessoa = texto;
+console.log(`Cidade: ${pessoa.cidade}`);
+</pre>
+<pre class="solucao" data-file="main.js">const texto = '{"nome":"Ana","cidade":"Recife"}';
+
+const pessoa = JSON.parse(texto);
+console.log(`Cidade: ${pessoa.cidade}`);
+</pre>
+</div>
+
+<pre class="term">$ node cidade.js
+Cidade: undefined
+$ node cidade2.js
+Cidade: Recife
+</pre>
+
+<div class="tryjs">
+<p class="try-task"><strong>Livre:</strong> percorra o objeto com <code>Object.entries</code>, transforme em JSON e volte. Acrescente propriedades ao <code>produto</code> e rode de novo.</p>
+<pre class="script" data-file="main.js">const produto = { nome: "Caderno", preco: 12.5, estoque: 30 };
+
+for (const [chave, valor] of Object.entries(produto)) {
+  console.log(`${chave}: ${valor}`);
+}
+
+const json = JSON.stringify(produto, null, 2);
+console.log(json);
+
+const deVolta = JSON.parse(json);
+console.log(deVolta.preco * 2);
+</pre>
+</div>
+
+<p>Rodado no lab, sem mudar nada. Repare que o <code>console.log</code> mostra o JSON com as quebras de linha de verdade:</p>
+
+<pre class="term">$ node livre-obj.js
+nome: Caderno
+preco: 12.5
+estoque: 30
+{
+  "nome": "Caderno",
+  "preco": 12.5,
+  "estoque": 30
+}
+25
+</pre>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem do Node</th><th>O que aconteceu</th></tr>
+<tr><td><code>JSON.parse("{nome: 'Ana'}")</code></td><td><code>SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)</code></td><td>"Esperava o nome de uma propriedade ou <code>}</code> na posição 1": no JSON a chave precisa de aspas duplas (<code>{"nome": "Ana"}</code>). As posições contam a partir de 0.</td></tr>
+<tr><td><code>JSON.parse('{"a": 1,}')</code></td><td><code>SyntaxError: Expected double-quoted property name in JSON at position 8 (line 1 column 9)</code></td><td>"Esperava um nome entre aspas duplas": depois da vírgula, o JSON exige outra propriedade. Tire a vírgula do fim.</td></tr>
+<tr><td><code>JSON.parse("")</code></td><td><code>SyntaxError: Unexpected end of JSON input</code></td><td>"Fim inesperado": o texto está vazio (ou cortado no meio). Comum quando o arquivo lido está vazio.</td></tr>
+<tr><td><code>JSON.parse(undefined)</code></td><td><code>SyntaxError: "undefined" is not valid JSON</code></td><td>A variável não tinha texto nenhum; o <code>undefined</code> virou o texto <code>"undefined"</code>, que não é JSON.</td></tr>
+<tr><td><code>JSON.stringify(ciclo)</code> (com <code>ciclo.eu = ciclo</code>)</td><td><code>TypeError: Converting circular structure to JSON</code>, seguido de <code>--&gt; starting at object with constructor 'Object'</code> e <code>--- property 'eu' closes the circle</code></td><td>"Estrutura circular": o objeto aponta para ele mesmo, e o texto não teria fim. A mensagem diz qual propriedade fecha o círculo (<code>eu</code>).</td></tr>
+<tr><td><code>Object.keys(null)</code></td><td><code>TypeError: Cannot convert undefined or null to object</code></td><td>"Não dá para converter <code>null</code> em objeto": a variável não tem um objeto.</td></tr>
+<tr><td><code>vazio.nome</code> (com <code>const vazio = null</code>)</td><td><code>TypeError: Cannot read properties of null (reading 'nome')</code></td><td>Ler propriedade de <code>null</code>. Use <code>vazio?.nome</code> ou confira antes.</td></tr>
+</table>
+</div>
+
+<p>O erro do <code>JSON.parse</code>, num programa, aparece com uma primeira linha diferente: em vez do seu arquivo, ela diz <code>&lt;anonymous_script&gt;:1</code> e mostra o <strong>texto JSON</strong> com o <code>^</code> embaixo do problema. O seu arquivo e a linha aparecem nas linhas <code>at</code>:</p>
+
+<pre class="file" data-file="json-erro.js">const texto = "{nome: 'Ana'}";
+const pessoa = JSON.parse(texto);
+console.log(pessoa.nome);
+</pre>
+
+<pre class="term">$ node json-erro.js
+&lt;anonymous_script&gt;:1
+{nome: 'Ana'}
+ ^
+
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/json-erro.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>Para não derrubar o programa quando o JSON vem errado (de um arquivo ou da internet), envolva o <code>JSON.parse</code> num <a href="try-catch.html">try … catch</a>. Mais mensagens em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Ler: <code>obj.chave</code> ou <code>obj["chave"]</code>; o que não existe dá <code>undefined</code>. Perguntar: <code>"chave" in obj</code> ou <code>Object.hasOwn</code>.</li>
+  <li>Listar: <code>Object.keys</code>, <code>Object.values</code>, <code>Object.entries</code> (pares, ótimo no <code>for … of</code>); <code>Object.fromEntries</code> faz o caminho de volta.</li>
+  <li>Copiar: <code>{ ...obj, chave: novo }</code> (rasa) ou <code>structuredClone</code> (profunda). Tirar para variáveis: <code>const { a, ...resto } = obj</code>.</li>
+  <li><code>Object.freeze</code> congela; <code>Object.groupBy</code> agrupa uma lista.</li>
+  <li><code>JSON.stringify</code>: objeto → texto (<code>null, 2</code> para ficar bonito). <code>JSON.parse</code>: texto → objeto. JSON exige aspas duplas e não aceita vírgula sobrando.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
