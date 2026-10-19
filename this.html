@@ -361,7 +361,7 @@ undefined
   <li>No <strong>modo estrito</strong> (<code>"use strict"</code>, que vale sozinho dentro de classes e de módulos <code>import</code>/<code>export</code>), a mesma função recebe <code>undefined</code>, e o erro aparece logo, como na seção 2. É melhor assim.</li>
 </ul>
 
-<p>Resumindo: <strong>não use <code>this</code> fora de métodos</strong>. Fora deles, o valor muda de um ambiente para outro e quase nunca é o que você quer. (No navegador, dentro de um evento escrito com <code>function</code>, o <code>this</code> é o elemento que recebeu o evento; isso aparece na aula <a href="eventos.html">Eventos</a>.)</p>
+<p>Resumindo: <strong>não use <code>this</code> fora de métodos</strong>. Fora deles, o valor muda de um ambiente para outro e quase nunca é o que você quer. (No navegador, dentro de um evento escrito com <code>function</code>, o <code>this</code> é o elemento dono do ouvinte. Hoje se prefere o <code>evento.currentTarget</code>, que vale a mesma coisa e funciona também com arrow functions: veja <a href="eventos-objeto.html">O Objeto do Evento</a>.)</p>
 
 <hr>
 
