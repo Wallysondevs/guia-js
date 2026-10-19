@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Callbacks Assíncronos — "me avise quando terminar" | Guia JavaScript</title>
+<meta name="description" content="Callbacks assíncronos no JavaScript para quem está começando: escrever uma função que avisa depois, o padrão do Node 'erro primeiro' (erro, resultado), tratar o ENOENT do fs.readFile, criar a sua própria função com callback, a pirâmide de callbacks (callback hell) e os erros reais do Node.js 24 (callback chamado duas vezes, is not a function, Cannot read properties of undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Callbacks</span> Assíncronos</h1>
+
+<p class="intro">Na aula <a href="funcoes-valores.html">Funções como Valores</a>, você entregou funções ao <code>forEach</code> e ao <code>map</code>, que as chamavam <strong>na hora</strong>, uma vez por item. Nas aulas <a href="assincrono.html">O que é Código Assíncrono</a> e <a href="timers.html">setTimeout e setInterval</a>, você entregou funções que eram chamadas <strong>depois</strong>. Essas são os <strong>callbacks assíncronos</strong>: o jeito mais antigo de o JavaScript dizer "me avise quando terminar". Nesta aula você vai escrever as suas próprias funções com callback, aprender o combinado do Node para avisar <strong>erros</strong>, e conhecer o problema que fez o JavaScript inventar as Promises.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre um callback que roda <strong>na hora</strong> e um que roda <strong>depois</strong>.</li>
+  <li>Como escrever uma função sua que recebe um callback e o chama quando termina.</li>
+  <li>O padrão do Node <strong>"erro primeiro"</strong>: <code>(erro, resultado) =&gt; { … }</code>, e como tratar um arquivo que não existe.</li>
+  <li>Como seguir esse padrão nas suas funções.</li>
+  <li>O que acontece quando uma tarefa depende da outra: a <strong>pirâmide de callbacks</strong>.</li>
+  <li>Os erros reais: o erro ignorado, o callback chamado duas vezes, o callback que não foi passado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Os arquivos de texto que eles leem estão mostrados com <code>cat</code>.</p>
+
+<hr>
+
+<h2>A ideia: deixar o telefone na padaria</h2>
+<p>Quando a Ana encomenda um bolo e diz "me liga quando estiver pronto", ela deixa o <strong>telefone</strong> com a padaria. A padaria não sabe nada sobre a vida da Ana; só sabe que, quando o bolo ficar pronto, tem de <strong>ligar para aquele número</strong>. E, se o forno quebrar, a padaria também liga, só que para dar a <strong>má notícia</strong>.</p>
+<p>No código:</p>
+<ul>
+  <li>a <strong>padaria</strong> é a função que faz o trabalho demorado (ler um arquivo, esperar um tempo, buscar um preço);</li>
+  <li>o <strong>telefone</strong> é o callback, a função que você entrega;</li>
+  <li>a <strong>ligação</strong> é a padaria chamando o seu callback, com o resultado (ou com o erro).</li>
+</ul>
+
+<hr>
+
+<h2>1. Na hora × depois</h2>
+<p>Você já usa callbacks que rodam <strong>na hora</strong>:</p>
+
+<pre class="file" data-file="sincrono.js">const precos = [27.9, 5.49, 19.9];
+precos.forEach((preco) =&gt; {
+  console.log(`R$ ${preco.toFixed(2)}`);
+});
+console.log("Fim");
+</pre>
+
+<pre class="term">$ node sincrono.js
+R$ 27.90
+R$ 5.49
+R$ 19.90
+Fim
+</pre>
+
+<p>O <code>forEach</code> chama o callback três vezes e só então devolve o controle: o <code>Fim</code> vem por último. Esse é um callback <strong>síncrono</strong>. Agora uma função que avisa <strong>depois</strong>, escrita pela Ana:</p>
+
+<pre class="file" data-file="pedido.js">function prepararPedido(item, quandoPronto) {
+  console.log(`Preparando ${item}...`);
+  setTimeout(() =&gt; {
+    quandoPronto(`${item} pronto!`);
+  }, 1000);
+}
+
+prepararPedido("pão de queijo", (aviso) =&gt; {
+  console.log(aviso);
+});
+console.log("A atendente já foi atender outro cliente.");
+</pre>
+
+<pre class="term">$ node pedido.js
+Preparando pão de queijo...
+A atendente já foi atender outro cliente.
+pão de queijo pronto!
+</pre>
+
+<dl class="anatomy">
+  <dt>function prepararPedido(item, quandoPronto)</dt><dd>Uma função comum com dois parâmetros. O segundo, <code>quandoPronto</code>, vai receber uma <strong>função</strong>: é o "telefone".</dd>
+  <dt>setTimeout(() =&gt; { … }, 1000)</dt><dd>Aqui o <code>setTimeout</code> faz o papel do trabalho demorado (na vida real seria o disco, a rede…).</dd>
+  <dt>quandoPronto(`${item} pronto!`)</dt><dd>A "ligação": quando o trabalho termina, a função chama o callback e entrega o <strong>resultado</strong> como argumento.</dd>
+  <dt>prepararPedido("pão de queijo", (aviso) =&gt; { … })</dt><dd>Quem usa a função entrega o callback: uma arrow que recebe o resultado em <code>aviso</code> e decide o que fazer com ele.</dd>
+  <dt>A ordem da saída</dt><dd><code>prepararPedido</code> terminou na hora (depois de agendar o timer), o programa seguiu, e o aviso chegou 1 segundo depois.</dd>
+</dl>
+
+<p>Repare na divisão de tarefas: <code>prepararPedido</code> não sabe o que vai ser feito com o resultado (mostrar? guardar? mandar por e-mail?). Quem decide é o callback. É por isso que callbacks são tão úteis.</p>
+
+<hr>
+
+<h2>2. O padrão do Node: o erro vem primeiro</h2>
+<p>Trabalho demorado pode <strong>dar errado</strong>: o arquivo não existe, a internet caiu. Como avisar? O Node combinou um padrão que todas as funções com callback dele seguem: o callback recebe <strong>dois</strong> valores, e o primeiro é o <strong>erro</strong>.</p>
+
+<ul>
+  <li>Deu certo: o callback é chamado com <code>erro</code> valendo <code>null</code> e o resultado no segundo parâmetro.</li>
+  <li>Deu errado: o callback é chamado com um objeto de erro no primeiro parâmetro (e nada no segundo).</li>
+</ul>
+
+<p>Isso se chama <strong>callback "erro primeiro"</strong> (em inglês, <em>error-first callback</em>). A Ana tem o <code>cardapio.txt</code>, mas <strong>não</strong> tem nenhum <code>estoque.txt</code>:</p>
+
+<pre class="file" data-file="erro-primeiro.js">const fs = require("node:fs");
+
+fs.readFile("cardapio.txt", "utf8", (erro, texto) =&gt; {
+  if (erro) {
+    console.log("Não deu para ler o cardápio:", erro.message);
+    return;
+  }
+  console.log(`O cardápio tem ${texto.split("\n").length - 1} itens.`);
+});
+
+fs.readFile("estoque.txt", "utf8", (erro, texto) =&gt; {
+  if (erro) {
+    console.log("Não deu para ler o estoque:", erro.message);
+    console.log("Código do erro:", erro.code);
+    return;
+  }
+  console.log(texto);
+});
+</pre>
+
+<pre class="term">$ node erro-primeiro.js
+Não deu para ler o estoque: ENOENT: no such file or directory, open 'estoque.txt'
+Código do erro: ENOENT
+O cardápio tem 3 itens.
+</pre>
+
+<dl class="anatomy">
+  <dt>(erro, texto) =&gt; { … }</dt><dd>Os dois parâmetros do padrão: erro primeiro, resultado depois. Os nomes são escolha sua (<code>err</code>, <code>dados</code>…); a <strong>ordem</strong> é que é fixa.</dd>
+  <dt>if (erro) { … return; }</dt><dd>A primeira coisa dentro do callback é <strong>sempre</strong> conferir o erro. Se houver, trata e sai com <code>return</code>, para não continuar como se tivesse dado certo. Quando deu certo, <code>erro</code> é <code>null</code>, que é falso no <code>if</code> (aula <a href="truthy-falsy.html">Truthy e Falsy</a>).</dd>
+  <dt>erro.message</dt><dd>A mensagem, em inglês: <code>ENOENT: no such file or directory, open 'estoque.txt'</code>, "não existe esse arquivo ou pasta, ao abrir <code>estoque.txt</code>".</dd>
+  <dt>erro.code → ENOENT</dt><dd>Um código curto, bom para o programa testar: <code>if (erro.code === "ENOENT")</code>. <code>ENOENT</code> vem de "<em>Error, NO ENTry</em>" ("erro, não há essa entrada"): o arquivo não existe. Outro comum é <code>EACCES</code>: sem permissão.</dd>
+  <dt>A ordem da saída</dt><dd>O erro do estoque chegou antes do cardápio, mesmo tendo sido pedido depois: descobrir que um arquivo não existe é mais rápido que ler um. As duas leituras correram ao mesmo tempo, e cada callback foi chamado quando a sua terminou.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Não achei o estoque;;semerro;;src:if\s*\(\s*erro\b">
+<p class="try-task"><strong>Missão:</strong> este programa tenta ler um <code>estoque.txt</code> que não existe e ignora o erro, então quebra com <code>Cannot read properties of undefined (reading 'split')</code>. Acrescente, no começo do callback, um <code>if (erro) { … }</code> que mostre <code>Não achei o estoque</code> e saia com <code>return</code>.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+fs.readFile("estoque.txt", "utf8", (erro, texto) =&gt; {
+  const linhas = texto.split("\n");
+  console.log(linhas);
+});
+</pre>
+<pre class="solucao" data-file="main.js">const fs = require("node:fs");
+
+fs.readFile("estoque.txt", "utf8", (erro, texto) =&gt; {
+  if (erro) {
+    console.log("Não achei o estoque");
+    return;
+  }
+  const linhas = texto.split("\n");
+  console.log(linhas);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Seguindo o padrão nas suas funções</h2>
+<p>Quando você escreve uma função assíncrona com callback, siga o mesmo combinado: quem usar a sua função já sabe como tratar o resultado. A Ana faz uma função que "consulta" o preço de um produto (com um <code>setTimeout</code> fazendo o papel da demora de um sistema de verdade):</p>
+
+<pre class="file" data-file="meu-erro-primeiro.js">const tabela = { "pão francês": 0.8, "pão de queijo": 2.5, "café": 6 };
+
+function buscarPreco(produto, callback) {
+  setTimeout(() =&gt; {
+    if (!(produto in tabela)) {
+      callback(new Error(`produto desconhecido: ${produto}`));
+      return;
+    }
+    callback(null, tabela[produto]);
+  }, 500);
+}
+
+function mostrar(erro, preco) {
+  if (erro) {
+    console.log("Erro:", erro.message);
+    return;
+  }
+  console.log(`Preço: R$ ${preco.toFixed(2)}`);
+}
+
+buscarPreco("café", mostrar);
+buscarPreco("sorvete", mostrar);
+</pre>
+
+<pre class="term">$ node meu-erro-primeiro.js
+Preço: R$ 6.00
+Erro: produto desconhecido: sorvete
+</pre>
+
+<dl class="anatomy">
+  <dt>!(produto in tabela)</dt><dd>"O produto <strong>não</strong> é uma chave da tabela?" (o <code>in</code> pergunta se o objeto tem a propriedade).</dd>
+  <dt>callback(new Error(…)); return;</dt><dd>Deu errado: chama o callback com um <strong>objeto de erro</strong> (aula <a href="throw.html">Lançando Erros</a>) e sai. Em código assíncrono, em vez de <code>throw</code>, o erro é <strong>entregue</strong> ao callback (você vai ver por quê na seção <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>callback(null, tabela[produto])</dt><dd>Deu certo: <code>null</code> no lugar do erro ("nenhum erro") e o preço no segundo.</dd>
+  <dt>buscarPreco("café", mostrar)</dt><dd>O callback não precisa ser escrito na hora: pode ser uma função com nome, entregue <strong>sem parênteses</strong>. A mesma <code>mostrar</code> serve para as duas consultas.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Uma coisa depois da outra: a pirâmide</h2>
+<p>E quando uma tarefa assíncrona depende da anterior? A Ana quer: (1) ler o pedido de um arquivo, (2) calcular o total e salvar um recibo, (3) ler o recibo de volta para conferir. Cada passo só pode começar quando o anterior terminar, então cada um vai <strong>dentro do callback</strong> do anterior. O pedido:</p>
+
+<pre class="term">$ cat pedido.txt
+pão de queijo;4;2.50
+café;2;6.00
+bolo de cenoura;1;18.00
+</pre>
+
+<pre class="file" data-file="piramide.js">const fs = require("node:fs");
+
+fs.readFile("pedido.txt", "utf8", (erro, texto) =&gt; {
+  if (erro) {
+    console.log("Erro ao ler o pedido:", erro.message);
+    return;
+  }
+  const linhas = texto.trim().split("\n");
+  let total = 0;
+  for (const linha of linhas) {
+    const [, quantidade, preco] = linha.split(";");
+    total = total + Number(quantidade) * Number(preco);
+  }
+  const recibo = `Itens: ${linhas.length}\nTotal: R$ ${total.toFixed(2)}\n`;
+
+  fs.writeFile("recibo.txt", recibo, (erro) =&gt; {
+    if (erro) {
+      console.log("Erro ao salvar o recibo:", erro.message);
+      return;
+    }
+
+    fs.readFile("recibo.txt", "utf8", (erro, conferido) =&gt; {
+      if (erro) {
+        console.log("Erro ao conferir o recibo:", erro.message);
+        return;
+      }
+      console.log("Recibo salvo:");
+      console.log(conferido);
+    });
+  });
+});
+</pre>
+
+<pre class="term">$ node piramide.js
+Recibo salvo:
+Itens: 3
+Total: R$ 40.00
+
+$ cat recibo.txt
+Itens: 3
+Total: R$ 40.00
+</pre>
+
+<p>Funciona (4 × 2,50 + 2 × 6,00 + 18,00 = 40), e o <code>recibo.txt</code> foi criado de verdade (o <code>fs.writeFile</code> é da aula <a href="fs-escrever.html">Escrevendo Arquivos</a>; o <code>const [, quantidade, preco]</code> pula o primeiro item, aula <a href="desestruturacao.html">Desestruturação</a>). Mas olhe o <strong>formato</strong> do código: cada passo empurra o próximo mais para a direita, e o fim do arquivo é uma escadinha de <code>});</code>. Com 5 ou 6 passos, vira uma pirâmide deitada, difícil de ler e de mexer. Os programadores apelidaram isso de <strong><em>callback hell</em></strong> ("inferno de callbacks") ou "pirâmide da desgraça".</p>
+
+<p>Repare também que o tratamento de erro (<code>if (erro) { … return; }</code>) teve de ser repetido em <strong>cada</strong> nível. É esse o problema que as <a href="promises.html">Promises</a> resolvem: os passos ficam um embaixo do outro, e um só <code>.catch</code> trata o erro de qualquer passo.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quase toda função do Node que recebe callback tem uma irmã que devolve uma <strong>Promise</strong>, no módulo <code>node:fs/promises</code> (e, para funções de callback suas, existe o <code>util.promisify</code>, que faz a conversão). Compare a leitura do cardápio:</p>
+
+<pre class="file" data-file="promisify.js">const fsp = require("node:fs/promises");
+
+fsp.readFile("cardapio.txt", "utf8")
+  .then((texto) =&gt; console.log(`O cardápio tem ${texto.split("\n").length - 1} itens.`))
+  .catch((erro) =&gt; console.log("Não deu para ler:", erro.message));
+</pre>
+
+<pre class="term">$ node promisify.js
+O cardápio tem 3 itens.
+</pre>
+
+<p>O resultado vai para o <code>.then</code> e o erro para o <code>.catch</code>, em vez dos dois chegarem juntos no mesmo callback. Os detalhes estão na próxima aula.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma tarefa assíncrona simples, sozinha</td><td>Callback funciona bem</td></tr>
+<tr><td>Vários passos, um depois do outro</td><td>Promises (<a href="promises.html">Promises</a>) ou <code>async</code>/<code>await</code> (<a href="async-await.html">async e await</a>)</td></tr>
+<tr><td>Eventos que acontecem muitas vezes (cliques, teclas, "tic" do relógio)</td><td>Callback (<code>addEventListener</code>, <code>setInterval</code>): uma Promise só se cumpre uma vez</td></tr>
+<tr><td>Código novo que lê arquivos no Node</td><td><code>node:fs/promises</code> com <code>await</code></td></tr>
+<tr><td>Ler código antigo ou bibliotecas velhas</td><td>Reconhecer o padrão <code>(erro, resultado)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Ignorou o erro</strong>
+<pre class="file" data-file="ignorou.js">const fs = require("node:fs");
+
+fs.readFile("estoque.txt", "utf8", (erro, texto) =&gt; {
+  const linhas = texto.split("\n");
+  console.log(linhas);
+});
+</pre>
+<pre class="term">$ node ignorou.js
+/home/ana/ignorou.js:4
+  const linhas = texto.split("\n");
+                       ^
+
+TypeError: Cannot read properties of undefined (reading 'split')
+    at ReadFileContext.callback (/home/ana/ignorou.js:4:24)
+    at FSReqCallback.readFileAfterOpen [as oncomplete] (node:fs:300:13)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/ignorou.js:4 e o ^</dt><dd>A linha 4, apontando o <code>.split</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'split')</dt><dd>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>split</code>)": o <code>texto</code> era <code>undefined</code>. O arquivo não existia, o <code>erro</code> chegou preenchido e o <code>texto</code>, vazio. A mensagem não fala nada de arquivo: o erro de verdade (o <code>ENOENT</code>) foi jogado fora sem ninguém ler.</dd>
+  <dt>at ReadFileContext.callback (…:4:24)</dt><dd>O erro aconteceu dentro do <strong>callback</strong> do <code>readFile</code>…</dd>
+  <dt>at FSReqCallback.readFileAfterOpen [as oncomplete] (node:fs…)</dt><dd>…chamado pelo próprio Node, depois de tentar abrir o arquivo. Nenhuma linha do seu código aparece como "quem chamou": o callback foi chamado pelo sistema de arquivos do Node, bem depois de o programa principal ter terminado.</dd>
+</dl>
+<p><strong>Como consertar:</strong> o <code>if (erro) { … return; }</code> é a primeira coisa de todo callback "erro primeiro" (a missão da seção 2).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code> depois de avisar o erro: o callback é chamado duas vezes</strong>
+<pre class="file" data-file="duas-vezes.js">const tabela = { "café": 6 };
+
+function buscarPreco(produto, callback) {
+  setTimeout(() =&gt; {
+    if (!(produto in tabela)) {
+      callback(new Error(`produto desconhecido: ${produto}`));
+    }
+    callback(null, tabela[produto]);
+  }, 500);
+}
+
+buscarPreco("sorvete", (erro, preco) =&gt; {
+  if (erro) {
+    console.log("Erro:", erro.message);
+    return;
+  }
+  console.log(`Preço: R$ ${preco.toFixed(2)}`);
+});
+</pre>
+<pre class="term">$ node duas-vezes.js
+Erro: produto desconhecido: sorvete
+/home/ana/duas-vezes.js:17
+  console.log(`Preço: R$ ${preco.toFixed(2)}`);
+                                 ^
+
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+    at /home/ana/duas-vezes.js:17:34
+    at Timeout._onTimeout (/home/ana/duas-vezes.js:8:5)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>Dentro da <code>buscarPreco</code>, faltou o <code>return</code> depois do primeiro <code>callback(…)</code>. O callback foi chamado com o erro (a primeira linha da saída, certa) e, logo em seguida, chamado <strong>de novo</strong>, com <code>null</code> e um preço <code>undefined</code>: o "telefone" tocou duas vezes, a segunda com uma notícia falsa. A pilha mostra isso: o erro foi no callback (linha 17), chamado pela linha 8 da <code>buscarPreco</code>, a do segundo <code>callback(null, …)</code>. <strong>Como consertar:</strong> <code>return</code> logo depois de chamar o callback com erro (ou use <code>else</code>). Uma função com callback deve chamá-lo <strong>exatamente uma vez</strong>.</p>
+</div>
+
+<div class="cenario">
+<strong>Não passou o callback</strong>
+<pre class="file" data-file="sem-callback.js">function prepararPedido(item, quandoPronto) {
+  setTimeout(() =&gt; {
+    quandoPronto(`${item} pronto!`);
+  }, 1000);
+}
+
+prepararPedido("café");
+console.log("Pedido feito.");
+</pre>
+<pre class="term">$ node sem-callback.js
+Pedido feito.
+/home/ana/sem-callback.js:3
+    quandoPronto(`${item} pronto!`);
+    ^
+
+TypeError: quandoPronto is not a function
+    at Timeout._onTimeout (/home/ana/sem-callback.js:3:5)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>quandoPronto</code> não é uma função". A chamada da linha 7 esqueceu o segundo argumento, então <code>quandoPronto</code> ficou <code>undefined</code>. O pior: o erro só apareceu <strong>1 segundo depois</strong>, quando o timer tentou ligar para um telefone que não existia, e a pilha nem mostra a linha 7, onde está o engano de verdade. <strong>Como consertar:</strong> passe o callback: <code>prepararPedido("café", (aviso) =&gt; console.log(aviso))</code>.</p>
+<p>As funções do Node conferem isso logo na chamada. Esquecendo o callback do <code>readFile</code> (<code>const texto = fs.readFile("cardapio.txt", "utf8");</code>), o erro sai na hora:</p>
+<pre class="term">$ node fs-sem-callback.js
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "cb" argument must be of type function. Received type string ('utf8')
+    at Object.readFile (node:fs:360:3)
+    at Object.&lt;anonymous&gt; (/home/ana/fs-sem-callback.js:2:18)   « (mais 6 linhas at node:internal… cortadas)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"O argumento <code>cb</code> (de <em>callback</em>) precisa ser uma função. Recebi o texto <code>'utf8'</code>": sem o terceiro argumento, o Node achou que o <code>"utf8"</code> era o callback. Quem queria o texto direto numa variável estava procurando o <code>fs.readFileSync</code>, ou a versão com Promise.</p>
+</div>
+
+<div class="cenario">
+<strong><code>throw</code> dentro de um callback assíncrono</strong>
+<p>Se a <code>buscarPreco</code> usasse <code>throw new Error(…)</code> em vez de <code>callback(new Error(…))</code>, o erro aconteceria dentro do <code>setTimeout</code>, quando quem chamou a função já foi embora: nenhum <code>try … catch</code> em volta da chamada o pegaria, e o programa inteiro pararia (você viu isso em <a href="assincrono.html#errado">O que é Código Assíncrono</a>). É por isso que, com callbacks, o erro é <strong>entregue</strong> como primeiro argumento, e não lançado.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>function tarefa(dados, callback) { … callback(resultado); }</code></td><td>Função que avisa o resultado quando termina</td></tr>
+<tr><td><code>(erro, resultado) =&gt; { … }</code></td><td>O callback "erro primeiro" do Node</td></tr>
+<tr><td><code>if (erro) { …; return; }</code></td><td>A primeira coisa de todo callback "erro primeiro"</td></tr>
+<tr><td><code>callback(new Error("…")); return;</code></td><td>Avisar um erro na sua função (em vez de <code>throw</code>)</td></tr>
+<tr><td><code>callback(null, resultado)</code></td><td>Avisar que deu certo</td></tr>
+<tr><td><code>erro.message</code> / <code>erro.code</code></td><td>A mensagem / o código curto (<code>ENOENT</code>: arquivo não existe; <code>EACCES</code>: sem permissão)</td></tr>
+<tr><td>Callback dentro de callback</td><td>Passos em sequência; muitos níveis viram a "pirâmide" (<em>callback hell</em>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of undefined</code> no resultado</td><td>Não conferiu o <code>erro</code> antes de usar o resultado</td></tr>
+<tr><td>O callback roda duas vezes (erro e "sucesso")</td><td>Faltou <code>return</code> depois de <code>callback(erro)</code></td></tr>
+<tr><td><code>TypeError: … is not a function</code> um tempo depois</td><td>Esqueceu de passar o callback para a sua função</td></tr>
+<tr><td><code>ERR_INVALID_ARG_TYPE: The "cb" argument must be of type function</code></td><td>Esqueceu o callback de uma função do Node</td></tr>
+<tr><td><code>ENOENT: no such file or directory</code></td><td>O arquivo não existe (ou o nome/pasta está errado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o padrão</h3>
+<p>Complete o callback do <code>readFile</code> no padrão "erro primeiro":</p>
+<div class="ex-code">fs.readFile("notas.txt", "utf8", (<input data-answer="erro|err" aria-label="primeiro parâmetro">, texto) =&gt; {<br>&nbsp;&nbsp;if (erro) {<br>&nbsp;&nbsp;&nbsp;&nbsp;console.log(erro.message);<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="return" aria-label="palavra que sai da função">;<br>&nbsp;&nbsp;}<br>&nbsp;&nbsp;console.log(texto);<br>});</div>
+</div>
+
+<div class="exercise">
+<h3>2. Avisando que deu certo</h3>
+<p>Na sua função com callback "erro primeiro", o que vai no primeiro argumento quando <strong>não</strong> houve erro?</p>
+<div class="ex-code">callback(<input data-answer="null" aria-label="valor do erro">, resultado);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que é o <code>ENOENT</code> no <code>erro.code</code> de um <code>fs.readFile</code>?</p>
+<label><input type="radio" name="q3"> O arquivo está vazio</label>
+<label><input type="radio" name="q3"> O arquivo (ou a pasta) não existe</label>
+<label><input type="radio" name="q3"> O arquivo está em outra codificação</label>
+<label><input type="radio" name="q3"> Faltou o callback</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que o código com muitos callbacks um dentro do outro é chamado de "pirâmide" ou <em>callback hell</em>?</p>
+<label><input type="radio" name="q4"> Porque fica mais lento a cada nível</label>
+<label><input type="radio" name="q4"> Porque o Node não deixa mais de três níveis</label>
+<label><input type="radio" name="q4"> Porque cada passo empurra o próximo para a direita, e o erro tem de ser tratado em cada nível: difícil de ler e de mudar</label>
+<label><input type="radio" name="q4"> Porque os callbacks rodam todos ao mesmo tempo</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Numa função assíncrona com callback, qual é o jeito certo de avisar um erro?</p>
+<label><input type="radio" name="q5"> <code>callback(new Error("…"))</code> e <code>return</code></label>
+<label><input type="radio" name="q5"> <code>throw new Error("…")</code> dentro do <code>setTimeout</code></label>
+<label><input type="radio" name="q5"> <code>console.log("erro")</code> e continuar</label>
+<label><input type="radio" name="q5"> Não chamar o callback</label>
+</div>
+
+<h3>Missão final: a máquina de café</h3>
+
+<div class="tryjs" data-goal="out:Café médio pronto;;out:Erro: tamanho desconhecido: gigante;;src:setTimeout\s*\(;;semerro">
+<p class="try-task"><strong>Missão:</strong> escreva o corpo da <code>prepararCafe(tamanho, callback)</code> no padrão "erro primeiro": dentro de um <code>setTimeout</code> de 1000 ms, se o tamanho não estiver na lista <code>tamanhos</code>, chame <code>callback(new Error(`tamanho desconhecido: ${tamanho}`))</code> e saia; se estiver, chame <code>callback(null, `Café ${tamanho} pronto`)</code>. A saída esperada é <code>Café médio pronto</code> e <code>Erro: tamanho desconhecido: gigante</code>.</p>
+<pre class="script" data-file="main.js">function prepararCafe(tamanho, callback) {
+  const tamanhos = ["pequeno", "médio", "grande"];
+  // escreva aqui o setTimeout que chama o callback
+}
+
+function entregar(erro, cafe) {
+  if (erro) {
+    console.log(`Erro: ${erro.message}`);
+    return;
+  }
+  console.log(cafe);
+}
+
+prepararCafe("médio", entregar);
+prepararCafe("gigante", entregar);
+</pre>
+<pre class="solucao" data-file="main.js">function prepararCafe(tamanho, callback) {
+  const tamanhos = ["pequeno", "médio", "grande"];
+  setTimeout(() =&gt; {
+    if (!tamanhos.includes(tamanho)) {
+      callback(new Error(`tamanho desconhecido: ${tamanho}`));
+      return;
+    }
+    callback(null, `Café ${tamanho} pronto`);
+  }, 1000);
+}
+
+function entregar(erro, cafe) {
+  if (erro) {
+    console.log(`Erro: ${erro.message}`);
+    return;
+  }
+  console.log(cafe);
+}
+
+prepararCafe("médio", entregar);
+prepararCafe("gigante", entregar);
+</pre>
+</div>
+
+<p>No lab, uma solução assim mostrou <code>Café médio pronto</code> e <code>Erro: tamanho desconhecido: gigante</code>, 1 segundo depois de rodar.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>callback assíncrono</strong> é uma função que você entrega para ser chamada <strong>depois</strong>, quando um trabalho demorado termina. A função que recebe o callback não espera: agenda o trabalho e devolve o controle.</li>
+  <li>O Node usa o padrão <strong>"erro primeiro"</strong>: <code>(erro, resultado) =&gt; { … }</code>. Comece todo callback assim com <code>if (erro) { …; return; }</code>.</li>
+  <li>Nas suas funções, siga o mesmo combinado: <code>callback(new Error(…))</code> + <code>return</code> quando dá errado; <code>callback(null, resultado)</code> quando dá certo; e chame o callback <strong>exatamente uma vez</strong>.</li>
+  <li>Em código assíncrono, os erros são <strong>entregues</strong> ao callback, não lançados com <code>throw</code>.</li>
+  <li>Passos em sequência viram callbacks dentro de callbacks: a <strong>pirâmide</strong> (<em>callback hell</em>). As <a href="promises.html">Promises</a>, a próxima aula, resolvem isso.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
