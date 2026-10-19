@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Notas da Turma — ler um CSV, médias, relatório e gravar passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo: um programa em JavaScript (Node.js 24) que lê as notas da turma de um arquivo CSV com fs e split, calcula a média com map(Number) e reduce, decide a situação, monta um relatório em colunas com padEnd/padStart e toSorted, confere as linhas erradas e grava o relatorio.csv. Quatro versões com saídas reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Notas da Turma</span> (CSV)</h1>
+
+<p class="intro">A Ana dá aula de reforço e guarda as notas dos alunos numa planilha. Toda planilha sabe se salvar como <strong>CSV</strong>, um arquivo de texto simples com uma linha por aluno e as colunas separadas por vírgula. Neste projeto ela escreve um programa que lê esse arquivo, calcula a média de cada aluno, diz quem passou, monta um relatório organizado e grava o resultado num CSV novo.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler um arquivo de texto com <a href="fs-ler.html">fs.readFileSync</a> e quebrá-lo em linhas e colunas com <a href="strings-split.html">split</a>.</li>
+  <li>Separar o cabeçalho do resto com <a href="desestruturacao.html">desestruturação</a> e <a href="spread-rest.html">rest</a>.</li>
+  <li>Converter as notas com <a href="map.html">map(Number)</a> e somar com <a href="reduce.html">reduce</a>.</li>
+  <li>Decidir a situação com uma <a href="funcoes.html">função</a> e <a href="if.html">if</a>.</li>
+  <li>Alinhar colunas com <code>padEnd</code>/<code>padStart</code> e ordenar com <a href="sort.html">toSorted</a>.</li>
+  <li>Conferir linhas erradas e gravar o resultado com <a href="fs-escrever.html">fs.writeFileSync</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>O arquivo da turma, <code>turma.csv</code>, e o programa pronto rodando no computador da Ana (Node.js v24.22.0):</p>
+
+<pre class="term" data-cwd="~/projetos/notas">$ cat turma.csv
+nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,5,7.5
+Elisa,3,4.5,5
+$ node notas.js
+Aluno     Nota 1  Nota 2  Nota 3   Média  Situação
+Carla       10.0     9.5     9.0     9.5  Aprovado
+Ana          8.5     7.0     9.0     8.2  Aprovado
+Diego        6.0     5.0     7.5     6.2  Recuperação
+Bruno        5.0     6.5     4.0     5.2  Recuperação
+Elisa        3.0     4.5     5.0     4.2  Reprovado
+
+Média da turma: 6.6
+Melhor média: Carla (9.5)
+Relatório gravado em relatorio.csv
+$ cat relatorio.csv
+nome,media,situacao
+Carla,9.5,Aprovado
+Ana,8.2,Aprovado
+Diego,6.2,Recuperação
+Bruno,5.2,Recuperação
+Elisa,4.2,Reprovado</pre>
+
+<p>A regra da escola: média 7 ou mais, <strong>Aprovado</strong>; de 5 a 7, <strong>Recuperação</strong>; abaixo de 5, <strong>Reprovado</strong>. Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">Ler o CSV</a> (<code>readFileSync</code>, <code>split</code>, a linha vazia do fim).</li>
+  <li><a href="#versao2">Média e situação</a> (<code>map(Number)</code>, <code>reduce</code>, <code>toFixed</code>).</li>
+  <li><a href="#versao3">O relatório</a> (objetos, <code>toSorted</code>, <code>padEnd</code>/<code>padStart</code>).</li>
+  <li><a href="#versao4">Conferir e gravar</a> (linhas erradas, <code>process.argv</code>, <code>writeFileSync</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Crie a pasta do projeto e, dentro dela, o <code>turma.csv</code> (num editor de texto, ou salvando a planilha como "CSV"). O programa vai se chamar <code>notas.js</code>:</p>
+
+<pre class="term">$ mkdir -p projetos/notas
+$ cd projetos/notas</pre>
+
+<p>Nas caixas <strong>Experimente</strong>, o <code>turma.csv</code> fica numa aba ao lado do programa, e o programa o lê de verdade. Você pode mudar as notas na aba e rodar de novo.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Ler o CSV</h2>
+<p>Para o programa, o <code>turma.csv</code> é só um texto comprido, com uma quebra de linha (<code>\n</code>) depois de cada aluno. O primeiro passo é ler o arquivo inteiro e cortar esse texto nas quebras de linha, para ver o que sai:</p>
+
+<pre class="file" data-file="notas.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const linhas = texto.split("\n");
+console.log(linhas);
+</pre>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+[
+  'nome,nota1,nota2,nota3',
+  'Ana,8.5,7,9',
+  'Bruno,5,6.5,4',
+  'Carla,10,9.5,9',
+  'Diego,6,5,7.5',
+  'Elisa,3,4.5,5',
+  ''
+]</pre>
+
+<p>O <code>split("\n")</code> ("dividir") devolveu um array com uma string por linha. Duas coisas para reparar: a primeira linha é o <strong>cabeçalho</strong> (os nomes das colunas), não um aluno; e o último item é uma string <strong>vazia</strong>, <code>''</code>. Ela aparece porque o arquivo termina com uma quebra de linha (todo arquivo de texto bem-feito termina assim), e depois da última quebra não há nada. Agora, cortando cada linha nas vírgulas:</p>
+
+<pre class="file" data-file="notas.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+console.log("Colunas:", cabecalho);
+for (const linha of linhas) {
+  const [nome, nota1, nota2, nota3] = linha.split(",");
+  console.log(`${nome}: ${nota1}, ${nota2} e ${nota3}`);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>fs.readFileSync("turma.csv", "utf8")</dt><dd>Lê o arquivo inteiro como texto (veja <a href="fs-ler.html">Lendo Arquivos</a>). O <code>"utf8"</code> faz os acentos saírem certos.</dd>
+  <dt>texto.trim()</dt><dd>Tira os espaços e quebras de linha das pontas do texto, e com eles a linha vazia do fim.</dd>
+  <dt>const [cabecalho, ...linhas] = …</dt><dd>Desestruturação: o primeiro item do array vai para <code>cabecalho</code>, e os <code>...</code> juntam <strong>todos os outros</strong> num array novo, <code>linhas</code>. Uma linha separa o cabeçalho dos alunos.</dd>
+  <dt>linha.split(",")</dt><dd>Corta a linha nas vírgulas: <code>"Ana,8.5,7,9"</code> vira <code>[ 'Ana', '8.5', '7', '9' ]</code>.</dd>
+  <dt>const [nome, nota1, nota2, nota3] = …</dt><dd>Dá um nome a cada pedaço, na ordem.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Colunas: nome,nota1,nota2,nota3
+Ana: 8.5, 7 e 9
+Bruno: 5, 6.5 e 4
+Carla: 10, 9.5 e 9
+Diego: 6, 5 e 7.5
+Elisa: 3, 4.5 e 5</pre>
+
+<div class="cenario">
+<strong>Esquecer o <code>trim()</code>: um aluno fantasma</strong>
+<p>Sem o <code>.trim()</code> (só <code>texto.split("\n")</code>), a linha vazia do fim vira um "aluno":</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Colunas: nome,nota1,nota2,nota3
+Ana: 8.5, 7 e 9
+Bruno: 5, 6.5 e 4
+Carla: 10, 9.5 e 9
+Diego: 6, 5 e 7.5
+Elisa: 3, 4.5 e 5
+: undefined, undefined e undefined</pre>
+<p><code>"".split(",")</code> dá <code>[ '' ]</code>: o nome é o texto vazio, e não há segunda, terceira nem quarta posição, então <code>nota1</code>, <code>nota2</code> e <code>nota3</code> ficam <code>undefined</code>. Nenhum erro: só uma linha estranha no fim. Quando você vir um <code>undefined</code> perdido numa saída, desconfie de uma linha vazia ou de uma coluna que faltou.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Elisa: 3, 4.5 e 5;;outre:^(?![\s\S]*undefined)">
+<p class="try-task"><strong>Missão (versão 1):</strong> rode e veja a última linha da saída: o aluno fantasma. Conserte o programa para que ela não apareça mais (a saída não pode ter nenhum <code>undefined</code>), sem apagar a quebra de linha do fim do <code>turma.csv</code>.</p>
+<pre class="script" data-file="notas.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.split("\n");
+
+console.log("Colunas:", cabecalho);
+for (const linha of linhas) {
+  const [nome, nota1, nota2, nota3] = linha.split(",");
+  console.log(`${nome}: ${nota1}, ${nota2} e ${nota3}`);
+}
+</pre>
+<pre class="script" data-file="turma.csv">nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,5,7.5
+Elisa,3,4.5,5
+</pre>
+<pre class="solucao" data-file="notas.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+console.log("Colunas:", cabecalho);
+for (const linha of linhas) {
+  const [nome, nota1, nota2, nota3] = linha.split(",");
+  console.log(`${nome}: ${nota1}, ${nota2} e ${nota3}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Média e situação</h2>
+<p>A média é a soma das três notas dividida por 3. Mas cuidado: o que veio do <code>split</code> são <strong>textos</strong> (<code>'8.5'</code>, <code>'7'</code>, <code>'9'</code>), e já vimos no <a href="projeto-calculadora.html">projeto da calculadora</a> o que o <code>+</code> faz com textos. Primeiro, converta; depois, some:</p>
+
+<pre class="file" data-file="notas.js">import fs from "node:fs";
+
+// Devolve a situação do aluno pela média.
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+for (const linha of linhas) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  const soma = notas.reduce((total, nota) =&gt; total + nota, 0);
+  const media = soma / notas.length;
+  console.log(`${nome}: média ${media.toFixed(1)} (${situacao(media)})`);
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>function situacao(media)</code></td><td>Recebe a média e devolve o texto da situação. Cada <code>return</code> encerra a função: se a média for 7 ou mais, o primeiro <code>return</code> responde e as linhas de baixo nem rodam. Por isso o segundo <code>if</code> não precisa conferir "menor que 7".</td></tr>
+<tr><td><code>const [nome, ...colunas] = linha.split(",");</code></td><td>O nome à parte; as notas, quantas forem, no array <code>colunas</code>.</td></tr>
+<tr><td><code>colunas.map(Number)</code></td><td>Passa cada texto pelo <code>Number</code> e devolve um array novo com os números: <code>[ '8.5', '7', '9' ]</code> vira <code>[ 8.5, 7, 9 ]</code> (veja <a href="map.html">map</a>).</td></tr>
+<tr><td><code>notas.reduce((total, nota) =&gt; total + nota, 0)</code></td><td>Começa o <code>total</code> em <code>0</code> e soma cada nota a ele: <code>0 + 8.5 + 7 + 9 = 24.5</code> (veja <a href="reduce.html">reduce</a>).</td></tr>
+<tr><td><code>soma / notas.length</code></td><td>Divide pela quantidade de notas, e não por um 3 fixo: se a escola passar a dar 4 provas, a conta continua certa.</td></tr>
+<tr><td><code>media.toFixed(1)</code></td><td>Mostra com 1 casa decimal, arredondando: <code>8.1666…</code> vira <code>'8.2'</code> (veja <a href="numeros-formatar.html">Formatando Números</a>).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Ana: média 8.2 (Aprovado)
+Bruno: média 5.2 (Recuperação)
+Carla: média 9.5 (Aprovado)
+Diego: média 6.2 (Recuperação)
+Elisa: média 4.2 (Reprovado)</pre>
+
+<div class="cenario">
+<strong>Esquecer o <code>map(Number)</code>: médias absurdas, sem erro</strong>
+<p>Se a linha do <code>map</code> virar só <code>const notas = colunas;</code>:</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Ana: média 2.9 (Reprovado)
+Bruno: média 18.8 (Aprovado)
+Carla: média 36.5 (Aprovado)
+Diego: média 219.2 (Aprovado)
+Elisa: média 11.5 (Aprovado)</pre>
+<p>Média 219 numa prova de 0 a 10! Veja o que o <code>reduce</code> fez com os textos, no modo interativo:</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const [nome, ...colunas] = "Ana,8.5,7,9".split(",")
+undefined
+&gt; colunas
+[ '8.5', '7', '9' ]
+&gt; colunas.reduce((total, nota) =&gt; total + nota, 0)
+'08.579'
+&gt; colunas.map(Number)
+[ 8.5, 7, 9 ]
+&gt; .exit</pre>
+<p><code>0 + '8.5'</code> <strong>junta</strong>: <code>'08.5'</code>. Depois <code>'08.57'</code>, depois <code>'08.579'</code>. Na divisão, o <code>/</code> converte <code>'08.579'</code> para o número 8.579 e divide por 3: 2.9. É a pegadinha do <code>+</code> outra vez, agora escondida dentro do <code>reduce</code>. A Ana só percebeu porque a média de Diego era impossível; com outras notas, o erro poderia passar.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Ana: média 8.2 (Aprovado);;out:Elisa: média 4.2 (Reprovado)">
+<p class="try-task"><strong>Missão (versão 2):</strong> as médias estão absurdas porque as notas ainda são textos. Converta as colunas em números antes de somar, para sair <code>Ana: média 8.2 (Aprovado)</code> e <code>Elisa: média 4.2 (Reprovado)</code>.</p>
+<pre class="script" data-file="notas.js">import fs from "node:fs";
+
+// Devolve a situação do aluno pela média.
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+for (const linha of linhas) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas;
+  const soma = notas.reduce((total, nota) =&gt; total + nota, 0);
+  const media = soma / notas.length;
+  console.log(`${nome}: média ${media.toFixed(1)} (${situacao(media)})`);
+}
+</pre>
+<pre class="script" data-file="turma.csv">nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,5,7.5
+Elisa,3,4.5,5
+</pre>
+<pre class="solucao" data-file="notas.js">import fs from "node:fs";
+
+// Devolve a situação do aluno pela média.
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+for (const linha of linhas) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  const soma = notas.reduce((total, nota) =&gt; total + nota, 0);
+  const media = soma / notas.length;
+  console.log(`${nome}: média ${media.toFixed(1)} (${situacao(media)})`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · O relatório</h2>
+<p>A Ana quer um relatório de verdade: os alunos do melhor para o pior, as notas em colunas alinhadas, a média da turma e quem foi melhor. Para ordenar e calcular depois, cada linha passa a virar um <strong>objeto</strong> com tudo o que se sabe do aluno: <code>{ nome, notas, media }</code>.</p>
+
+<pre class="file" data-file="notas.js">import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+// Cada linha vira um objeto: { nome, notas, media }
+const alunos = linhas.map((linha) =&gt; {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+});
+
+// Do maior para o menor, sem mexer no array original
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+</pre>
+
+<dl class="anatomy">
+  <dt>linhas.map((linha) =&gt; { … return { nome, notas, media }; })</dt><dd>Transforma cada linha de texto num objeto. O <code>{ nome, notas, media }</code> é a forma curta de <code>{ nome: nome, notas: notas, media: media }</code>.</dd>
+  <dt>alunos.toSorted((a, b) =&gt; b.media - a.media)</dt><dd>Devolve uma cópia ordenada. A função compara dois alunos: um resultado positivo põe <code>b</code> antes de <code>a</code>. Com <code>b.media - a.media</code>, a maior média vem primeiro (veja <a href="sort.html">Ordenando</a>). O <code>toSorted</code> <span class="versao">ES2023</span> não mexe em <code>alunos</code>, que continua na ordem do arquivo.</dd>
+  <dt>nota.toFixed(1).padStart(6)</dt><dd>Primeiro vira texto com 1 casa (<code>'9.5'</code>), depois ganha espaços <strong>à esquerda</strong> até ter 6 caracteres (<code>'   9.5'</code>). Números alinhados pela direita, como numa planilha.</dd>
+  <dt>aluno.nome.padEnd(8)</dt><dd>Espaços <strong>à direita</strong> até 8 caracteres: os nomes alinhados pela esquerda.</dd>
+  <dt>.join("  ")</dt><dd>Junta as três notas formatadas com dois espaços entre elas.</dd>
+  <dt>"\nMédia da turma: …"</dt><dd>O <code>\n</code> no começo pula uma linha antes do resumo.</dd>
+  <dt>ranking[0]</dt><dd>O primeiro do ranking: a melhor média.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Aluno     Nota 1  Nota 2  Nota 3   Média  Situação
+Carla       10.0     9.5     9.0     9.5  Aprovado
+Ana          8.5     7.0     9.0     8.2  Aprovado
+Diego        6.0     5.0     7.5     6.2  Recuperação
+Bruno        5.0     6.5     4.0     5.2  Recuperação
+Elisa        3.0     4.5     5.0     4.2  Reprovado
+
+Média da turma: 6.6
+Melhor média: Carla (9.5)</pre>
+
+<p>Conferindo as peças de formatação:</p>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; (24.5 / 3).toFixed(1)
+'8.2'
+&gt; "Ana".padEnd(8) + "|"
+'Ana     |'
+&gt; "9.5".padStart(6)
+'   9.5'
+&gt; .exit</pre>
+
+<div class="tip">
+<strong>O alinhamento depende de letra de largura fixa</strong>
+<p>O <code>padEnd</code> conta <strong>caracteres</strong>. No terminal, toda letra tem a mesma largura, e as colunas ficam retas. Se você colar o relatório num editor com fonte de largura variável (como a de um e-mail), as colunas entortam: um "i" é mais fino que um "M".</p>
+</div>
+
+<div class="tryjs" data-goal="out:Melhor média: Carla (9.5);;src:\.(toSorted|sort)\(">
+<p class="try-task"><strong>Missão (versão 3):</strong> o relatório saiu na ordem do arquivo, e o "Melhor média" diz Ana, que é só a primeira da lista. Faça o <code>ranking</code> ficar em ordem da maior média para a menor (com <code>toSorted</code>), para sair <code>Melhor média: Carla (9.5)</code>.</p>
+<pre class="script" data-file="notas.js">import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+// Cada linha vira um objeto: { nome, notas, media }
+const alunos = linhas.map((linha) =&gt; {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+});
+
+// Do maior para o menor, sem mexer no array original
+const ranking = alunos;
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+</pre>
+<pre class="script" data-file="turma.csv">nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,5,7.5
+Elisa,3,4.5,5
+</pre>
+<pre class="solucao" data-file="notas.js">import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+const texto = fs.readFileSync("turma.csv", "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+// Cada linha vira um objeto: { nome, notas, media }
+const alunos = linhas.map((linha) =&gt; {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+});
+
+// Do maior para o menor, sem mexer no array original
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Conferir e gravar</h2>
+<p>A Ana tem outras turmas, e os arquivos nem sempre vêm perfeitos. Num deles, alguém digitou uma nota com vírgula, outra pessoa deixou uma nota em branco e outra escreveu "dez" por extenso:</p>
+
+<pre class="term" data-cwd="~/projetos/notas">$ cat turma-b.csv
+nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6,5,4
+Carla,10,9.5,9
+Diego,6,,7.5
+Elisa,3,4.5,5
+Fábio,7,8,dez</pre>
+
+<p>Repare no Bruno: <code>6,5</code> com vírgula virou <strong>duas colunas</strong>, porque a vírgula é justamente o separador do CSV. (Por isso as planilhas em português costumam salvar o CSV com <code>;</code> separando as colunas.) A versão 4 confere cada linha antes de usar, deixa a Ana escolher o arquivo na linha de comando e grava o resultado em <code>relatorio.csv</code>:</p>
+
+<pre class="file" data-file="notas.js">// Notas da Turma, versão 4: arquivo escolhido, linhas conferidas e relatório gravado
+import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+// Transforma uma linha do CSV num aluno, ou devolve null se a linha estiver errada.
+function lerAluno(linha) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  if (nome === "" || colunas.length !== 3 || colunas.includes("") || notas.some(Number.isNaN)) {
+    return null;
+  }
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+}
+
+const arquivo = process.argv[2] ?? "turma.csv";
+if (!fs.existsSync(arquivo)) {
+  console.error(`Arquivo não encontrado: ${arquivo}`);
+  process.exit(1);
+}
+const texto = fs.readFileSync(arquivo, "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+const alunos = [];
+linhas.forEach((linha, i) =&gt; {
+  const aluno = lerAluno(linha);
+  if (aluno === null) {
+    console.warn(`Linha ${i + 2} ignorada: ${linha}`);
+  } else {
+    alunos.push(aluno);
+  }
+});
+
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+
+// O relatório em CSV, na ordem do ranking
+const saida = ["nome,media,situacao"];
+for (const aluno of ranking) {
+  saida.push(`${aluno.nome},${aluno.media.toFixed(1)},${situacao(aluno.media)}`);
+}
+fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n");
+console.log("Relatório gravado em relatorio.csv");
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>function lerAluno(linha)</code></td><td>Transforma uma linha num aluno, ou devolve <code>null</code> ("nada") se a linha estiver errada. Quem chama decide o que fazer com o <code>null</code>.</td></tr>
+<tr><td><code>colunas.length !== 3</code></td><td>Tem de haver exatamente 3 notas: pega o <code>6,5</code> do Bruno (4 colunas).</td></tr>
+<tr><td><code>colunas.includes("")</code></td><td>Nenhuma coluna pode estar vazia: pega o <code>6,,7.5</code> do Diego.</td></tr>
+<tr><td><code>notas.some(Number.isNaN)</code></td><td>"Alguma nota é <code>NaN</code>?": pega o <code>dez</code> do Fábio (veja <a href="arrays-outros.html">some</a>).</td></tr>
+<tr><td><code>process.argv[2] ?? "turma.csv"</code></td><td>O nome do arquivo vem da linha de comando; se não vier nada (<code>undefined</code>), o <code>??</code> usa <code>"turma.csv"</code> (veja <a href="optional-chaining.html">??</a>).</td></tr>
+<tr><td><code>linhas.forEach((linha, i) =&gt; …)</code></td><td>O <code>i</code> conta as linhas de alunos a partir de 0. No arquivo, a primeira linha é o cabeçalho, então a linha de verdade é <code>i + 2</code>.</td></tr>
+<tr><td><code>console.warn(…)</code></td><td>Um aviso (veja <a href="console-outros.html">console.warn</a>). Como o <code>console.error</code>, vai para a saída de erros.</td></tr>
+<tr><td><code>saida.join("\n") + "\n"</code></td><td>Monta o CSV novo: uma string por linha num array, juntadas com quebras de linha, e uma quebra no fim.</td></tr>
+<tr><td><code>fs.writeFileSync("relatorio.csv", …)</code></td><td>Grava (ou substitui) o arquivo (veja <a href="fs-escrever.html">Escrevendo Arquivos</a>).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js turma-b.csv
+Linha 3 ignorada: Bruno,5,6,5,4
+Linha 5 ignorada: Diego,6,,7.5
+Linha 7 ignorada: Fábio,7,8,dez
+Aluno     Nota 1  Nota 2  Nota 3   Média  Situação
+Carla       10.0     9.5     9.0     9.5  Aprovado
+Ana          8.5     7.0     9.0     8.2  Aprovado
+Elisa        3.0     4.5     5.0     4.2  Reprovado
+
+Média da turma: 7.3
+Melhor média: Carla (9.5)
+Relatório gravado em relatorio.csv
+$ cat relatorio.csv
+nome,media,situacao
+Carla,9.5,Aprovado
+Ana,8.2,Aprovado
+Elisa,4.2,Reprovado
+$ node notas.js turma-c.csv
+Arquivo não encontrado: turma-c.csv
+$ echo $?
+1</pre>
+
+<p>As três linhas problemáticas foram avisadas, com o número da linha no arquivo, e ficaram de fora das contas. A Ana corrige o <code>turma-b.csv</code> e roda de novo. Sem nome nenhum, o programa usa o <code>turma.csv</code> e dá o relatório do começo da página.</p>
+
+<div class="cenario">
+<strong>A nota em branco que virou zero</strong>
+<p>Na primeira tentativa, a Ana conferia só <code>notas.length !== 3</code> e <code>notas.some(Number.isNaN)</code>, sem o <code>colunas.includes("")</code>. O Bruno e o Fábio foram pegos, mas o Diego, não:</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js turma-b.csv
+Linha 3 ignorada: Bruno,5,6,5,4
+Linha 7 ignorada: Fábio,7,8,dez
+Aluno     Nota 1  Nota 2  Nota 3   Média  Situação
+Carla       10.0     9.5     9.0     9.5  Aprovado
+Ana          8.5     7.0     9.0     8.2  Aprovado
+Diego        6.0     0.0     7.5     4.5  Reprovado
+Elisa        3.0     4.5     5.0     4.2  Reprovado
+
+Média da turma: 6.6
+Melhor média: Carla (9.5)
+Relatório gravado em relatorio.csv</pre>
+<p>O Diego foi <strong>reprovado</strong> por uma nota que ninguém lançou. A coluna vazia é o texto <code>""</code>, e <code>Number("")</code> dá <code>0</code>, não <code>NaN</code>, então passou pelo teste. É a mesma pegadinha do Enter vazio na <a href="projeto-calculadora.html">calculadora</a>, só que aqui com consequência séria. Confira o <code>split</code> no modo interativo:</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Diego,6,,7.5".split(",")
+[ 'Diego', '6', '', '7.5' ]
+&gt; [8.5, NaN, 9].some(Number.isNaN)
+true
+&gt; .exit</pre>
+</div>
+
+<div class="cenario">
+<strong>O arquivo que não existe: <code>ENOENT</code></strong>
+<p>Antes do <code>if (!fs.existsSync(arquivo))</code>, um nome errado parava o programa com o erro do Node:</p>
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js turma-c.csv
+node:fs:483
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open 'turma-c.csv'
+    at Object.readFileSync (node:fs:483:20)
+    at file:///home/ana/projetos/notas/notas.js:26:18
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'turma-c.csv'
+}
+
+Node.js v24.22.0</pre>
+<p>"Não existe esse arquivo ou pasta, ao abrir <code>turma-c.csv</code>". A primeira linha (<code>node:fs:483</code>) é de dentro do Node; a <strong>sua</strong> linha é a <code>notas.js:26:18</code>, a do <code>readFileSync</code>. O <a href="projeto-tarefas.html">projeto da lista de tarefas</a> explica esta mensagem linha por linha. Com a conferência, a Ana vê só "Arquivo não encontrado: turma-c.csv".</p>
+</div>
+
+<div class="tryjs" data-goal="out:Linha 5 ignorada: Diego,6,,7.5;;semerro">
+<p class="try-task"><strong>Missão (versão 4):</strong> no <code>turma.csv</code> desta caixa, a segunda nota do Diego está em branco, e o programa o reprova com um 0.0 que ninguém deu. Mude o teste da função <code>lerAluno</code> para recusar também uma coluna vazia, para sair <code>Linha 5 ignorada: Diego,6,,7.5</code>.</p>
+<pre class="script" data-file="notas.js">// Notas da Turma, versão 4: arquivo escolhido, linhas conferidas e relatório gravado
+import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+// Transforma uma linha do CSV num aluno, ou devolve null se a linha estiver errada.
+function lerAluno(linha) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  if (nome === "" || notas.length !== 3 || notas.some(Number.isNaN)) {
+    return null;
+  }
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+}
+
+const arquivo = process.argv[2] ?? "turma.csv";
+const texto = fs.readFileSync(arquivo, "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+const alunos = [];
+linhas.forEach((linha, i) =&gt; {
+  const aluno = lerAluno(linha);
+  if (aluno === null) {
+    console.warn(`Linha ${i + 2} ignorada: ${linha}`);
+  } else {
+    alunos.push(aluno);
+  }
+});
+
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+
+// O relatório em CSV, na ordem do ranking
+const saida = ["nome,media,situacao"];
+for (const aluno of ranking) {
+  saida.push(`${aluno.nome},${aluno.media.toFixed(1)},${situacao(aluno.media)}`);
+}
+fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n");
+console.log("Relatório gravado em relatorio.csv");
+</pre>
+<pre class="script" data-file="turma.csv">nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,,7.5
+Elisa,3,4.5,5
+</pre>
+<pre class="solucao" data-file="notas.js">// Notas da Turma, versão 4: arquivo escolhido, linhas conferidas e relatório gravado
+import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+// Transforma uma linha do CSV num aluno, ou devolve null se a linha estiver errada.
+function lerAluno(linha) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  if (nome === "" || colunas.length !== 3 || colunas.includes("") || notas.some(Number.isNaN)) {
+    return null;
+  }
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+}
+
+const arquivo = process.argv[2] ?? "turma.csv";
+if (!fs.existsSync(arquivo)) {
+  console.error(`Arquivo não encontrado: ${arquivo}`);
+  process.exit(1);
+}
+const texto = fs.readFileSync(arquivo, "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+const alunos = [];
+linhas.forEach((linha, i) =&gt; {
+  const aluno = lerAluno(linha);
+  if (aluno === null) {
+    console.warn(`Linha ${i + 2} ignorada: ${linha}`);
+  } else {
+    alunos.push(aluno);
+  }
+});
+
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+
+// O relatório em CSV, na ordem do ranking
+const saida = ["nome,media,situacao"];
+for (const aluno of ranking) {
+  saida.push(`${aluno.nome},${aluno.media.toFixed(1)},${situacao(aluno.media)}`);
+}
+fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n");
+console.log("Relatório gravado em relatorio.csv");
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+
+<h3>Converter as notas: <code>map(Number)</code> × <code>map(parseInt)</code></h3>
+<pre class="term" data-cwd="~/projetos/notas">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Ana,8.5,7,9".split(",")
+[ 'Ana', '8.5', '7', '9' ]
+&gt; const [nome, ...colunas] = "Ana,8.5,7,9".split(",")
+undefined
+&gt; colunas.map(Number)
+[ 8.5, 7, 9 ]
+&gt; colunas.map(parseInt)
+[ 8, NaN, NaN ]
+&gt; .exit</pre>
+<p>O <code>map(parseInt)</code> é uma pegadinha famosa. O <code>map</code> chama a função com <strong>dois</strong> valores: o item e a posição (0, 1, 2). O <code>Number</code> ignora o segundo; o <code>parseInt</code> o entende como a <strong>base</strong> do número: <code>parseInt('7', 1)</code> e <code>parseInt('9', 2)</code> não fazem sentido e dão <code>NaN</code>. E mesmo o primeiro saiu errado: <code>parseInt('8.5')</code> corta as casas decimais e dá 8. Para notas, use <code>map(Number)</code> (ou <code>map((texto) =&gt; parseFloat(texto))</code>). Veja <a href="conversao.html">Conversão</a>.</p>
+
+<h3>Ler o CSV: à mão × uma biblioteca</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>split("\n")</code> e <code>split(",")</code>, como neste projeto</td><td>Arquivos simples, que você mesmo controla: sem vírgulas nem quebras de linha dentro dos valores.</td></tr>
+<tr><td>Um pacote do npm para CSV</td><td>Arquivos de verdade, vindos de outras pessoas: o CSV permite valores entre aspas com vírgulas dentro (<code>"Silva, Ana",8.5</code>), e o <code>split(",")</code> cortaria no lugar errado. Veja <a href="npm.html">npm</a>.</td></tr>
+</table>
+</div>
+
+<h3>Ordenar: <code>toSorted</code> × <code>sort</code></h3>
+<p>O <code>alunos.sort(…)</code> também ordena, mas muda o próprio array <code>alunos</code> (e o devolve). O <code>toSorted</code> devolve uma cópia ordenada e deixa o original em paz. Neste projeto tanto faz; quando outra parte do programa ainda precisa da ordem do arquivo, prefira o <code>toSorted</code>.</p>
+
+<hr>
+
+<h2>Desafio extra: quantos em cada situação</h2>
+<p>A coordenação quer saber quantos alunos passaram, quantos ficaram de recuperação e quantos reprovaram. O <code>Object.groupBy</code> <span class="versao">ES2024</span> separa um array em grupos: você dá uma função que diz o nome do grupo de cada item, e ele devolve um objeto com um array por grupo. Com o desafio pronto, depois do "Melhor média":</p>
+
+<pre class="term" data-cwd="~/projetos/notas">$ node notas.js
+Aluno     Nota 1  Nota 2  Nota 3   Média  Situação
+Carla       10.0     9.5     9.0     9.5  Aprovado
+Ana          8.5     7.0     9.0     8.2  Aprovado
+Diego        6.0     5.0     7.5     6.2  Recuperação
+Bruno        5.0     6.5     4.0     5.2  Recuperação
+Elisa        3.0     4.5     5.0     4.2  Reprovado
+
+Média da turma: 6.6
+Melhor média: Carla (9.5)
+Aprovado: 2
+Recuperação: 2
+Reprovado: 1
+Relatório gravado em relatorio.csv</pre>
+
+<div class="tryjs" data-goal="out:Aprovado: 2;;out:Recuperação: 2;;out:Reprovado: 1;;semerro">
+<p class="try-task"><strong>Desafio no editor:</strong> depois do <code>console.log</code> do "Melhor média", agrupe os alunos com <code>Object.groupBy(alunos, (aluno) =&gt; situacao(aluno.media))</code> e, para cada grupo (<code>for (const [nome, lista] of Object.entries(grupos))</code>), mostre o nome e quantos alunos ele tem: <code>Aprovado: 2</code>, <code>Recuperação: 2</code>, <code>Reprovado: 1</code>.</p>
+<pre class="script" data-file="notas.js">// Notas da Turma, versão 4: arquivo escolhido, linhas conferidas e relatório gravado
+import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+// Transforma uma linha do CSV num aluno, ou devolve null se a linha estiver errada.
+function lerAluno(linha) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  if (nome === "" || colunas.length !== 3 || colunas.includes("") || notas.some(Number.isNaN)) {
+    return null;
+  }
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+}
+
+const arquivo = process.argv[2] ?? "turma.csv";
+if (!fs.existsSync(arquivo)) {
+  console.error(`Arquivo não encontrado: ${arquivo}`);
+  process.exit(1);
+}
+const texto = fs.readFileSync(arquivo, "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+const alunos = [];
+linhas.forEach((linha, i) =&gt; {
+  const aluno = lerAluno(linha);
+  if (aluno === null) {
+    console.warn(`Linha ${i + 2} ignorada: ${linha}`);
+  } else {
+    alunos.push(aluno);
+  }
+});
+
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+
+// O relatório em CSV, na ordem do ranking
+const saida = ["nome,media,situacao"];
+for (const aluno of ranking) {
+  saida.push(`${aluno.nome},${aluno.media.toFixed(1)},${situacao(aluno.media)}`);
+}
+fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n");
+console.log("Relatório gravado em relatorio.csv");
+</pre>
+<pre class="script" data-file="turma.csv">nome,nota1,nota2,nota3
+Ana,8.5,7,9
+Bruno,5,6.5,4
+Carla,10,9.5,9
+Diego,6,5,7.5
+Elisa,3,4.5,5
+</pre>
+<pre class="solucao" data-file="notas.js">// Notas da Turma, versão 4: arquivo escolhido, linhas conferidas e relatório gravado
+import fs from "node:fs";
+
+function situacao(media) {
+  if (media &gt;= 7) {
+    return "Aprovado";
+  }
+  if (media &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovado";
+}
+
+// Transforma uma linha do CSV num aluno, ou devolve null se a linha estiver errada.
+function lerAluno(linha) {
+  const [nome, ...colunas] = linha.split(",");
+  const notas = colunas.map(Number);
+  if (nome === "" || colunas.length !== 3 || colunas.includes("") || notas.some(Number.isNaN)) {
+    return null;
+  }
+  const media = notas.reduce((total, nota) =&gt; total + nota, 0) / notas.length;
+  return { nome, notas, media };
+}
+
+const arquivo = process.argv[2] ?? "turma.csv";
+if (!fs.existsSync(arquivo)) {
+  console.error(`Arquivo não encontrado: ${arquivo}`);
+  process.exit(1);
+}
+const texto = fs.readFileSync(arquivo, "utf8");
+const [cabecalho, ...linhas] = texto.trim().split("\n");
+
+const alunos = [];
+linhas.forEach((linha, i) =&gt; {
+  const aluno = lerAluno(linha);
+  if (aluno === null) {
+    console.warn(`Linha ${i + 2} ignorada: ${linha}`);
+  } else {
+    alunos.push(aluno);
+  }
+});
+
+const ranking = alunos.toSorted((a, b) =&gt; b.media - a.media);
+
+console.log("Aluno     Nota 1  Nota 2  Nota 3   Média  Situação");
+for (const aluno of ranking) {
+  const notas = aluno.notas.map((nota) =&gt; nota.toFixed(1).padStart(6)).join("  ");
+  const media = aluno.media.toFixed(1).padStart(6);
+  console.log(`${aluno.nome.padEnd(8)}  ${notas}  ${media}  ${situacao(aluno.media)}`);
+}
+
+const mediaTurma = alunos.reduce((total, aluno) =&gt; total + aluno.media, 0) / alunos.length;
+console.log(`\nMédia da turma: ${mediaTurma.toFixed(1)}`);
+console.log(`Melhor média: ${ranking[0].nome} (${ranking[0].media.toFixed(1)})`);
+
+// Quantos alunos em cada situação
+const grupos = Object.groupBy(alunos, (aluno) =&gt; situacao(aluno.media));
+for (const [nome, lista] of Object.entries(grupos)) {
+  console.log(`${nome}: ${lista.length}`);
+}
+
+// O relatório em CSV, na ordem do ranking
+const saida = ["nome,media,situacao"];
+for (const aluno of ranking) {
+  saida.push(`${aluno.nome},${aluno.media.toFixed(1)},${situacao(aluno.media)}`);
+}
+fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n");
+console.log("Relatório gravado em relatorio.csv");
+</pre>
+</div>
+
+<p>Outras ideias para continuar sozinho: aceitar notas com vírgula decimal num CSV separado por <code>;</code>; mostrar a maior e a menor nota de cada prova; gravar o relatório num arquivo com o mesmo nome da turma (<code>turma-b-relatorio.csv</code>).</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>fs.readFileSync("turma.csv", "utf8")</code></td><td>Ler o arquivo inteiro como texto</td></tr>
+<tr><td><code>texto.trim().split("\n")</code></td><td>Cortar em linhas, sem a linha vazia do fim</td></tr>
+<tr><td><code>const [cabecalho, ...linhas] = …</code></td><td>Separar o cabeçalho dos alunos</td></tr>
+<tr><td><code>linha.split(",")</code></td><td>Cortar a linha em colunas</td></tr>
+<tr><td><code>colunas.map(Number)</code></td><td>Textos → números (nunca <code>map(parseInt)</code>)</td></tr>
+<tr><td><code>notas.reduce((total, nota) =&gt; total + nota, 0)</code></td><td>Somar as notas</td></tr>
+<tr><td><code>x.toFixed(1)</code></td><td>Uma casa decimal (devolve texto)</td></tr>
+<tr><td><code>texto.padStart(6)</code> / <code>texto.padEnd(8)</code></td><td>Alinhar à direita / à esquerda</td></tr>
+<tr><td><code>alunos.toSorted((a, b) =&gt; b.media - a.media)</code></td><td>Cópia em ordem decrescente de média</td></tr>
+<tr><td><code>colunas.includes("")</code>, <code>notas.some(Number.isNaN)</code></td><td>Achar coluna vazia e nota que não é número</td></tr>
+<tr><td><code>process.argv[2] ?? "turma.csv"</code></td><td>Arquivo escolhido na linha de comando, com um padrão</td></tr>
+<tr><td><code>fs.writeFileSync("relatorio.csv", saida.join("\n") + "\n")</code></td><td>Gravar o CSV novo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Uma linha <code>: undefined, undefined e undefined</code> no fim</td><td>A linha vazia do fim do arquivo: faltou o <code>trim()</code></td></tr>
+<tr><td>Médias absurdas (219.2)</td><td>As notas ainda eram textos: o <code>+</code> do <code>reduce</code> juntou em vez de somar</td></tr>
+<tr><td>Nota 0.0 que ninguém deu</td><td>Coluna vazia: <code>Number("")</code> é 0</td></tr>
+<tr><td>Um aluno com 4 notas</td><td>Nota escrita com vírgula decimal (<code>6,5</code>) num CSV separado por vírgulas</td></tr>
+<tr><td><code>Error: ENOENT: no such file or directory</code></td><td>Nome do arquivo errado, ou rodou de outra pasta</td></tr>
+<tr><td><code>[ 8, NaN, NaN ]</code></td><td>Usou <code>map(parseInt)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Cortar em linhas</h3>
+<p>Complete para cortar o texto do arquivo nas quebras de linha:</p>
+<div class="ex-code">const linhas = texto.trim().<input data-answer="split" aria-label="método">("\n");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Textos para números</h3>
+<p>Complete para transformar <code>[ '8.5', '7', '9' ]</code> em <code>[ 8.5, 7, 9 ]</code>:</p>
+<div class="ex-code">const notas = colunas.map(<input data-answer="Number" aria-label="função">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. O valor inicial</h3>
+<p>Complete o valor com que o <code>total</code> começa:</p>
+<div class="ex-code">const soma = notas.reduce((total, nota) =&gt; total + nota, <input data-answer="0" aria-label="valor inicial">);</div>
+</div>
+
+<div class="exercise">
+<h3>4. O resultado</h3>
+<p>Sem rodar: o que <code>"Diego,6,,7.5".split(",").length</code> dá?</p>
+<div class="ex-code"><input data-answer="4" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>texto.split("\n")</code> devolveu um último item <code>''</code>?</p>
+<label><input type="radio" name="q5"> O CSV estava estragado</label>
+<label><input type="radio" name="q5"> O <code>split</code> sempre acrescenta um item vazio</label>
+<label><input type="radio" name="q5"> O arquivo termina com uma quebra de linha, e depois dela não há nada</label>
+<label><input type="radio" name="q5"> Faltou o <code>"utf8"</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Sem o <code>map(Number)</code>, a média de Ana deu 2.9. O que aconteceu?</p>
+<label><input type="radio" name="q6"> O <code>reduce</code> só somou a primeira nota</label>
+<label><input type="radio" name="q6"> O <code>+</code> juntou os textos (<code>'08.579'</code>) e a divisão converteu esse texto em 8.579</label>
+<label><input type="radio" name="q6"> O <code>toFixed</code> arredondou errado</label>
+<label><input type="radio" name="q6"> A nota 8.5 foi lida como 8</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Qual a diferença entre <code>toSorted</code> e <code>sort</code>?</p>
+<label><input type="radio" name="q7"> O <code>toSorted</code> devolve uma cópia ordenada; o <code>sort</code> muda o próprio array</label>
+<label><input type="radio" name="q7"> O <code>toSorted</code> só ordena números</label>
+<label><input type="radio" name="q7"> O <code>sort</code> só funciona no navegador</label>
+<label><input type="radio" name="q7"> Nenhuma: são dois nomes para a mesma coisa</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um CSV é texto: <code>readFileSync</code> lê, <code>split("\n")</code> corta as linhas e <code>split(",")</code> corta as colunas. O <code>trim()</code> evita a linha vazia do fim.</li>
+  <li><code>const [cabecalho, ...linhas]</code> separa o cabeçalho dos dados numa linha só.</li>
+  <li>Tudo o que vem de um arquivo é texto: converta com <code>map(Number)</code> antes de somar, ou o <code>+</code> junta em vez de somar.</li>
+  <li><code>reduce</code> soma, <code>toFixed</code> arredonda para mostrar, <code>padStart</code>/<code>padEnd</code> alinham as colunas, <code>toSorted</code> ordena sem mexer no original.</li>
+  <li>Confira cada linha antes de usar: número de colunas, coluna vazia (<code>Number("")</code> é 0!) e <code>NaN</code>. Avise e ignore a linha, em vez de calcular errado.</li>
+  <li><code>writeFileSync</code> grava o resultado; <code>array.join("\n") + "\n"</code> monta o texto do arquivo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
