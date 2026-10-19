@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Lista de Tarefas — process.argv, fs e JSON passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo: uma lista de tarefas de terminal em JavaScript (Node.js 24) com comandos na linha de comando (process.argv), guardada num arquivo tarefas.json com fs.readFileSync, fs.writeFileSync, JSON.parse e JSON.stringify. Marcar como feita, remover com splice, validar o número, proteger contra o arquivo estragado com try/catch e achar o arquivo com import.meta.dirname. Quatro versões com sessões reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Lista de Tarefas</span> (JSON)</h1>
+
+<p class="intro">A Ana vive esquecendo as coisas: comprar pão, pagar a conta de luz, ligar para a vó. Neste projeto ela faz a própria lista de tarefas, que roda no terminal com comandos curtos (<code>node tarefas.js adicionar Comprar pão</code>, <code>node tarefas.js listar</code>) e, o mais importante, <strong>lembra</strong> das tarefas de um dia para o outro, guardando tudo num arquivo <code>tarefas.json</code>.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Receber comandos na linha de comando com <a href="process-argv.html">process.argv</a>.</li>
+  <li>Guardar a lista num <a href="arrays.html">array</a> de <a href="objetos.html">objetos</a> e mostrá-la com <a href="foreach.html">forEach</a>.</li>
+  <li>Transformar o array em texto e de volta com <a href="json.html">JSON.stringify e JSON.parse</a>.</li>
+  <li>Ler e gravar o arquivo com <a href="fs-ler.html">fs.readFileSync</a> e <a href="fs-escrever.html">fs.writeFileSync</a>.</li>
+  <li>Remover um item com <a href="arrays-splice.html">splice</a> e contar com <a href="filter.html">filter</a>.</li>
+  <li>Organizar os comandos com <a href="switch.html">switch</a> e <a href="funcoes.html">funções</a>, e proteger o programa com <a href="try-catch.html">try … catch</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>Esta é a lista pronta, no computador da Ana (Node.js v24.22.0). Cada linha com <code>$</code> é um comando que ela digitou; o resto foi o programa que escreveu:</p>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+Tarefas da Ana:
+1. [x] Comprar pão
+2. [ ] Ligar para a vó
+3. [ ] Estudar JavaScript
+1 de 3 feitas.
+$ node tarefas.js feito 3
+Feito: Estudar JavaScript
+$ node tarefas.js adicionar Regar as plantas
+Tarefa adicionada: Regar as plantas
+$ node tarefas.js listar
+Tarefas da Ana:
+1. [x] Comprar pão
+2. [ ] Ligar para a vó
+3. [x] Estudar JavaScript
+4. [ ] Regar as plantas
+2 de 4 feitas.
+$ node tarefas.js remover 9
+Não existe a tarefa "9". Veja os números com: node tarefas.js listar
+$ node tarefas.js
+Uso: node tarefas.js COMANDO
+  listar             mostra as tarefas
+  adicionar TEXTO    acrescenta uma tarefa
+  feito N            marca a tarefa N como feita
+  remover N          apaga a tarefa N</pre>
+
+<p>Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">Os comandos e a lista</a> (<code>process.argv</code>, array de objetos, <code>forEach</code>).</li>
+  <li><a href="#versao2">Guardar no tarefas.json</a> (<code>JSON.stringify</code>, <code>JSON.parse</code>, <code>fs</code>).</li>
+  <li><a href="#versao3">Marcar como feita e remover</a> (<code>splice</code> e o número validado).</li>
+  <li><a href="#versao4">Funções, switch e arquivo protegido</a> (<code>try … catch</code>, <code>import.meta.dirname</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Você precisa saber rodar um programa (<a href="executar.html">Rodando um Programa</a>) e o que são <a href="arrays.html">arrays</a> e <a href="objetos.html">objetos</a>. Crie a pasta do projeto; o programa vai se chamar <code>tarefas.js</code>:</p>
+
+<pre class="term">$ mkdir -p projetos/tarefas
+$ cd projetos/tarefas</pre>
+
+<p>Nas caixas <strong>Experimente</strong> deste projeto, o comando (o <code>listar</code>, o <code>adicionar Comprar leite</code>…) já vem pronto, como se você o tivesse digitado depois de <code>node tarefas.js</code>; a missão diz qual é. Quando a caixa tem uma aba <code>tarefas.json</code>, o programa a lê e grava de verdade, numa pasta só da caixa. Cada <strong>Rodar</strong> começa com o arquivo como ele está na aba.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Os comandos e a lista</h2>
+<p>Cada tarefa tem duas informações: o texto e se já foi feita. Um <strong>objeto</strong> guarda as duas juntas (<code>{ texto: "Comprar pão", feita: false }</code>), e um <strong>array</strong> guarda todas as tarefas, em ordem. O que a Ana quer fazer chega pela linha de comando: tudo o que ela escreve depois de <code>node tarefas.js</code> fica no array <code>process.argv</code>.</p>
+
+<pre class="file" data-file="tarefas.js">const tarefas = [
+  { texto: "Comprar pão", feita: false },
+  { texto: "Pagar a conta de luz", feita: true },
+];
+
+const comando = process.argv[2];
+const texto = process.argv[3];
+
+if (comando === "listar") {
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  console.log(`Tarefa adicionada: ${texto}`);
+  console.log(`Agora são ${tarefas.length} tarefas.`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>const tarefas = [ … ];</dt><dd>A lista: um array com dois objetos. Cada objeto tem as propriedades <code>texto</code> (uma string) e <code>feita</code> (um <a href="booleanos.html">booleano</a>, <code>true</code> ou <code>false</code>).</dd>
+  <dt>process.argv[2]</dt><dd>O <code>process.argv</code> é um array com a linha de comando inteira: na posição 0 fica o caminho do <code>node</code>, na 1 o do programa, e a partir da 2 o que a Ana escreveu. Em <code>node tarefas.js adicionar Pão</code>, o <code>[2]</code> é <code>"adicionar"</code> e o <code>[3]</code> é <code>"Pão"</code>.</dd>
+  <dt>tarefas.forEach((tarefa, i) =&gt; { … })</dt><dd>Para cada tarefa, roda o bloco, recebendo a tarefa e a posição dela (<code>i</code>, que começa em 0). Por isso o número mostrado é <code>i + 1</code>: as pessoas contam a partir de 1.</dd>
+  <dt>tarefa.feita ? "x" : " "</dt><dd>O <a href="ternario.html">operador ternário</a>: "se <code>feita</code> for verdadeiro, <code>"x"</code>; senão, um espaço". Fica <code>[x]</code> ou <code>[ ]</code>, como uma caixinha de marcar.</dd>
+  <dt>tarefas.push({ texto: texto, feita: false })</dt><dd>Acrescenta um objeto novo no fim do array (veja <a href="arrays-adicionar-remover.html">push</a>). Toda tarefa nova começa por fazer.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+Tarefas da Ana:
+1. [ ] Comprar pão
+2. [x] Pagar a conta de luz
+$ node tarefas.js adicionar "Levar o cachorro ao veterinário"
+Tarefa adicionada: Levar o cachorro ao veterinário
+Agora são 3 tarefas.
+$ node tarefas.js listar
+Tarefas da Ana:
+1. [ ] Comprar pão
+2. [x] Pagar a conta de luz
+$ node tarefas.js
+Comandos: listar, adicionar</pre>
+
+<p>Funcionou… até a Ana listar de novo: <strong>a tarefa nova sumiu</strong>. O array <code>tarefas</code> vive na memória do programa, e a memória é apagada quando o programa termina. Cada <code>node tarefas.js</code> começa do zero, com as duas tarefas escritas no código. A versão 2 resolve isso guardando a lista num arquivo. Sem nenhum comando, o <code>process.argv[2]</code> é <code>undefined</code> e o programa cai no <code>else</code>, que mostra a ajuda.</p>
+
+<div class="cenario">
+<strong>Texto com espaços sem aspas: só a primeira palavra</strong>
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js adicionar Ligar para a vó
+Tarefa adicionada: Ligar
+Agora são 3 tarefas.</pre>
+<p>O terminal separa a linha de comando nos espaços: <code>"adicionar"</code>, <code>"Ligar"</code>, <code>"para"</code>, <code>"a"</code> e <code>"vó"</code> viraram cinco itens do <code>process.argv</code>, e o programa só pegou o <code>[3]</code>. Com aspas (<code>"Levar o cachorro ao veterinário"</code>), o texto inteiro vira um item só. A versão 2 junta as palavras sozinha, para a Ana não precisar das aspas.</p>
+</div>
+
+<div class="tryjs" data-args="listar" data-goal="out:1. [ ] Comprar pão;;out:2. [x] Pagar a conta de luz">
+<p class="try-task"><strong>Missão (versão 1):</strong> o comando da caixa é <code>listar</code>, mas a lista ainda sai sem as caixinhas. Use o ternário <code>tarefa.feita ? "x" : " "</code> para mostrar <code>1. [ ] Comprar pão</code> e <code>2. [x] Pagar a conta de luz</code>.</p>
+<pre class="script" data-file="tarefas.js">const tarefas = [
+  { texto: "Comprar pão", feita: false },
+  { texto: "Pagar a conta de luz", feita: true },
+];
+
+const comando = process.argv[2];
+const texto = process.argv[3];
+
+if (comando === "listar") {
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    console.log(`${i + 1}. ${tarefa.texto}`);
+  });
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  console.log(`Tarefa adicionada: ${texto}`);
+  console.log(`Agora são ${tarefas.length} tarefas.`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+<pre class="solucao" data-file="tarefas.js">const tarefas = [
+  { texto: "Comprar pão", feita: false },
+  { texto: "Pagar a conta de luz", feita: true },
+];
+
+const comando = process.argv[2];
+const texto = process.argv[3];
+
+if (comando === "listar") {
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  console.log(`Tarefa adicionada: ${texto}`);
+  console.log(`Agora são ${tarefas.length} tarefas.`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Guardar no tarefas.json</h2>
+<p>Para a lista sobreviver ao fim do programa, ela precisa ir para um <strong>arquivo</strong>. Mas um arquivo só guarda texto, e a lista é um array de objetos. O <strong>JSON</strong> (<em>JavaScript Object Notation</em>, "notação de objetos do JavaScript") resolve isso: é um jeito de escrever arrays e objetos como texto, quase igual ao código JavaScript. Duas funções fazem a ponte:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>De</th><th>Para</th></tr>
+<tr><td><code>JSON.stringify(tarefas, null, 2)</code></td><td>o array (na memória)</td><td>texto, com recuo de 2 espaços, para gravar</td></tr>
+<tr><td><code>JSON.parse(texto)</code></td><td>o texto (lido do arquivo)</td><td>o array de volta</td></tr>
+</table>
+</div>
+
+<p>E o módulo <code>node:fs</code> (<em>file system</em>, "sistema de arquivos") lê e grava o arquivo. A versão 2 tira as tarefas escritas no código: a lista agora vem do arquivo.</p>
+
+<pre class="file" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+  console.log(`Tarefa adicionada: ${texto}`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import fs from "node:fs";</dt><dd>Traz o módulo de arquivos do Node. Isso é <strong>só do Node</strong>: uma página no navegador não pode mexer nos arquivos do computador assim.</dd>
+  <dt>const ARQUIVO = "tarefas.json";</dt><dd>O nome do arquivo, numa constante em MAIÚSCULAS: um costume para valores fixos que o programa inteiro usa. Trocar o nome depois é mudar uma linha só.</dd>
+  <dt>let tarefas = [];</dt><dd>Começa vazia. É <code>let</code> (e não <code>const</code>) porque a linha de baixo pode trocar o array pelo que veio do arquivo.</dd>
+  <dt>fs.existsSync(ARQUIVO)</dt><dd>"O arquivo existe?": <code>true</code> ou <code>false</code>. Na primeira vez que a Ana usa o programa, ainda não existe.</dd>
+  <dt>fs.readFileSync(ARQUIVO, "utf8")</dt><dd>Lê o arquivo inteiro e devolve o conteúdo como texto. O <code>"utf8"</code> diz como transformar os bytes em letras (sem ele, viria um <code>Buffer</code> de bytes). O <code>Sync</code> no nome quer dizer "síncrono": o programa espera a leitura terminar antes de seguir.</dd>
+  <dt>process.argv.slice(3).join(" ")</dt><dd>Pega do item 3 em diante (<code>["Ligar", "para", "a", "vó"]</code>) e junta com espaços: <code>"Ligar para a vó"</code>. Agora não precisa de aspas (veja <a href="strings-split.html">split e join</a>).</dd>
+  <dt>fs.writeFileSync(ARQUIVO, …)</dt><dd>Grava o texto no arquivo. Se o arquivo não existe, cria; se existe, <strong>substitui</strong> o conteúdo inteiro. O <code>+ "\n"</code> deixa uma quebra de linha no fim, como todo arquivo de texto bem-comportado.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+Nenhuma tarefa ainda.
+$ node tarefas.js adicionar Comprar pão
+Tarefa adicionada: Comprar pão
+$ node tarefas.js adicionar Pagar a conta de luz
+Tarefa adicionada: Pagar a conta de luz
+$ node tarefas.js adicionar Ligar para a vó
+Tarefa adicionada: Ligar para a vó
+$ node tarefas.js listar
+Tarefas da Ana:
+1. [ ] Comprar pão
+2. [ ] Pagar a conta de luz
+3. [ ] Ligar para a vó
+$ ls
+tarefas.js
+tarefas.json
+$ cat tarefas.json
+[
+  {
+    "texto": "Comprar pão",
+    "feita": false
+  },
+  {
+    "texto": "Pagar a conta de luz",
+    "feita": false
+  },
+  {
+    "texto": "Ligar para a vó",
+    "feita": false
+  }
+]</pre>
+
+<p>Agora cada <code>adicionar</code> fica guardado. O <code>cat</code> mostra o arquivo que o programa criou: o mesmo array, como texto. Repare nas diferenças do JSON para o código JavaScript: os nomes das propriedades vêm <strong>entre aspas duplas</strong> (<code>"texto"</code>), e não há vírgula depois do último item. Dá para abrir esse arquivo num editor de texto e ler (ou mudar) as tarefas à mão.</p>
+
+<div class="cenario">
+<strong>Ler um arquivo que não existe: <code>ENOENT</code></strong>
+<p>Por que o <code>if (fs.existsSync(ARQUIVO))</code>? Veja o que acontece sem ele, na primeira vez, quando o <code>tarefas.json</code> ainda não existe:</p>
+<pre class="file" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+const tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+console.log(tarefas);
+</pre>
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+node:fs:483
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open 'tarefas.json'
+    at Object.readFileSync (node:fs:483:20)
+    at file:///home/ana/projetos/tarefas/tarefas.js:5:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'tarefas.json'
+}
+
+Node.js v24.22.0</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>node:fs:483</dt><dd>Desta vez a primeira linha <strong>não</strong> é do seu arquivo: o erro aconteceu dentro do próprio Node (no arquivo interno <code>fs</code>, linha 483), e a linha de código mostrada embaixo é de lá. Não se assuste: procure a <strong>sua</strong> linha mais abaixo.</dd>
+  <dt>Error: ENOENT: no such file or directory, open 'tarefas.json'</dt><dd>"Erro: <code>ENOENT</code> (<em>Error NO ENTry</em>): não existe esse arquivo ou pasta, ao abrir <code>tarefas.json</code>". É o erro de arquivo inexistente, o mesmo nome em todo sistema parecido com o Linux.</dd>
+  <dt>at Object.readFileSync (node:fs:483:20)</dt><dd>Quem deu o erro: o <code>readFileSync</code>.</dd>
+  <dt>at file:///home/ana/projetos/tarefas/tarefas.js:5:31</dt><dd><strong>A sua linha</strong>: <code>tarefas.js</code>, linha 5, coluna 31, onde está o <code>fs.readFileSync</code>.</dd>
+  <dt>at ModuleJob.run … / at async …</dt><dd>O Node carregando o seu módulo; nada a ver com o seu código.</dd>
+  <dt>{ errno: -2, code: 'ENOENT', syscall: 'open', path: 'tarefas.json' }</dt><dd>Os detalhes do erro, como um objeto: o código (<code>'ENOENT'</code>), a operação que falhou (<code>open</code>, abrir) e o caminho.</dd>
+</dl>
+<p><strong>Como consertar:</strong> conferir antes com <code>fs.existsSync</code>, como na versão 2, ou pegar o erro com <code>try … catch</code> (veja <a href="fs-ler.html">Lendo Arquivos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Rodar de outra pasta: "Nenhuma tarefa ainda."</strong>
+<pre class="term" data-cwd="~/projetos/tarefas">$ cd ..
+$ node tarefas/tarefas.js listar
+Nenhuma tarefa ainda.</pre>
+<p>As três tarefas estão lá, no <code>tarefas.json</code>, mas o programa não as achou. Um caminho sem pasta, como <code>"tarefas.json"</code>, é procurado na <strong>pasta onde você está</strong> no terminal (aqui, <code>~/projetos</code>), e não na pasta do programa. A versão 4 conserta isso.</p>
+</div>
+
+<div class="tryjs" data-args="adicionar Comprar leite" data-goal="arquivo:tarefas.json~Comprar leite;;semerro">
+<p class="try-task"><strong>Missão (versão 2):</strong> o comando da caixa é <code>adicionar Comprar leite</code>. O programa diz "Tarefa adicionada", mas abra a aba <code>tarefas.json</code> depois de rodar: nada mudou. Falta gravar. Logo depois do <code>push</code>, grave a lista com <code>fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");</code>.</p>
+<pre class="script" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  console.log(`Tarefa adicionada: ${texto}`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+<pre class="script" data-file="tarefas.json">[
+  {
+    "texto": "Comprar pão",
+    "feita": false
+  },
+  {
+    "texto": "Pagar a conta de luz",
+    "feita": true
+  }
+]
+</pre>
+<pre class="solucao" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+  console.log(`Tarefa adicionada: ${texto}`);
+} else {
+  console.log("Comandos: listar, adicionar");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Marcar como feita e remover</h2>
+<p>Dois comandos novos: <code>feito N</code> marca a tarefa número N, e <code>remover N</code> a apaga. O jeito mais direto de marcar seria pegar a tarefa pela posição (<code>N - 1</code>, porque o array começa em 0) e mudar a propriedade:</p>
+
+<pre class="file" data-file="tarefas.js">const numero = Number(process.argv[3]);
+tarefas[numero - 1].feita = true;
+</pre>
+
+<div class="cenario">
+<strong>Um número que não existe: <code>Cannot set properties of undefined</code></strong>
+<p>Com só 3 tarefas na lista, a Ana digitou um número errado:</p>
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js feito 9
+file:///home/ana/projetos/tarefas/tarefas.js:15
+  tarefas[numero - 1].feita = true;
+                            ^
+
+TypeError: Cannot set properties of undefined (setting 'feita')
+    at file:///home/ana/projetos/tarefas/tarefas.js:15:29
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0</pre>
+<p>"Erro de tipo: não dá para definir propriedades de <code>undefined</code> (definindo <code>'feita'</code>)". A posição 8 não existe no array, então <code>tarefas[8]</code> é <code>undefined</code>, e <code>undefined.feita = true</code> é impossível. O <code>^</code> aponta para o <code>=</code> da linha 15. Com <code>feito dois</code>, o <code>Number("dois")</code> dá <code>NaN</code>, e <code>tarefas[NaN]</code> também é <code>undefined</code>: o mesmo erro. A solução é conferir o número antes de usar.</p>
+</div>
+
+<p>A versão 3 confere o número uma vez, logo no começo, e só mexe na lista se ele for válido:</p>
+
+<pre class="file" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+const numero = Number(process.argv[3]);
+const numeroValido = Number.isInteger(numero) &amp;&amp; numero &gt;= 1 &amp;&amp; numero &lt;= tarefas.length;
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+  console.log(`Tarefa adicionada: ${texto}`);
+} else if (comando === "feito") {
+  if (numeroValido) {
+    tarefas[numero - 1].feita = true;
+    fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+    console.log(`Feito: ${tarefas[numero - 1].texto}`);
+  } else {
+    console.log(`Não existe a tarefa ${process.argv[3]}.`);
+  }
+} else if (comando === "remover") {
+  if (numeroValido) {
+    const [removida] = tarefas.splice(numero - 1, 1);
+    fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+    console.log(`Removida: ${removida.texto}`);
+  } else {
+    console.log(`Não existe a tarefa ${process.argv[3]}.`);
+  }
+} else {
+  console.log("Comandos: listar, adicionar, feito, remover");
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Number.isInteger(numero)</dt><dd>"É um número inteiro?" Dá <code>false</code> para <code>NaN</code> (<code>"dois"</code>) e para <code>1.5</code>.</dd>
+  <dt>numero &gt;= 1 &amp;&amp; numero &lt;= tarefas.length</dt><dd>Entre 1 e a quantidade de tarefas. O <code>&amp;&amp;</code> ("e") exige que as três condições sejam verdadeiras.</dd>
+  <dt>tarefas[numero - 1].feita = true;</dt><dd>Muda a propriedade do objeto que já está no array; depois é só gravar o array inteiro de novo.</dd>
+  <dt>tarefas.splice(numero - 1, 1)</dt><dd>"A partir da posição <code>numero - 1</code>, tire 1 item". O <code>splice</code> muda o próprio array e devolve um <strong>array</strong> com o que tirou (veja <a href="arrays-splice.html">splice e slice</a>).</dd>
+  <dt>const [removida] = …</dt><dd>Desestruturação: pega o primeiro (e único) item do array devolvido, a tarefa removida, para mostrar o texto dela.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js feito 1
+Feito: Comprar pão
+$ node tarefas.js adicionar Estudar JavaScript
+Tarefa adicionada: Estudar JavaScript
+$ node tarefas.js remover 2
+Removida: Pagar a conta de luz
+$ node tarefas.js listar
+Tarefas da Ana:
+1. [x] Comprar pão
+2. [ ] Ligar para a vó
+3. [ ] Estudar JavaScript
+$ node tarefas.js feito 9
+Não existe a tarefa 9.
+$ node tarefas.js feito dois
+Não existe a tarefa dois.
+$ node tarefas.js remover
+Não existe a tarefa undefined.
+$ node tarefas.js feito 1.5
+Não existe a tarefa 1.5.</pre>
+
+<p>Repare que, depois de remover a tarefa 2, as de baixo <strong>subiram</strong>: "Ligar para a vó" era a 3 e agora é a 2. O número de uma tarefa é só a posição dela no array. E o <code>remover</code> sem número mostrou um feio <code>undefined</code>: o <code>process.argv[3]</code> não existe. A versão 4 melhora essa mensagem.</p>
+
+<div class="tryjs" data-args="remover 1" data-goal="out:Removida: Comprar pão;;src:\.splice\(;;semerro">
+<p class="try-task"><strong>Missão (versão 3):</strong> o comando da caixa é <code>remover 1</code>, mas o programa ainda não conhece o <code>remover</code>. Acrescente o <code>else if (comando === "remover")</code>: se o número for válido, tire a tarefa com <code>splice</code>, grave o arquivo e mostre <code>Removida: Comprar pão</code> (o texto da tarefa removida).</p>
+<pre class="script" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+const numero = Number(process.argv[3]);
+const numeroValido = Number.isInteger(numero) &amp;&amp; numero &gt;= 1 &amp;&amp; numero &lt;= tarefas.length;
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+  console.log(`Tarefa adicionada: ${texto}`);
+} else if (comando === "feito") {
+  if (numeroValido) {
+    tarefas[numero - 1].feita = true;
+    fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+    console.log(`Feito: ${tarefas[numero - 1].texto}`);
+  } else {
+    console.log(`Não existe a tarefa ${process.argv[3]}.`);
+  }
+} else {
+  console.log("Comandos: listar, adicionar, feito, remover");
+}
+</pre>
+<pre class="script" data-file="tarefas.json">[
+  {
+    "texto": "Comprar pão",
+    "feita": false
+  },
+  {
+    "texto": "Pagar a conta de luz",
+    "feita": false
+  },
+  {
+    "texto": "Ligar para a vó",
+    "feita": false
+  }
+]
+</pre>
+<pre class="solucao" data-file="tarefas.js">import fs from "node:fs";
+
+const ARQUIVO = "tarefas.json";
+
+let tarefas = [];
+if (fs.existsSync(ARQUIVO)) {
+  tarefas = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+const comando = process.argv[2];
+const texto = process.argv.slice(3).join(" ");
+const numero = Number(process.argv[3]);
+const numeroValido = Number.isInteger(numero) &amp;&amp; numero &gt;= 1 &amp;&amp; numero &lt;= tarefas.length;
+
+if (comando === "listar") {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+  } else {
+    console.log("Tarefas da Ana:");
+    tarefas.forEach((tarefa, i) =&gt; {
+      const marca = tarefa.feita ? "x" : " ";
+      console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+    });
+  }
+} else if (comando === "adicionar") {
+  tarefas.push({ texto: texto, feita: false });
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+  console.log(`Tarefa adicionada: ${texto}`);
+} else if (comando === "feito") {
+  if (numeroValido) {
+    tarefas[numero - 1].feita = true;
+    fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+    console.log(`Feito: ${tarefas[numero - 1].texto}`);
+  } else {
+    console.log(`Não existe a tarefa ${process.argv[3]}.`);
+  }
+} else if (comando === "remover") {
+  if (numeroValido) {
+    const [removida] = tarefas.splice(numero - 1, 1);
+    fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+    console.log(`Removida: ${removida.texto}`);
+  } else {
+    console.log(`Não existe a tarefa ${process.argv[3]}.`);
+  }
+} else {
+  console.log("Comandos: listar, adicionar, feito, remover");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Funções, switch e arquivo protegido</h2>
+<p>A versão 3 funciona, mas tem três problemas: o código de gravar está repetido em três lugares; o programa só acha o arquivo se a Ana estiver na pasta certa; e, se o <code>tarefas.json</code> estragar, o programa quebra com uma mensagem assustadora. A versão 4 separa cada tarefa numa <a href="funcoes.html">função</a>, troca a escada de <code>if</code> por um <a href="switch.html">switch</a> e resolve os três.</p>
+
+<pre class="file" data-file="tarefas.js">// Lista de Tarefas da Ana, versão 4: funções, switch e arquivo protegido
+import fs from "node:fs";
+import path from "node:path";
+
+// O tarefas.json fica sempre ao lado deste programa.
+const ARQUIVO = path.join(import.meta.dirname, "tarefas.json");
+
+// Lê a lista do arquivo; sem arquivo, a lista começa vazia.
+function carregar() {
+  if (!fs.existsSync(ARQUIVO)) {
+    return [];
+  }
+  try {
+    return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+  } catch (erro) {
+    console.error(`O arquivo ${path.basename(ARQUIVO)} está estragado: ${erro.message}`);
+    process.exit(1);
+  }
+}
+
+// Grava a lista no arquivo, com 2 espaços de recuo.
+function salvar(tarefas) {
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+}
+
+// Mostra a lista e o resumo.
+function listar(tarefas) {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+    return;
+  }
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+  const feitas = tarefas.filter((tarefa) =&gt; tarefa.feita).length;
+  console.log(`${feitas} de ${tarefas.length} feitas.`);
+}
+
+// Devolve a posição (0, 1, 2…) da tarefa de número N, ou para o programa.
+function posicao(tarefas, texto) {
+  const numero = Number(texto);
+  if (texto === "" || !Number.isInteger(numero) || numero &lt; 1 || numero &gt; tarefas.length) {
+    console.error(`Não existe a tarefa "${texto}". Veja os números com: node tarefas.js listar`);
+    process.exit(1);
+  }
+  return numero - 1;
+}
+
+const tarefas = carregar();
+const [comando, ...resto] = process.argv.slice(2);
+const texto = resto.join(" ");
+
+switch (comando) {
+  case "listar":
+    listar(tarefas);
+    break;
+  case "adicionar":
+    if (texto === "") {
+      console.error("Escreva a tarefa: node tarefas.js adicionar TEXTO");
+      process.exit(1);
+    }
+    tarefas.push({ texto: texto, feita: false });
+    salvar(tarefas);
+    console.log(`Tarefa adicionada: ${texto}`);
+    break;
+  case "feito": {
+    const i = posicao(tarefas, texto);
+    tarefas[i].feita = true;
+    salvar(tarefas);
+    console.log(`Feito: ${tarefas[i].texto}`);
+    break;
+  }
+  case "remover": {
+    const i = posicao(tarefas, texto);
+    const [removida] = tarefas.splice(i, 1);
+    salvar(tarefas);
+    console.log(`Removida: ${removida.texto}`);
+    break;
+  }
+  default:
+    console.log("Uso: node tarefas.js COMANDO");
+    console.log("  listar             mostra as tarefas");
+    console.log("  adicionar TEXTO    acrescenta uma tarefa");
+    console.log("  feito N            marca a tarefa N como feita");
+    console.log("  remover N          apaga a tarefa N");
+}
+</pre>
+
+<h3>As peças novas</h3>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>path.join(import.meta.dirname, "tarefas.json")</code></td><td>O <code>import.meta.dirname</code> é a pasta onde <strong>o programa</strong> está (<code>/home/ana/projetos/tarefas</code>), não importa de onde a Ana o rode. O <code>path.join</code> junta a pasta e o nome com a barra certa (veja <a href="path.html">path</a>).</td></tr>
+<tr><td><code>function carregar()</code> com <code>try … catch</code></td><td>Tenta ler e converter o arquivo; se o <code>JSON.parse</code> falhar, o <code>catch</code> mostra uma frase clara e encerra com <code>process.exit(1)</code>, o código de "deu errado".</td></tr>
+<tr><td><code>console.error(…)</code></td><td>Escreve a mensagem de erro na <strong>saída de erros</strong> (veja <a href="console-outros.html">console.error</a>). No terminal aparece igual; a diferença é para quem redireciona a saída para um arquivo.</td></tr>
+<tr><td><code>function salvar(tarefas)</code></td><td>A gravação, num lugar só. Antes estava copiada três vezes.</td></tr>
+<tr><td><code>tarefas.filter((tarefa) =&gt; tarefa.feita).length</code></td><td>Filtra só as feitas e conta quantas são, para o resumo "2 de 4 feitas" (veja <a href="filter.html">filter</a>).</td></tr>
+<tr><td><code>function posicao(tarefas, texto)</code></td><td>Confere o número (agora também o texto vazio) e devolve a posição no array. Se for inválido, mostra o erro e encerra: quem chama nem precisa de <code>if</code>.</td></tr>
+<tr><td><code>const [comando, ...resto] = process.argv.slice(2);</code></td><td>Desestruturação com <a href="spread-rest.html">rest</a>: o primeiro item vira <code>comando</code>, e todos os outros vão para o array <code>resto</code>.</td></tr>
+<tr><td><code>switch (comando) { case "listar": … }</code></td><td>Compara <code>comando</code> com cada <code>case</code>. O <code>break</code> no fim de cada caso é obrigatório; o <code>default</code> pega o que não combinou (inclusive nenhum comando).</td></tr>
+<tr><td><code>case "feito": { … }</code></td><td>As chaves dentro do <code>case</code> criam um bloco próprio, para o <code>const i</code> do <code>feito</code> não brigar com o <code>const i</code> do <code>remover</code>.</td></tr>
+</table>
+</div>
+
+<p>Continuando a sessão do começo da página, depois do <code>remover 9</code>:</p>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js adicionar
+Escreva a tarefa: node tarefas.js adicionar TEXTO
+$ echo $?
+1
+$ node tarefas.js feito
+Não existe a tarefa "". Veja os números com: node tarefas.js listar
+$ node tarefas.js remover 1
+Removida: Comprar pão
+$ cd ..
+$ node tarefas/tarefas.js listar
+Tarefas da Ana:
+1. [ ] Ligar para a vó
+2. [x] Estudar JavaScript
+3. [ ] Regar as plantas
+1 de 3 feitas.</pre>
+
+<p>O <code>echo $?</code> mostra o código de saída: 1, porque o programa encerrou com <code>process.exit(1)</code>. E, da pasta de cima, o programa agora acha o arquivo.</p>
+
+<div class="cenario">
+<strong>O arquivo estragado: <code>SyntaxError</code> no <code>JSON.parse</code></strong>
+<p>A Ana abriu o <code>tarefas.json</code> no editor para corrigir uma tarefa e, sem querer, apagou uma vírgula:</p>
+<pre class="term" data-cwd="~/projetos/tarefas">$ head -5 tarefas.json
+[
+  {
+    "texto": "Ligar para a vó"
+    "feita": false
+  },</pre>
+<p>Com a versão 3, que não protege o <code>JSON.parse</code>:</p>
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+&lt;anonymous_script&gt;:4
+    "feita": false
+    ^
+
+SyntaxError: Expected ',' or '}' after property value in JSON at position 41 (line 4 column 5)
+    at JSON.parse (&lt;anonymous&gt;)
+    at file:///home/ana/projetos/tarefas/tarefas.js:7:18
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0</pre>
+<p>A primeira linha, <code>&lt;anonymous_script&gt;:4</code>, aponta para a linha 4 <strong>do texto JSON</strong> (não do seu programa), e o <code>^</code> marca onde o Node esperava a vírgula. A mensagem: "esperava <code>,</code> ou <code>}</code> depois do valor da propriedade, no JSON, na posição 41 (linha 4, coluna 5)". A sua linha aparece em <code>tarefas.js:7:18</code>: o <code>JSON.parse</code>. Com a versão 4, a mesma mensagem vira uma frase só:</p>
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+O arquivo tarefas.json está estragado: Expected ',' or '}' after property value in JSON at position 41 (line 4 column 5)
+$ echo $?
+1</pre>
+<p>O programa não apaga nem sobrescreve nada: para, avisa onde está o problema e deixa a Ana consertar a vírgula. (Se ele seguisse com uma lista vazia, o próximo <code>adicionar</code> gravaria por cima e as tarefas antigas se perderiam.)</p>
+</div>
+
+<div class="tryjs" data-args="listar" data-goal="out:está estragado;;exit:1">
+<p class="try-task"><strong>Missão (versão 4):</strong> o <code>tarefas.json</code> desta caixa está sem uma vírgula, e o programa quebra com um <code>SyntaxError</code>. Proteja o <code>JSON.parse</code> da função <code>carregar</code> com <code>try { … } catch (erro) { … }</code>: no <code>catch</code>, mostre <code>O arquivo tarefas.json está estragado: </code> seguido de <code>erro.message</code>, com <code>console.error</code>, e encerre com <code>process.exit(1)</code>.</p>
+<pre class="script" data-file="tarefas.js">// Lista de Tarefas da Ana, versão 4: funções, switch e arquivo protegido
+import fs from "node:fs";
+import path from "node:path";
+
+// O tarefas.json fica sempre ao lado deste programa.
+const ARQUIVO = path.join(import.meta.dirname, "tarefas.json");
+
+// Lê a lista do arquivo; sem arquivo, a lista começa vazia.
+function carregar() {
+  if (!fs.existsSync(ARQUIVO)) {
+    return [];
+  }
+  return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+}
+
+// Grava a lista no arquivo, com 2 espaços de recuo.
+function salvar(tarefas) {
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+}
+
+// Mostra a lista e o resumo.
+function listar(tarefas) {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+    return;
+  }
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+  const feitas = tarefas.filter((tarefa) =&gt; tarefa.feita).length;
+  console.log(`${feitas} de ${tarefas.length} feitas.`);
+}
+
+// Devolve a posição (0, 1, 2…) da tarefa de número N, ou para o programa.
+function posicao(tarefas, texto) {
+  const numero = Number(texto);
+  if (texto === "" || !Number.isInteger(numero) || numero &lt; 1 || numero &gt; tarefas.length) {
+    console.error(`Não existe a tarefa "${texto}". Veja os números com: node tarefas.js listar`);
+    process.exit(1);
+  }
+  return numero - 1;
+}
+
+const tarefas = carregar();
+const [comando, ...resto] = process.argv.slice(2);
+const texto = resto.join(" ");
+
+switch (comando) {
+  case "listar":
+    listar(tarefas);
+    break;
+  case "adicionar":
+    if (texto === "") {
+      console.error("Escreva a tarefa: node tarefas.js adicionar TEXTO");
+      process.exit(1);
+    }
+    tarefas.push({ texto: texto, feita: false });
+    salvar(tarefas);
+    console.log(`Tarefa adicionada: ${texto}`);
+    break;
+  case "feito": {
+    const i = posicao(tarefas, texto);
+    tarefas[i].feita = true;
+    salvar(tarefas);
+    console.log(`Feito: ${tarefas[i].texto}`);
+    break;
+  }
+  case "remover": {
+    const i = posicao(tarefas, texto);
+    const [removida] = tarefas.splice(i, 1);
+    salvar(tarefas);
+    console.log(`Removida: ${removida.texto}`);
+    break;
+  }
+  default:
+    console.log("Uso: node tarefas.js COMANDO");
+    console.log("  listar             mostra as tarefas");
+    console.log("  adicionar TEXTO    acrescenta uma tarefa");
+    console.log("  feito N            marca a tarefa N como feita");
+    console.log("  remover N          apaga a tarefa N");
+}
+</pre>
+<pre class="script" data-file="tarefas.json">[
+  {
+    "texto": "Comprar pão"
+    "feita": false
+  },
+  {
+    "texto": "Pagar a conta de luz",
+    "feita": true
+  }
+]
+</pre>
+<pre class="solucao" data-file="tarefas.js">// Lista de Tarefas da Ana, versão 4: funções, switch e arquivo protegido
+import fs from "node:fs";
+import path from "node:path";
+
+// O tarefas.json fica sempre ao lado deste programa.
+const ARQUIVO = path.join(import.meta.dirname, "tarefas.json");
+
+// Lê a lista do arquivo; sem arquivo, a lista começa vazia.
+function carregar() {
+  if (!fs.existsSync(ARQUIVO)) {
+    return [];
+  }
+  try {
+    return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+  } catch (erro) {
+    console.error(`O arquivo ${path.basename(ARQUIVO)} está estragado: ${erro.message}`);
+    process.exit(1);
+  }
+}
+
+// Grava a lista no arquivo, com 2 espaços de recuo.
+function salvar(tarefas) {
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+}
+
+// Mostra a lista e o resumo.
+function listar(tarefas) {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+    return;
+  }
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+  const feitas = tarefas.filter((tarefa) =&gt; tarefa.feita).length;
+  console.log(`${feitas} de ${tarefas.length} feitas.`);
+}
+
+// Devolve a posição (0, 1, 2…) da tarefa de número N, ou para o programa.
+function posicao(tarefas, texto) {
+  const numero = Number(texto);
+  if (texto === "" || !Number.isInteger(numero) || numero &lt; 1 || numero &gt; tarefas.length) {
+    console.error(`Não existe a tarefa "${texto}". Veja os números com: node tarefas.js listar`);
+    process.exit(1);
+  }
+  return numero - 1;
+}
+
+const tarefas = carregar();
+const [comando, ...resto] = process.argv.slice(2);
+const texto = resto.join(" ");
+
+switch (comando) {
+  case "listar":
+    listar(tarefas);
+    break;
+  case "adicionar":
+    if (texto === "") {
+      console.error("Escreva a tarefa: node tarefas.js adicionar TEXTO");
+      process.exit(1);
+    }
+    tarefas.push({ texto: texto, feita: false });
+    salvar(tarefas);
+    console.log(`Tarefa adicionada: ${texto}`);
+    break;
+  case "feito": {
+    const i = posicao(tarefas, texto);
+    tarefas[i].feita = true;
+    salvar(tarefas);
+    console.log(`Feito: ${tarefas[i].texto}`);
+    break;
+  }
+  case "remover": {
+    const i = posicao(tarefas, texto);
+    const [removida] = tarefas.splice(i, 1);
+    salvar(tarefas);
+    console.log(`Removida: ${removida.texto}`);
+    break;
+  }
+  default:
+    console.log("Uso: node tarefas.js COMANDO");
+    console.log("  listar             mostra as tarefas");
+    console.log("  adicionar TEXTO    acrescenta uma tarefa");
+    console.log("  feito N            marca a tarefa N como feita");
+    console.log("  remover N          apaga a tarefa N");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<p>Três escolhas do projeto têm alternativas comuns. O programa abaixo mostra cada uma (ele lê o <code>tarefas.json</code> da pasta):</p>
+
+<pre class="file" data-file="formas.js">import fs from "node:fs";
+import { readFile } from "node:fs/promises";
+
+const tarefas = [
+  { texto: "Comprar pão", feita: false },
+  { texto: "Ligar para a vó", feita: true },
+];
+
+// Gravar: numa linha só ou com recuo
+console.log(JSON.stringify(tarefas));
+console.log(JSON.stringify(tarefas, null, 2));
+
+// Ler: de uma vez (síncrono) ou com await (assíncrono)
+const texto1 = fs.readFileSync("tarefas.json", "utf8");
+const texto2 = await readFile("tarefas.json", "utf8");
+console.log(texto1 === texto2);
+
+// Percorrer: forEach ou for … of com entries()
+for (const [i, tarefa] of tarefas.entries()) {
+  console.log(i + 1, tarefa.texto);
+}
+</pre>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node formas.js
+[{"texto":"Comprar pão","feita":false},{"texto":"Ligar para a vó","feita":true}]
+[
+  {
+    "texto": "Comprar pão",
+    "feita": false
+  },
+  {
+    "texto": "Ligar para a vó",
+    "feita": true
+  }
+]
+true
+1 Comprar pão
+2 Ligar para a vó</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escolha</th><th>Opções</th><th>Qual usar</th></tr>
+<tr><td>Gravar o JSON</td><td><code>JSON.stringify(x)</code> (uma linha) × <code>JSON.stringify(x, null, 2)</code> (com recuo)</td><td>Com recuo quando uma pessoa pode querer ler ou editar o arquivo; numa linha só quando só programas leem (fica menor).</td></tr>
+<tr><td>Ler o arquivo</td><td><code>fs.readFileSync</code> × <code>await readFile</code> (de <code>node:fs/promises</code>)</td><td>O resultado é o mesmo (o <code>true</code>). Num programa curto de terminal, o <code>Sync</code> é mais simples. Num servidor, que atende muita gente ao mesmo tempo, prefira o assíncrono, que não trava o programa enquanto lê (veja <a href="async-await.html">async e await</a>).</td></tr>
+<tr><td>Percorrer com número</td><td><code>forEach((tarefa, i) =&gt; …)</code> × <code>for (const [i, tarefa] of tarefas.entries())</code></td><td>Os dois dão a posição. O <code>for … of</code> aceita <code>break</code> e <code>await</code> lá dentro; o <code>forEach</code>, não (veja <a href="for-of.html">for … of</a>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Desafio extra: limpar as feitas</h2>
+<p>Com o tempo, a lista enche de tarefas já feitas. A Ana quer um comando <code>limpar</code>, que apaga todas as feitas de uma vez. A dica é o <a href="filter.html">filter</a>: ele cria um array novo só com as tarefas que passam no teste (as <strong>não</strong> feitas), e é esse array que vai para o arquivo. Com o comando pronto:</p>
+
+<pre class="term" data-cwd="~/projetos/tarefas">$ node tarefas.js listar
+Tarefas da Ana:
+1. [x] Ligar para a vó
+2. [x] Estudar JavaScript
+3. [ ] Regar as plantas
+2 de 3 feitas.
+$ node tarefas.js limpar
+Removidas 2 tarefas feitas.
+$ node tarefas.js listar
+Tarefas da Ana:
+1. [ ] Regar as plantas
+0 de 1 feitas.</pre>
+
+<div class="tryjs" data-args="limpar" data-goal="out:Removidas 2 tarefas feitas.;;arquivo:tarefas.json~Ligar para a vó;;semerro">
+<p class="try-task"><strong>Desafio no editor:</strong> o comando da caixa é <code>limpar</code>. Acrescente um <code>case "limpar": { … }</code> antes do <code>default</code>: crie <code>pendentes</code> com <code>tarefas.filter((tarefa) =&gt; !tarefa.feita)</code>, calcule quantas saíram (<code>tarefas.length - pendentes.length</code>), grave <code>pendentes</code> com <code>salvar</code> e mostre <code>Removidas 2 tarefas feitas.</code>. Na aba <code>tarefas.json</code>, deve sobrar só "Ligar para a vó".</p>
+<pre class="script" data-file="tarefas.js">// Lista de Tarefas da Ana, versão 4: funções, switch e arquivo protegido
+import fs from "node:fs";
+import path from "node:path";
+
+// O tarefas.json fica sempre ao lado deste programa.
+const ARQUIVO = path.join(import.meta.dirname, "tarefas.json");
+
+// Lê a lista do arquivo; sem arquivo, a lista começa vazia.
+function carregar() {
+  if (!fs.existsSync(ARQUIVO)) {
+    return [];
+  }
+  try {
+    return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+  } catch (erro) {
+    console.error(`O arquivo ${path.basename(ARQUIVO)} está estragado: ${erro.message}`);
+    process.exit(1);
+  }
+}
+
+// Grava a lista no arquivo, com 2 espaços de recuo.
+function salvar(tarefas) {
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+}
+
+// Mostra a lista e o resumo.
+function listar(tarefas) {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+    return;
+  }
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+  const feitas = tarefas.filter((tarefa) =&gt; tarefa.feita).length;
+  console.log(`${feitas} de ${tarefas.length} feitas.`);
+}
+
+// Devolve a posição (0, 1, 2…) da tarefa de número N, ou para o programa.
+function posicao(tarefas, texto) {
+  const numero = Number(texto);
+  if (texto === "" || !Number.isInteger(numero) || numero &lt; 1 || numero &gt; tarefas.length) {
+    console.error(`Não existe a tarefa "${texto}". Veja os números com: node tarefas.js listar`);
+    process.exit(1);
+  }
+  return numero - 1;
+}
+
+const tarefas = carregar();
+const [comando, ...resto] = process.argv.slice(2);
+const texto = resto.join(" ");
+
+switch (comando) {
+  case "listar":
+    listar(tarefas);
+    break;
+  case "adicionar":
+    if (texto === "") {
+      console.error("Escreva a tarefa: node tarefas.js adicionar TEXTO");
+      process.exit(1);
+    }
+    tarefas.push({ texto: texto, feita: false });
+    salvar(tarefas);
+    console.log(`Tarefa adicionada: ${texto}`);
+    break;
+  case "feito": {
+    const i = posicao(tarefas, texto);
+    tarefas[i].feita = true;
+    salvar(tarefas);
+    console.log(`Feito: ${tarefas[i].texto}`);
+    break;
+  }
+  case "remover": {
+    const i = posicao(tarefas, texto);
+    const [removida] = tarefas.splice(i, 1);
+    salvar(tarefas);
+    console.log(`Removida: ${removida.texto}`);
+    break;
+  }
+  default:
+    console.log("Uso: node tarefas.js COMANDO");
+    console.log("  listar             mostra as tarefas");
+    console.log("  adicionar TEXTO    acrescenta uma tarefa");
+    console.log("  feito N            marca a tarefa N como feita");
+    console.log("  remover N          apaga a tarefa N");
+}
+</pre>
+<pre class="script" data-file="tarefas.json">[
+  {
+    "texto": "Comprar pão",
+    "feita": true
+  },
+  {
+    "texto": "Ligar para a vó",
+    "feita": false
+  },
+  {
+    "texto": "Pagar a conta de luz",
+    "feita": true
+  }
+]
+</pre>
+<pre class="solucao" data-file="tarefas.js">// Lista de Tarefas da Ana, versão 4: funções, switch e arquivo protegido
+import fs from "node:fs";
+import path from "node:path";
+
+// O tarefas.json fica sempre ao lado deste programa.
+const ARQUIVO = path.join(import.meta.dirname, "tarefas.json");
+
+// Lê a lista do arquivo; sem arquivo, a lista começa vazia.
+function carregar() {
+  if (!fs.existsSync(ARQUIVO)) {
+    return [];
+  }
+  try {
+    return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+  } catch (erro) {
+    console.error(`O arquivo ${path.basename(ARQUIVO)} está estragado: ${erro.message}`);
+    process.exit(1);
+  }
+}
+
+// Grava a lista no arquivo, com 2 espaços de recuo.
+function salvar(tarefas) {
+  fs.writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2) + "\n");
+}
+
+// Mostra a lista e o resumo.
+function listar(tarefas) {
+  if (tarefas.length === 0) {
+    console.log("Nenhuma tarefa ainda.");
+    return;
+  }
+  console.log("Tarefas da Ana:");
+  tarefas.forEach((tarefa, i) =&gt; {
+    const marca = tarefa.feita ? "x" : " ";
+    console.log(`${i + 1}. [${marca}] ${tarefa.texto}`);
+  });
+  const feitas = tarefas.filter((tarefa) =&gt; tarefa.feita).length;
+  console.log(`${feitas} de ${tarefas.length} feitas.`);
+}
+
+// Devolve a posição (0, 1, 2…) da tarefa de número N, ou para o programa.
+function posicao(tarefas, texto) {
+  const numero = Number(texto);
+  if (texto === "" || !Number.isInteger(numero) || numero &lt; 1 || numero &gt; tarefas.length) {
+    console.error(`Não existe a tarefa "${texto}". Veja os números com: node tarefas.js listar`);
+    process.exit(1);
+  }
+  return numero - 1;
+}
+
+const tarefas = carregar();
+const [comando, ...resto] = process.argv.slice(2);
+const texto = resto.join(" ");
+
+switch (comando) {
+  case "listar":
+    listar(tarefas);
+    break;
+  case "adicionar":
+    if (texto === "") {
+      console.error("Escreva a tarefa: node tarefas.js adicionar TEXTO");
+      process.exit(1);
+    }
+    tarefas.push({ texto: texto, feita: false });
+    salvar(tarefas);
+    console.log(`Tarefa adicionada: ${texto}`);
+    break;
+  case "feito": {
+    const i = posicao(tarefas, texto);
+    tarefas[i].feita = true;
+    salvar(tarefas);
+    console.log(`Feito: ${tarefas[i].texto}`);
+    break;
+  }
+  case "remover": {
+    const i = posicao(tarefas, texto);
+    const [removida] = tarefas.splice(i, 1);
+    salvar(tarefas);
+    console.log(`Removida: ${removida.texto}`);
+    break;
+  }
+  case "limpar": {
+    const pendentes = tarefas.filter((tarefa) =&gt; !tarefa.feita);
+    const quantas = tarefas.length - pendentes.length;
+    salvar(pendentes);
+    console.log(`Removidas ${quantas} tarefas feitas.`);
+    break;
+  }
+  default:
+    console.log("Uso: node tarefas.js COMANDO");
+    console.log("  listar             mostra as tarefas");
+    console.log("  adicionar TEXTO    acrescenta uma tarefa");
+    console.log("  feito N            marca a tarefa N como feita");
+    console.log("  remover N          apaga a tarefa N");
+}
+</pre>
+</div>
+
+<p>Outras ideias para continuar sozinho: um comando <code>editar N TEXTO</code>; guardar a data em que cada tarefa foi criada (veja <a href="date.html">Datas</a>); mostrar as pendentes primeiro, com <a href="sort.html">toSorted</a>.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>process.argv[2]</code>, <code>process.argv.slice(3).join(" ")</code></td><td>O comando e o texto que vieram depois de <code>node tarefas.js</code></td></tr>
+<tr><td><code>{ texto: "…", feita: false }</code></td><td>Uma tarefa: um objeto com duas propriedades</td></tr>
+<tr><td><code>tarefas.forEach((tarefa, i) =&gt; …)</code></td><td>Mostrar cada tarefa com o número <code>i + 1</code></td></tr>
+<tr><td><code>JSON.stringify(tarefas, null, 2)</code></td><td>Array → texto com recuo, para gravar</td></tr>
+<tr><td><code>JSON.parse(texto)</code></td><td>Texto do arquivo → array de volta</td></tr>
+<tr><td><code>fs.existsSync</code>, <code>fs.readFileSync(…, "utf8")</code>, <code>fs.writeFileSync</code></td><td>Conferir, ler e gravar o arquivo (só no Node)</td></tr>
+<tr><td><code>Number.isInteger(n) &amp;&amp; n &gt;= 1 &amp;&amp; n &lt;= tarefas.length</code></td><td>Validar o número da tarefa</td></tr>
+<tr><td><code>tarefas.splice(i, 1)</code></td><td>Remover a tarefa da posição <code>i</code></td></tr>
+<tr><td><code>tarefas.filter(…)</code></td><td>Contar as feitas; ficar só com as pendentes</td></tr>
+<tr><td><code>path.join(import.meta.dirname, "tarefas.json")</code></td><td>Achar o arquivo ao lado do programa, de qualquer pasta</td></tr>
+<tr><td><code>try { JSON.parse(…) } catch (erro) { … }</code></td><td>Avisar que o arquivo estragou, sem quebrar</td></tr>
+<tr><td><code>process.exit(1)</code></td><td>Encerrar dizendo "deu errado"</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>A tarefa nova some ao listar de novo</td><td>A lista só estava na memória: falta gravar no arquivo</td></tr>
+<tr><td>Só a primeira palavra foi guardada</td><td>Pegou só o <code>process.argv[3]</code>; use <code>slice(3).join(" ")</code> ou aspas</td></tr>
+<tr><td><code>Error: ENOENT: no such file or directory</code></td><td>Leu o arquivo antes de ele existir</td></tr>
+<tr><td>"Nenhuma tarefa" de outra pasta</td><td>Caminho relativo à pasta do terminal; use <code>import.meta.dirname</code></td></tr>
+<tr><td><code>TypeError: Cannot set properties of undefined (setting 'feita')</code></td><td>Número de tarefa que não existe (ou <code>NaN</code>)</td></tr>
+<tr><td><code>SyntaxError: … in JSON at position …</code></td><td>O <code>tarefas.json</code> foi editado e ficou inválido (vírgula, aspas)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O comando</h3>
+<p>Em <code>node tarefas.js listar</code>, complete a posição do <code>process.argv</code> que guarda <code>"listar"</code>:</p>
+<div class="ex-code">const comando = process.argv[<input data-answer="2" aria-label="posição">];</div>
+</div>
+
+<div class="exercise">
+<h3>2. De array para texto</h3>
+<p>Complete a função que transforma o array em texto JSON:</p>
+<div class="ex-code">fs.writeFileSync(ARQUIVO, JSON.<input data-answer="stringify" aria-label="função">(tarefas, null, 2));</div>
+</div>
+
+<div class="exercise">
+<h3>3. De texto para array</h3>
+<p>Complete a função que faz o caminho de volta:</p>
+<div class="ex-code">tarefas = JSON.<input data-answer="parse" aria-label="função">(fs.readFileSync(ARQUIVO, "utf8"));</div>
+</div>
+
+<div class="exercise">
+<h3>4. Remover</h3>
+<p>Complete o método que tira 1 item da posição <code>i</code>:</p>
+<div class="ex-code">tarefas.<input data-answer="splice" aria-label="método">(i, 1);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Na versão 1, a Ana adicionou uma tarefa, listou de novo e ela tinha sumido. Por quê?</p>
+<label><input type="radio" name="q5"> O <code>push</code> não funciona com objetos</label>
+<label><input type="radio" name="q5"> A lista só existia na memória, que é apagada quando o programa termina</label>
+<label><input type="radio" name="q5"> Faltou o <code>"utf8"</code></label>
+<label><input type="radio" name="q5"> O <code>listar</code> apaga as tarefas novas</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Com 3 tarefas, a Ana rodou <code>node tarefas.js feito 9</code> na versão sem validação. O que aconteceu?</p>
+<label><input type="radio" name="q6"> Foi criada uma tarefa 9</label>
+<label><input type="radio" name="q6"> A tarefa 3 foi marcada</label>
+<label><input type="radio" name="q6"> <code>tarefas[8]</code> é <code>undefined</code>, e o programa parou com <code>TypeError: Cannot set properties of undefined</code></label>
+<label><input type="radio" name="q6"> Nada: o JavaScript ignora posições que não existem</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Por que a versão 4 usa <code>path.join(import.meta.dirname, "tarefas.json")</code>?</p>
+<label><input type="radio" name="q7"> Para achar o arquivo na pasta do programa, mesmo rodando de outra pasta</label>
+<label><input type="radio" name="q7"> Porque o <code>fs</code> não aceita nomes sem pasta</label>
+<label><input type="radio" name="q7"> Para o arquivo ficar escondido</label>
+<label><input type="radio" name="q7"> Para funcionar no navegador</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O que vem depois de <code>node tarefas.js</code> chega em <code>process.argv</code>, a partir da posição 2, separado nos espaços.</li>
+  <li>Variáveis vivem na memória e somem quando o programa termina; para lembrar, grave num arquivo.</li>
+  <li><code>JSON.stringify</code> transforma arrays e objetos em texto; <code>JSON.parse</code> faz o caminho de volta. O JSON exige aspas duplas nos nomes e não aceita vírgula sobrando.</li>
+  <li><code>fs.readFileSync(arquivo, "utf8")</code> lê, <code>fs.writeFileSync</code> grava (substituindo tudo), <code>fs.existsSync</code> confere. Ler um arquivo que não existe dá <code>ENOENT</code>.</li>
+  <li>Valide o número antes de usar <code>tarefas[n - 1]</code>: <code>undefined.feita</code> derruba o programa.</li>
+  <li><code>import.meta.dirname</code> é a pasta do programa; um nome sem pasta é procurado na pasta do terminal.</li>
+  <li><code>try … catch</code> em volta do <code>JSON.parse</code> transforma um arquivo estragado num aviso claro, sem perder as tarefas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
