@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Conversão — Number, String, parseInt e parseFloat | Guia JavaScript</title>
+<meta name="description" content="Conversão de tipos no JavaScript para quem nunca programou: por que &quot;3&quot; + 1 dá &quot;31&quot;, Number() para transformar texto em número, parseInt e parseFloat para textos como &quot;30 anos&quot;, a vírgula brasileira, NaN e Number.isNaN, String() e toString() para o caminho de volta, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Conversão</span></h1>
+
+<p class="intro">O número <code>3</code> e o texto <code>"3"</code> parecem a mesma coisa para nós, mas para o JavaScript são tipos diferentes: um serve para fazer contas, o outro para escrever. E muitos dados chegam ao programa como <strong>texto</strong>: o que a pessoa digita no teclado, o que vem de um formulário, de um arquivo. Antes de fazer conta com eles, é preciso <strong>converter</strong>, isto é, transformar de um tipo em outro. Esta aula mostra como fazer isso <strong>de propósito</strong>, com <code>Number()</code>, <code>parseInt()</code>, <code>parseFloat()</code> e <code>String()</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que <code>"3" + 1</code> dá <code>"31"</code>, e por que isso é um problema.</li>
+  <li>Como transformar texto em número com <code>Number()</code>, e o que acontece quando o texto não é um número.</li>
+  <li>Como tirar o número do começo de um texto, como <code>"30 anos"</code>, com <code>parseInt()</code> e <code>parseFloat()</code>.</li>
+  <li>O que fazer com a vírgula brasileira (<code>"3,5"</code>).</li>
+  <li>Como reconhecer um <code>NaN</code> com <code>Number.isNaN()</code>.</li>
+  <li>O caminho de volta: número para texto com <code>String()</code> e <code>.toString()</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o número escrito no papel</h2>
+<p>No caixa da padaria, um cliente entrega um bilhete: "3 pães". Para cobrar, a atendente precisa <strong>ler</strong> o bilhete e transformar aquele "3" desenhado no papel no número 3, que ela consegue multiplicar pelo preço. Ninguém multiplica um pedaço de papel.</p>
+<p>No programa é igual. O texto <code>"3"</code> é o bilhete: um desenho do número. Para fazer conta, você precisa pedir ao JavaScript que <strong>leia</strong> o desenho e devolva o número. É isso que as funções desta aula fazem. E, às vezes, o caminho é o contrário: pegar o número e escrevê-lo num texto, para mostrar na tela.</p>
+
+<hr>
+
+<h2>1. O problema: o texto que parece número</h2>
+
+<pre class="file" data-file="problema.js">const quantidade = "3";
+const preco = 2.5;
+console.log(quantidade + 1);
+console.log(quantidade * preco);
+console.log(typeof quantidade);
+</pre>
+
+<pre class="term">$ node problema.js
+31
+7.5
+string
+</pre>
+
+<dl class="anatomy">
+  <dt>const quantidade = "3";</dt><dd>Com aspas, <code>"3"</code> é um texto (uma <em>string</em>), como se tivesse vindo do teclado. O <code>typeof</code> confirma: <code>string</code>.</dd>
+  <dt>quantidade + 1 → 31</dt><dd>Com um texto, o <code>+</code> não soma: ele <strong>junta</strong> (veja <a href="strings.html">Strings</a>). O <code>1</code> virou o texto <code>"1"</code> e foi colado no fim: <code>"31"</code>. Era para dar 4.</dd>
+  <dt>quantidade * preco → 7.5</dt><dd>Já o <code>*</code> só sabe multiplicar, então o JavaScript transformou o <code>"3"</code> em 3 sozinho, e a conta deu certo.</dd>
+</dl>
+
+<p>Esse comportamento, em que o JavaScript converte <strong>sozinho</strong> e às vezes de um jeito inesperado, é o assunto da próxima aula, <a href="conversao-automatica.html">Conversão Automática</a>. A lição aqui é: <strong>não conte com a sorte</strong>. Se o valor é um texto e você vai fazer conta, converta você mesmo, antes.</p>
+
+<hr>
+
+<h2>2. Texto para número: <code>Number()</code></h2>
+<p>A função <code>Number()</code> recebe um valor e devolve o número que ele representa:</p>
+
+<pre class="file" data-file="number.js">console.log(Number("30"));
+console.log(Number("3.75"));
+console.log(Number("  42  "));
+console.log(Number(""));
+console.log(Number("30 anos"));
+console.log(Number("3,5"));
+console.log(Number("abc"));
+console.log(typeof Number("30"));
+</pre>
+
+<pre class="term">$ node number.js
+30
+3.75
+42
+0
+NaN
+NaN
+NaN
+number
+</pre>
+
+<dl class="anatomy">
+  <dt>Number("30") → 30</dt><dd>O texto virou número. Repare que o Node mostra <code>30</code> sem aspas, e o <code>typeof</code> da última linha confirma: <code>number</code>.</dd>
+  <dt>Number("3.75") → 3.75</dt><dd>Números com casas decimais também, desde que usem <strong>ponto</strong>.</dd>
+  <dt>Number("  42  ") → 42</dt><dd>Espaços antes e depois são ignorados.</dd>
+  <dt>Number("") → 0</dt><dd>Uma pegadinha: o texto <strong>vazio</strong> vira <code>0</code>, e não um erro. Se a pessoa não digitou nada, o programa vai achar que ela digitou zero.</dd>
+  <dt>Number("30 anos") → NaN</dt><dd>O <code>Number()</code> é exigente: o texto inteiro tem de ser um número. Sobrou <code>" anos"</code>, então o resultado é <code>NaN</code> ("<em>Not a Number</em>", "não é um número"; veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>).</dd>
+  <dt>Number("3,5") → NaN</dt><dd>Para o JavaScript, a vírgula <strong>não</strong> separa casas decimais. Veja a seção 5.</dd>
+  <dt>Number("abc") → NaN</dt><dd>Nada ali é número.</dd>
+</dl>
+
+<p>Repare que <strong>nenhuma</strong> dessas linhas deu erro. Quando a conversão falha, o <code>Number()</code> não para o programa: ele devolve <code>NaN</code> e segue em frente. Por isso, depois de converter algo que veio de fora, vale <strong>conferir</strong> (seção 6).</p>
+
+<div class="tryjs" data-goal="out:Total: R$ 15.5;;src:Number\s*\(">
+<p class="try-task"><strong>Missão:</strong> o preço, a quantidade e a taxa de entrega chegaram como texto. A multiplicação até funciona sozinha, mas a soma da taxa, não: o programa mostra <code>Total: R$ 13.52</code>, um valor sem sentido. Converta os três textos com <code>Number()</code> na linha do total para ele dar <code>Total: R$ 15.5</code> (3 × 4,50 = 13,50, mais a taxa de 2).</p>
+<pre class="script" data-file="main.js">const precoTexto = "4.50";
+const quantidadeTexto = "3";
+const taxaTexto = "2";
+const total = precoTexto * quantidadeTexto + taxaTexto;
+console.log(`Total: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precoTexto = "4.50";
+const quantidadeTexto = "3";
+const taxaTexto = "2";
+const total = Number(precoTexto) * Number(quantidadeTexto) + Number(taxaTexto);
+console.log(`Total: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O número no começo do texto: <code>parseInt()</code> e <code>parseFloat()</code></h2>
+<p>Às vezes o texto tem o número <strong>e mais alguma coisa</strong>: <code>"30 anos"</code>, <code>"3.75 kg"</code>, <code>"12px"</code>. O <code>Number()</code> desiste (<code>NaN</code>), mas existem duas funções mais tolerantes, que leem o texto da esquerda para a direita e <strong>param no primeiro caractere que não serve</strong>:</p>
+<ul>
+  <li><code>parseInt()</code> ("analisar inteiro"): pega só a parte <strong>inteira</strong>.</li>
+  <li><code>parseFloat()</code> ("analisar número com vírgula"; <em>float</em> é o nome técnico do número com casas decimais): pega também as casas depois do ponto.</li>
+</ul>
+
+<pre class="file" data-file="parse.js">console.log(parseInt("30 anos"));
+console.log(parseInt("3.99"));
+console.log(parseFloat("3.75 kg"));
+console.log(parseFloat("3,75"));
+console.log(parseInt("R$ 10"));
+console.log(parseInt(""));
+console.log(parseInt("  12abc"));
+</pre>
+
+<pre class="term">$ node parse.js
+30
+3
+3.75
+3
+NaN
+NaN
+12
+</pre>
+
+<dl class="anatomy">
+  <dt>parseInt("30 anos") → 30</dt><dd>Leu <code>3</code>, <code>0</code>, chegou no espaço e parou. Ficou com 30.</dd>
+  <dt>parseInt("3.99") → 3</dt><dd>O ponto não serve para um inteiro: parou ali. Atenção: ele <strong>corta</strong>, não arredonda (3,99 vira 3, e não 4).</dd>
+  <dt>parseFloat("3.75 kg") → 3.75</dt><dd>O <code>parseFloat</code> aceita o ponto e as casas decimais, e para no espaço.</dd>
+  <dt>parseFloat("3,75") → 3</dt><dd>A vírgula não serve: parou nela e ficou com 3. Sem aviso nenhum. Cuidado com isso (seção 5).</dd>
+  <dt>parseInt("R$ 10") → NaN</dt><dd>O texto <strong>começa</strong> com <code>R</code>, que não é número: ele para logo no primeiro caractere e não acha nada. O número precisa estar no começo.</dd>
+  <dt>parseInt("") → NaN</dt><dd>Diferente do <code>Number("")</code>, que dava 0: texto vazio aqui é <code>NaN</code>.</dd>
+  <dt>parseInt("  12abc") → 12</dt><dd>Os espaços do começo são pulados.</dd>
+</dl>
+
+<div class="note">
+<strong>A base: o segundo valor do <code>parseInt</code></strong>
+<p>O <code>parseInt</code> aceita um segundo valor, a <strong>base</strong> do número: <code>parseInt("10", 10)</code> lê na base 10, a nossa de todo dia (deu <code>10</code>). Com outras bases ele lê números binários e hexadecimais: <code>parseInt("101", 2)</code> deu <code>5</code> e <code>parseInt("ff", 16)</code> deu <code>255</code>. Você vai ver muito código escrito <code>parseInt(texto, 10)</code>: é só alguém deixando claro que quer a base 10. Sem o segundo valor, a base 10 já é a usada para textos comuns como <code>"30"</code>.</p>
+</div>
+
+<hr>
+
+<h2>4. <code>Number</code> × <code>parseInt</code> × <code>parseFloat</code>: lado a lado</h2>
+
+<pre class="file" data-file="comparar.js">console.log(Number("12px"), parseInt("12px"), parseFloat("12.5px"));
+console.log(Number(""), parseInt(""));
+console.log(Number("1e3"), parseInt("1e3"), parseFloat("1e3"));
+console.log(Number(true), Number(false), Number(null), Number(undefined));
+</pre>
+
+<pre class="term">$ node comparar.js
+NaN 12 12.5
+0 NaN
+1000 1 1000
+1 0 0 NaN
+</pre>
+
+<p>A terceira linha mostra uma diferença curiosa: <code>"1e3"</code> é a notação científica de 1000 (1 vezes 10 elevado a 3). O <code>Number</code> e o <code>parseFloat</code> entendem; o <code>parseInt</code> lê o <code>1</code>, para no <code>e</code> e fica com 1. A última linha mostra que o <code>Number()</code> também converte outros tipos: <code>true</code> vira 1, <code>false</code> e <code>null</code> viram 0, e <code>undefined</code> vira <code>NaN</code> (veja <a href="booleanos.html">Booleanos</a> e <a href="null-undefined.html">null e undefined</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Texto</th><th><code>Number()</code></th><th><code>parseInt()</code></th><th><code>parseFloat()</code></th></tr>
+<tr><td><code>"30"</code></td><td>30</td><td>30</td><td>30</td></tr>
+<tr><td><code>"3.75"</code></td><td>3.75</td><td>3</td><td>3.75</td></tr>
+<tr><td><code>"30 anos"</code></td><td>NaN</td><td>30</td><td>30</td></tr>
+<tr><td><code>"12.5px"</code></td><td>NaN</td><td>12</td><td>12.5</td></tr>
+<tr><td><code>""</code> (vazio)</td><td>0</td><td>NaN</td><td>NaN</td></tr>
+<tr><td><code>"3,5"</code></td><td>NaN</td><td>3</td><td>3</td></tr>
+<tr><td><code>"abc"</code></td><td>NaN</td><td>NaN</td><td>NaN</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Idade daqui a 10 anos: 40;;src:parseInt\s*\(">
+<p class="try-task"><strong>Experimente:</strong> o formulário mandou a idade como <code>"30 anos"</code>. Com <code>Number()</code> o resultado é <code>NaN</code>. Troque por <code>parseInt()</code> para o programa mostrar <code>Idade daqui a 10 anos: 40</code>.</p>
+<pre class="script" data-file="main.js">const idadeTexto = "30 anos";
+const idade = Number(idadeTexto);
+console.log(`Idade daqui a 10 anos: ${idade + 10}`);
+</pre>
+<pre class="solucao" data-file="main.js">const idadeTexto = "30 anos";
+const idade = parseInt(idadeTexto);
+console.log(`Idade daqui a 10 anos: ${idade + 10}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. A vírgula brasileira</h2>
+<p>No Brasil escrevemos <code>3,5</code>; o JavaScript só entende <code>3.5</code>. Se a pessoa digitar com vírgula, troque a vírgula por ponto <strong>antes</strong> de converter. O <code>.replace(",", ".")</code> faz isso: "substitua a vírgula por um ponto" (ele tem aula própria: <a href="strings-substituir.html">Substituindo</a>):</p>
+
+<pre class="file" data-file="virgula.js">const digitado = "3,5";
+console.log(Number(digitado.replace(",", ".")));
+</pre>
+
+<pre class="term">$ node virgula.js
+3.5
+</pre>
+
+<p>E se o número tiver separador de milhar, como <code>"1.234,56"</code>? Aí o ponto atrapalha: <code>parseFloat("1.234,56")</code> deu <code>1.234</code> no lab (leu "um vírgula dois três quatro" e parou na vírgula), um valor mil vezes menor. Para esse formato é preciso tirar os pontos e depois trocar a vírgula, assunto da aula <a href="strings-substituir.html">Substituindo</a>.</p>
+
+<hr>
+
+<h2>6. Conferindo se deu certo: <code>Number.isNaN()</code></h2>
+<p>Como a conversão que falha devolve <code>NaN</code> em silêncio, o programa precisa perguntar: "deu um número?". E aqui mora uma pegadinha:</p>
+
+<pre class="file" data-file="nan.js">const digitado = "dez";
+const numero = Number(digitado);
+console.log(numero);
+console.log(numero === NaN);
+console.log(Number.isNaN(numero));
+console.log(numero + 5);
+</pre>
+
+<pre class="term">$ node nan.js
+NaN
+false
+true
+NaN
+</pre>
+
+<dl class="anatomy">
+  <dt>numero === NaN → false</dt><dd>O <code>NaN</code> é o único valor do JavaScript que <strong>não é igual a si mesmo</strong>. Comparar com <code>=== NaN</code> dá sempre <code>false</code>, mesmo quando o valor é <code>NaN</code>. Não funciona.</dd>
+  <dt>Number.isNaN(numero) → true</dt><dd>O jeito certo de perguntar "isto é <code>NaN</code>?".</dd>
+  <dt>numero + 5 → NaN</dt><dd>O <code>NaN</code> "contamina" as contas: qualquer conta com ele dá <code>NaN</code>. Se você vir <code>NaN</code> no fim de um cálculo, procure a conversão que falhou lá no começo.</dd>
+</dl>
+
+<p>Com o <code>if</code> (aula <a href="if.html">if</a>), o programa pode avisar: <code>if (Number.isNaN(numero)) { console.log("Digite só números!"); }</code>.</p>
+
+<hr>
+
+<h2>7. O caminho de volta: número para texto</h2>
+<p>Para transformar um número em texto, há vários jeitos, todos com o mesmo resultado:</p>
+
+<pre class="file" data-file="string.js">const idade = 30;
+console.log(String(idade));
+console.log(idade.toString());
+console.log(`${idade}`);
+console.log(idade + "");
+console.log(typeof String(idade));
+console.log(String(true), String(null), String(undefined));
+console.log(String(1.50));
+console.log((255).toString(2));
+</pre>
+
+<pre class="term">$ node string.js
+30
+30
+30
+30
+string
+true null undefined
+1.5
+11111111
+</pre>
+
+<dl class="anatomy">
+  <dt>String(idade)</dt><dd>A função <code>String()</code>: o jeito mais claro. Funciona com qualquer valor, até com <code>null</code> e <code>undefined</code>.</dd>
+  <dt>idade.toString()</dt><dd>O <strong>método</strong> <code>.toString()</code> ("para texto"), chamado com um ponto depois da variável. Funciona com números, mas <strong>quebra</strong> se a variável for <code>null</code> ou <code>undefined</code> (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>`${idade}`</dt><dd>A template string (veja <a href="template-strings.html">Template Strings</a>) também converte. É o jeito do dia a dia quando o número vai dentro de uma frase.</dd>
+  <dt>idade + ""</dt><dd>Juntar com um texto vazio também converte, aproveitando o <code>+</code> que cola textos. Funciona, mas é um truque: quem lê não entende de cara que a intenção era converter.</dd>
+  <dt>String(1.50) → 1.5</dt><dd>O zero no fim das casas decimais some: o número 1.50 é o mesmo que 1.5. Para mostrar dinheiro com duas casas, use o <code>toFixed</code> (aula <a href="numeros-formatar.html">Formatando Números</a>).</dd>
+  <dt>(255).toString(2)</dt><dd>Com um valor entre os parênteses, o <code>toString</code> escreve o número em outra base: <code>11111111</code> é 255 em binário. É o contrário do <code>parseInt("…", 2)</code>.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Além das funções desta aula, você vai encontrar em código de outras pessoas o <code>+</code> na frente de um texto, que converte para número como o <code>Number()</code>:</p>
+
+<pre class="file" data-file="mais.js">const idadeTexto = "30";
+console.log(+idadeTexto + 1);
+console.log(+"abc");
+</pre>
+
+<pre class="term">$ node mais.js
+31
+NaN
+</pre>
+
+<p><code>+idadeTexto</code> deu o número 30, e a soma deu 31 (e não <code>"301"</code>). É curto, mas fácil de não ver numa linha cheia de sinais. O guia prefere o <code>Number()</code>, que diz com todas as letras o que está acontecendo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>O texto deve ser só um número (o que a pessoa digitou num campo de número)</td><td><code>Number(texto)</code>: dá <code>NaN</code> se vier lixo junto, e você fica sabendo</td></tr>
+<tr><td>O texto tem o número no começo e algo depois (<code>"30 anos"</code>, <code>"12px"</code>)</td><td><code>parseInt(texto)</code> para inteiros, <code>parseFloat(texto)</code> com casas decimais</td></tr>
+<tr><td>O número veio com vírgula (<code>"3,5"</code>)</td><td><code>Number(texto.replace(",", "."))</code></td></tr>
+<tr><td>Conferir se a conversão deu certo</td><td><code>Number.isNaN(numero)</code> (nunca <code>=== NaN</code>)</td></tr>
+<tr><td>Número para texto, dentro de uma frase</td><td><code>`Idade: ${idade}`</code></td></tr>
+<tr><td>Número para texto, sozinho</td><td><code>String(valor)</code> (funciona até com <code>null</code>)</td></tr>
+<tr><td>Arredondar um número com casas</td><td>Não é conversão: <code>Math.round()</code> (aula <a href="math.html">Math</a>), e não <code>parseInt()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Somou sem converter</strong>
+<pre class="file" data-file="soma.js">const nota1 = "7";
+const nota2 = "8";
+console.log(nota1 + nota2);
+</pre>
+<pre class="term">$ node soma.js
+78
+</pre>
+<p>Nenhum erro, e a "soma" das notas deu 78. O <code>+</code> juntou os dois textos. É o erro de conversão mais comum de todos. <strong>Como consertar:</strong> <code>Number(nota1) + Number(nota2)</code> dá <code>15</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou <code>.toString()</code> direto num número escrito</strong>
+<pre class="file" data-file="ponto.js">console.log(30.toString());
+</pre>
+<pre class="term">$ node ponto.js
+/home/ana/ponto.js:1
+console.log(30.toString());
+            ^^^
+
+SyntaxError: Invalid or unexpected token
+    …  « 8 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/ponto.js:1</dt><dd>O arquivo e a linha: a 1.</dd>
+  <dt>console.log(30.toString()); e o ^^^</dt><dd>Os três <code>^</code> sublinham o trecho <code>30.</code>: foi ali que o JavaScript se perdeu.</dd>
+  <dt>SyntaxError: Invalid or unexpected token</dt><dd>"Erro de sintaxe: símbolo inválido ou inesperado". Ao ler <code>30.</code>, o JavaScript achou que vinham casas decimais (como em <code>30.5</code>). Em vez de um dígito, veio a letra <code>t</code>, e ele não entendeu mais nada. Com erro de sintaxe o programa nem começa a rodar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node. Aqui todas as linhas <code>at</code> eram de dentro do Node, porque o erro foi achado antes de o seu código rodar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> ponha o número entre parênteses, <code>(30).toString()</code>, ou use <code>String(30)</code>. Com uma variável (<code>idade.toString()</code>) não há esse problema.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou <code>.toString()</code> numa variável sem valor</strong>
+<pre class="file" data-file="nulo.js">let total;
+console.log(total.toString());
+</pre>
+<pre class="term">$ node nulo.js
+/home/ana/nulo.js:2
+console.log(total.toString());
+                  ^
+
+TypeError: Cannot read properties of undefined (reading 'toString')
+    at Object.&lt;anonymous&gt; (/home/ana/nulo.js:2:19)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>'toString'</code>)". A variável <code>total</code> nunca recebeu valor e vale <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>), que não tem <code>.toString()</code>. <strong>Como consertar:</strong> dê um valor à variável, ou use <code>String(total)</code>, que não quebra (dá o texto <code>"undefined"</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Conferiu o <code>NaN</code> com <code>===</code></strong>
+<p>Como você viu na seção 6, <code>numero === NaN</code> é <strong>sempre</strong> <code>false</code>. Um <code>if (numero === NaN)</code> nunca entra, e o programa deixa passar o valor inválido sem avisar. <strong>Como consertar:</strong> <code>if (Number.isNaN(numero))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>parseInt</code> para arredondar</strong>
+<p><code>parseInt("3.99")</code> dá <code>3</code>: ele corta, não arredonda. Se a ideia era o inteiro mais próximo, o certo é <code>Math.round(Number("3.6"))</code>, que deu <code>4</code> no lab.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Média: 7.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> as notas chegaram como texto, e a média sai errada (<code>Média: 39</code>). Converta as notas antes de somar para a média dar <code>Média: 7.5</code>.</p>
+<pre class="script" data-file="main.js">const nota1 = "7";
+const nota2 = "8";
+const media = (nota1 + nota2) / 2;
+console.log(`Média: ${media}`);
+</pre>
+<pre class="solucao" data-file="main.js">const nota1 = "7";
+const nota2 = "8";
+const media = (Number(nota1) + Number(nota2)) / 2;
+console.log(`Média: ${media}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que faz</th></tr>
+<tr><td><code>Number("30")</code></td><td><code>30</code></td><td>Texto inteiro para número; <code>NaN</code> se sobrar algo</td></tr>
+<tr><td><code>Number("")</code></td><td><code>0</code></td><td>Pegadinha: vazio vira zero</td></tr>
+<tr><td><code>parseInt("30 anos")</code></td><td><code>30</code></td><td>O inteiro do começo do texto</td></tr>
+<tr><td><code>parseFloat("3.75 kg")</code></td><td><code>3.75</code></td><td>O número com casas do começo do texto</td></tr>
+<tr><td><code>parseInt("ff", 16)</code></td><td><code>255</code></td><td>Lê em outra base</td></tr>
+<tr><td><code>Number("3,5".replace(",", "."))</code></td><td><code>3.5</code></td><td>Vírgula brasileira</td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td><code>true</code>/<code>false</code></td><td>A conversão falhou?</td></tr>
+<tr><td><code>String(30)</code> / <code>(30).toString()</code> / <code>`${30}`</code></td><td><code>"30"</code></td><td>Número para texto</td></tr>
+<tr><td><code>+"30"</code></td><td><code>30</code></td><td>Atalho para <code>Number("30")</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>"Soma" que gruda os números (<code>78</code>, <code>31</code>)</td><td>Um dos valores era texto: converta com <code>Number()</code></td></tr>
+<tr><td><code>NaN</code> no resultado</td><td>A conversão falhou (texto com letras, vírgula, vazio no <code>parseInt</code>)</td></tr>
+<tr><td>Valor com casas decimais cortado (<code>3</code> em vez de <code>3.75</code>)</td><td><code>parseInt</code> no lugar de <code>parseFloat</code>, ou vírgula no lugar do ponto</td></tr>
+<tr><td><code>0</code> quando a pessoa não digitou nada</td><td><code>Number("")</code> é 0: confira se o texto está vazio antes</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code> em <code>30.toString()</code></td><td>Faltaram os parênteses: <code>(30).toString()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para transformar o texto em número:</p>
+<div class="ex-code">const idade = <input data-answer="Number|parseInt" aria-label="função de conversão">("25");</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que <code>console.log(parseInt("42 pães"));</code> mostra?</p>
+<div class="ex-code"><input data-answer="42" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E agora?</h3>
+<p>O que <code>console.log(Number("42 pães"));</code> mostra?</p>
+<div class="ex-code"><input data-answer="NaN" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Juntou ou somou?</h3>
+<p>O que <code>console.log("5" + 5);</code> mostra?</p>
+<div class="ex-code"><input data-answer="55" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual é o resultado de <code>parseFloat("2,5")</code>?</p>
+<label><input type="radio" name="q5"> <code>2.5</code></label>
+<label><input type="radio" name="q5"> <code>NaN</code></label>
+<label><input type="radio" name="q5"> <code>2</code></label>
+<label><input type="radio" name="q5"> <code>25</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Qual é o jeito certo de saber se a conversão deu <code>NaN</code>?</p>
+<label><input type="radio" name="q6"> <code>numero === NaN</code></label>
+<label><input type="radio" name="q6"> <code>Number.isNaN(numero)</code></label>
+<label><input type="radio" name="q6"> <code>numero == "NaN"</code></label>
+<label><input type="radio" name="q6"> <code>typeof numero === "NaN"</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Qual destas linhas dá <code>SyntaxError</code>?</p>
+<label><input type="radio" name="q7"> <code>String(30)</code></label>
+<label><input type="radio" name="q7"> <code>(30).toString()</code></label>
+<label><input type="radio" name="q7"> <code>`${30}`</code></label>
+<label><input type="radio" name="q7"> <code>30.toString()</code></label>
+</div>
+
+<h3>Missão final: o troco da padaria</h3>
+
+<div class="tryjs" data-goal="out:Troco: R$ 6.5;;src:replace">
+<p class="try-task"><strong>Missão:</strong> o cliente pagou com <code>"20"</code> reais e a compra deu <code>"13,50"</code>, os dois como texto, e o segundo com vírgula. O programa mostra <code>Troco: R$ NaN</code>. Converta os dois valores (troque a vírgula por ponto no preço) para mostrar <code>Troco: R$ 6.5</code>.</p>
+<pre class="script" data-file="main.js">const pagoTexto = "20";
+const compraTexto = "13,50";
+const pago = Number(pagoTexto);
+const compra = Number(compraTexto);
+console.log(`Troco: R$ ${pago - compra}`);
+</pre>
+<pre class="solucao" data-file="main.js">const pagoTexto = "20";
+const compraTexto = "13,50";
+const pago = Number(pagoTexto);
+const compra = Number(compraTexto.replace(",", "."));
+console.log(`Troco: R$ ${pago - compra}`);
+</pre>
+</div>
+
+<p>O troco certo é <code>6.5</code>, que para dinheiro a gente escreveria R$ 6,50. Mostrar com duas casas e vírgula é assunto da aula <a href="numeros-formatar.html">Formatando Números</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Texto que parece número (<code>"3"</code>) não é número: com ele, o <code>+</code> junta em vez de somar. Converta antes de fazer conta.</li>
+  <li><code>Number(texto)</code> converte o texto inteiro; se sobrar algo, dá <code>NaN</code>. Atenção: <code>Number("")</code> é <code>0</code>.</li>
+  <li><code>parseInt</code> e <code>parseFloat</code> leem o número do <strong>começo</strong> do texto e param no primeiro caractere que não serve; o <code>parseInt</code> corta as casas decimais.</li>
+  <li>O JavaScript usa ponto nas casas decimais: troque a vírgula com <code>.replace(",", ".")</code>. Confira o resultado com <code>Number.isNaN()</code>, nunca com <code>=== NaN</code>.</li>
+  <li>Número para texto: <code>String(valor)</code>, <code>valor.toString()</code> ou <code>`${valor}`</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
