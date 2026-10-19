@@ -282,6 +282,11 @@ form.addEventListener("submit", (evento) =&gt; {
 <p>Os formulários são mais velhos que o JavaScript. O jeito original era mandar os dados para um <strong>servidor</strong> (o computador do site), que respondia com uma página nova. Isso ainda existe e funciona (o atributo <code>action</code> do <code>&lt;form&gt;</code> diz para onde mandar). Mas quando é o seu JavaScript que vai cuidar dos dados, na própria página, o <code>preventDefault()</code> é obrigatório.</p>
 </div>
 
+<div class="tip">
+<strong>No editor do guia</strong>
+<p>Nas caixas "Experimente", um formulário enviado sem <code>preventDefault()</code> <strong>não</strong> recarrega o quadro Resultado: o editor segura o envio e escreve no Console uma linha <code>[editor] o formulário foi enviado…</code>. Num site de verdade (e no seu computador), a página recarrega como mostrado acima.</p>
+</div>
+
 <hr>
 
 <h2>5. O formulário inteiro de uma vez: <code>FormData</code></h2>
