@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript métodos e this — funções dentro de objetos | Guia JavaScript</title>
+<meta name="description" content="Métodos de objetos no JavaScript para quem nunca programou: uma função como propriedade, a escrita curta saudar() { }, o this (o objeto antes do ponto), métodos que mudam o objeto e que devolvem valores, por que a arrow function não serve como método, o método solto que perde o this e os erros reais do Node.js 24 (is not a function, saldo is not defined, [Function]).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Métodos</span> e <span class="hl">this</span></h1>
+
+<p class="intro">Até agora, os objetos guardaram <strong>dados</strong>: nome, preço, estoque. Mas um objeto também pode guardar <strong>ações</strong>. O cofrinho da Ana não tem só o saldo: ele sabe <em>receber um depósito</em>. O carrinho de compras não tem só os itens: ele sabe <em>calcular o total</em>. Uma função guardada dentro de um objeto se chama <strong>método</strong>. E, para o método mexer nos dados do <strong>próprio</strong> objeto, existe uma palavra especial: <code>this</code> ("este").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um método: uma propriedade cujo valor é uma <a href="funcoes.html">função</a>.</li>
+  <li>As duas formas de escrever: <code>saudar: function () { }</code> e a curta, <code>saudar() { }</code>.</li>
+  <li>O <code>this</code>: dentro de um método, ele é o objeto que veio <strong>antes do ponto</strong> na chamada.</li>
+  <li>Métodos que mudam o objeto (<code>depositar</code>) e que devolvem um valor (<code>total</code>).</li>
+  <li>Que você já usa métodos desde o começo: <code>console.log</code>, <code>push</code>, <code>toUpperCase</code>…</li>
+  <li>Por que a <a href="arrow-functions.html">arrow function</a> não serve como método, mas serve <strong>dentro</strong> de um.</li>
+  <li>Os erros reais: chamar o que não é função, esquecer os parênteses, esquecer o <code>this</code>, o método "solto".</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o cofrinho que sabe contar</h2>
+<p>Imagine um cofrinho eletrônico. Ele tem coisas que ele <strong>é</strong> (de quem é, quanto tem dentro) e coisas que ele <strong>faz</strong> (receber moedas, dizer se já juntou o suficiente). Quando a Ana aperta o botão "depositar R$ 50", o cofrinho soma os 50 <strong>no saldo dele mesmo</strong>, e não no cofrinho do irmão.</p>
+<ul>
+  <li>O que o objeto <strong>é</strong> → propriedades com valores: <code>saldo: 0</code>.</li>
+  <li>O que o objeto <strong>faz</strong> → propriedades com funções: os <strong>métodos</strong>.</li>
+  <li>"O saldo dele mesmo" → <code>this.saldo</code>.</li>
+</ul>
+
+<hr>
+
+<h2>1. Uma função dentro do objeto</h2>
+
+<pre class="file" data-file="primeiro.js">const ana = {
+  nome: "Ana",
+  saudar: function () {
+    console.log("Oi! Tudo bem?");
+  },
+};
+ana.saudar();
+console.log(typeof ana.saudar);
+</pre>
+
+<pre class="term">$ node primeiro.js
+Oi! Tudo bem?
+function
+</pre>
+
+<dl class="anatomy">
+  <dt>saudar: function () { … }</dt><dd>Uma propriedade como qualquer outra: a chave <code>saudar</code>, os dois-pontos e o valor. Só que o valor é uma <strong>função</strong> (em inglês, <em>function</em>). Funções são valores no JavaScript, como números e textos (aula <a href="funcoes-valores.html">Funções como Valores</a>).</dd>
+  <dt>ana.saudar()</dt><dd>Lê a propriedade <code>saudar</code> (a função) e a <strong>chama</strong> com os parênteses. Lê-se "ana, saude!".</dd>
+  <dt>typeof ana.saudar → function</dt><dd>Sem os parênteses, você só <strong>lê</strong> o valor: uma função.</dd>
+</dl>
+
+<h2>2. A escrita curta (a recomendada)</h2>
+<p>Como métodos são muito comuns, existe uma forma mais curta: tire os dois-pontos e a palavra <code>function</code>.</p>
+
+<pre class="file" data-file="curto.js">const ana = {
+  nome: "Ana",
+  saudar() {
+    console.log("Oi! Tudo bem?");
+  },
+};
+ana.saudar();
+console.log(ana);
+</pre>
+
+<pre class="term">$ node curto.js
+Oi! Tudo bem?
+{ nome: 'Ana', saudar: [Function: saudar] }
+</pre>
+
+<p>O resultado é o mesmo. Repare como o Node mostra o objeto: o método aparece como <code>[Function: saudar]</code> ("função chamada saudar"). Daqui em diante, o guia usa sempre a forma curta.</p>
+
+<hr>
+
+<h2>3. O <code>this</code>: "este objeto aqui"</h2>
+<p>Um método que só escreve "Oi!" não precisa do objeto. Mas, para dizer o <strong>próprio nome</strong>, o método precisa ler a propriedade <code>nome</code> do objeto onde ele está. Para isso serve o <code>this</code>:</p>
+
+<pre class="file" data-file="this.js">const ana = {
+  nome: "Ana",
+  cidade: "Recife",
+  apresentar() {
+    console.log(`Oi, eu sou a ${this.nome} e moro em ${this.cidade}.`);
+  },
+};
+const bia = {
+  nome: "Bia",
+  cidade: "Natal",
+  apresentar: ana.apresentar,
+};
+ana.apresentar();
+bia.apresentar();
+</pre>
+
+<pre class="term">$ node this.js
+Oi, eu sou a Ana e moro em Recife.
+Oi, eu sou a Bia e moro em Natal.
+</pre>
+
+<dl class="anatomy">
+  <dt>this.nome</dt><dd>"O <code>nome</code> <strong>deste</strong> objeto". Quem é "este"? O objeto que aparece <strong>antes do ponto</strong> na hora de chamar o método.</dd>
+  <dt>ana.apresentar()</dt><dd>Antes do ponto está <code>ana</code>, então, nesta chamada, <code>this</code> é a <code>ana</code>, e <code>this.nome</code> é <code>"Ana"</code>.</dd>
+  <dt>apresentar: ana.apresentar</dt><dd>A Bia ganhou <strong>a mesma função</strong> da Ana (sem copiar o código; é a mesma função, guardada em dois objetos).</dd>
+  <dt>bia.apresentar()</dt><dd>A mesma função, mas agora antes do ponto está <code>bia</code>: o <code>this</code> é a Bia, e a frase sai com "Bia" e "Natal".</dd>
+</dl>
+
+<div class="tip">
+<strong>A regra do ponto</strong>
+<p>Para descobrir quem é o <code>this</code> num método, olhe a <strong>chamada</strong>, não a definição: o <code>this</code> é o que está à esquerda do ponto em <code>objeto.metodo()</code>. A aula <a href="this.html">this, call, apply e bind</a> mostra os casos especiais.</p>
+</div>
+
+<p>Por que não escrever <code>ana.nome</code> dentro do método, já que ele está dentro da <code>ana</code>? Porque aí a Bia diria "Oi, eu sou a Ana". O <code>this</code> faz o mesmo método servir para <strong>qualquer</strong> objeto que o use.</p>
+
+<div class="tryjs" data-goal="out:Oi, eu sou a Bia!;;src:this\.nome">
+<p class="try-task"><strong>Missão:</strong> o método <code>apresentar</code> está com o nome escrito "na mão" e errado. Troque o <code>"fulana"</code> por uma leitura do nome do próprio objeto, com <code>this</code>, para aparecer <code>Oi, eu sou a Bia!</code>.</p>
+<pre class="script" data-file="main.js">const bia = {
+  nome: "Bia",
+  apresentar() {
+    console.log(`Oi, eu sou a ${"fulana"}!`);
+  },
+};
+bia.apresentar();
+</pre>
+<pre class="solucao" data-file="main.js">const bia = {
+  nome: "Bia",
+  apresentar() {
+    console.log(`Oi, eu sou a ${this.nome}!`);
+  },
+};
+bia.apresentar();
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Métodos que mudam o objeto e métodos que devolvem valores</h2>
+
+<pre class="file" data-file="cofrinho.js">const cofrinho = {
+  dono: "Ana",
+  saldo: 0,
+  depositar(valor) {
+    this.saldo += valor;
+    console.log(`Depositou R$ ${valor}. Saldo: R$ ${this.saldo}`);
+  },
+  estaRico() {
+    return this.saldo &gt;= 100;
+  },
+};
+cofrinho.depositar(50);
+cofrinho.depositar(70);
+console.log(cofrinho.saldo);
+console.log(cofrinho.estaRico());
+</pre>
+
+<pre class="term">$ node cofrinho.js
+Depositou R$ 50. Saldo: R$ 50
+Depositou R$ 70. Saldo: R$ 120
+120
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>depositar(valor)</dt><dd>Um método com <a href="parametros.html">parâmetro</a>, como qualquer função. Na chamada <code>cofrinho.depositar(50)</code>, o <code>valor</code> é 50.</dd>
+  <dt>this.saldo += valor</dt><dd>O método <strong>muda</strong> uma propriedade do próprio objeto. Depois das duas chamadas, o saldo do cofrinho ficou 120, e a linha <code>console.log(cofrinho.saldo)</code> confirma.</dd>
+  <dt>estaRico() { return … }</dt><dd>Um método que não muda nada: ele <strong>calcula e devolve</strong> uma resposta (aula <a href="return.html">Retornando Valores</a>). Aqui, <code>true</code>, porque 120 ≥ 100.</dd>
+</dl>
+
+<p>Um método pode usar outras propriedades e métodos do mesmo objeto, inclusive arrays. Um carrinho de compras que guarda os itens e calcula o total:</p>
+
+<pre class="file" data-file="carrinho.js">const carrinho = {
+  itens: [],
+  adicionar(nome, preco) {
+    this.itens.push({ nome, preco });
+  },
+  total() {
+    return this.itens.reduce((soma, item) =&gt; soma + item.preco, 0);
+  },
+};
+carrinho.adicionar("pão", 8);
+carrinho.adicionar("café", 15);
+console.log(carrinho.itens.length, "itens");
+console.log(`Total: R$ ${carrinho.total()}`);
+</pre>
+
+<pre class="term">$ node carrinho.js
+2 itens
+Total: R$ 23
+</pre>
+
+<p>Quem usa o carrinho não precisa saber <strong>como</strong> o total é calculado: chama <code>carrinho.total()</code> e pronto. Juntar os dados e as ações que mexem neles num só lugar é a ideia central da <strong>programação orientada a objetos</strong>, que você vai ver com <a href="classes.html">classes</a>. (O <code>{ nome, preco }</code> é o atalho da aula <a href="objetos.html">Objetos</a>; o <code>reduce</code>, o da aula <a href="reduce.html">reduce</a>.)</p>
+
+<hr>
+
+<h2>5. Você já usava métodos</h2>
+<p>Lembra de <code>nome.toUpperCase()</code>, <code>lista.push(4)</code> e do próprio <code>console.log</code>? Todos têm a mesma forma: <code>objeto.metodo(…)</code>.</p>
+
+<pre class="file" data-file="jaconhece.js">const nome = "ana";
+console.log(nome.toUpperCase());
+const lista = [3, 1, 2];
+lista.push(4);
+console.log(lista);
+console.log(typeof console.log);
+console.log(typeof Math.max);
+</pre>
+
+<pre class="term">$ node jaconhece.js
+ANA
+[ 3, 1, 2, 4 ]
+function
+function
+</pre>
+
+<ul>
+  <li><code>console</code> é um objeto, e <code>log</code> é um método dele. O mesmo para <code>Math</code> e <code>max</code> (aula <a href="math.html">Math</a>).</li>
+  <li><code>lista.push(4)</code>: o <code>push</code> usa o <code>this</code> para saber <strong>em qual</strong> array acrescentar, exatamente como o seu <code>depositar</code> sabe em qual cofrinho somar.</li>
+  <li>Textos, arrays e números ganham métodos prontos do JavaScript (aula <a href="prototipos.html">Protótipos</a> explica de onde eles vêm).</li>
+</ul>
+
+<hr>
+
+<h2>6. Arrow function e <code>this</code></h2>
+<p>As arrow functions (<code>() =&gt; …</code>) não têm um <code>this</code> próprio: elas usam o <code>this</code> do lugar onde foram <strong>escritas</strong>. Isso as torna ruins <strong>como</strong> método, e ótimas <strong>dentro</strong> de um método.</p>
+
+<pre class="file" data-file="arrow.js">const ana = {
+  nome: "Ana",
+  apresentarArrow: () =&gt; {
+    console.log(`Oi, eu sou a ${this.nome}.`);
+  },
+  apresentar() {
+    console.log(`Oi, eu sou a ${this.nome}.`);
+  },
+};
+ana.apresentarArrow();
+ana.apresentar();
+</pre>
+
+<pre class="term">$ node arrow.js
+Oi, eu sou a undefined.
+Oi, eu sou a Ana.
+</pre>
+
+<p>A arrow function foi escrita no nível de fora do objeto, onde o <code>this</code> não é a <code>ana</code>; por isso o <code>this.nome</code> deu <code>undefined</code>, mesmo chamando <code>ana.apresentarArrow()</code>. <strong>Para métodos, use a escrita curta</strong> <code>apresentar() { }</code>.</p>
+
+<p>Já <strong>dentro</strong> de um método, a arrow function é a escolha certa, justamente porque ela "herda" o <code>this</code> do método:</p>
+
+<pre class="file" data-file="arrow-dentro.js">const turma = {
+  professora: "Rita",
+  alunos: ["Ana", "Bia"],
+  chamada() {
+    this.alunos.forEach((aluno) =&gt; {
+      console.log(`${this.professora} chama: ${aluno}`);
+    });
+  },
+};
+turma.chamada();
+</pre>
+
+<pre class="term">$ node arrow-dentro.js
+Rita chama: Ana
+Rita chama: Bia
+</pre>
+
+<p>A função passada ao <code>forEach</code> é uma arrow; dentro dela, <code>this</code> continua sendo a <code>turma</code>, e <code>this.professora</code> funciona.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Usa <code>this</code> do objeto?</th><th>Quando usar</th></tr>
+<tr><td><code>saudar() { … }</code></td><td>Sim</td><td><strong>Sempre</strong> que for um método: a forma recomendada</td></tr>
+<tr><td><code>saudar: function () { … }</code></td><td>Sim</td><td>Igual à de cima; aparece em código antigo</td></tr>
+<tr><td><code>saudar: () =&gt; { … }</code></td><td><strong>Não</strong></td><td>Só se o método não usar <code>this</code> (melhor evitar)</td></tr>
+<tr><td>Arrow function <strong>dentro</strong> de um método</td><td>Sim (herda do método)</td><td>Callbacks de <code>forEach</code>, <code>map</code>, <code>setTimeout</code>… dentro de métodos</td></tr>
+<tr><td>Uma <a href="classes.html">classe</a> com métodos</td><td>Sim</td><td>Muitos objetos com os mesmos métodos (cada cofrinho da família)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou uma propriedade que não é função</strong>
+<pre class="file" data-file="naofuncao.js">const ana = { nome: "Ana", idade: 30 };
+ana.nome();
+</pre>
+<pre class="term">$ node naofuncao.js
+/home/ana/naofuncao.js:2
+ana.nome();
+    ^
+
+TypeError: ana.nome is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/naofuncao.js:2:5)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/naofuncao.js:2 e o <code>^</code></dt><dd>Linha 2; o <code>^</code> aponta para o <code>nome</code>.</dd>
+  <dt>TypeError: ana.nome is not a function</dt><dd>"<code>ana.nome</code> não é uma função". Os parênteses mandam <strong>chamar</strong>, mas <code>ana.nome</code> é um texto. Também aparece quando o nome do método está digitado errado (<code>ana.apresenta()</code>): a propriedade não existe, vale <code>undefined</code>, e <code>undefined</code> não é função.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:2:5)</dt><dd>O seu programa, linha 2, coluna 5.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> para ler um dado, sem parênteses: <code>ana.nome</code>. Se era para ser um método, confira o nome no objeto.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="semparenteses.js">const cofrinho = {
+  saldo: 0,
+  estaRico() {
+    return this.saldo &gt;= 100;
+  },
+};
+console.log(cofrinho.estaRico);
+if (cofrinho.estaRico) {
+  console.log("Rico!");
+}
+</pre>
+<pre class="term">$ node semparenteses.js
+[Function: estaRico]
+Rico!
+</pre>
+<p>O saldo é <strong>zero</strong>, e o programa disse "Rico!". Sem os parênteses, <code>cofrinho.estaRico</code> é a <strong>função</strong>, e não a resposta dela (o <code>[Function: estaRico]</code> da primeira linha mostra isso). No <code>if</code>, uma função conta como verdadeira (é <em>truthy</em>). <strong>Como consertar:</strong> <code>cofrinho.estaRico()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>this</code></strong>
+<pre class="file" data-file="semthis.js">const cofrinho = {
+  saldo: 0,
+  depositar(valor) {
+    saldo += valor;
+  },
+};
+cofrinho.depositar(50);
+</pre>
+<pre class="term">$ node semthis.js
+/home/ana/semthis.js:4
+    saldo += valor;
+    ^
+
+ReferenceError: saldo is not defined
+    at Object.depositar (/home/ana/semthis.js:4:5)
+    at Object.&lt;anonymous&gt; (/home/ana/semthis.js:7:10)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"<code>saldo</code> não está definido". Sem o <code>this.</code>, o JavaScript procura uma <strong>variável</strong> chamada <code>saldo</code>, e não a propriedade do objeto. A pilha conta a história: o erro foi dentro do <code>depositar</code> (linha 4), que foi chamado pelo programa na linha 7. <strong>Como consertar:</strong> <code>this.saldo += valor;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Arrow function como método</strong>
+<p>Sem erro: o <code>this.nome</code> sai <code>undefined</code> (seção 6). <strong>Como consertar:</strong> troque <code>apresentar: () =&gt; { … }</code> por <code>apresentar() { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O método "solto" perde o <code>this</code></strong>
+<pre class="file" data-file="solto.js">const ana = {
+  nome: "Ana",
+  apresentar() {
+    console.log(`Oi, eu sou a ${this.nome}.`);
+  },
+};
+const falar = ana.apresentar;
+falar();
+</pre>
+<pre class="term">$ node solto.js
+Oi, eu sou a undefined.
+</pre>
+<p>A função foi guardada numa variável e chamada <strong>sem objeto antes do ponto</strong>. Pela regra do ponto, não há "este objeto", e o <code>this.nome</code> não acha a Ana. Com o modo estrito ligado (aula <a href="strict-mode.html">"use strict"</a>, que vale sempre dentro de classes e módulos), o mesmo código quebra:</p>
+<pre class="term">$ node solto-strict.js
+/home/ana/solto-strict.js:5
+    console.log(`Oi, eu sou a ${this.nome}.`);
+                                     ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at apresentar (/home/ana/solto-strict.js:5:38)
+    at Object.&lt;anonymous&gt; (/home/ana/solto-strict.js:9:1)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>(O <code>solto-strict.js</code> é o mesmo programa com <code>"use strict";</code> na primeira linha, por isso as linhas estão uma abaixo.) Aqui o <code>this</code> é <code>undefined</code>, e ler <code>.nome</code> de <code>undefined</code> quebra. <strong>Como consertar:</strong> chame sempre com o objeto: <code>ana.apresentar()</code>. Para passar um método adiante sem perder o <code>this</code>, existe o <code>bind</code> (aula <a href="this.html">this, call, apply e bind</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>{ metodo() { … } }</code></td><td>Cria um método (forma curta)</td></tr>
+<tr><td><code>{ metodo: function () { … } }</code></td><td>Cria um método (forma longa, antiga)</td></tr>
+<tr><td><code>obj.metodo()</code></td><td>Chama o método; dentro dele, <code>this</code> é <code>obj</code></td></tr>
+<tr><td><code>obj.metodo</code> (sem parênteses)</td><td>A função em si, sem chamar</td></tr>
+<tr><td><code>this.propriedade</code></td><td>Lê ou muda uma propriedade do objeto da chamada</td></tr>
+<tr><td><code>this.outroMetodo()</code></td><td>Chama outro método do mesmo objeto</td></tr>
+<tr><td><code>return …</code> num método</td><td>Devolve um valor para quem chamou</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: obj.x is not a function</code></td><td><code>x</code> não é método (é um dado, ou o nome está errado)</td></tr>
+<tr><td><code>[Function: x]</code> na saída; <code>if</code> sempre verdadeiro</td><td>Faltaram os parênteses na chamada</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code> dentro de um método</td><td>Faltou o <code>this.</code> antes da propriedade</td></tr>
+<tr><td><code>this.x</code> dá <code>undefined</code></td><td>Método escrito como arrow function, ou chamado "solto", sem o objeto antes do ponto</td></tr>
+<tr><td><code>Cannot read properties of undefined</code> com <code>this</code></td><td>Método solto em modo estrito (classes, módulos)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o método</h3>
+<p>Complete para o método mostrar o nome do próprio objeto:</p>
+<div class="ex-code">const gato = {<br>&nbsp;&nbsp;nome: "Mingau",<br>&nbsp;&nbsp;miar<input data-answer="()" aria-label="parênteses do método"> {<br>&nbsp;&nbsp;&nbsp;&nbsp;console.log(`${<input data-answer="this" aria-label="palavra-chave">.nome}: miau!`);<br>&nbsp;&nbsp;},<br>};<br>gato.<input data-answer="miar()" aria-label="chamada do método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. Na chamada <code>bia.apresentar()</code>, quem é o <code>this</code> dentro de <code>apresentar</code>?</p>
+<label><input type="radio" name="q2"> O objeto onde a função foi escrita pela primeira vez</label>
+<label><input type="radio" name="q2"> O objeto <code>bia</code>, que está antes do ponto</label>
+<label><input type="radio" name="q2"> A função <code>apresentar</code></label>
+<label><input type="radio" name="q2"> Sempre <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destas formas <strong>não</strong> serve para um método que usa <code>this</code>?</p>
+<label><input type="radio" name="q3"> <code>falar() { … }</code></label>
+<label><input type="radio" name="q3"> <code>falar: function () { … }</code></label>
+<label><input type="radio" name="q3"> <code>falar: () =&gt; { … }</code></label>
+<label><input type="radio" name="q3"> Todas servem</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>console.log(carrinho.total)</code> mostrou <code>[Function: total]</code>. O que faltou?</p>
+<label><input type="radio" name="q4"> Os parênteses: <code>carrinho.total()</code></label>
+<label><input type="radio" name="q4"> O <code>this</code></label>
+<label><input type="radio" name="q4"> Um <code>return</code></label>
+<label><input type="radio" name="q4"> Nada: é o total certo</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Dentro de <code>depositar(valor) { saldo += valor; }</code>, o Node disse <code>ReferenceError: saldo is not defined</code>. Por quê?</p>
+<label><input type="radio" name="q5"> O objeto é <code>const</code></label>
+<label><input type="radio" name="q5"> Métodos não podem mudar propriedades</label>
+<label><input type="radio" name="q5"> O <code>+=</code> não funciona em métodos</label>
+<label><input type="radio" name="q5"> Faltou <code>this.</code>: sem ele, o JavaScript procura uma variável <code>saldo</code></label>
+</div>
+
+<h3>Missão final: o cofrinho que não deixa ficar no vermelho</h3>
+
+<div class="tryjs" data-goal="out:Saldo insuficiente;;out:Saldo: R$ 70;;src:this\.saldo\s*-=|this\.saldo\s*=\s*this\.saldo\s*-">
+<p class="try-task"><strong>Missão:</strong> complete o método <code>sacar</code>. Se o <code>valor</code> for maior que o saldo do cofrinho, mostre <code>Saldo insuficiente</code> e não mexa no saldo; senão, tire o valor do saldo. Com as chamadas do programa, o fim deve ser <code>Saldo insuficiente</code> e <code>Saldo: R$ 70</code>.</p>
+<pre class="script" data-file="main.js">const cofrinho = {
+  saldo: 0,
+  depositar(valor) {
+    this.saldo += valor;
+  },
+  sacar(valor) {
+    // complete aqui
+  },
+};
+cofrinho.depositar(100);
+cofrinho.sacar(30);
+cofrinho.sacar(500);
+console.log(`Saldo: R$ ${cofrinho.saldo}`);
+</pre>
+<pre class="solucao" data-file="main.js">const cofrinho = {
+  saldo: 0,
+  depositar(valor) {
+    this.saldo += valor;
+  },
+  sacar(valor) {
+    if (valor &gt; this.saldo) {
+      console.log("Saldo insuficiente");
+      return;
+    }
+    this.saldo -= valor;
+  },
+};
+cofrinho.depositar(100);
+cofrinho.sacar(30);
+cofrinho.sacar(500);
+console.log(`Saldo: R$ ${cofrinho.saldo}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Saldo insuficiente</code> (o saque de 500) e, no fim, <code>Saldo: R$ 70</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>método</strong> é uma propriedade cujo valor é uma função. Escreva na forma curta: <code>nome() { … }</code>.</li>
+  <li>Chame com parênteses: <code>obj.metodo()</code>. Sem eles, você tem a função, e não o resultado.</li>
+  <li>Dentro do método, <code>this</code> é o objeto que está <strong>antes do ponto</strong> na chamada. Use <code>this.propriedade</code> para ler e mudar os dados do próprio objeto.</li>
+  <li>Métodos podem mudar o objeto (<code>depositar</code>) ou devolver um valor (<code>total</code>).</li>
+  <li><code>console.log</code>, <code>push</code> e <code>toUpperCase</code> também são métodos.</li>
+  <li>Não escreva métodos com arrow function (o <code>this</code> não funciona); use arrow functions <strong>dentro</strong> dos métodos, nos callbacks.</li>
+  <li>Um método guardado numa variável e chamado sozinho perde o <code>this</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
