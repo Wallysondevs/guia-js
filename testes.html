@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Testes — conferindo o código com node:test e node:assert | Guia JavaScript</title>
+<meta name="description" content="Testes automáticos em JavaScript para quem está começando: o que é um teste, node:assert (equal, deepEqual, throws), o executor de testes do Node (node:test, test, describe, it, todo), node --test e npm test, como ler um teste que falhou, e os erros reais do Node.js 24 (AssertionError, reference-equal, 0.1 + 0.2, type commonjs).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Testes</span> (node:test)</h1>
+
+<p class="intro">Até agora, para saber se um programa estava certo, você rodava e <strong>olhava</strong> a saída. Funciona para programas pequenos. Mas, quando o programa cresce, ninguém consegue olhar tudo de novo a cada mudança, e um conserto aqui quebra uma coisa lá sem ninguém perceber. Um <strong>teste automático</strong> é um pedacinho de código que confere outro pedaço de código: "a função de desconto, com R$ 50 e 10%, tem de dar R$ 45". Você escreve uma vez e o computador confere sempre que você pedir, em menos de um segundo. O Node já vem com tudo o que é preciso para isso: o <code>node:assert</code> e o <code>node:test</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um teste e por que vale a pena escrever um.</li>
+  <li>Como conferir um valor com o <code>node:assert</code>: <code>assert.equal</code>, <code>assert.deepEqual</code>, <code>assert.throws</code>.</li>
+  <li>Como escrever testes com o <code>node:test</code> (<code>test</code>, <code>describe</code>, <code>it</code>) e rodá-los com <code>node --test</code> e <code>npm test</code>.</li>
+  <li>Como ler a saída de um teste que <strong>falhou</strong> e achar o defeito.</li>
+  <li>As armadilhas reais: comparar arrays com <code>equal</code>, o <code>0.1 + 0.2</code> e o <code>"type": "commonjs"</code> do <code>package.json</code>.</li>
+</ul>
+</div>
+
+<p>Todos os comandos desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>loja</code>. Os testes usam <a href="modulos.html">módulos</a> (<code>import</code> e <code>export</code>).</p>
+
+<hr>
+
+<h2>A ideia: o peso-padrão da balança</h2>
+<p>Toda manhã, antes de abrir, o dono da padaria põe um <strong>peso de 1 kg</strong> na balança. Se ela marcar 1,000 kg, está tudo certo e o dia começa. Se marcar 1,050, alguma coisa estragou, e ele descobre <strong>antes</strong> de cobrar errado de um cliente. Ele não pesa todos os pães do dia para conferir; ele usa um caso em que <strong>já sabe a resposta</strong>.</p>
+<p>Um teste é exatamente isso: você chama a sua função com valores para os quais já sabe o resultado certo e manda o computador comparar. Três palavras que você vai ver:</p>
+<ul>
+  <li><strong>valor obtido</strong> (em inglês, <em>actual</em>): o que a função devolveu de verdade;</li>
+  <li><strong>valor esperado</strong> (<em>expected</em>): o que ela deveria devolver;</li>
+  <li><strong>asserção</strong> (<em>assertion</em>, "afirmação"): a linha que afirma "o obtido tem de ser igual ao esperado".</li>
+</ul>
+
+<hr>
+
+<h2>1. A primeira conferência: <code>node:assert</code></h2>
+<p>O módulo <code>node:assert</code> vem com o Node. A versão <code>node:assert/strict</code> ("estrita") compara com <code>===</code>, como este guia recomenda:</p>
+
+<pre class="file" data-file="conferir.js">import assert from "node:assert/strict";
+
+function dobro(n) {
+  return n * 2;
+}
+
+assert.equal(dobro(4), 8);
+assert.equal(dobro(0), 0);
+console.log("Conferências feitas.");
+</pre>
+
+<dl class="anatomy">
+  <dt>import assert from "node:assert/strict";</dt><dd>Traz o módulo de asserções do Node (o <code>node:</code> na frente indica um módulo que já vem com o Node; veja <a href="modulos.html">Módulos</a>).</dd>
+  <dt>assert.equal(obtido, esperado)</dt><dd>"Afirme que são iguais". Primeiro o que a função devolveu, depois o que deveria ser. Se forem iguais (com <code>===</code>), não acontece nada. Se forem diferentes, ele <strong>lança um erro</strong>.</dd>
+  <dt>console.log("Conferências feitas.")</dt><dd>Só chega aqui se nenhuma asserção falhou.</dd>
+</dl>
+
+<pre class="term">$ node conferir.js
+Conferências feitas.
+</pre>
+
+<p>Repare que um <code>assert.equal</code> que passa é <strong>silencioso</strong>. Agora a Ana trocou, sem querer, o <code>*</code> por <code>+</code> na função (<code>return n + 2;</code>) e salvou como <code>conferir-erro.js</code>:</p>
+
+<pre class="term">$ node conferir-erro.js
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+6 !== 8
+
+    at file:///home/ana/loja/conferir-erro.js:7:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)  « linhas internas do Node cortadas
+    …
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 6,
+  expected: 8,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>node:internal/modules/run_main:107 … triggerUncaughtException(</dt><dd>As três primeiras linhas apontam para dentro do próprio Node, e não para o seu arquivo: é o jeito como um erro não tratado aparece num <strong>módulo</strong> (arquivo com <code>import</code>). Pode ignorar; a informação útil vem embaixo.</dd>
+  <dt>AssertionError [ERR_ASSERTION]</dt><dd>"Erro de asserção": uma afirmação não se confirmou. O código <code>ERR_ASSERTION</code> é a etiqueta do erro.</dd>
+  <dt>Expected values to be strictly equal: 6 !== 8</dt><dd>"Esperava que os valores fossem estritamente iguais: 6 é diferente de 8". O 6 é o que a função devolveu; o 8, o que você esperava.</dd>
+  <dt>at file:///home/ana/loja/conferir-erro.js:7:8</dt><dd>Onde: linha 7, coluna 8, a do primeiro <code>assert.equal</code>. Em módulos, o caminho vem como endereço <code>file:///</code>.</dd>
+  <dt>actual: 6, expected: 8, operator: 'strictEqual'</dt><dd>Os detalhes, em forma de objeto: o obtido, o esperado e a comparação usada (<code>strictEqual</code> = "estritamente igual", o <code>===</code>).</dd>
+</dl>
+
+<p>E o <code>Conferências feitas.</code> não apareceu: o erro parou o programa. O <code>assert</code> sozinho já é útil, mas tem um limite: <strong>a primeira falha para tudo</strong>, e você não fica sabendo se as outras conferências passariam. É para isso que existe o executor de testes da próxima seção.</p>
+
+<div class="tryjs" data-goal="out:Conferências feitas.;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função de desconto está errada: ela subtrai a porcentagem como se fosse dinheiro. Rode, leia o <code>AssertionError</code> (o obtido e o esperado) e conserte a <strong>função</strong> (não as conferências!) para calcular a porcentagem do preço: <code>preco - (preco * porcentagem) / 100</code>.</p>
+<pre class="script" data-file="main.js">import assert from "node:assert/strict";
+
+function precoComDesconto(preco, porcentagem) {
+  return preco - porcentagem;
+}
+
+assert.equal(precoComDesconto(50, 10), 45);
+assert.equal(precoComDesconto(50, 0), 50);
+assert.equal(precoComDesconto(20, 50), 10);
+console.log("Conferências feitas.");
+</pre>
+<pre class="solucao" data-file="main.js">import assert from "node:assert/strict";
+
+function precoComDesconto(preco, porcentagem) {
+  return preco - (preco * porcentagem) / 100;
+}
+
+assert.equal(precoComDesconto(50, 10), 45);
+assert.equal(precoComDesconto(50, 0), 50);
+assert.equal(precoComDesconto(20, 50), 10);
+console.log("Conferências feitas.");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O executor de testes: <code>node:test</code></h2>
+<p>Na vida real, os testes ficam num <strong>arquivo separado</strong> do código que eles conferem. A Ana pôs a função no <code>precos.js</code> (ainda com o defeito da missão acima, para ver o que acontece):</p>
+
+<pre class="file" data-file="precos.js">export function precoComDesconto(preco, porcentagem) {
+  return preco - porcentagem;
+}
+</pre>
+
+<p>E os testes no <code>precos.test.js</code>. O <code>.test.js</code> no fim do nome é um combinado: é assim que o Node sabe que o arquivo tem testes.</p>
+
+<pre class="file" data-file="precos.test.js">import { test } from "node:test";
+import assert from "node:assert/strict";
+import { precoComDesconto } from "./precos.js";
+
+test("10% de desconto em R$ 50 dá R$ 45", () =&gt; {
+  assert.equal(precoComDesconto(50, 10), 45);
+});
+
+test("sem desconto, o preço não muda", () =&gt; {
+  assert.equal(precoComDesconto(50, 0), 50);
+});
+
+test("50% de desconto em R$ 20 dá R$ 10", () =&gt; {
+  assert.equal(precoComDesconto(20, 50), 10);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>import { test } from "node:test";</dt><dd>Traz a função <code>test</code> do executor de testes do Node (estável desde o Node 20).</dd>
+  <dt>import { precoComDesconto } from "./precos.js";</dt><dd>Traz a função que vai ser conferida, do outro arquivo.</dd>
+  <dt>test("descrição", () =&gt; { … })</dt><dd>Um <strong>teste</strong>: um nome que diz, em português, o que está sendo conferido, e uma <a href="arrow-functions.html">arrow function</a> com as asserções. Se nada lançar erro dentro dela, o teste <strong>passa</strong>; se alguma asserção falhar, o teste <strong>falha</strong>, e o executor <strong>continua</strong> para o próximo.</dd>
+</dl>
+
+<p>Para rodar, a Ana usou <code>node --test</code> na pasta <code>loja</code>. Ele procura sozinho os arquivos de teste da pasta (e das subpastas) e roda todos:</p>
+
+<pre class="term">$ node --test
+✖ 10% de desconto em R$ 50 dá R$ 45 (1.626942ms)
+✔ sem desconto, o preço não muda (0.18082ms)
+✖ 50% de desconto em R$ 20 dá R$ 10 (0.214001ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.779834
+
+✖ failing tests:
+
+test at precos.test.js:5:1
+✖ 10% de desconto em R$ 50 dá R$ 45 (1.626942ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  40 !== 45
+
+      at TestContext.&lt;anonymous&gt; (file:///home/ana/loja/precos.test.js:6:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)  « linhas internas do Node cortadas
+      …
+    actual: 40,
+    expected: 45,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at precos.test.js:13:1
+✖ 50% de desconto em R$ 20 dá R$ 10 (0.214001ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  -30 !== 10
+
+      at TestContext.&lt;anonymous&gt; (file:///home/ana/loja/precos.test.js:14:10)
+      …  « linhas internas e detalhes cortados
+  }
+$ echo $?
+1
+</pre>
+
+<p>A saída tem três partes:</p>
+<ol class="passo">
+  <li><strong>Um teste por linha:</strong> <code>✔</code> passou, <code>✖</code> falhou, com o nome que você deu e quanto tempo levou (os milissegundos mudam a cada vez).</li>
+  <li><strong>O placar</strong> (as linhas com <code>ℹ</code>, "informação"): 3 testes (<code>tests</code>), 1 passou (<code>pass</code>), 2 falharam (<code>fail</code>), nenhum cancelado (<code>cancelled</code>), pulado (<code>skipped</code>) ou por fazer (<code>todo</code>); <code>suites</code> são os grupos, que você vê na seção 4; <code>duration_ms</code> é o tempo total.</li>
+  <li><strong>Os que falharam</strong> (<code>failing tests</code>), um por um: onde o teste está (<code>precos.test.js:5:1</code>, linha 5), o <code>AssertionError</code> com o obtido e o esperado (<code>40 !== 45</code>) e a linha exata da asserção (<code>precos.test.js:6:10</code>).</li>
+</ol>
+
+<p>Com isso dá para investigar: com 10% de R$ 50 veio 40 (tirou R$ 10, e não 10%); com 50% de R$ 20 veio -30 (tirou R$ 50!). O teste do meio passou por sorte: tirar 0 reais e tirar 0% dá na mesma. O <code>echo $?</code> mostra o código de saída 1, que quer dizer "algum teste falhou" (um programa que publica o site, por exemplo, pode se recusar a continuar).</p>
+
+<p>A Ana consertou a função no <code>precos.js</code> (<code>return preco - (preco * porcentagem) / 100;</code>) e rodou de novo:</p>
+
+<pre class="term">$ node --test
+✔ 10% de desconto em R$ 50 dá R$ 45 (0.746658ms)
+✔ sem desconto, o preço não muda (0.131595ms)
+✔ 50% de desconto em R$ 20 dá R$ 10 (0.118097ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76.775311
+</pre>
+
+<p>Tudo verde (no terminal, os <code>✔</code> aparecem em verde e os <code>✖</code> em vermelho). Daqui para a frente, toda vez que alguém mexer no <code>precos.js</code>, basta um <code>node --test</code> para saber se o desconto continua certo.</p>
+
+<h3>Quais arquivos o <code>node --test</code> roda</h3>
+<p>Sem nenhum nome de arquivo, o <code>node --test</code> procura na pasta atual e nas subpastas arquivos <code>.js</code>, <code>.mjs</code> ou <code>.cjs</code> com estes nomes (segundo a documentação do Node 24):</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Formato do nome</th><th>Exemplo</th></tr>
+<tr><td><code>*.test.js</code></td><td><code>precos.test.js</code> (o mais comum)</td></tr>
+<tr><td><code>*-test.js</code> e <code>*_test.js</code></td><td><code>precos-test.js</code>, <code>precos_test.js</code></td></tr>
+<tr><td><code>test-*.js</code></td><td><code>test-precos.js</code></td></tr>
+<tr><td><code>test.js</code></td><td><code>test.js</code></td></tr>
+<tr><td>qualquer arquivo dentro de uma pasta <code>test</code></td><td><code>test/precos.js</code></td></tr>
+</table>
+</div>
+<p>Você também pode dizer quais arquivos rodar: <code>node --test precos.test.js</code>. E um arquivo de teste é um programa comum: <code>node precos.test.js</code> também roda os testes dele (só os dele).</p>
+
+<hr>
+
+<h2>3. Outras conferências</h2>
+<p>O <code>assert.equal</code> compara com <code>===</code>. Isso serve para números, textos e booleanos, mas <strong>não</strong> para arrays e objetos: dois arrays com o mesmo conteúdo são caixas diferentes (veja <a href="objetos-referencia.html">Objetos são Referências</a>). Para eles existe o <code>deepEqual</code> ("igual em profundidade"), que compara o conteúdo, item por item. E para conferir que uma função <strong>dá erro</strong> quando deve, existe o <code>throws</code> ("lança").</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Asserção (de <code>node:assert/strict</code>)</th><th>Passa quando…</th></tr>
+<tr><td><code>assert.equal(obtido, esperado)</code></td><td><code>obtido === esperado</code> (números, textos, booleanos)</td></tr>
+<tr><td><code>assert.notEqual(obtido, outro)</code></td><td>são diferentes</td></tr>
+<tr><td><code>assert.deepEqual(obtido, esperado)</code></td><td>arrays/objetos com o mesmo conteúdo</td></tr>
+<tr><td><code>assert.ok(valor)</code></td><td>o valor é <a href="truthy-falsy.html">truthy</a> (por exemplo, <code>true</code>)</td></tr>
+<tr><td><code>assert.throws(() =&gt; …, /mensagem/)</code></td><td>a função lança um erro cuja mensagem casa com a <a href="regex.html">regex</a></td></tr>
+<tr><td><code>assert.match(texto, /regex/)</code></td><td>o texto casa com a regex</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>4. Organizando: <code>describe</code> e <code>it</code></h2>
+<p>Quando há muitos testes, eles se agrupam por assunto. O <code>describe</code> ("descreva") cria um grupo (o Node chama de <em>suite</em>); dentro dele, cada teste se escreve com <code>it</code> ("ele"), que é o mesmo que <code>test</code> com outro nome: lido em inglês, <code>it("põe o item no fim")</code> soa como uma frase sobre a função. A Ana escreveu o carrinho da lojinha:</p>
+
+<pre class="file" data-file="carrinho.js">export function adicionarItem(carrinho, item) {
+  return [...carrinho, item];
+}
+
+export function totalDoCarrinho(carrinho) {
+  let total = 0;
+  for (const item of carrinho) {
+    if (item.preco &lt; 0) {
+      throw new Error(`Preço negativo: ${item.nome}`);
+    }
+    total += item.preco * item.quantidade;
+  }
+  return total;
+}
+</pre>
+
+<p>E os testes, no <code>carrinho.test.js</code>:</p>
+
+<pre class="file" data-file="carrinho.test.js">import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { adicionarItem, totalDoCarrinho } from "./carrinho.js";
+
+describe("adicionarItem", () =&gt; {
+  it("põe o item no fim", () =&gt; {
+    const carrinho = adicionarItem([], { nome: "pão", preco: 0.75, quantidade: 10 });
+    assert.deepEqual(carrinho, [{ nome: "pão", preco: 0.75, quantidade: 10 }]);
+  });
+
+  it("não muda o carrinho original", () =&gt; {
+    const original = [];
+    adicionarItem(original, { nome: "leite", preco: 5, quantidade: 1 });
+    assert.equal(original.length, 0);
+  });
+});
+
+describe("totalDoCarrinho", () =&gt; {
+  it("soma preço vezes quantidade", () =&gt; {
+    const carrinho = [
+      { nome: "pão", preco: 0.75, quantidade: 10 },
+      { nome: "leite", preco: 5, quantidade: 2 },
+    ];
+    assert.equal(totalDoCarrinho(carrinho), 17.5);
+  });
+
+  it("carrinho vazio dá zero", () =&gt; {
+    assert.equal(totalDoCarrinho([]), 0);
+  });
+
+  it("recusa preço negativo", () =&gt; {
+    assert.throws(
+      () =&gt; totalDoCarrinho([{ nome: "bolo", preco: -1, quantidade: 1 }]),
+      /Preço negativo: bolo/,
+    );
+  });
+
+  it.todo("aplicar cupom de desconto");
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>describe("adicionarItem", () =&gt; { … })</dt><dd>Um grupo com os testes de uma função.</dd>
+  <dt>assert.deepEqual(carrinho, [ … ])</dt><dd>Compara o array devolvido com o esperado, item por item, propriedade por propriedade.</dd>
+  <dt>"não muda o carrinho original"</dt><dd>Teste de uma regra importante: a função devolve um carrinho <strong>novo</strong> (veja <a href="imutabilidade.html">Imutabilidade</a>).</dd>
+  <dt>"carrinho vazio dá zero"</dt><dd>Teste de um <strong>caso de borda</strong>: o vazio, o zero, o negativo. É nas bordas que os defeitos se escondem.</dd>
+  <dt>assert.throws(() =&gt; …, /Preço negativo: bolo/)</dt><dd>Passa se a chamada <strong>lançar</strong> um erro com essa mensagem (veja <a href="throw.html">throw</a>). A chamada vai dentro de uma arrow function para o <code>assert</code> poder rodá-la e "pegar" o erro.</dd>
+  <dt>it.todo("…")</dt><dd>"Por fazer": um teste que você ainda vai escrever. Ele aparece na lista como lembrete e não conta como falha. (Existe também o <code>it.skip</code>, "pular", para desligar um teste por um tempo.)</dd>
+</dl>
+
+<pre class="term">$ node --test
+▶ adicionarItem
+  ✔ põe o item no fim (2.145459ms)
+  ✔ não muda o carrinho original (0.185532ms)
+✔ adicionarItem (3.958783ms)
+▶ totalDoCarrinho
+  ✔ soma preço vezes quantidade (0.221071ms)
+  ✔ carrinho vazio dá zero (0.112547ms)
+  ✔ recusa preço negativo (0.399583ms)
+  ✔ aplicar cupom de desconto (0.853729ms) # TODO
+✔ totalDoCarrinho (1.92443ms)
+✔ 10% de desconto em R$ 50 dá R$ 45 (1.158881ms)
+✔ sem desconto, o preço não muda (0.134794ms)
+✔ 50% de desconto em R$ 20 dá R$ 10 (0.127758ms)
+ℹ tests 9
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 1
+ℹ duration_ms 80.876977
+</pre>
+
+<p>O <code>node --test</code> rodou os <strong>dois</strong> arquivos de teste da pasta. Cada grupo aparece com <code>▶</code> e os testes dele indentados embaixo; o <code>todo</code> ganhou a marca <code># TODO</code>. No placar: 9 testes, 2 grupos (<code>suites</code>), 8 passaram e 1 está por fazer.</p>
+
+<hr>
+
+<h2>5. <code>npm test</code></h2>
+<p>Num projeto com <a href="package-json.html">package.json</a>, o combinado é que <code>npm test</code> rode os testes, seja qual for a ferramenta. A Ana criou o <code>package.json</code> com <code>npm init -y</code> e configurou dois campos com <code>npm pkg set</code>: o script de teste e o tipo de módulo (o porquê está em <a href="#errado">Quando dá errado</a>):</p>
+
+<pre class="term">$ npm pkg set scripts.test="node --test"
+$ npm pkg set type=module
+$ cat package.json
+{
+  "name": "loja",
+  "version": "1.0.0",
+  "description": "",
+  "main": "carrinho.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
+$ npm test
+
+&gt; loja@1.0.0 test
+&gt; node --test
+
+▶ adicionarItem
+  ✔ põe o item no fim (1.160385ms)
+  ✔ não muda o carrinho original (1.313222ms)
+✔ adicionarItem (4.43482ms)
+▶ totalDoCarrinho
+  ✔ soma preço vezes quantidade (0.233058ms)
+  ✔ carrinho vazio dá zero (0.119043ms)
+  ✔ recusa preço negativo (0.409845ms)
+  ✔ aplicar cupom de desconto (0.088182ms) # TODO
+✔ totalDoCarrinho (1.188563ms)
+✔ 10% de desconto em R$ 50 dá R$ 45 (0.899368ms)
+✔ sem desconto, o preço não muda (0.16846ms)
+✔ 50% de desconto em R$ 20 dá R$ 10 (0.119868ms)
+ℹ tests 9
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 1
+ℹ duration_ms 84.937028
+</pre>
+
+<p>As duas linhas com <code>&gt;</code> são o npm avisando qual script está rodando (<code>loja@1.0.0 test</code>) e o comando dele (<code>node --test</code>). Daí para baixo, é a mesma saída de antes.</p>
+
+<div class="tip">
+<strong>Mais opções do <code>node --test</code></strong>
+<p><code>node --test --watch</code> fica de olho nos arquivos e roda os testes de novo a cada vez que você salva (<kbd>Ctrl</kbd>+<kbd>C</kbd> para sair). <code>node --test --experimental-test-coverage</code> mostra quanto do seu código os testes alcançaram. A documentação do Node 24 marca as duas como <strong>experimentais</strong> (podem mudar em versões futuras). E as bibliotecas de teste famosas, como o Jest e o Vitest, seguem as mesmas ideias: <code>describe</code>, <code>it</code>, "esperado × obtido".</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de conferir</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Conferir de olho, uma vez, num programa pequeno</td><td><code>console.log</code></td></tr>
+<tr><td>Uma conferência rápida dentro do próprio programa</td><td><code>assert.equal</code> solto (a primeira falha para tudo)</td></tr>
+<tr><td>Um conjunto de testes que você roda sempre</td><td>arquivos <code>*.test.js</code> com <code>test</code> + <code>node --test</code></td></tr>
+<tr><td>Muitos testes, de várias funções</td><td><code>describe</code> + <code>it</code></td></tr>
+<tr><td>Projeto com <code>package.json</code></td><td><code>"test": "node --test"</code> e <code>npm test</code></td></tr>
+<tr><td>Projeto que já usa Jest ou Vitest</td><td>a ferramenta do projeto (a ideia é a mesma)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Comparou arrays (ou objetos) com <code>equal</code></strong>
+<pre class="file" data-file="lista.test.js">import { test } from "node:test";
+import assert from "node:assert/strict";
+
+test("lista de compras", () =&gt; {
+  const lista = ["pão", "leite"];
+  assert.equal(lista, ["pão", "leite"]);
+});
+</pre>
+<pre class="term">$ node --test lista.test.js
+✖ lista de compras (2.033884ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.602358
+
+✖ failing tests:
+
+test at lista.test.js:4:1
+✖ lista de compras (2.033884ms)
+  AssertionError [ERR_ASSERTION]: Values have same structure but are not reference-equal:
+
+  [
+    'pão',
+    'leite'
+  ]
+
+      at TestContext.&lt;anonymous&gt; (file:///home/ana/erros/lista.test.js:6:10)
+      …  « linhas internas e detalhes cortados
+  }
+</pre>
+<p>"Os valores têm a mesma estrutura, mas não são iguais por referência". O Node até percebeu que o conteúdo é o mesmo, mas o <code>equal</code> usa <code>===</code>, e os dois arrays são caixas diferentes. <strong>Como consertar:</strong> <code>assert.deepEqual(lista, ["pão", "leite"])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Conta com decimais que "deveria" dar certo</strong>
+<pre class="file" data-file="conta.test.js">import { test } from "node:test";
+import assert from "node:assert/strict";
+
+test("troco", () =&gt; {
+  assert.equal(0.1 + 0.2, 0.3);
+});
+</pre>
+<pre class="term">$ node --test conta.test.js
+✖ troco (1.948656ms)
+…  « placar cortado (1 teste, 1 falha)
+
+✖ failing tests:
+
+test at conta.test.js:4:1
+✖ troco (1.948656ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 0.30000000000000004
+  - 0.3
+       ^
+
+      at TestContext.&lt;anonymous&gt; (file:///home/ana/erros/conta.test.js:5:10)
+      …  « linhas internas e detalhes cortados
+  }
+</pre>
+<p>Desta vez o Node mostrou uma <strong>diferença</strong> (<em>diff</em>): a linha com <code>+</code> é o obtido (<em>actual</em>), a com <code>-</code> é o esperado (<em>expected</em>), e o <code>^</code> aponta onde elas começam a diferir. É a imprecisão dos números com vírgula do computador (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). <strong>Como consertar:</strong> compare arredondando (<code>assert.equal(Number((0.1 + 0.2).toFixed(2)), 0.3)</code>) ou conferindo se a diferença é minúscula (<code>assert.ok(Math.abs(obtido - 0.3) &lt; 0.000001)</code>). Em dinheiro, muita gente trabalha em centavos inteiros.</p>
+</div>
+
+<div class="cenario">
+<strong><code>npm test</code> dá <code>Cannot use import statement outside a module</code></strong>
+<p>Antes de a Ana mudar o <code>"type"</code>, o <code>npm test</code> falhou assim (um bloco desses para cada arquivo de teste):</p>
+<pre class="term">$ npm test
+
+&gt; loja@1.0.0 test
+&gt; node --test
+
+(node:85) Warning: Failed to load the ES module: /home/ana/loja/carrinho.test.js. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+/home/ana/loja/carrinho.test.js:1
+import { describe, it } from "node:test";
+^^^^^^
+
+SyntaxError: Cannot use import statement outside a module
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+✖ carrinho.test.js (42.312299ms)
+…  « o mesmo para o precos.test.js, e o placar: 2 testes, 2 falhas
+</pre>
+<p>"Não é possível usar a instrução <code>import</code> fora de um módulo", e o aviso de cima diz como resolver: "ponha <code>"type": "module"</code> no <code>package.json</code> mais próximo, ou use a extensão <code>.mjs</code>". O motivo: o <code>npm init -y</code> do npm que vem com o Node 24 cria o <code>package.json</code> com <code>"type": "commonjs"</code>, o que manda o Node tratar todo <code>.js</code> da pasta como <a href="modulos-commonjs.html">CommonJS</a> (o jeito antigo, com <code>require</code>). Sem <code>package.json</code>, o Node percebe o <code>import</code> sozinho, e por isso o <code>node --test</code> funcionava antes. <strong>Como consertar:</strong> <code>npm pkg set type=module</code> (ou troque o <code>"commonjs"</code> por <code>"module"</code> à mão).</p>
+</div>
+
+<div class="cenario">
+<strong><code>node --test</code> não acha nenhum teste</strong>
+<pre class="term">$ node --test
+ℹ tests 0
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9.919153
+$ echo $?
+0
+</pre>
+<p>Zero testes, e o código de saída é 0, como se estivesse tudo bem! Aconteceu numa pasta sem nenhum arquivo de teste. Se você esperava testes, confira o <strong>nome</strong> dos arquivos (<code>precos.test.js</code>, e não <code>precos.teste.js</code> nem <code>testes-precos.js</code>; veja a tabela da seção 2) e se você está na pasta certa (<code>pwd</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>O teste passa, mas a função está errada</strong>
+<p>Um teste sem asserção nenhuma, ou com o valor esperado errado, sempre "passa". Foi o que aconteceu com o teste "sem desconto" da seção 2: ele passou com a função errada, porque 0 reais e 0% dão o mesmo resultado. <strong>Como evitar:</strong> escreva testes com valores que <strong>diferenciam</strong> o certo do errado, e, de vez em quando, estrague a função de propósito para ver o teste ficar vermelho.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>import assert from "node:assert/strict";</code></td><td>Traz as asserções (comparação com <code>===</code>)</td></tr>
+<tr><td><code>import { test, describe, it } from "node:test";</code></td><td>Traz o executor de testes</td></tr>
+<tr><td><code>test("nome", () =&gt; { … })</code></td><td>Um teste</td></tr>
+<tr><td><code>describe("grupo", () =&gt; { it("…", () =&gt; { … }) })</code></td><td>Um grupo de testes</td></tr>
+<tr><td><code>test.todo("…")</code> / <code>test.skip("…", …)</code></td><td>Por fazer / Pulado</td></tr>
+<tr><td><code>node --test</code></td><td>Roda todos os arquivos de teste da pasta</td></tr>
+<tr><td><code>node --test arquivo.test.js</code></td><td>Roda só esse arquivo</td></tr>
+<tr><td><code>npm test</code></td><td>Roda o script <code>"test"</code> do <code>package.json</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Expected values to be strictly equal: A !== B</code></td><td>O obtido (A) não é o esperado (B): defeito na função, ou no esperado</td></tr>
+<tr><td><code>Values have same structure but are not reference-equal</code></td><td>Comparou arrays/objetos com <code>equal</code>: use <code>deepEqual</code></td></tr>
+<tr><td><code>+ 0.30000000000000004 / - 0.3</code></td><td>Imprecisão dos decimais: arredonde antes de comparar</td></tr>
+<tr><td><code>Missing expected exception.</code></td><td><code>assert.throws</code>, mas a função não lançou erro</td></tr>
+<tr><td><code>Cannot use import statement outside a module</code></td><td><code>"type": "commonjs"</code> no <code>package.json</code>: troque para <code>"module"</code></td></tr>
+<tr><td><code>ℹ tests 0</code></td><td>Nenhum arquivo com nome de teste na pasta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete a conferência de que <code>dobro(5)</code> dá 10:</p>
+<div class="ex-code">assert.<input data-answer="equal|strictEqual" aria-label="método de asserção">(dobro(5), <input data-answer="10" aria-label="valor esperado">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. O comando</h3>
+<p>Qual comando roda todos os arquivos <code>*.test.js</code> da pasta? (sem o <code>$</code>)</p>
+<div class="ex-code"><input data-answer="node --test" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual asserção serve para conferir que <code>pegarNotas()</code> devolve <code>[7, 9]</code>?</p>
+<label><input type="radio" name="q3"> <code>assert.equal(pegarNotas(), [7, 9])</code></label>
+<label><input type="radio" name="q3"> <code>assert.ok(pegarNotas())</code></label>
+<label><input type="radio" name="q3"> <code>assert.deepEqual(pegarNotas(), [7, 9])</code></label>
+<label><input type="radio" name="q3"> <code>assert.throws(pegarNotas)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Na saída <code>Expected values to be strictly equal: 40 !== 45</code>, o que é o 40?</p>
+<label><input type="radio" name="q4"> O valor esperado</label>
+<label><input type="radio" name="q4"> O valor que a função devolveu (o obtido)</label>
+<label><input type="radio" name="q4"> O número da linha do erro</label>
+<label><input type="radio" name="q4"> Quantos testes passaram</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Com o <code>node:test</code>, o que acontece quando um teste falha?</p>
+<label><input type="radio" name="q5"> Ele é marcado com ✖ e os outros testes continuam rodando</label>
+<label><input type="radio" name="q5"> Todos os testes param na hora</label>
+<label><input type="radio" name="q5"> O Node conserta a função sozinho</label>
+<label><input type="radio" name="q5"> Nada: falhas só aparecem com <code>--watch</code></label>
+</div>
+
+<h3>Missão final: conferindo a situação do aluno</h3>
+
+<div class="tryjs" data-goal="src:assert\.(strictE|e)qual\(\s*situacao\(\s*9\s*\);;src:assert\.(strictE|e)qual\(\s*situacao\(\s*5\s*\);;src:assert\.(strictE|e)qual\(\s*situacao\(\s*2\s*\);;out:Conferências feitas.;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função <code>situacao</code> já está pronta. Escreva, no lugar dos comentários, três conferências com <code>assert.equal</code>: nota 9 dá <code>"aprovada"</code>, nota 5 dá <code>"recuperação"</code> e nota 2 dá <code>"reprovada"</code>. Depois, por curiosidade, estrague a função (troque o <code>&gt;= 7</code> por <code>&gt; 9</code>) e veja qual conferência reclama.</p>
+<pre class="script" data-file="main.js">import assert from "node:assert/strict";
+
+function situacao(nota) {
+  if (nota &gt;= 7) {
+    return "aprovada";
+  }
+  if (nota &gt;= 4) {
+    return "recuperação";
+  }
+  return "reprovada";
+}
+
+// confira a nota 9
+// confira a nota 5
+// confira a nota 2
+console.log("Conferências feitas.");
+</pre>
+<pre class="solucao" data-file="main.js">import assert from "node:assert/strict";
+
+function situacao(nota) {
+  if (nota &gt;= 7) {
+    return "aprovada";
+  }
+  if (nota &gt;= 4) {
+    return "recuperação";
+  }
+  return "reprovada";
+}
+
+assert.equal(situacao(9), "aprovada");
+assert.equal(situacao(5), "recuperação");
+assert.equal(situacao(2), "reprovada");
+console.log("Conferências feitas.");
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Conferências feitas.</code>. Com a função estragada (<code>nota &gt; 9</code>), a primeira conferência falhou, mostrando a diferença: <code>+ 'recuperação'</code> (o obtido) e <code>- 'aprovada'</code> (o esperado).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>teste</strong> chama o seu código com valores de resposta conhecida e compara o <strong>obtido</strong> com o <strong>esperado</strong>.</li>
+  <li><code>node:assert/strict</code>: <code>equal</code> (números e textos), <code>deepEqual</code> (arrays e objetos), <code>throws</code> (a função tem de lançar erro), <code>ok</code>. Uma asserção que falha lança <code>AssertionError</code>.</li>
+  <li><code>node:test</code>: cada <code>test("nome", () =&gt; { … })</code> é um teste; <code>describe</code>/<code>it</code> agrupam; <code>todo</code> e <code>skip</code> marcam o que falta ou está desligado.</li>
+  <li><code>node --test</code> roda todos os arquivos <code>*.test.js</code> (e outros nomes combinados); a saída mostra ✔/✖, o placar e o detalhe de cada falha. Código de saída 1 = algum teste falhou.</li>
+  <li>Com <code>package.json</code>: <code>"scripts": { "test": "node --test" }</code>, <code>"type": "module"</code> para usar <code>import</code>, e <code>npm test</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
