@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript console.error, warn e table — mensagens de erro, avisos e tabelas | Guia JavaScript</title>
+<meta name="description" content="Os outros métodos do console para quem nunca programou: console.error e console.warn (a saída de erro, stderr, separada com 2&gt;), console.info e console.debug, console.table com listas, objetos e listas de objetos, console.count, console.group e console.time, com as saídas reais do Node.js 24 e os erros mais comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">console.error, warn e table</span></h1>
+
+<p class="intro">Na aula <a href="console-log.html">console.log()</a> você aprendeu a mostrar qualquer coisa na tela. Mas o <code>console</code> (em inglês, "painel de controle"; aqui, o lugar onde o programa escreve as suas mensagens) tem outras ferramentas além do <code>log</code>. Duas delas servem para <strong>avisar que algo deu errado</strong> (<code>console.error</code> e <code>console.warn</code>) e uma serve para <strong>mostrar dados em forma de tabela</strong> (<code>console.table</code>), do jeito que a Ana confere o estoque da padaria num caderno quadriculado.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Para que serve o <code>console.error</code> ("erro") e por que a mensagem dele vai para um "canal" separado: a <strong>saída de erro</strong>.</li>
+  <li>Como separar as mensagens normais das de erro no terminal, com <code>&gt;</code> e <code>2&gt;</code>.</li>
+  <li>O <code>console.warn</code> ("aviso"), o <code>console.info</code> ("informação") e o <code>console.debug</code> ("depuração").</li>
+  <li>Como mostrar uma lista, um objeto ou uma lista de objetos como <strong>tabela</strong>, com <code>console.table</code>, e como escolher as colunas.</li>
+  <li>Três ajudantes: <code>console.count</code> (contar), <code>console.group</code> (agrupar) e <code>console.time</code> (cronometrar).</li>
+  <li>Os erros reais mais comuns: o nome do método escrito errado, o <code>Console</code> com C maiúsculo e as aspas que não fecham.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: o recado normal e o bilhete vermelho</h2>
+<p>Na padaria do bairro, o funcionário do caixa anota tudo num caderno: "abri o caixa", "vendi 6 pães", "fechei o caixa". Quando acontece um problema (a máquina de cartão não liga, o pão acabou), ele não escreve no meio do caderno: ele cola um <strong>bilhete vermelho na geladeira</strong>, para o dono ver logo.</p>
+<p>Um programa faz a mesma coisa. Ele tem <strong>dois canais</strong> de saída:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Canal</th><th>Nome técnico</th><th>Quem escreve nele</th><th>Na padaria</th></tr>
+<tr><td>A <strong>saída padrão</strong></td><td><code>stdout</code> ("standard output")</td><td><code>console.log</code>, <code>console.info</code>, <code>console.debug</code>, <code>console.table</code></td><td>O caderno do dia a dia</td></tr>
+<tr><td>A <strong>saída de erro</strong></td><td><code>stderr</code> ("standard error")</td><td><code>console.error</code>, <code>console.warn</code></td><td>O bilhete vermelho na geladeira</td></tr>
+</table>
+</div>
+<p>No terminal, os dois canais aparecem misturados na mesma tela, e à primeira vista não há diferença nenhuma. A diferença aparece quando você quer <strong>separar</strong> um do outro, como você vai ver na seção 2.</p>
+
+<hr>
+
+<h2>1. <code>console.error()</code>: avisar que algo deu errado</h2>
+
+<pre class="file" data-file="caixa.js">console.log("Abrindo o caixa da padaria...");
+console.error("Erro: o preço do pão está vazio!");
+console.log("Caixa aberto.");
+</pre>
+
+<dl class="anatomy">
+  <dt>console</dt><dd>O mesmo objeto do <code>console.log</code>: a "caixa de ferramentas" para escrever mensagens.</dd>
+  <dt>.error</dt><dd>O ponto quer dizer "de dentro do <code>console</code>, use a ferramenta…". <code>error</code> é "erro" em inglês.</dd>
+  <dt>("Erro: o preço do pão está vazio!")</dt><dd>O que vai ser escrito, entre parênteses, igual ao <code>console.log</code>. Pode ser um texto, um número, uma variável, ou vários valores separados por vírgula.</dd>
+  <dt>;</dt><dd>O ponto e vírgula fecha a instrução (veja <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>).</dd>
+</dl>
+
+<pre class="term">$ node caixa.js
+Abrindo o caixa da padaria...
+Erro: o preço do pão está vazio!
+Caixa aberto.
+$ echo $?
+0
+</pre>
+
+<p>Repare em três coisas:</p>
+<ul>
+  <li>As três linhas apareceram <strong>na ordem</strong> em que o programa as escreveu. No terminal da Ana, a linha do <code>console.error</code> tem a mesma cara das outras.</li>
+  <li>O programa <strong>continuou</strong> depois do <code>console.error</code>: o <code>Caixa aberto.</code> apareceu. O <code>console.error</code> só <strong>escreve</strong> uma mensagem; ele não para o programa nem cria um erro de verdade. (Erros de verdade, que param o programa, são o assunto de <a href="erros.html">Erros</a> e <a href="throw.html">throw</a>.)</li>
+  <li>O código de saída (o <code>echo $?</code>, que mostra como o último programa terminou) foi <code>0</code>, que quer dizer "terminou bem". Para o Node, escrever no canal de erro não é falhar.</li>
+</ul>
+
+<div class="tip">
+<strong>E no navegador?</strong>
+<p>No Console do navegador (o <kbd>F12</kbd>, veja <a href="console-navegador.html">O Console do Navegador</a>), as mensagens do <code>console.error</code> aparecem com fundo <strong>vermelho</strong> e as do <code>console.warn</code>, com fundo <strong>amarelo</strong>. Lá a diferença salta aos olhos. No terminal do Node, o que muda é o canal.</p>
+</div>
+
+<hr>
+
+<h2>2. Separando os dois canais no terminal: <code>&gt;</code> e <code>2&gt;</code></h2>
+<p>O terminal deixa você mandar a saída de um programa para um arquivo, em vez da tela. O sinal <code>&gt;</code> manda <strong>só a saída padrão</strong> para o arquivo. O que sobra na tela é a saída de erro:</p>
+
+<pre class="term">$ node caixa.js &gt; saida.txt
+Erro: o preço do pão está vazio!
+$ cat saida.txt
+Abrindo o caixa da padaria...
+Caixa aberto.
+</pre>
+
+<p>As duas linhas do <code>console.log</code> foram para o arquivo <code>saida.txt</code> (o <code>cat</code> mostra o conteúdo de um arquivo). A linha do <code>console.error</code> <strong>não foi</strong>: ela continuou na tela. É o bilhete vermelho que não vai para o caderno. Isso é útil de verdade: um programa que gera um relatório pode mandar o relatório para um arquivo e, mesmo assim, avisar você na tela se alguma coisa der errado.</p>
+
+<p>O contrário também funciona. <code>2&gt;</code> manda <strong>só a saída de erro</strong> para o arquivo (o <code>2</code> é o número que o sistema dá para o canal de erro; o <code>1</code>, que fica escondido no <code>&gt;</code> sozinho, é a saída padrão):</p>
+
+<pre class="term">$ node caixa.js 2&gt; erros.txt
+Abrindo o caixa da padaria...
+Caixa aberto.
+$ cat erros.txt
+Erro: o preço do pão está vazio!
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No terminal</th><th>O que vai para o arquivo</th><th>O que fica na tela</th></tr>
+<tr><td><code>node caixa.js</code></td><td>nada</td><td>tudo</td></tr>
+<tr><td><code>node caixa.js &gt; saida.txt</code></td><td><code>console.log</code> (saída padrão)</td><td><code>console.error</code> (saída de erro)</td></tr>
+<tr><td><code>node caixa.js 2&gt; erros.txt</code></td><td><code>console.error</code> (saída de erro)</td><td><code>console.log</code> (saída padrão)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Atenção: <code>&gt;</code> apaga o que havia no arquivo</strong>
+<p>Se o <code>saida.txt</code> já existir, o <code>&gt;</code> joga fora o conteúdo antigo e escreve o novo. Para <strong>acrescentar</strong> no fim, sem apagar, use <code>&gt;&gt;</code> (ou <code>2&gt;&gt;</code> para os erros).</p>
+</div>
+
+<div class="tryjs" data-goal="src:console\.error\(;;out:Erro: acabou o leite!;;semerro">
+<p class="try-task"><strong>Missão:</strong> a terceira mensagem é um problema, não um recado normal. Troque o <code>console.log</code> dela por <code>console.error</code> e rode.</p>
+<pre class="script" data-file="main.js">console.log("Conferindo a geladeira...");
+console.log("Manteiga: ok");
+console.log("Erro: acabou o leite!");
+console.log("Conferência terminada.");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Conferindo a geladeira...");
+console.log("Manteiga: ok");
+console.error("Erro: acabou o leite!");
+console.log("Conferência terminada.");
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>console.warn()</code>, <code>console.info()</code> e <code>console.debug()</code></h2>
+<p>Nem todo problema é um erro. "Só restam 3 pães" não é um desastre, mas merece atenção: é um <strong>aviso</strong>, e para isso existe o <code>console.warn</code> (<em>warn</em> = "avisar"). Do outro lado existem dois parentes do <code>console.log</code>: o <code>console.info</code> (para informações) e o <code>console.debug</code> (para detalhes que só interessam a quem está programando; "depurar" é caçar defeitos no programa, veja <a href="depuracao.html">Depuração</a>).</p>
+
+<pre class="file" data-file="aviso.js">const paes = 3;
+console.log("Pães no cesto:", paes);
+console.warn("Atenção: só restam", paes, "pães!");
+console.info("Informação: o padeiro chega às 5h.");
+console.debug("Detalhe para o programador: paes =", paes);
+</pre>
+
+<pre class="term">$ node aviso.js
+Pães no cesto: 3
+Atenção: só restam 3 pães!
+Informação: o padeiro chega às 5h.
+Detalhe para o programador: paes = 3
+</pre>
+
+<p>Igual ao <code>console.log</code>, todos aceitam vários valores separados por vírgula e põem um espaço entre eles (<code>só restam 3 pães!</code>). Agora, a Ana joga a saída de erro fora (<code>2&gt; /dev/null</code>: o <code>/dev/null</code> é a "lixeira" do sistema, onde tudo some):</p>
+
+<pre class="term">$ node aviso.js 2&gt; /dev/null
+Pães no cesto: 3
+Informação: o padeiro chega às 5h.
+Detalhe para o programador: paes = 3
+</pre>
+
+<p>Só o aviso sumiu. Isso mostra para que canal cada um escreve no Node:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Para que serve</th><th>Canal no Node</th></tr>
+<tr><td><code>console.log()</code></td><td>Mensagem comum</td><td>saída padrão</td></tr>
+<tr><td><code>console.info()</code></td><td>Informação</td><td>saída padrão (no Node, é o mesmo que <code>console.log</code>)</td></tr>
+<tr><td><code>console.debug()</code></td><td>Detalhe para quem programa</td><td>saída padrão (no Node, é o mesmo que <code>console.log</code>)</td></tr>
+<tr><td><code>console.warn()</code></td><td>Aviso: atenção, mas não é desastre</td><td>saída de erro (no Node, é o mesmo que <code>console.error</code>)</td></tr>
+<tr><td><code>console.error()</code></td><td>Erro: algo deu errado</td><td>saída de erro</td></tr>
+</table>
+</div>
+
+<p>Então por que existem cinco, se no Node eles se resumem a dois? Porque eles <strong>dizem a intenção</strong> de quem escreveu. Quem lê <code>console.warn(…)</code> no seu código sabe na hora que aquilo é um aviso. E no Console do navegador eles <strong>são</strong> diferentes: cada um tem a sua cor, e dá para filtrar por nível ("só erros", "só avisos").</p>
+
+<hr>
+
+<h2>4. <code>console.table()</code>: dados em forma de tabela</h2>
+<p>Quando os dados são uma lista ou um "cadastro", o <code>console.log</code> mostra tudo numa linha só, e fica difícil de ler. O <code>console.table</code> (<em>table</em> = "tabela") desenha uma tabela com linhas e colunas.</p>
+
+<h3>4.1 Uma lista</h3>
+<p>Uma lista entre colchetes <code>[ ]</code> é um <strong>array</strong> (você vai estudá-los em <a href="arrays.html">Arrays</a>). Veja a mesma lista com <code>log</code> e com <code>table</code>:</p>
+
+<pre class="file" data-file="lista.js">const compras = ["pão", "leite", "café"];
+console.log(compras);
+console.table(compras);
+</pre>
+
+<pre class="term">$ node lista.js
+[ 'pão', 'leite', 'café' ]
+┌─────────┬─────────┐
+│ (index) │ Values  │
+├─────────┼─────────┤
+│ 0       │ 'pão'   │
+│ 1       │ 'leite' │
+│ 2       │ 'café'  │
+└─────────┴─────────┘
+</pre>
+
+<dl class="anatomy">
+  <dt>(index)</dt><dd>"Índice": a posição de cada item na lista. O JavaScript começa a contar do <strong>0</strong>, então o primeiro item (<code>'pão'</code>) é o de índice 0. Isso vai aparecer muito no curso.</dd>
+  <dt>Values</dt><dd>"Valores": o que está guardado em cada posição. Os textos aparecem entre aspas simples, como no <code>console.log</code>, para você saber que são textos.</dd>
+  <dt>┌ ─ ┬ │ └</dt><dd>As bordas da tabela, desenhadas com caracteres especiais. O Node ajusta a largura de cada coluna ao maior valor dela.</dd>
+</dl>
+
+<h3>4.2 Um objeto</h3>
+<p>Um <strong>objeto</strong>, entre chaves <code>{ }</code>, guarda pares "nome: valor" (o assunto de <a href="objetos.html">Objetos</a>). É o caderno de estoque da padaria:</p>
+
+<pre class="file" data-file="estoque.js">const estoque = { pao: 40, leite: 12, cafe: 8 };
+console.table(estoque);
+</pre>
+
+<pre class="term">$ node estoque.js
+┌─────────┬────────┐
+│ (index) │ Values │
+├─────────┼────────┤
+│ pao     │ 40     │
+│ leite   │ 12     │
+│ cafe    │ 8      │
+└─────────┴────────┘
+</pre>
+
+<p>Agora a coluna <code>(index)</code> mostra os <strong>nomes</strong> (<code>pao</code>, <code>leite</code>, <code>cafe</code>) em vez de números. Os números aparecem sem aspas: são números, não textos.</p>
+
+<h3>4.3 Uma lista de objetos: onde o <code>table</code> brilha</h3>
+<p>O caso mais útil é uma lista em que cada item é um objeto com os mesmos campos, como as linhas de um pedido. Cada objeto vira uma <strong>linha</strong> e cada campo vira uma <strong>coluna</strong>:</p>
+
+<pre class="file" data-file="pedido.js">const pedido = [
+  { item: "pão francês", quantidade: 6, preco: 0.75 },
+  { item: "leite", quantidade: 2, preco: 5.49 },
+  { item: "café", quantidade: 1, preco: 18.9 },
+];
+console.table(pedido);
+console.table(pedido, ["item", "preco"]);
+</pre>
+
+<pre class="term">$ node pedido.js
+┌─────────┬───────────────┬────────────┬───────┐
+│ (index) │ item          │ quantidade │ preco │
+├─────────┼───────────────┼────────────┼───────┤
+│ 0       │ 'pão francês' │ 6          │ 0.75  │
+│ 1       │ 'leite'       │ 2          │ 5.49  │
+│ 2       │ 'café'        │ 1          │ 18.9  │
+└─────────┴───────────────┴────────────┴───────┘
+┌─────────┬───────────────┬───────┐
+│ (index) │ item          │ preco │
+├─────────┼───────────────┼───────┤
+│ 0       │ 'pão francês' │ 0.75  │
+│ 1       │ 'leite'       │ 5.49  │
+│ 2       │ 'café'        │ 18.9  │
+└─────────┴───────────────┴───────┘
+</pre>
+
+<dl class="anatomy">
+  <dt>console.table(pedido)</dt><dd>A tabela completa: uma linha por objeto, uma coluna por campo (<code>item</code>, <code>quantidade</code>, <code>preco</code>).</dd>
+  <dt>console.table(pedido, ["item", "preco"])</dt><dd>O <strong>segundo valor</strong> entre os parênteses é uma lista com os nomes das colunas que você quer ver. As outras ficam de fora. Útil quando cada objeto tem dez campos e você só quer conferir dois.</dd>
+  <dt>18.9</dt><dd>O número aparece como o JavaScript o guarda: <code>18.9</code>, e não <code>18.90</code>. Para escrever dinheiro com duas casas, há um jeito próprio (veja <a href="numeros-formatar.html">Formatando Números</a>).</dd>
+</dl>
+
+<div class="tryjs" data-goal="src:console\.table\(\s*notas\s*\);;semerro">
+<p class="try-task"><strong>Missão:</strong> a professora da Ana quer ver as notas da turma como tabela. Troque o <code>console.log</code> por <code>console.table</code> e rode. Depois, por curiosidade, mostre só a coluna <code>nota</code>: <code>console.table(notas, ["nota"])</code>.</p>
+<pre class="script" data-file="main.js">const notas = [
+  { aluno: "Ana", nota: 9.5 },
+  { aluno: "Bia", nota: 7 },
+  { aluno: "Caio", nota: 8.25 },
+];
+console.log(notas);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [
+  { aluno: "Ana", nota: 9.5 },
+  { aluno: "Bia", nota: 7 },
+  { aluno: "Caio", nota: 8.25 },
+];
+console.table(notas);
+</pre>
+</div>
+
+<h3>4.4 E quando não é uma tabela?</h3>
+<p>Se você passar um valor simples, como um texto ou um número, não há linhas nem colunas para desenhar. O <code>console.table</code> então faz o mesmo que o <code>console.log</code>:</p>
+
+<pre class="file" data-file="texto.js">console.table("Bom dia!");
+console.table(42);
+</pre>
+
+<pre class="term">$ node texto.js
+Bom dia!
+42
+</pre>
+
+<hr>
+
+<h2>5. Três ajudantes: contar, agrupar e cronometrar</h2>
+
+<h3><code>console.count()</code>: quantas vezes isto aconteceu?</h3>
+<p>Cada vez que o <code>console.count("nome")</code> roda, ele escreve o nome e quantas vezes já foi chamado com aquele nome. É a "catraca" da porta da padaria:</p>
+
+<pre class="file" data-file="contar.js">console.count("cliente");
+console.count("cliente");
+console.count("entrega");
+console.count("cliente");
+console.count();
+</pre>
+
+<pre class="term">$ node contar.js
+cliente: 1
+cliente: 2
+entrega: 1
+cliente: 3
+default: 1
+</pre>
+
+<p>Cada nome tem a sua própria contagem: <code>entrega</code> começou do 1 sem atrapalhar <code>cliente</code>. Sem nome nenhum, o Node usa o nome <code>default</code> ("padrão"). Ele vai ser útil dentro dos laços, para saber quantas voltas um trecho deu (veja <a href="while.html">while</a>).</p>
+
+<h3><code>console.group()</code>: mensagens com recuo</h3>
+<p>Entre o <code>console.group("título")</code> e o <code>console.groupEnd()</code> ("fim do grupo"), as mensagens ganham <strong>recuo</strong> (2 espaços na frente), como os itens de uma comanda:</p>
+
+<pre class="file" data-file="grupo.js">console.log("Pedido da mesa 3");
+console.group("Bebidas");
+console.log("café com leite");
+console.log("suco de laranja");
+console.groupEnd();
+console.group("Comidas");
+console.log("pão na chapa");
+console.groupEnd();
+console.log("Fim do pedido");
+</pre>
+
+<pre class="term">$ node grupo.js
+Pedido da mesa 3
+Bebidas
+  café com leite
+  suco de laranja
+Comidas
+  pão na chapa
+Fim do pedido
+</pre>
+
+<p>Se você esquecer o <code>console.groupEnd()</code>, tudo o que vier depois continua com recuo.</p>
+
+<h3><code>console.time()</code> e <code>console.timeEnd()</code>: quanto tempo levou?</h3>
+<p>O <code>console.time("nome")</code> liga um cronômetro; o <code>console.timeEnd("nome")</code>, com o <strong>mesmo nome</strong>, para o cronômetro e escreve quanto tempo passou. Aqui a Ana mede quanto o computador leva para somar os números de 0 a 999.999 (o <code>for</code>, que repete uma conta muitas vezes, é o assunto da aula <a href="for.html">for</a>):</p>
+
+<pre class="file" data-file="tempo.js">console.time("contar");
+let soma = 0;
+for (let i = 0; i &lt; 1000000; i++) {
+  soma = soma + i;
+}
+console.timeEnd("contar");
+</pre>
+
+<pre class="term">$ node tempo.js
+contar: 4.024ms                          « muda a cada execução
+</pre>
+
+<p>Pouco mais de <strong>4 milissegundos</strong> (milésimos de segundo) para um milhão de somas. Esse número muda a cada vez que você roda, e de um computador para outro: o seu vai mostrar outro valor.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de mostrar a mesma coisa</h2>
+<p>O mesmo problema ("acabou o pão") pode ser escrito de vários jeitos. Todos mostram o texto; o que muda é a intenção e o canal:</p>
+
+<pre class="file" data-file="formas.js">console.log("Acabou o pão!");    // recado comum, saída padrão
+console.warn("Acabou o pão!");   // aviso, saída de erro
+console.error("Acabou o pão!");  // erro, saída de erro
+</pre>
+
+<pre class="term">$ node formas.js
+Acabou o pão!
+Acabou o pão!
+Acabou o pão!
+$ node formas.js 2&gt; /dev/null
+Acabou o pão!                          « só a do console.log sobrou
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>O resultado normal do programa (o que a pessoa pediu para ver)</td><td><code>console.log</code></td></tr>
+<tr><td>Algo merece atenção, mas o programa segue bem</td><td><code>console.warn</code></td></tr>
+<tr><td>Algo deu errado (um dado inválido, um arquivo que não existe)</td><td><code>console.error</code></td></tr>
+<tr><td>Conferir uma lista ou uma lista de objetos</td><td><code>console.table</code></td></tr>
+<tr><td>Saber quantas vezes um trecho rodou</td><td><code>console.count</code></td></tr>
+<tr><td>Organizar muitas mensagens em blocos</td><td><code>console.group</code> / <code>console.groupEnd</code></td></tr>
+<tr><td>Medir quanto tempo um trecho levou</td><td><code>console.time</code> / <code>console.timeEnd</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu o nome do método errado</strong>
+<pre class="file" data-file="tabel.js">const compras = ["pão", "leite"];
+console.tabel(compras);
+</pre>
+<pre class="term">$ node tabel.js
+/home/ana/tabel.js:2
+console.tabel(compras);
+        ^
+
+TypeError: console.tabel is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/tabel.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «  … mais 6 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>É a primeira mensagem de erro desta aula, então vamos ler linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/tabel.js:2</dt><dd><strong>Onde</strong> foi o erro: no arquivo <code>tabel.js</code>, da pasta da Ana, na <strong>linha 2</strong>.</dd>
+  <dt>console.tabel(compras);</dt><dd>A própria linha 2, copiada para você não precisar procurar.</dd>
+  <dt>^</dt><dd>A "setinha" aponta a coluna exata do problema: o começo de <code>tabel</code>.</dd>
+  <dt>TypeError: console.tabel is not a function</dt><dd>O tipo do erro e a explicação: "erro de tipo: <code>console.tabel</code> não é uma função". O <code>console</code> não tem nenhuma ferramenta chamada <code>tabel</code>, então não dá para "chamá-la" com parênteses. (Função é um trecho de código com nome que você executa com <code>()</code>; veja <a href="funcoes.html">Funções</a>.)</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/tabel.js:2:9)</dt><dd>O caminho que o programa fez até o erro. A primeira linha <code>at</code> é a que importa: arquivo, linha 2, coluna 9. As outras são de dentro do próprio Node; pode ignorá-las.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p>Diferente do <code>console.error</code> da seção 1, este é um erro <strong>de verdade</strong>: o programa parou na linha 2. <strong>Como consertar:</strong> <code>console.table(compras);</code>. O mesmo acontece com <code>console.erro</code>, <code>console.warning</code> ou <code>console.Table</code>: o nome tem de ser exatamente <code>error</code>, <code>warn</code>, <code>table</code>, em minúsculas.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>Console</code> com C maiúsculo</strong>
+<pre class="file" data-file="maiuscula.js">Console.error("Acabou o pão!");
+</pre>
+<pre class="term">$ node maiuscula.js
+/home/ana/maiuscula.js:1
+Console.error("Acabou o pão!");
+^
+
+ReferenceError: Console is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/maiuscula.js:1:1)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de referência: <code>Console</code> não está definido". O JavaScript diferencia maiúsculas de minúsculas: para ele, <code>Console</code> e <code>console</code> são nomes diferentes, e ninguém criou nada chamado <code>Console</code>. Repare que a mensagem mudou de <code>TypeError</code> para <code>ReferenceError</code>: antes, o <code>console</code> existia mas não tinha o <code>tabel</code>; agora, o próprio <code>Console</code> não existe. <strong>Como consertar:</strong> <code>console</code>, tudo minúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu de fechar as aspas</strong>
+<pre class="file" data-file="aspas.js">console.warn("Acabou o pão!);
+</pre>
+<pre class="term">$ node aspas.js
+/home/ana/aspas.js:1
+console.warn("Acabou o pão!);
+             ^^^^^^^^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: símbolo inválido ou inesperado". As setinhas <code>^^^^</code> marcam tudo o que vem depois da aspa que abriu: o Node procurou a aspa de fechamento até o fim da linha e não achou. Com erro de sintaxe, o programa <strong>nem começa</strong>. <strong>Como consertar:</strong> feche a aspa antes do parêntese: <code>console.warn("Acabou o pão!");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>console.error</code> para o programa</strong>
+<p>Não para. Ele só escreve a mensagem no canal de erro, como você viu na seção 1 (<code>Caixa aberto.</code> apareceu depois dele, e o código de saída foi 0). Se o programa precisa <strong>parar</strong> quando algo dá errado, isso se faz com <code>throw</code> (aula <a href="throw.html">throw</a>) ou com <code>process.exit(1)</code> (aula <a href="process-argv.html">process.argv</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:pão: 40;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não roda. Leia a mensagem de erro, conserte, e rode de novo. (São dois erros; o Node mostra um de cada vez.)</p>
+<pre class="script" data-file="main.js">Console.log("Estoque da padaria");
+console.tabel({ pão: 40, leite: 12 });
+console.log("pão: 40");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Estoque da padaria");
+console.table({ pão: 40, leite: 12 });
+console.log("pão: 40");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Canal no Node</th></tr>
+<tr><td><code>console.error(valor, …)</code></td><td>Escreve uma mensagem de erro (não para o programa)</td><td>saída de erro</td></tr>
+<tr><td><code>console.warn(valor, …)</code></td><td>Escreve um aviso</td><td>saída de erro</td></tr>
+<tr><td><code>console.info(valor, …)</code></td><td>Escreve uma informação (igual ao <code>log</code>)</td><td>saída padrão</td></tr>
+<tr><td><code>console.debug(valor, …)</code></td><td>Escreve um detalhe para quem programa (igual ao <code>log</code>)</td><td>saída padrão</td></tr>
+<tr><td><code>console.table(lista)</code></td><td>Mostra uma lista ou objeto como tabela</td><td>saída padrão</td></tr>
+<tr><td><code>console.table(lista, ["a", "b"])</code></td><td>A tabela só com as colunas <code>a</code> e <code>b</code></td><td>saída padrão</td></tr>
+<tr><td><code>console.count("nome")</code></td><td>Escreve <code>nome: 1</code>, <code>nome: 2</code>…</td><td>saída padrão</td></tr>
+<tr><td><code>console.group("título")</code> … <code>console.groupEnd()</code></td><td>Recuo de 2 espaços nas mensagens do meio</td><td>saída padrão</td></tr>
+<tr><td><code>console.time("nome")</code> … <code>console.timeEnd("nome")</code></td><td>Escreve <code>nome: 4.024ms</code> (o tempo que passou)</td><td>saída padrão</td></tr>
+<tr><td><code>node prog.js &gt; arq.txt</code></td><td>No terminal: só a saída padrão vai para o arquivo</td><td>—</td></tr>
+<tr><td><code>node prog.js 2&gt; arq.txt</code></td><td>No terminal: só a saída de erro vai para o arquivo</td><td>—</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: console.xxx is not a function</code></td><td>Nome do método escrito errado (<code>tabel</code>, <code>erro</code>, <code>warning</code>)</td></tr>
+<tr><td><code>ReferenceError: Console is not defined</code></td><td><code>Console</code> com C maiúsculo</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td>Aspas que abriram e não fecharam</td></tr>
+<tr><td>Uma mensagem não foi para o arquivo com <code>&gt;</code></td><td>Ela saiu por <code>console.error</code> ou <code>console.warn</code> (saída de erro): use <code>2&gt;</code></td></tr>
+<tr><td>Tudo ficou com recuo até o fim</td><td>Faltou o <code>console.groupEnd()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para escrever um aviso e depois um erro:</p>
+<div class="ex-code">console.<input data-answer="warn" aria-label="método de aviso">("Só restam 2 pães.");<br>console.<input data-answer="error" aria-label="método de erro">("Acabou o pão!");</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que fica na tela?</h3>
+<p>O programa <code>loja.js</code> tem um <code>console.log("A")</code> e depois um <code>console.error("B")</code>. A Ana roda <code>node loja.js &gt; saida.txt</code>. Qual letra aparece na tela?</p>
+<div class="ex-code">Aparece <input data-answer="B" aria-label="letra"> na tela.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que acontece com o programa depois de um <code>console.error("Erro!")</code>?</p>
+<label><input type="radio" name="q3"> Ele para na hora, com código de saída 1</label>
+<label><input type="radio" name="q3"> Ele mostra um <code>TypeError</code></label>
+<label><input type="radio" name="q3"> Ele escreve a mensagem e continua normalmente</label>
+<label><input type="radio" name="q3"> Ele pula a próxima linha</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa tabela do <code>console.table(["pão", "leite"])</code>, qual é o <code>(index)</code> do <code>'leite'</code>?</p>
+<label><input type="radio" name="q4"> 2</label>
+<label><input type="radio" name="q4"> 1</label>
+<label><input type="radio" name="q4"> 0</label>
+<label><input type="radio" name="q4"> leite</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. No Node, para qual canal o <code>console.warn</code> escreve?</p>
+<label><input type="radio" name="q5"> Saída padrão, como o <code>console.log</code></label>
+<label><input type="radio" name="q5"> Para um arquivo chamado <code>warn.txt</code></label>
+<label><input type="radio" name="q5"> Para nenhum: ele só funciona no navegador</label>
+<label><input type="radio" name="q5"> Saída de erro, como o <code>console.error</code></label>
+</div>
+
+<h3>Missão final: o relatório do estoque</h3>
+
+<div class="tryjs" data-goal="src:console\.table\(\s*estoque\s*,\s*\[;;src:console\.warn\(;;out:Atenção: o café está acabando!;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa já tem o estoque da padaria. Complete no lugar dos comentários: (1) mostre a tabela só com as colunas <code>produto</code> e <code>quantidade</code>, usando <code>console.table</code> com a lista de colunas; (2) escreva o aviso <code>Atenção: o café está acabando!</code> com <code>console.warn</code>.</p>
+<pre class="script" data-file="main.js">const estoque = [
+  { produto: "pão", quantidade: 40, fornecedor: "Moinho Sul" },
+  { produto: "leite", quantidade: 12, fornecedor: "Fazenda Boa" },
+  { produto: "café", quantidade: 2, fornecedor: "Torra Fina" },
+];
+console.log("Relatório do estoque");
+// (1) a tabela com produto e quantidade
+
+// (2) o aviso do café
+
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = [
+  { produto: "pão", quantidade: 40, fornecedor: "Moinho Sul" },
+  { produto: "leite", quantidade: 12, fornecedor: "Fazenda Boa" },
+  { produto: "café", quantidade: 2, fornecedor: "Torra Fina" },
+];
+console.log("Relatório do estoque");
+// (1) a tabela com produto e quantidade
+console.table(estoque, ["produto", "quantidade"]);
+// (2) o aviso do café
+console.warn("Atenção: o café está acabando!");
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+
+<pre class="term">$ node estoque2.js
+Relatório do estoque
+┌─────────┬─────────┬────────────┐
+│ (index) │ produto │ quantidade │
+├─────────┼─────────┼────────────┤
+│ 0       │ 'pão'   │ 40         │
+│ 1       │ 'leite' │ 12         │
+│ 2       │ 'café'  │ 2          │
+└─────────┴─────────┴────────────┘
+Atenção: o café está acabando!
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um programa tem dois canais de saída: a <strong>saída padrão</strong> (<code>console.log</code>, <code>info</code>, <code>debug</code>, <code>table</code>) e a <strong>saída de erro</strong> (<code>console.error</code>, <code>warn</code>). No terminal os dois aparecem juntos; <code>&gt;</code> separa a saída padrão e <code>2&gt;</code>, a de erro.</li>
+  <li><code>console.error</code> e <code>console.warn</code> só <strong>escrevem</strong>: o programa continua, e o código de saída segue 0.</li>
+  <li>Use o método que diz a intenção: <code>log</code> para o resultado, <code>warn</code> para avisos, <code>error</code> para problemas. No navegador, cada um tem a sua cor.</li>
+  <li><code>console.table</code> mostra listas e objetos como tabela; numa lista de objetos, cada objeto é uma linha e cada campo, uma coluna. <code>console.table(lista, ["a", "b"])</code> escolhe as colunas.</li>
+  <li><code>console.count</code> conta chamadas, <code>console.group</code>/<code>groupEnd</code> dão recuo e <code>console.time</code>/<code>timeEnd</code> medem o tempo.</li>
+  <li>Os nomes são exatos e em minúsculas: <code>console.tabel</code> dá <code>TypeError … is not a function</code>, e <code>Console</code> dá <code>ReferenceError … is not defined</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
