@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Relógio e Cronômetro — Date, setInterval e clearInterval passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo no navegador: um relógio que se atualiza a cada segundo (new Date, toLocaleTimeString, setInterval), a data por extenso em português (toLocaleDateString) e um cronômetro com iniciar, pausar, zerar e voltas (Date.now, clearInterval, botão desabilitado). Quatro versões, os erros reais (setInterval(f()), dois intervalos ao mesmo tempo) e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Relógio e Cronômetro</span></h1>
+
+<p class="intro">A Ana quer uma página aberta num canto da tela enquanto estuda: um relógio grande, com a data por extenso, e um cronômetro para medir quanto tempo ela passa em cada exercício, com botão de pausa e marcação de voltas. É o projeto do <strong>tempo</strong>: a página precisa fazer coisas sozinha, a cada segundo, sem ninguém clicar.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Pegar a data e a hora de agora com <a href="date.html">new Date()</a> e mostrá-las em português com <a href="date-formatar.html">toLocaleTimeString e toLocaleDateString</a>.</li>
+  <li>Repetir uma função a cada intervalo com <a href="timers.html">setInterval</a> e parar com <code>clearInterval</code>.</li>
+  <li>Medir tempo decorrido com <code>Date.now()</code>.</li>
+  <li>Formatar minutos e segundos com <code>padStart</code>.</li>
+  <li>Reagir a botões com <a href="eventos.html">addEventListener</a> e desligar um botão com <code>disabled</code>.</li>
+  <li>Criar a lista de voltas com <a href="dom-criar.html">createElement e append</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>No alto, a hora (<strong>14:05:09</strong>, mudando a cada segundo) e, embaixo, a data (<strong>segunda-feira, 19 de outubro de 2026</strong>). Mais abaixo, o cronômetro: o visor (<strong>00:00.0</strong>, minutos, segundos e décimos) e os botões <strong>Iniciar</strong>, <strong>Pausar</strong>, <strong>Zerar</strong> e <strong>Volta</strong>. Cada volta vira uma linha: <strong>Volta 1: 00:01.3</strong>, <strong>Volta 2: 00:02.1</strong>…</p>
+
+<p>A hora e a data mudam a cada vez que você abre a página, então, para mostrar saídas que não mudam, esta página usa datas fixas no Console. As duas peças principais, testadas no Chromium do computador da Ana (o 19 de outubro de 2026, às 14:05:09):</p>
+
+<pre class="devtools">&gt; new Date(2026, 9, 19, 14, 5, 9).toLocaleTimeString("pt-BR")
+'14:05:09'
+&gt; new Date(2026, 9, 19).toLocaleDateString("pt-BR", FORMATO_DATA)
+'segunda-feira, 19 de outubro de 2026'</pre>
+
+<p>Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">O relógio</a> (<code>new Date</code>, <code>toLocaleTimeString</code>, <code>setInterval</code>).</li>
+  <li><a href="#versao2">A data por extenso</a> (<code>toLocaleDateString</code> com opções).</li>
+  <li><a href="#versao3">O cronômetro</a> (<code>Date.now</code>, <code>clearInterval</code>, <code>disabled</code>).</li>
+  <li><a href="#versao4">As voltas</a> (uma lista que cresce a cada clique).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Crie a pasta <code>relogio</code> com o <code>index.html</code>, o <code>style.css</code> e o <code>script.js</code>, e abra o <code>index.html</code> no navegador (veja <a href="script-na-pagina.html">JavaScript na Página</a>). Nas caixas <strong>Experimente</strong>, a página roda no quadro <strong>Resultado</strong>, e os botões funcionam de verdade.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · O relógio</h2>
+<p>A ideia é a de um relógio de parede: a cada segundo, o ponteiro anda. Na página, "andar" é trocar o texto de um parágrafo pela hora de agora. Duas peças fazem isso: uma função que escreve a hora atual, e o <code>setInterval</code>, que chama essa função de novo e de novo, a cada 1000 milissegundos (1 segundo).</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+
+<pre class="file" data-file="script.js">const relogio = document.querySelector("#relogio");
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</pre>
+
+<dl class="anatomy">
+  <dt>new Date()</dt><dd>Cria um objeto com a data e a hora <strong>deste instante</strong>, do relógio do computador (veja <a href="date.html">Datas</a>).</dd>
+  <dt>agora.toLocaleTimeString("pt-BR")</dt><dd>Escreve só a hora, do jeito brasileiro: <code>'14:05:09'</code>, com dois dígitos em tudo (<code>'09:05:09'</code> às nove da manhã).</dd>
+  <dt>atualizar();</dt><dd>Chama a função uma vez, já, para a hora aparecer assim que a página abre.</dd>
+  <dt>setInterval(atualizar, 1000);</dt><dd>"A cada 1000 ms, chame <code>atualizar</code>." Repare: <code>atualizar</code> <strong>sem parênteses</strong>. Você entrega a função para o navegador chamar depois; não a chama agora (veja <a href="funcoes-valores.html">Funções como Valores</a>).</dd>
+  <dt>font-variant-numeric: tabular-nums;</dt><dd>No CSS: todos os algarismos com a mesma largura. Sem isso, o "1" é mais fino que o "8", e o relógio "treme" de um lado para o outro quando os números mudam.</dd>
+</dl>
+
+<p>Conferindo no Console com uma hora fixa:</p>
+
+<pre class="devtools">&gt; new Date(2026, 9, 19, 14, 5, 9).toLocaleTimeString("pt-BR")
+'14:05:09'
+&gt; new Date(2026, 9, 19, 9, 5, 9).toLocaleTimeString("pt-BR")
+'09:05:09'</pre>
+
+<p>(No <code>new Date(2026, 9, 19, …)</code>, o mês 9 é <strong>outubro</strong>: no JavaScript os meses começam do zero, janeiro é 0. Os dias, não. É uma pegadinha antiga da linguagem; veja <a href="date.html">Datas</a>.)</p>
+
+<div class="cenario">
+<strong>Esquecer o <code>atualizar();</code> antes do <code>setInterval</code>: um segundo em branco</strong>
+<p>Sem a chamada da linha <code>atualizar();</code>, a página abre com o parágrafo vazio e o relógio só aparece um segundo depois, na primeira vez que o <code>setInterval</code> chama a função. No Console, logo ao abrir e depois de 1,2 segundo:</p>
+<pre class="devtools">&gt; document.querySelector("#relogio").textContent
+''
+&gt; document.querySelector("#relogio").textContent.length
+8</pre>
+<p>Vazio, e depois os 8 caracteres de <code>hh:mm:ss</code>. Não é erro, mas parece defeito. O <code>setInterval</code> sempre <strong>espera</strong> o primeiro intervalo antes da primeira chamada.</p>
+</div>
+
+<div class="cenario">
+<strong>Com parênteses, <code>setInterval(atualizar(), 1000)</code>: o relógio parado</strong>
+<p>Com <code>setInterval(atualizar(), 1000);</code>, a hora aparece… e não muda mais. A Ana guardou o texto, esperou dois segundos e meio e comparou:</p>
+<pre class="devtools">&gt; window.a = document.querySelector("#relogio").textContent; a.length
+8
+&gt; document.querySelector("#relogio").textContent === a
+true</pre>
+<p>Os 8 caracteres da hora estavam lá, e dois segundos e meio depois o texto era <strong>o mesmo</strong>. O <code>atualizar()</code> com parênteses <strong>roda a função na hora</strong> (por isso a hora aparece uma vez) e entrega ao <code>setInterval</code> o que ela devolveu: <code>undefined</code>, porque a função não tem <code>return</code>. A cada segundo, o navegador "chama" o <code>undefined</code>, que não faz nada, e nenhum erro aparece no Console. Sem parênteses, você entrega a <strong>função</strong>; com parênteses, o <strong>resultado</strong> dela.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#relogio~:;;src:setInterval\s*\(\s*atualizar\s*,;;semerro">
+<p class="try-task"><strong>Missão (versão 1):</strong> a função <code>atualizar</code> está pronta, mas ninguém a chama, e o parágrafo fica vazio. No lugar do comentário, chame <code>atualizar()</code> uma vez e depois programe o <code>setInterval</code> para chamá-la a cada segundo. Rode: a hora deve aparecer na hora e mudar a cada segundo.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const relogio = document.querySelector("#relogio");
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+}
+
+// faça o relógio aparecer e se atualizar a cada segundo
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const relogio = document.querySelector("#relogio");
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · A data por extenso</h2>
+<p>Embaixo da hora, a Ana quer a data como se fala: "segunda-feira, 19 de outubro de 2026". Ninguém precisa montar isso à mão, com listas de nomes de meses e dias: o <code>toLocaleDateString</code> sabe escrever datas em português, e um objeto de <strong>opções</strong> diz quais partes mostrar e como.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;p id="data"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Opção</th><th>Valor</th><th>O que aparece</th></tr>
+<tr><td><code>weekday</code></td><td><code>"long"</code></td><td>o dia da semana por extenso: <code>segunda-feira</code></td></tr>
+<tr><td><code>day</code></td><td><code>"numeric"</code></td><td>o dia: <code>19</code> (e <code>1</code>, sem zero na frente)</td></tr>
+<tr><td><code>month</code></td><td><code>"long"</code></td><td>o mês por extenso: <code>outubro</code></td></tr>
+<tr><td><code>year</code></td><td><code>"numeric"</code></td><td>o ano: <code>2026</code></td></tr>
+</table>
+</div>
+
+<p>O objeto fica numa constante, <code>FORMATO_DATA</code>, criada uma vez só, fora da função: ela não muda de um segundo para o outro. Comparando, no Console, a data sem e com as opções:</p>
+
+<pre class="devtools">&gt; new Date(2026, 9, 19).toLocaleDateString("pt-BR")
+'19/10/2026'
+&gt; new Date(2026, 9, 19).toLocaleDateString("pt-BR", FORMATO_DATA)
+'segunda-feira, 19 de outubro de 2026'
+&gt; new Date(2026, 0, 1).toLocaleDateString("pt-BR", FORMATO_DATA)
+'quinta-feira, 1 de janeiro de 2026'
+&gt; new Date(2026, 9, 19).getMonth()
+9</pre>
+
+<p>Sem opções, a data curta, com barras. Com elas, a frase inteira, com os nomes em minúsculas, como manda a regra do português. E o <code>getMonth()</code> confirma a pegadinha da versão 1: outubro é o mês 9.</p>
+
+<div class="cenario">
+<strong>Contar o mês a partir de 1: a data um mês adiantada</strong>
+<p>Quem escreve <code>new Date(2026, 10, 19)</code> pensando em "19/10" recebe outra data, sem aviso:</p>
+<pre class="devtools">&gt; new Date(2026, 10, 19).toLocaleDateString("pt-BR")
+'19/11/2026'</pre>
+<p>Novembro. O 10 é o <strong>décimo primeiro</strong> mês, contando do zero. Isso só importa quando você cria uma data com números; o <code>new Date()</code> sem nada, do relógio, já vem certo.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#data~ de ;;semerro">
+<p class="try-task"><strong>Missão (versão 2):</strong> a data aparece curta, com barras. Passe as opções <code>FORMATO_DATA</code> para o <code>toLocaleDateString</code>, para ela sair por extenso ("…, 19 de outubro de 2026", com a data de hoje).</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;p id="data"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR");
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · O cronômetro</h2>
+<p>O cronômetro parece um relógio que começa do zero, mas tem uma diferença importante: ele mede <strong>tempo decorrido</strong>. O jeito ingênuo seria somar 0,1 segundo a cada vez que o <code>setInterval</code> chama a função. Só que o navegador não garante a pontualidade: se a página estiver ocupada, ou numa aba escondida, as chamadas atrasam, e o cronômetro ficaria para trás. O jeito certo é anotar <strong>quando começou</strong> e, a cada atualização, calcular "agora menos o começo". O <code>setInterval</code> só serve para redesenhar o visor.</p>
+
+<p>No HTML, a seção do cronômetro, abaixo da data:</p>
+
+<pre class="file" data-file="index.html">  &lt;h2&gt;Cronômetro&lt;/h2&gt;
+  &lt;p id="visor"&gt;00:00.0&lt;/p&gt;
+  &lt;button id="iniciar"&gt;Iniciar&lt;/button&gt;
+  &lt;button id="pausar"&gt;Pausar&lt;/button&gt;
+  &lt;button id="zerar"&gt;Zerar&lt;/button&gt;
+</pre>
+
+<p>No <code>script.js</code>, depois do relógio:</p>
+
+<pre class="file" data-file="script.js">// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  botaoIniciar.disabled = false;
+});
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>Date.now()</code></td><td>O instante de agora, em milissegundos contados desde 1º de janeiro de 1970: um número enorme, que só serve para fazer contas de diferença. <code>Date.now() - inicio</code> é quanto tempo passou desde <code>inicio</code>.</td></tr>
+<tr><td><code>let acumulado = 0;</code></td><td>O tempo já contado antes da última pausa. Ao continuar depois de pausar, o visor mostra <code>acumulado</code> mais o tempo novo.</td></tr>
+<tr><td><code>let intervalo = null;</code></td><td>O <code>setInterval</code> devolve um número que identifica aquela repetição; é com ele que o <code>clearInterval</code> a desliga. <code>null</code> quer dizer "parado".</td></tr>
+<tr><td><code>Math.floor(ms / 60000)</code></td><td>Os minutos inteiros (60 000 ms num minuto). O <code>% 60000</code> é o que sobra, e dali saem os segundos; do <code>% 1000</code> saem os décimos.</td></tr>
+<tr><td><code>String(minutos).padStart(2, "0")</code></td><td>Completa com zero à esquerda até 2 caracteres: <code>5</code> vira <code>"05"</code>.</td></tr>
+<tr><td><code>setInterval(mostrar, 100)</code></td><td>Redesenha o visor 10 vezes por segundo, para os décimos andarem.</td></tr>
+<tr><td><code>clearInterval(intervalo)</code></td><td>Desliga a repetição: o visor para.</td></tr>
+<tr><td><code>botaoIniciar.disabled = true;</code></td><td>Desliga o botão Iniciar enquanto o cronômetro anda (ele fica cinza e não aceita clique). Por quê, veja o cenário abaixo.</td></tr>
+<tr><td><code>if (intervalo === null) { return; }</code></td><td>No Pausar: se já está parado, não faz nada. Sem isso, um segundo clique em Pausar somaria o tempo de novo.</td></tr>
+</table>
+</div>
+
+<p>Conferindo o <code>formatar</code> no Console:</p>
+
+<pre class="devtools">&gt; formatar(83400)
+'01:23.4'
+&gt; formatar(5000)
+'00:05.0'
+&gt; formatar(0)
+'00:00.0'</pre>
+
+<p>A Ana clicou em Iniciar, esperou cerca de um segundo e meio e clicou em Pausar: o visor parou em <strong>00:01.8</strong> e continuou assim um segundo depois. Clicou em Iniciar de novo (o botão ficou desabilitado), esperou mais um segundo e pausou: <strong>00:03.4</strong>, somando as duas partes. Zerar voltou a <strong>00:00.0</strong>. (Os décimos variam a cada teste: dependem de quando exatamente os cliques acontecem.)</p>
+
+<div class="cenario">
+<strong>Iniciar duas vezes: o cronômetro que não para</strong>
+<p>Sem as linhas do <code>disabled</code>, a Ana clicou duas vezes seguidas em Iniciar, esperou um segundo e clicou em Pausar. O visor <strong>continuou andando</strong>: 00:02.7 logo depois da pausa, 00:04.5 um segundo e meio depois. Ela clicou em Zerar: o visor mostrou 00:00.0 por um instante e voltou a contar, 00:04.2 meio segundo depois. Nenhum erro no Console.</p>
+<p>O que aconteceu: cada clique em Iniciar criou um <code>setInterval</code> novo. O segundo guardou o número dele em <code>intervalo</code>, por cima do número do primeiro. O Pausar e o Zerar desligaram só o segundo; o primeiro, que ninguém mais sabe o número, continua chamando <code>mostrar()</code> dez vezes por segundo, para sempre (até fechar a página). <strong>Como consertar:</strong> não deixar começar duas vezes: desabilitar o botão, como na versão 3, ou começar o clique com <code>if (intervalo !== null) { return; }</code>.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#visor~00:00.0;;semerro" data-acoes="clicar #iniciar;;esperar 400;;clicar #pausar;;clicar #zerar">
+<p class="try-task"><strong>Missão (versão 3):</strong> o botão Zerar ainda não faz nada. Faça o clique nele desligar o intervalo (<code>clearInterval</code>), voltar <code>intervalo</code> para <code>null</code> e <code>acumulado</code> para 0, mostrar <code>00:00.0</code> no visor e religar o botão Iniciar. Rode, clique em Iniciar, depois em Pausar e em Zerar.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;p id="data"&gt;&lt;/p&gt;
+
+  &lt;h2&gt;Cronômetro&lt;/h2&gt;
+  &lt;p id="visor"&gt;00:00.0&lt;/p&gt;
+  &lt;button id="iniciar"&gt;Iniciar&lt;/button&gt;
+  &lt;button id="pausar"&gt;Pausar&lt;/button&gt;
+  &lt;button id="zerar"&gt;Zerar&lt;/button&gt;
+
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  // pare o cronômetro e volte o visor para 00:00.0
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio,
+#visor {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+<pre class="solucao" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  botaoIniciar.disabled = false;
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · As voltas</h2>
+<p>Na corrida, a "volta" marca o tempo de cada passagem sem parar o cronômetro. A Ana vai usar para marcar cada exercício terminado. No HTML, um botão e uma lista, depois do Zerar:</p>
+
+<pre class="file" data-file="index.html">  &lt;button id="volta"&gt;Volta&lt;/button&gt;
+  &lt;ul id="voltas"&gt;&lt;/ul&gt;
+</pre>
+
+<p>No <code>script.js</code>, duas constantes novas, uma linha no Zerar (para apagar as voltas) e o clique do botão Volta:</p>
+
+<pre class="file" data-file="script.js">const botaoVolta = document.querySelector("#volta");
+const listaVoltas = document.querySelector("#voltas");
+
+// … no clique do Zerar, depois do visor.textContent = formatar(0);
+  listaVoltas.replaceChildren();
+
+botaoVolta.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;  // só marca volta com o cronômetro andando
+  }
+  const numero = listaVoltas.children.length + 1;
+  const li = document.createElement("li");
+  li.textContent = `Volta ${numero}: ${formatar(acumulado + (Date.now() - inicio))}`;
+  listaVoltas.append(li);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>if (intervalo === null) { return; }</dt><dd>Com o cronômetro parado, o botão Volta não faz nada.</dd>
+  <dt>listaVoltas.children.length + 1</dt><dd>Quantos <code>&lt;li&gt;</code> a lista já tem, mais um: o número da volta nova.</dd>
+  <dt>formatar(acumulado + (Date.now() - inicio))</dt><dd>O tempo do cronômetro neste instante, a mesma conta do <code>mostrar</code>.</dd>
+  <dt>listaVoltas.replaceChildren();</dt><dd>No Zerar: apaga todas as voltas.</dd>
+</dl>
+
+<p>A Ana clicou em Volta com o cronômetro parado (nada aconteceu), clicou em Iniciar, marcou uma volta depois de um segundo e outra meio segundo depois, pausou e clicou em Volta de novo (nada). No Console, a lista:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#voltas li")].map((li) =&gt; li.textContent)
+(2) ['Volta 1: 00:01.3', 'Volta 2: 00:02.1']
+&gt; document.querySelectorAll("#voltas li").length
+0</pre>
+
+<p>Duas voltas (os décimos variam a cada teste). O último comando foi digitado depois do Zerar: a lista ficou vazia.</p>
+
+<div class="tryweb" data-goal="texto:#voltas~Volta 2;;semerro" data-acoes="clicar #iniciar;;esperar 300;;clicar #volta;;clicar #volta">
+<p class="try-task"><strong>Missão (versão 4):</strong> o botão Volta ainda não faz nada. No clique dele, se o cronômetro estiver andando, crie um <code>&lt;li&gt;</code> com o texto <code>Volta N: tempo</code> (N é a quantidade de voltas da lista mais 1) e coloque na lista. Rode, clique em Iniciar e depois duas vezes em Volta.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;p id="data"&gt;&lt;/p&gt;
+
+  &lt;h2&gt;Cronômetro&lt;/h2&gt;
+  &lt;p id="visor"&gt;00:00.0&lt;/p&gt;
+  &lt;button id="iniciar"&gt;Iniciar&lt;/button&gt;
+  &lt;button id="pausar"&gt;Pausar&lt;/button&gt;
+  &lt;button id="zerar"&gt;Zerar&lt;/button&gt;
+  &lt;button id="volta"&gt;Volta&lt;/button&gt;
+  &lt;ul id="voltas"&gt;&lt;/ul&gt;
+
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+const botaoVolta = document.querySelector("#volta");
+const listaVoltas = document.querySelector("#voltas");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  listaVoltas.replaceChildren();
+  botaoIniciar.disabled = false;
+});
+
+botaoVolta.addEventListener("click", () =&gt; {
+  // crie um &lt;li&gt; "Volta N: tempo" e coloque em listaVoltas
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio,
+#visor {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+<pre class="solucao" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+const botaoVolta = document.querySelector("#volta");
+const listaVoltas = document.querySelector("#voltas");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  listaVoltas.replaceChildren();
+  botaoIniciar.disabled = false;
+});
+
+botaoVolta.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;  // só marca volta com o cronômetro andando
+  }
+  const numero = listaVoltas.children.length + 1;
+  const li = document.createElement("li");
+  li.textContent = `Volta ${numero}: ${formatar(acumulado + (Date.now() - inicio))}`;
+  listaVoltas.append(li);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escolha</th><th>Opções</th><th>Qual usar</th></tr>
+<tr><td>Repetir</td><td><code>setInterval(f, 1000)</code> × um <code>setTimeout</code> que se agenda de novo no fim da função</td><td>O <code>setInterval</code> é mais simples. O <code>setTimeout</code> encadeado garante que uma chamada só começa depois que a anterior terminou (útil quando a função demora, como um <a href="fetch.html">fetch</a>). Veja <a href="timers.html">setTimeout e setInterval</a>.</td></tr>
+<tr><td>Medir o tempo</td><td>somar um tanto a cada chamada × <code>Date.now() - inicio</code></td><td>Sempre a diferença de horários: as chamadas do <code>setInterval</code> podem atrasar (aba escondida, página ocupada), a diferença não.</td></tr>
+<tr><td>Mostrar a hora</td><td><code>toLocaleTimeString("pt-BR")</code> × montar com <code>getHours()</code>, <code>getMinutes()</code>, <code>getSeconds()</code> e <code>padStart</code></td><td>O <code>toLocaleTimeString</code>: uma linha e já no formato brasileiro. Montar à mão só quando você quer um formato que ele não faz.</td></tr>
+<tr><td>Impedir dois inícios</td><td><code>botao.disabled = true</code> × <code>if (intervalo !== null) return;</code></td><td>Os dois funcionam; o <code>disabled</code> também mostra à pessoa que o botão não vale agora (ele fica cinza).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Desafio extra: o tempo de cada volta</h2>
+<p>A lista mostra o tempo total em cada volta, mas a Ana quer saber também quanto durou <strong>cada</strong> exercício: o tempo desde a volta anterior. A dica: uma variável <code>let ultimaVolta = 0;</code> guarda o tempo da última volta; cada volta nova mostra <code>tempo - ultimaVolta</code> entre parênteses e atualiza <code>ultimaVolta</code>. O Zerar volta <code>ultimaVolta</code> para 0. Com o desafio pronto, marcando voltas depois de 1 segundo, de mais meio e de mais 0,7:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#voltas li")].map((li) =&gt; li.textContent)
+(3) ['Volta 1: 00:01.3 (+00:01.3)', 'Volta 2: 00:02.1 (+00:00.8)', 'Volta 3: 00:03.1 (+00:01.0)']</pre>
+
+<div class="tryweb" data-goal="texto:#voltas li:nth-child(2)~(+;;semerro" data-acoes="clicar #iniciar;;esperar 300;;clicar #volta;;esperar 200;;clicar #volta">
+<p class="try-task"><strong>Desafio no editor:</strong> faça cada volta mostrar, entre parênteses, o tempo desde a volta anterior: <code>Volta 2: 00:00.5 (+00:00.2)</code>. Rode, clique em Iniciar e marque duas voltas.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Relógio da Ana&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;p id="relogio"&gt;&lt;/p&gt;
+  &lt;p id="data"&gt;&lt;/p&gt;
+
+  &lt;h2&gt;Cronômetro&lt;/h2&gt;
+  &lt;p id="visor"&gt;00:00.0&lt;/p&gt;
+  &lt;button id="iniciar"&gt;Iniciar&lt;/button&gt;
+  &lt;button id="pausar"&gt;Pausar&lt;/button&gt;
+  &lt;button id="zerar"&gt;Zerar&lt;/button&gt;
+  &lt;button id="volta"&gt;Volta&lt;/button&gt;
+  &lt;ul id="voltas"&gt;&lt;/ul&gt;
+
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+const botaoVolta = document.querySelector("#volta");
+const listaVoltas = document.querySelector("#voltas");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  listaVoltas.replaceChildren();
+  botaoIniciar.disabled = false;
+});
+
+botaoVolta.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;  // só marca volta com o cronômetro andando
+  }
+  const numero = listaVoltas.children.length + 1;
+  const li = document.createElement("li");
+  li.textContent = `Volta ${numero}: ${formatar(acumulado + (Date.now() - inicio))}`;
+  listaVoltas.append(li);
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#relogio,
+#visor {
+  font-size: 3em;
+  font-variant-numeric: tabular-nums;
+}
+</pre>
+<pre class="solucao" data-file="script.js">// ----- Relógio -----
+const relogio = document.querySelector("#relogio");
+const data = document.querySelector("#data");
+
+const FORMATO_DATA = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+
+function atualizar() {
+  const agora = new Date();
+  relogio.textContent = agora.toLocaleTimeString("pt-BR");
+  data.textContent = agora.toLocaleDateString("pt-BR", FORMATO_DATA);
+}
+
+atualizar();
+setInterval(atualizar, 1000);
+
+// ----- Cronômetro -----
+const visor = document.querySelector("#visor");
+const botaoIniciar = document.querySelector("#iniciar");
+const botaoPausar = document.querySelector("#pausar");
+const botaoZerar = document.querySelector("#zerar");
+const botaoVolta = document.querySelector("#volta");
+const listaVoltas = document.querySelector("#voltas");
+
+let inicio = 0;        // o Date.now() da hora em que começou a contar
+let acumulado = 0;     // milissegundos contados antes da última pausa
+let intervalo = null;  // o número do setInterval (null = parado)
+let ultimaVolta = 0;    // o tempo marcado na volta anterior
+
+// 83400 ms vira "01:23.4"
+function formatar(ms) {
+  const minutos = Math.floor(ms / 60000);
+  const segundos = Math.floor((ms % 60000) / 1000);
+  const decimos = Math.floor((ms % 1000) / 100);
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}.${decimos}`;
+}
+
+function mostrar() {
+  visor.textContent = formatar(acumulado + (Date.now() - inicio));
+}
+
+botaoIniciar.addEventListener("click", () =&gt; {
+  inicio = Date.now();
+  intervalo = setInterval(mostrar, 100);
+  botaoIniciar.disabled = true;
+});
+
+botaoPausar.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;
+  }
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado += Date.now() - inicio;
+  visor.textContent = formatar(acumulado);
+  botaoIniciar.disabled = false;
+});
+
+botaoZerar.addEventListener("click", () =&gt; {
+  clearInterval(intervalo);
+  intervalo = null;
+  acumulado = 0;
+  visor.textContent = formatar(0);
+  listaVoltas.replaceChildren();
+  ultimaVolta = 0;
+  botaoIniciar.disabled = false;
+});
+
+botaoVolta.addEventListener("click", () =&gt; {
+  if (intervalo === null) {
+    return;  // só marca volta com o cronômetro andando
+  }
+  const numero = listaVoltas.children.length + 1;
+  const li = document.createElement("li");
+  const tempo = acumulado + (Date.now() - inicio);
+  li.textContent = `Volta ${numero}: ${formatar(tempo)} (+${formatar(tempo - ultimaVolta)})`;
+  ultimaVolta = tempo;
+  listaVoltas.append(li);
+});
+</pre>
+</div>
+
+<p>Outras ideias: um botão que alterna entre Iniciar e Pausar (um só); uma contagem regressiva de 25 minutos para estudar (a técnica "pomodoro"), com um <code>alert</code> no fim; mostrar "Bom dia", "Boa tarde" ou "Boa noite" conforme o <code>getHours()</code>.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>new Date()</code></td><td>A data e a hora de agora</td></tr>
+<tr><td><code>data.toLocaleTimeString("pt-BR")</code></td><td><code>'14:05:09'</code></td></tr>
+<tr><td><code>data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })</code></td><td><code>'segunda-feira, 19 de outubro de 2026'</code></td></tr>
+<tr><td><code>new Date(2026, 9, 19)</code></td><td>Uma data fixa (mês 9 = outubro: os meses começam do zero)</td></tr>
+<tr><td><code>f(); setInterval(f, 1000);</code></td><td>Chamar já e depois a cada segundo (sem parênteses no <code>setInterval</code>)</td></tr>
+<tr><td><code>const id = setInterval(…)</code> + <code>clearInterval(id)</code></td><td>Ligar e desligar uma repetição</td></tr>
+<tr><td><code>Date.now() - inicio</code></td><td>Milissegundos decorridos</td></tr>
+<tr><td><code>String(n).padStart(2, "0")</code></td><td><code>5</code> → <code>"05"</code></td></tr>
+<tr><td><code>botao.disabled = true</code></td><td>Desligar um botão</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Um segundo em branco ao abrir</td><td>Faltou chamar a função uma vez antes do <code>setInterval</code></td></tr>
+<tr><td>A hora aparece e não muda mais</td><td><code>setInterval(atualizar(), 1000)</code>: com parênteses, entregou o resultado e não a função</td></tr>
+<tr><td>A data sai um mês adiantada</td><td>Mês contado a partir de 1 em <code>new Date(ano, mes, dia)</code></td></tr>
+<tr><td>O cronômetro não para no Pausar</td><td>Dois <code>setInterval</code> ao mesmo tempo (Iniciar clicado duas vezes)</td></tr>
+<tr><td>O cronômetro atrasa numa aba escondida</td><td>Contou as chamadas em vez de usar <code>Date.now() - inicio</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A cada segundo</h3>
+<p>Complete para chamar <code>atualizar</code> a cada 1000 ms:</p>
+<div class="ex-code"><input data-answer="setInterval" aria-label="função">(atualizar, 1000);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Desligar</h3>
+<p>Complete a função que desliga a repetição guardada em <code>intervalo</code>:</p>
+<div class="ex-code"><input data-answer="clearInterval" aria-label="função">(intervalo);</div>
+</div>
+
+<div class="exercise">
+<h3>3. O zero à esquerda</h3>
+<p>Complete para <code>5</code> virar <code>"05"</code>:</p>
+<div class="ex-code">String(5).<input data-answer="padStart" aria-label="método">(2, "0")</div>
+</div>
+
+<div class="exercise">
+<h3>4. Os meses</h3>
+<p>Sem rodar: em <code>new Date(2026, 0, 1)</code>, que mês é o <code>0</code>? (escreva por extenso, em minúsculas)</p>
+<div class="ex-code"><input data-answer="janeiro" aria-label="mês"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que <code>setInterval(atualizar(), 1000)</code> deixa o relógio parado?</p>
+<label><input type="radio" name="q5"> Porque 1000 é pouco tempo</label>
+<label><input type="radio" name="q5"> Porque os parênteses chamam a função na hora e entregam ao <code>setInterval</code> o resultado (<code>undefined</code>), e não a função</label>
+<label><input type="radio" name="q5"> Porque o <code>setInterval</code> só funciona com arrow functions</label>
+<label><input type="radio" name="q5"> Porque faltou o <code>clearInterval</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que o cronômetro calcula <code>Date.now() - inicio</code> em vez de somar 0,1 s a cada chamada?</p>
+<label><input type="radio" name="q6"> Porque as chamadas do <code>setInterval</code> podem atrasar, e a soma ficaria para trás; a diferença de horários não</label>
+<label><input type="radio" name="q6"> Porque o JavaScript não sabe somar 0,1</label>
+<label><input type="radio" name="q6"> Porque o <code>Date.now()</code> é mais rápido</label>
+<label><input type="radio" name="q6"> Porque o <code>setInterval</code> não aceita 100 ms</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. A Ana clicou duas vezes em Iniciar (sem o <code>disabled</code>), e o Pausar não parou o cronômetro. Por quê?</p>
+<label><input type="radio" name="q7"> O <code>clearInterval</code> só funciona uma vez por página</label>
+<label><input type="radio" name="q7"> O segundo clique zerou o <code>acumulado</code></label>
+<label><input type="radio" name="q7"> Cada clique criou um <code>setInterval</code>; o número do primeiro se perdeu, e o Pausar desligou só o segundo</label>
+<label><input type="radio" name="q7"> O botão Pausar ficou desabilitado</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>new Date()</code> é o agora; <code>toLocaleTimeString("pt-BR")</code> e <code>toLocaleDateString("pt-BR", opções)</code> escrevem em português, sem tabelas de nomes à mão.</li>
+  <li>Nos números de <code>new Date(ano, mes, dia)</code>, os meses começam do zero.</li>
+  <li><code>setInterval(funcao, ms)</code> repete; passe a função <strong>sem parênteses</strong>, e chame-a uma vez antes para não ter o primeiro intervalo em branco.</li>
+  <li>Guarde o número que o <code>setInterval</code> devolve: é com ele que o <code>clearInterval</code> desliga a repetição. Nunca deixe dois intervalos começarem sem querer.</li>
+  <li>Para medir tempo, anote o <code>Date.now()</code> do começo e calcule a diferença; o <code>setInterval</code> só redesenha.</li>
+  <li><code>padStart(2, "0")</code> e <code>Math.floor</code> com <code>%</code> montam o <code>mm:ss.d</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
