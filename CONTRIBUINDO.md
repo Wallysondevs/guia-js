@@ -144,6 +144,7 @@ timeout 600 node ~/guia-js/tools/testar-missoes.js --nativo pagina.html # + comp
 timeout 60 node ~/guia-js/tools/sim.js main.js [contas.js dados.txt] [--stdin "Ana\n30" | --digitar "Ana\n30"] [--args "a b"] [--goal "out:…"]
 timeout 60 node ~/guia-js/tools/sim.js -e 'console.log([1, 2, 3])'
 timeout 60 node ~/guia-js/tools/sim.js --repl --digitar "1 + 1\nlet x = 10\nx * 2"
+timeout 600 node ~/guia-js/tools/testar-navegador.js pagina.html          # a página inteira no Chromium: clica em Rodar em cada caixa, confere o ✔ na tela e os erros
 ```
 O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/jssim/worker.js`) num **Chromium headless de verdade** (motor V8, o mesmo do Node). `--nativo` roda também no Node.js v24.22.0 do lab e anota as diferenças em `tools/DIFERENCAS-AUTO.md` (fora do git; o resumo das conhecidas fica em `tools/DIFERENCAS.md`). Com `data-digitar`, o lab roda num terminal de verdade (o eco do que foi digitado aparece, como na caixa).
 
@@ -158,7 +159,7 @@ O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/js
 - **Fim do programa** como no Node: quando não há mais timers, entrada sendo lida nem `fetch` pendente. `process.exit(n)` e `process.exitCode` funcionam.
 
 ### O que a caixa `.tryweb` faz
-- **Rodar** abre o `index.html` num quadro **Resultado** (um `<iframe>` da própria página do guia, em pt-BR) e as outras abas viram arquivos de verdade: `<script src="script.js">` e `<link rel="stylesheet" href="style.css">` acham as abas (com `charset=utf-8`). Se o `index.html` for só um pedaço (sem `<html>`), o editor completa com `<!DOCTYPE html>`, `<head>` e `<body>`.
+- **Rodar** abre o `index.html` num quadro **Resultado** (um `<iframe>` da própria página do guia, em pt-BR) e as outras abas viram arquivos de verdade: `<script src="script.js">` e `<link rel="stylesheet" href="style.css">` acham as abas (com `charset=utf-8`). **Como num site de verdade, a aba só entra na página se o `index.html` a chamar:** sem o `<link rel="stylesheet" href="style.css">` o CSS não vale, e sem o `<script src="script.js"></script>` o JavaScript não roda (ponha o `<script>` no fim do `<body>` ou use `defer`). Se o `index.html` for só um pedaço (sem `<html>`), o editor completa com `<!DOCTYPE html>`, `<head>` e `<body>`.
 - É o **navegador de verdade**: DOM, eventos, `localStorage` (funciona; é o do site do guia), `fetch`, `setTimeout`. **Nada do Node**: `typeof process`, `require`, `module` dão `"undefined"`.
 - **Console** (embaixo do quadro): o que `console.log/info/warn/error/table/count/assert` escreveram, em texto, **como o Console do Chrome mostra**: `{nome: Ana, idade: 30}`, `(3) [1, 2, 3]`, `Map(1) {a => 1}`, objetos dentro de objetos como `{…}` e `Array(2)`, elementos como o HTML deles, funções com o código (`ƒ soma(a, b) {…}`). Erros não tratados em vermelho: `Uncaught TypeError: Cannot read properties of null (reading x)` e a linha `    at script.js:3:7`; Promise rejeitada: `Uncaught (in promise) …`. `console.warn` em amarelo.
 - `prompt`/`alert`/`confirm`: no editor são as **janelas de verdade** do navegador (o leitor responde). No testador, `responder TEXTO` do `data-acoes` dá a resposta do próximo `prompt` (todas as respostas ficam numa fila, na ordem; `alert`/`confirm` são aceitos e aparecem no Console como `[alert] …`).

@@ -1970,7 +1970,20 @@
       segurar();
       var p = nFetch(a, b);
       p.then(function () { soltar(); }, function () { soltar(); });
-      return p.then(null, function (e) {
+      return p.then(function (r) {
+        // ler o corpo (json, text…) também segura o programa, como no Node
+        ["json", "text", "arrayBuffer", "blob", "formData", "bytes"].forEach(function (k) {
+          var orig = r[k];
+          if (typeof orig !== "function") return;
+          Object.defineProperty(r, k, { configurable: true, writable: true, value: function () {
+            segurar();
+            var q = orig.apply(r, arguments);
+            q.then(function () { soltar(); }, function () { soltar(); });
+            return q;
+          } });
+        });
+        return r;
+      }, function (e) {
         var x = new TypeError("fetch failed");
         x.cause = e; marcas.set(x, { topo: ["node:internal/deps/undici/undici:15845:13"], semUsuario: true, cab: "node:internal/deps/undici/undici:15845\n    Error.captureStackTrace(err);\n          ^\n\n" });
         throw x;
