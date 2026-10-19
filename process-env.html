@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript process.env e process.exit — variáveis de ambiente e código de saída | Guia JavaScript</title>
+<meta name="description" content="process.env e process.exit do Node.js para quem nunca programou: variáveis de ambiente (HOME, USER, LANG), definir uma variável só para um comando, export, valores sempre em texto, valor padrão com ??, arquivo .env com --env-file e process.loadEnvFile, segredos fora do código, código de saída (echo $?), process.exit(0/1/2), process.exitCode, && e || no terminal e os erros reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">process.env</span> e <span class="hl">process.exit</span></h1>
+
+<p class="intro">Um programa não vive sozinho: ele roda dentro de um computador, que tem um dono, uma língua, pastas, configurações. E, quando termina, ele avisa a quem o chamou se deu tudo certo. O objeto <code>process</code> do Node cuida das duas pontas: <code>process.env</code> traz as <strong>variáveis de ambiente</strong>, as configurações que chegam de fora do programa; <code>process.exit</code> encerra o programa com um <strong>código de saída</strong>, o "deu certo" ou "deu errado" que ele devolve. As duas coisas são <strong>só do Node</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que são variáveis de ambiente e como lê-las com <code>process.env.NOME</code>.</li>
+  <li>Como definir uma variável só para um comando (<code>DESCONTO=10 node loja.js</code>) e com <code>export</code>.</li>
+  <li>Por que os valores chegam sempre como texto, e como usar um valor padrão com <code>??</code>.</li>
+  <li>Como guardar as configurações num arquivo <code>.env</code> e carregá-lo com <code>--env-file</code> ou <code>process.loadEnvFile()</code>.</li>
+  <li>Por que senhas vão em variáveis de ambiente, e não no código.</li>
+  <li>O que é o código de saída (<code>echo $?</code>) e como escolhê-lo com <code>process.exit(n)</code> e <code>process.exitCode</code>.</li>
+  <li>Como o terminal usa o código de saída com <code>&amp;&amp;</code> e <code>||</code>.</li>
+</ul>
+</div>
+
+<p>Tudo rodou no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), num terminal com o <code>bash</code>.</p>
+
+<hr>
+
+<h2>A ideia: o quadro de avisos e o sinal de "tudo certo"</h2>
+<p>Na parede da padaria há um quadro de avisos: "<em>Loja: Padaria da Ana</em>", "<em>Desconto de hoje: 10%</em>". O padeiro não precisa decorar nada; ele olha o quadro. Amanhã o desconto muda, e ninguém reescreve a receita: muda-se o quadro. As <strong>variáveis de ambiente</strong> são esse quadro: pares <code>NOME=valor</code> que o terminal entrega a todo programa que ele roda.</p>
+<p>E, no fim do expediente, o padeiro avisa o gerente: um polegar para cima ("tudo certo") ou um número que diz qual foi o problema ("faltou farinha", "o forno quebrou"). Esse é o <strong>código de saída</strong>: <code>0</code> quer dizer "terminei bem"; qualquer outro número quer dizer "deu algum problema".</p>
+
+<hr>
+
+<h2>1. Lendo variáveis de ambiente: <code>process.env</code></h2>
+<p>O terminal já vem com várias variáveis. Duas delas, vistas pelo próprio terminal com o <code>echo</code> e o <code>$</code>:</p>
+
+<pre class="term">$ echo $HOME
+/home/ana
+$ echo $USER
+ana
+</pre>
+
+<p><code>HOME</code> é a pasta pessoal; <code>USER</code>, o nome da usuária. No Node, as mesmas variáveis estão no objeto <code>process.env</code> (de <em>environment</em>, "ambiente"):</p>
+
+<pre class="file" data-file="quem.js">console.log(process.env.HOME);
+console.log(process.env.USER);
+console.log(process.env.LANG);
+console.log(process.env.NOME_DA_LOJA);
+console.log(typeof process.env);
+</pre>
+
+<pre class="term">$ node quem.js
+/home/ana
+ana
+pt_BR.UTF-8
+undefined
+object
+</pre>
+
+<dl class="anatomy">
+  <dt>process.env</dt><dd>Um <strong>objeto</strong> (o <code>typeof</code> confirma) com uma propriedade para cada variável de ambiente. Lê-se como qualquer objeto (veja <a href="objetos-propriedades.html">Propriedades</a>).</dd>
+  <dt>process.env.HOME, .USER</dt><dd>A pasta e o nome da Ana.</dd>
+  <dt>process.env.LANG</dt><dd>A língua do sistema: <code>pt_BR.UTF-8</code> (português do Brasil).</dd>
+  <dt>process.env.NOME_DA_LOJA</dt><dd>Uma variável que <strong>não existe</strong>: dá <code>undefined</code>, como qualquer propriedade que falta.</dd>
+</dl>
+
+<p>Por tradição, nomes de variáveis de ambiente são em <strong>MAIÚSCULAS</strong>, com <code>_</code> separando as palavras: <code>NOME_DA_LOJA</code>, <code>DESCONTO</code>. Num computador de verdade há dezenas delas; os valores dependem da máquina e de quem está usando.</p>
+
+<hr>
+
+<h2>2. Definindo uma variável para o seu programa</h2>
+<p>O programa da loja lê duas configurações do ambiente e usa um <strong>valor padrão</strong> com o <code>??</code> (veja <a href="optional-chaining.html">?. e ??</a>) quando elas não existem:</p>
+
+<pre class="file" data-file="loja.js">const loja = process.env.LOJA ?? "Padaria da Ana";
+const desconto = Number(process.env.DESCONTO ?? "0");
+console.log(`Bem-vindo à ${loja}!`);
+console.log(`Desconto de hoje: ${desconto}%`);
+</pre>
+
+<p>Para dar valor a uma variável <strong>só para um comando</strong>, escreva <code>NOME=valor</code> antes dele, na mesma linha (sem espaços em volta do <code>=</code>; aspas se o valor tiver espaço):</p>
+
+<pre class="term">$ node loja.js
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 0%
+$ LOJA="Padaria Pão Quente" node loja.js
+Bem-vindo à Padaria Pão Quente!
+Desconto de hoje: 0%
+$ DESCONTO=10 LOJA="Padaria Pão Quente" node loja.js
+Bem-vindo à Padaria Pão Quente!
+Desconto de hoje: 10%
+$ node loja.js
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 0%
+</pre>
+
+<p>Repare na última execução: as variáveis valeram só para aquele comando e sumiram. Para que valham para <strong>todos</strong> os comandos seguintes naquele terminal, use <code>export</code> ("exportar"); para apagar, <code>unset</code> ("desdefinir"):</p>
+
+<pre class="term">$ export DESCONTO=15
+$ node loja.js
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 15%
+$ echo $DESCONTO
+15
+$ unset DESCONTO
+$ node loja.js
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 0%
+</pre>
+
+<p>O <code>export</code> dura até você fechar o terminal. Esse jeito (<code>NOME=valor comando</code> e <code>export</code>) é do <code>bash</code>, o terminal do Linux e do macOS; no PowerShell do Windows se escreve <code>$env:DESCONTO = "10"</code>.</p>
+
+<h3>Por que não usar <code>process.argv</code>?</h3>
+<p>Os <a href="process-argv.html">argumentos</a> são o <strong>pedido</strong> de cada vez ("cumprimente a Ana"); as variáveis de ambiente são a <strong>configuração</strong> do lugar onde o programa roda ("a loja se chama tal", "a senha do banco de dados é tal"). Um programa costuma usar os dois.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode o programa da loja no editor. Depois mude o valor padrão do <code>??</code> para o nome da padaria do seu bairro e rode de novo.</p>
+<pre class="script" data-file="main.js">const loja = process.env.LOJA ?? "Padaria da Ana";
+const desconto = Number(process.env.DESCONTO ?? "0");
+console.log(`Bem-vindo à ${loja}!`);
+console.log(`Desconto de hoje: ${desconto}%`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os valores são sempre texto</h2>
+<p>Como nos argumentos da linha de comando, tudo em <code>process.env</code> é <strong>string</strong>:</p>
+
+<pre class="file" data-file="tipo.js">console.log(process.env.DESCONTO, typeof process.env.DESCONTO);
+console.log(process.env.DESCONTO + 5);
+</pre>
+
+<pre class="term">$ DESCONTO=10 node tipo.js
+10 string
+105
+</pre>
+
+<p><code>"10" + 5</code> deu <code>105</code>, a junção dos textos. Por isso o <code>loja.js</code> usa <code>Number(…)</code>. Até o que o próprio programa grava vira texto:</p>
+
+<pre class="file" data-file="muda.js">process.env.LOJA = "Mudei aqui dentro";
+process.env.NUMERO = 42;
+console.log(process.env.LOJA);
+console.log(process.env.NUMERO, typeof process.env.NUMERO);
+</pre>
+
+<pre class="term">$ node muda.js
+Mudei aqui dentro
+42 string
+$ echo "LOJA=$LOJA"
+LOJA=
+</pre>
+
+<p>O número <code>42</code> foi guardado como <code>"42"</code>. E a mudança ficou <strong>dentro</strong> do programa: o terminal, depois, continua sem a variável <code>LOJA</code>. Um programa não muda o ambiente de quem o chamou.</p>
+
+<hr>
+
+<h2>4. O arquivo <code>.env</code></h2>
+<p>Quando as configurações são muitas, digitar todas antes do comando cansa. O costume é guardá-las num arquivo chamado <code>.env</code> (com ponto no começo, o que o deixa escondido no <code>ls</code>), uma por linha:</p>
+
+<pre class="file" data-file=".env"># configurações da padaria
+LOJA="Padaria Pão Quente"
+DESCONTO=20
+SENHA_DO_CAIXA=troque-esta-senha
+</pre>
+
+<p>As linhas com <code>#</code> são comentários. O Node 24 lê esse arquivo sozinho com a opção <code>--env-file</code>:</p>
+
+<pre class="term">$ node --env-file=.env loja.js
+Bem-vindo à Padaria Pão Quente!
+Desconto de hoje: 20%
+$ node loja.js
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 0%
+</pre>
+
+<dl class="anatomy">
+  <dt>node --env-file=.env loja.js</dt><dd>"Antes de rodar o <code>loja.js</code>, ponha no <code>process.env</code> as variáveis do arquivo <code>.env</code>". A opção vem <strong>antes</strong> do nome do programa (depois dele, seria um argumento do programa).</dd>
+  <dt>node loja.js</dt><dd>Sem a opção, o arquivo é ignorado.</dd>
+</dl>
+
+<p>Também dá para carregar de dentro do programa, com <code>process.loadEnvFile()</code> ("carregar o arquivo de ambiente"), que procura um <code>.env</code> na pasta atual:</p>
+
+<pre class="file" data-file="carrega.js">process.loadEnvFile();
+console.log(process.env.LOJA);
+</pre>
+
+<p>Se o arquivo não existir, as duas formas dão erro (veja <a href="#errado">Quando dá errado</a>). Para quando o <code>.env</code> é opcional existe <code>--env-file-if-exists</code>, que só avisa:</p>
+
+<pre class="term">$ node --env-file-if-exists=.env loja.js
+.env not found. Continuing without it.
+Bem-vindo à Padaria da Ana!
+Desconto de hoje: 0%
+</pre>
+
+<p>"<code>.env</code> não encontrado. Continuando sem ele." (Antes de o Node ganhar o <code>--env-file</code>, na versão 20.6, isso exigia um pacote, o <code>dotenv</code>; você ainda vai vê-lo em muitos projetos.)</p>
+
+<div class="warning">
+<strong>Senhas ficam fora do código</strong>
+<p>Senhas, chaves de acesso e afins <strong>nunca</strong> se escrevem no <code>.js</code>: o código é copiado, mandado para colegas, publicado no GitHub, e a senha iria junto. Elas vão em variáveis de ambiente (ou no <code>.env</code>), e o programa as lê com <code>process.env.SENHA_DO_CAIXA</code>. O próprio <code>.env</code> também não se compartilha: ele entra no <code>.gitignore</code>, como a <code>node_modules</code> (veja <a href="npm.html">npm</a>). Costuma-se deixar no projeto um <code>.env.exemplo</code> com os nomes e valores de mentira, para quem chegar saber o que preencher.</p>
+</div>
+
+<hr>
+
+<h2>5. O código de saída: <code>echo $?</code></h2>
+<p>Todo programa, ao terminar, devolve um número ao terminal. Logo depois, o terminal o mostra com <code>echo $?</code>:</p>
+
+<pre class="term">$ node quem.js &gt; /dev/null
+$ echo $?
+0
+$ node erro.js &gt; /dev/null 2&gt;&amp;1
+$ echo $?
+1
+</pre>
+
+<p>(O <code>&gt; /dev/null</code> só joga fora o que o programa escreveu, para a tela ficar limpa; o <code>2&gt;&amp;1</code> joga fora também a mensagem de erro.) O <code>quem.js</code> terminou normalmente: código <code>0</code>. O <code>erro.js</code> (que tem um <code>null.nome</code>, um erro não tratado; veja <a href="erros.html">Lendo uma Mensagem de Erro</a>) terminou com <code>1</code>, que é o que o Node devolve quando o programa morre com erro.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Quer dizer</th></tr>
+<tr><td><code>0</code></td><td>Terminou bem. É o que o Node devolve quando o programa chega ao fim sozinho.</td></tr>
+<tr><td><code>1</code></td><td>Deu errado (erro geral). É o que o Node devolve num erro não tratado.</td></tr>
+<tr><td><code>2</code>, <code>3</code>…</td><td>Você escolhe o significado, para diferenciar os problemas.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. Encerrando com <code>process.exit(n)</code></h2>
+<p><code>process.exit</code> ("sair") encerra o programa <strong>na hora</strong>, com o código que você passar. O que vem depois não roda:</p>
+
+<pre class="file" data-file="fim.js">console.log("Abrindo o caixa...");
+process.exit(0);
+console.log("Esta linha nunca aparece.");
+</pre>
+
+<pre class="term">$ node fim.js
+Abrindo o caixa...
+$ echo $?
+0
+</pre>
+
+<p>O uso mais comum é parar quando algo impede o programa de continuar, com um código diferente para cada problema:</p>
+
+<pre class="file" data-file="estoque.js">const paes = Number(process.argv[2]);
+
+if (Number.isNaN(paes)) {
+  console.error("Erro: informe a quantidade de pães, em número.");
+  process.exit(2);
+}
+if (paes === 0) {
+  console.error("Acabou o pão!");
+  process.exit(1);
+}
+console.log(`Temos ${paes} pães.`);
+</pre>
+
+<pre class="term">$ node estoque.js 30
+Temos 30 pães.
+$ echo $?
+0
+$ node estoque.js 0
+Acabou o pão!
+$ echo $?
+1
+$ node estoque.js muitos
+Erro: informe a quantidade de pães, em número.
+$ echo $?
+2
+</pre>
+
+<dl class="anatomy">
+  <dt>process.argv[2]</dt><dd>A quantidade vem como argumento (veja <a href="process-argv.html">process.argv</a>).</dd>
+  <dt>console.error(…)</dt><dd>As mensagens de problema vão para a saída de erros (veja <a href="console-outros.html">console.error</a>).</dd>
+  <dt>process.exit(2)</dt><dd>Para o programa com código 2: "a entrada estava errada".</dd>
+  <dt>process.exit(1)</dt><dd>Para com código 1: "acabou o pão". O <code>console.log</code> do fim não chega a rodar.</dd>
+</dl>
+
+<div class="tryjs" data-args="0" data-goal="exit:1;;out:Acabou o pão!">
+<p class="try-task"><strong>Missão:</strong> a caixa roda <code>node main.js 0</code>. O programa avisa que acabou o pão, mas segue em frente e ainda diz <code>Temos 0 pães.</code>, terminando com código 0. Faça-o parar logo depois do aviso, com o código de saída <strong>1</strong>.</p>
+<pre class="script" data-file="main.js">const paes = Number(process.argv[2]);
+
+if (paes === 0) {
+  console.error("Acabou o pão!");
+}
+console.log(`Temos ${paes} pães.`);
+</pre>
+<pre class="solucao" data-file="main.js">const paes = Number(process.argv[2]);
+
+if (paes === 0) {
+  console.error("Acabou o pão!");
+  process.exit(1);
+}
+console.log(`Temos ${paes} pães.`);
+</pre>
+</div>
+
+<h3>Para que serve o código? <code>&amp;&amp;</code> e <code>||</code> no terminal</h3>
+<p>Quem lê o código de saída é quem chamou o programa: o terminal, um script, o <code>npm</code>, um servidor que testa o seu código. No terminal, <code>&amp;&amp;</code> roda o segundo comando <strong>só se</strong> o primeiro deu 0; <code>||</code>, só se ele <strong>não</strong> deu 0:</p>
+
+<pre class="term">$ node estoque.js 30 &amp;&amp; echo "Pode abrir a padaria."
+Temos 30 pães.
+Pode abrir a padaria.
+$ node estoque.js 0 &amp;&amp; echo "Pode abrir a padaria."
+Acabou o pão!
+$ node estoque.js 0 || echo "Chame o padeiro!"
+Acabou o pão!
+Chame o padeiro!
+</pre>
+
+<p>É a mesma ideia do <code>&amp;&amp;</code> e do <code>||</code> do JavaScript (veja <a href="operadores-logicos.html">Operadores Lógicos</a>), aplicada a comandos. Foi assim que o <code>npm test</code> da aula <a href="package-json.html">O package.json</a> "falhou": o script terminava com <code>exit 1</code>.</p>
+
+<hr>
+
+<h2>7. <code>process.exitCode</code>: avisar sem cortar</h2>
+<p>O <code>process.exit</code> corta o programa <strong>no meio</strong>, mesmo que ainda haja coisa para fazer. Aqui, um <code>setTimeout</code> (veja <a href="timers.html">setTimeout e setInterval</a>) ia mostrar uma mensagem depois de 1 segundo:</p>
+
+<pre class="file" data-file="corta.js">setTimeout(() =&gt; {
+  console.log("O pão ficou pronto!");
+}, 1000);
+console.log("Pão no forno...");
+process.exit(0);
+</pre>
+
+<pre class="term">$ node corta.js
+Pão no forno...
+</pre>
+
+<p>O pão nunca ficou pronto: o <code>process.exit</code> encerrou tudo antes. Quando você só quer <strong>marcar</strong> que houve um problema e deixar o programa terminar o trabalho, troque por <code>process.exitCode = n</code> ("código de saída"): o programa segue, e o código vale quando ele acabar sozinho.</p>
+
+<pre class="file" data-file="conferir.js">const precos = { sonho: 3.5, broa: -2, rosca: 6, bolo: "caro" };
+
+for (const [item, preco] of Object.entries(precos)) {
+  if (typeof preco !== "number" || preco &lt; 0) {
+    console.error(`Preço inválido: ${item}`);
+    process.exitCode = 1;
+  }
+}
+console.log("Conferência terminada.");
+</pre>
+
+<pre class="term">$ node conferir.js
+Preço inválido: broa
+Preço inválido: bolo
+Conferência terminada.
+$ echo $?
+1
+</pre>
+
+<p>Os dois preços errados foram listados, a conferência chegou ao fim, e o código foi <code>1</code>. Com <code>process.exit(1)</code> no lugar, o programa teria parado na <code>broa</code>, sem conferir o resto.</p>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Escrita</th><th>Observação</th></tr>
+<tr><td>Ler uma configuração</td><td><code>process.env.NOME</code></td><td>Texto, ou <code>undefined</code></td></tr>
+<tr><td>… com valor padrão</td><td><code>process.env.NOME ?? "padrão"</code></td><td>Para configurações opcionais</td></tr>
+<tr><td>… como número</td><td><code>Number(process.env.NOME ?? "0")</code></td><td>Confira o <code>NaN</code></td></tr>
+<tr><td>Dar valor para um comando</td><td><code>NOME=valor node app.js</code></td><td>Só naquele comando (bash)</td></tr>
+<tr><td>Dar valor para o terminal todo</td><td><code>export NOME=valor</code></td><td>Até fechar o terminal</td></tr>
+<tr><td>Muitas configurações</td><td><code>node --env-file=.env app.js</code> ou <code>process.loadEnvFile()</code></td><td>O <code>.env</code> não vai para o Git</td></tr>
+<tr><td>Parar agora, com erro</td><td><code>process.exit(1)</code></td><td>Corta tudo o que falta</td></tr>
+<tr><td>Marcar o erro e terminar o trabalho</td><td><code>process.exitCode = 1</code></td><td>Preferível quando dá para continuar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>node: .env: not found</code></h3>
+<p>A Ana apagou o <code>.env</code> e rodou com <code>--env-file</code>:</p>
+<pre class="term">$ node --env-file=.env loja.js
+node: .env: not found
+$ echo $?
+9
+</pre>
+<p>"Node: <code>.env</code>: não encontrado". O Node nem começou a rodar o <code>loja.js</code>, e o código de saída foi <code>9</code>, que o Node usa para "opção inválida". <strong>Conserto:</strong> confira se você está na pasta certa e se o arquivo se chama exatamente <code>.env</code>; ou use <code>--env-file-if-exists</code>, se ele for opcional.</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>ENOENT</code> no <code>process.loadEnvFile()</code></h3>
+<pre class="term">$ node carrega.js
+node:internal/process/per_thread:362
+      _loadEnvFile();
+      ^
+
+Error: ENOENT: no such file or directory, open '.env'
+    at process.loadEnvFile (node:internal/process/per_thread:362:7)
+    at Object.&lt;anonymous&gt; (/home/ana/carrega.js:1:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 5 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '.env'
+}
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>node:internal/process/per_thread:362 e o ^</dt><dd>O erro estourou dentro do Node, na função que carrega o arquivo.</dd>
+  <dt>Error: ENOENT: no such file or directory, open '.env'</dt><dd>"Arquivo ou pasta inexistente, ao abrir '.env'". <code>ENOENT</code> (<em>Error NO ENTry</em>) é o código do sistema para "não existe". Você vai vê-lo de novo em <a href="fs-ler.html">Lendo Arquivos</a>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/carrega.js:1:9)</dt><dd>A sua linha: a 1, onde está o <code>process.loadEnvFile()</code>.</dd>
+  <dt>{ errno, code, syscall, path }</dt><dd>Detalhes: o número do erro no sistema, o código, a operação (<code>open</code>, "abrir") e o arquivo procurado.</dd>
+</dl>
+<p><strong>Conserto:</strong> criar o <code>.env</code>, ou proteger a chamada com <a href="try-catch.html">try … catch</a> se o arquivo for opcional.</p>
+</div>
+
+<div class="cenario">
+<h3>3. O desconto virou <code>105</code></h3>
+<p>Esqueceu de converter: <code>process.env.DESCONTO + 5</code> com <code>DESCONTO=10</code> deu <code>105</code> (seção 3). <strong>Conserto:</strong> <code>Number(process.env.DESCONTO) + 5</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>4. Espaço em volta do <code>=</code></h3>
+<pre class="term">$ DESCONTO = 10 node loja.js
+DESCONTO: comando não encontrado
+</pre>
+<p>Com espaços, o bash não define variável nenhuma: ele acha que <code>DESCONTO</code> é o nome de um <strong>comando</strong> (com os argumentos <code>=</code>, <code>10</code>, <code>node</code>…) e reclama que esse comando não existe. O Node nem chegou a rodar. Escreva <strong>colado</strong>: <code>DESCONTO=10</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>5. <code>process.exit</code> com texto</h3>
+<pre class="file" data-file="exitstr.js">process.exit("um");
+</pre>
+<pre class="term">$ node exitstr.js
+node:internal/errors:543
+      throw error;
+      ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('um')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at Object.&lt;anonymous&gt; (/home/ana/exitstr.js:1:9)
+    «… mais 6 linhas at node:internal/… cortadas …»
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+<p>"O argumento <code>code</code> tem de ser do tipo número. Recebi uma string ('um')". O código de saída é sempre um <strong>número inteiro</strong>. Ironia: o programa terminou com código 1 mesmo assim, por causa do erro.</p>
+</div>
+
+<div class="cenario">
+<h3>6. A segunda metade do trabalho sumiu</h3>
+<p>Um <code>process.exit</code> no meio do programa corta tudo o que falta, inclusive o que estava agendado (o pão que nunca ficou pronto, na seção 7). Se o programa parece "parar cedo demais", procure um <code>process.exit</code> e veja se não era caso de <code>process.exitCode</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>process.env</code></td><td>Objeto com as variáveis de ambiente (valores sempre string)</td></tr>
+<tr><td><code>process.env.HOME</code>, <code>.USER</code>, <code>.LANG</code></td><td>Pasta pessoal, usuário, língua</td></tr>
+<tr><td><code>NOME=valor node app.js</code></td><td>Define <code>NOME</code> só para esse comando (bash)</td></tr>
+<tr><td><code>export NOME=valor</code> / <code>unset NOME</code></td><td>Define / apaga no terminal (bash)</td></tr>
+<tr><td><code>node --env-file=.env app.js</code></td><td>Carrega o <code>.env</code> antes de rodar</td></tr>
+<tr><td><code>node --env-file-if-exists=.env app.js</code></td><td>Idem, sem erro se o arquivo faltar</td></tr>
+<tr><td><code>process.loadEnvFile()</code></td><td>Carrega o <code>.env</code> de dentro do programa</td></tr>
+<tr><td><code>process.exit(n)</code></td><td>Encerra agora, com o código <code>n</code> (padrão 0)</td></tr>
+<tr><td><code>process.exitCode = n</code></td><td>Define o código para quando o programa terminar</td></tr>
+<tr><td><code>echo $?</code></td><td>No terminal: o código de saída do último comando</td></tr>
+<tr><td><code>cmd1 &amp;&amp; cmd2</code> / <code>cmd1 || cmd2</code></td><td>Roda <code>cmd2</code> se <code>cmd1</code> deu 0 / se não deu 0</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a leitura</h3>
+<p>Leia a variável de ambiente <code>CIDADE</code>, usando <code>"São Paulo"</code> se ela não existir:</p>
+<div class="ex-code">const cidade = <input data-answer="process.env.CIDADE" aria-label="leitura da variável"> ?? "São Paulo";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual código?</h3>
+<p>Um programa Node chega ao fim sem erro e sem nenhum <code>process.exit</code>. O que <code>echo $?</code> mostra logo depois?</p>
+<div class="ex-code">Mostra <input data-answer="0" aria-label="código de saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>PAES=12 node conta.js</code>, quanto vale <code>process.env.PAES + 1</code> dentro do programa?</p>
+<label><input type="radio" name="q3"> <code>13</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+<label><input type="radio" name="q3"> <code>"121"</code></label>
+<label><input type="radio" name="q3"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Onde fica a senha do banco de dados de um programa?</p>
+<label><input type="radio" name="q4"> Escrita no <code>.js</code>, numa <code>const</code></label>
+<label><input type="radio" name="q4"> Numa variável de ambiente (ou no <code>.env</code>, fora do Git), lida com <code>process.env</code></label>
+<label><input type="radio" name="q4"> No <code>package.json</code></label>
+<label><input type="radio" name="q4"> Num comentário</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>node teste.js &amp;&amp; echo "Passou!"</code>. Quando aparece <code>Passou!</code>?</p>
+<label><input type="radio" name="q5"> Sempre</label>
+<label><input type="radio" name="q5"> Só quando o <code>teste.js</code> dá erro</label>
+<label><input type="radio" name="q5"> Nunca: <code>&amp;&amp;</code> não funciona no terminal</label>
+<label><input type="radio" name="q5"> Só quando o <code>teste.js</code> termina com código 0</label>
+</div>
+
+<h3>Missão final: conferir todas as notas</h3>
+
+<div class="tryjs" data-goal="exit:1;;out:Nota inválida: Caio;;out:Conferência terminada.">
+<p class="try-task"><strong>Missão:</strong> o programa confere as notas da turma (de 0 a 10), mas para no <strong>primeiro</strong> erro: mostra só a Bia e nunca chega ao fim. Faça-o listar <strong>todas</strong> as notas inválidas, mostrar <code>Conferência terminada.</code> e, mesmo assim, terminar com código de saída 1. Dica: troque o <code>process.exit(1)</code> por <code>process.exitCode = 1</code>.</p>
+<pre class="script" data-file="main.js">const notas = { Ana: 9, Bia: 11, Davi: 7, Caio: -1 };
+
+for (const [aluno, nota] of Object.entries(notas)) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    console.error(`Nota inválida: ${aluno}`);
+    process.exit(1);
+  }
+}
+console.log("Conferência terminada.");
+</pre>
+<pre class="solucao" data-file="main.js">const notas = { Ana: 9, Bia: 11, Davi: 7, Caio: -1 };
+
+for (const [aluno, nota] of Object.entries(notas)) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    console.error(`Nota inválida: ${aluno}`);
+    process.exitCode = 1;
+  }
+}
+console.log("Conferência terminada.");
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+
+<pre class="term">$ node notas.js
+Nota inválida: Bia
+Nota inválida: Caio
+Conferência terminada.
+$ echo $?
+1
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>process.env</code> é um objeto com as variáveis de ambiente: configurações que chegam de fora do programa. Variável que não existe vale <code>undefined</code>; use <code>??</code> para um padrão.</li>
+  <li>No bash: <code>NOME=valor node app.js</code> vale para um comando; <code>export NOME=valor</code>, para o terminal. Os valores são sempre <strong>texto</strong>: converta com <code>Number()</code>.</li>
+  <li>Configurações em quantidade vão num <code>.env</code>, carregado com <code>node --env-file=.env</code> ou <code>process.loadEnvFile()</code>. Senhas ficam no ambiente, nunca no código, e o <code>.env</code> não vai para o Git.</li>
+  <li>Todo programa devolve um código de saída (<code>echo $?</code>): <code>0</code> = tudo certo; outro número = problema. Erro não tratado dá <code>1</code>.</li>
+  <li><code>process.exit(n)</code> encerra na hora; <code>process.exitCode = n</code> marca o código e deixa o programa terminar.</li>
+  <li>O terminal usa o código com <code>&amp;&amp;</code> (se deu certo) e <code>||</code> (se deu errado).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
