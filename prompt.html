@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript prompt() e alert() — as caixinhas do navegador | Guia JavaScript</title>
+<meta name="description" content="prompt(), alert() e confirm() do navegador para quem nunca programou: mostrar um aviso, perguntar um texto, pedir um OK ou Cancelar, a resposta que chega como texto (Number), o null do Cancelar, o texto padrão, por que elas não existem no Node e os erros reais (prompt is not defined, Cannot read properties of null).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">prompt() e alert()</span></h1>
+
+<p class="intro">Na aula anterior, o programa perguntava no <strong>terminal</strong>, com o <a href="entrada-teclado.html">readline do Node</a>. Numa <strong>página web</strong>, o jeito mais simples de conversar com a pessoa são três caixinhas prontas do navegador: <code>alert()</code> ("alerta") mostra um aviso, <code>prompt()</code> ("pedido") pergunta um texto, e <code>confirm()</code> ("confirmar") pede um OK ou Cancelar. Uma linha de código, e a caixinha aparece na frente da página.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como mostrar um aviso com <code>alert()</code>.</li>
+  <li>Como perguntar com <code>prompt()</code>, guardar a resposta e usar na página.</li>
+  <li>Que a resposta do <code>prompt()</code> é sempre texto, e o que vem quando a pessoa clica em <strong>Cancelar</strong> (<code>null</code>).</li>
+  <li>Como pedir uma confirmação com <code>confirm()</code> (<code>true</code> ou <code>false</code>).</li>
+  <li>Por que essas caixinhas não existem no Node, e por que os sites de verdade quase não as usam.</li>
+  <li>Os erros reais mais comuns.</li>
+</ul>
+</div>
+
+<p>Os exemplos desta aula são páginas com um <code>index.html</code> e um <code>script.js</code> (veja <a href="script-na-pagina.html">JavaScript na Página</a>). As mensagens do Console foram colhidas no <strong>Chromium 155</strong> da máquina da Ana, abrindo o <code>index.html</code> com dois cliques e respondendo às caixinhas. Nas caixas "Experimente", clique em <strong>Rodar</strong>: as caixinhas aparecem de verdade, no seu navegador, e quem responde é você.</p>
+
+<hr>
+
+<h2>A ideia: o bilhete, a pergunta e o "pode ser?"</h2>
+<p>Imagine o balcão da padaria:</p>
+<ul>
+  <li>O cartaz "Hoje tem pão de queijo!" é um <strong><code>alert</code></strong>: só avisa. Você lê e diz "ok".</li>
+  <li>"Qual é o seu nome?", para escrever no copo, é um <strong><code>prompt</code></strong>: espera uma resposta escrita.</li>
+  <li>"Vai querer sacola?" é um <strong><code>confirm</code></strong>: a resposta é só sim ou não.</li>
+</ul>
+<p>Nos três casos, o atendimento <strong>para</strong> até você responder. Com as caixinhas é igual: enquanto uma delas está aberta, a página fica travada, e o programa espera.</p>
+
+<hr>
+
+<h2>1. <code>alert()</code>: um aviso</h2>
+
+<pre class="file" data-file="index.html">&lt;!doctype html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+  &lt;p id="saida"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">console.log("Antes do alert");
+alert("Bem-vinda à Padaria do Bairro!");
+console.log("Depois do alert");
+</pre>
+
+<p>Ao abrir a página, aparece uma caixinha no alto da tela, com o texto <code>Bem-vinda à Padaria do Bairro!</code> e um botão <strong>OK</strong>. O Console (<kbd>F12</kbd>; veja <a href="console-navegador.html">O Console do Navegador</a>) mostra:</p>
+
+<pre class="devtools">Antes do alert
+Depois do alert
+</pre>
+
+<dl class="anatomy">
+  <dt>alert("…")</dt><dd>Mostra o texto numa caixinha com um botão OK. O texto vai entre aspas (ou é uma variável, um template, qualquer valor).</dd>
+  <dt>a espera</dt><dd>O <code>Depois do alert</code> só apareceu no Console <strong>depois</strong> do clique no OK. Enquanto a caixinha está aberta, o programa fica parado na linha do <code>alert</code>.</dd>
+  <dt>a aparência</dt><dd>Quem desenha a caixinha é o navegador: muda do Chrome para o Firefox, do computador para o celular, e o seu código não consegue mudar a cor nem a fonte dela. Muitos navegadores escrevem em cima algo como "<em>endereço do site</em> diz".</dd>
+</dl>
+
+<div class="tip">
+<strong><code>alert</code> × <code>console.log</code></strong>
+<p>O <code>console.log</code> escreve no Console, que só quem abriu o <kbd>F12</kbd> vê: é para você, programador. O <code>alert</code> aparece para qualquer pessoa que abrir a página. Para conferir valores enquanto programa, prefira o <code>console.log</code>: ele não interrompe nada.</p>
+</div>
+
+<hr>
+
+<h2>2. <code>prompt()</code>: perguntar um texto</h2>
+
+<pre class="file" data-file="script.js">const nome = prompt("Qual é o seu nome?");
+console.log(nome);
+document.querySelector("#saida").textContent = `Olá, ${nome}!`;
+</pre>
+
+<p>Aparece uma caixinha com a pergunta, um campo para digitar e os botões <strong>OK</strong> e <strong>Cancelar</strong>. A Ana digitou <code>Ana</code> e clicou em OK. O Console mostrou:</p>
+
+<pre class="devtools">Ana
+</pre>
+
+<p>E o parágrafo <code>#saida</code> da página passou a mostrar <code>Olá, Ana!</code>.</p>
+
+<dl class="anatomy">
+  <dt>prompt("Qual é o seu nome?")</dt><dd>Mostra a pergunta com um campo de texto e <strong>espera</strong>. Quando a pessoa clica em OK, a chamada "vira" o que ela digitou (veja <a href="return.html">return</a>: o <code>prompt</code> devolve a resposta).</dd>
+  <dt>const nome = …</dt><dd>Guarda a resposta. Repare que aqui não tem <code>await</code> nem <code>import</code>: o <code>prompt</code> já vem pronto em toda página, e ele trava a página enquanto espera.</dd>
+  <dt>document.querySelector("#saida").textContent = …</dt><dd>Escreve o texto no parágrafo de <code>id="saida"</code> da página. Essa linha é assunto de <a href="dom-alterar.html">Mudando Textos e Atributos</a>; por enquanto, use-a como "escreva isto na página".</dd>
+</dl>
+
+<div class="tryweb" data-acoes="responder Ana" data-goal="texto:#saida~Bom dia, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> clique em Rodar e responda à pergunta. Depois mude o programa para a página mostrar <code>Bom dia, NOME!</code> (com o nome que você digitou no lugar de NOME).</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const nome = prompt("Qual é o seu nome?");
+console.log(nome);
+document.querySelector("#saida").textContent = `Olá, ${nome}!`;
+</pre>
+<pre class="solucao" data-file="script.js">const nome = prompt("Qual é o seu nome?");
+console.log(nome);
+document.querySelector("#saida").textContent = `Bom dia, ${nome}!`;
+</pre>
+</div>
+
+<h3>A resposta é sempre texto</h3>
+<p>Igual ao <code>readline</code> do Node: o <code>prompt</code> devolve uma <strong>string</strong>, mesmo que a pessoa digite algarismos.</p>
+
+<pre class="file" data-file="script.js">const idade = prompt("Quantos anos você tem?");
+console.log(typeof idade);
+console.log(`Daqui a 10 anos: ${idade + 10}`);
+</pre>
+
+<p>A Ana respondeu <code>30</code>:</p>
+
+<pre class="devtools">string
+Daqui a 10 anos: 3010
+</pre>
+
+<p><code>"30" + 10</code> junta os textos (veja <a href="conversao-automatica.html">Conversão Automática</a>). Convertendo com <code>Number()</code> (veja <a href="conversao.html">Conversão</a>):</p>
+
+<pre class="file" data-file="script.js">const idade = Number(prompt("Quantos anos você tem?"));
+console.log(typeof idade);
+console.log(`Daqui a 10 anos: ${idade + 10}`);
+</pre>
+
+<pre class="devtools">number
+Daqui a 10 anos: 40
+</pre>
+
+<div class="tryweb" data-acoes="responder 30" data-goal="texto:#saida~terá 40 anos;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode e responda <code>30</code>: a página mostra <code>3010</code>. Conserte o programa para a conta dar <code>40</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const idade = prompt("Quantos anos você tem?");
+document.querySelector("#saida").textContent = `Daqui a 10 anos você terá ${idade + 10} anos.`;
+</pre>
+<pre class="solucao" data-file="script.js">const idade = Number(prompt("Quantos anos você tem?"));
+document.querySelector("#saida").textContent = `Daqui a 10 anos você terá ${idade + 10} anos.`;
+</pre>
+</div>
+
+<h3>Cancelar, OK vazio e o texto padrão</h3>
+<p>A pessoa nem sempre responde do jeito esperado. Este programa trata os três casos:</p>
+
+<pre class="file" data-file="script.js">const nome = prompt("Qual é o seu nome?");
+if (nome === null) {
+  console.log("A pessoa cancelou.");
+} else if (nome === "") {
+  console.log("A pessoa clicou em OK sem digitar nada.");
+} else {
+  console.log(`Olá, ${nome.toUpperCase()}!`);
+}
+</pre>
+
+<p>A Ana abriu a página três vezes: na primeira clicou em <strong>Cancelar</strong>; na segunda, em <strong>OK</strong> com o campo vazio; na terceira digitou <code>Bia</code>. O Console de cada vez:</p>
+
+<pre class="devtools">A pessoa cancelou.
+</pre>
+<pre class="devtools">A pessoa clicou em OK sem digitar nada.
+</pre>
+<pre class="devtools">Olá, BIA!
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>A pessoa…</th><th><code>prompt()</code> devolve</th></tr>
+<tr><td>digita <code>Bia</code> e clica em OK</td><td><code>"Bia"</code> (texto)</td></tr>
+<tr><td>clica em OK sem digitar</td><td><code>""</code> (texto vazio)</td></tr>
+<tr><td>clica em Cancelar (ou aperta <kbd>Esc</kbd>)</td><td><code>null</code> (veja <a href="null-undefined.html">null e undefined</a>)</td></tr>
+</table>
+</div>
+
+<p>O <code>prompt</code> aceita um segundo argumento: o texto que já aparece escrito no campo. Com <code>prompt("Sua cidade?", "Recife")</code>, o campo abre com <code>Recife</code>; se a pessoa só clicar em OK, a resposta é <code>"Recife"</code>.</p>
+
+<hr>
+
+<h2>3. <code>confirm()</code>: sim ou não</h2>
+
+<pre class="file" data-file="script.js">const querSacola = confirm("Quer uma sacola? (R$ 0,25)");
+console.log(querSacola);
+if (querSacola) {
+  document.querySelector("#saida").textContent = "Sacola incluída.";
+} else {
+  document.querySelector("#saida").textContent = "Sem sacola.";
+}
+</pre>
+
+<p>A caixinha mostra a pergunta e os botões <strong>OK</strong> e <strong>Cancelar</strong>, sem campo de texto. Clicando em OK, o Console mostrou <code>true</code> e a página, <code>Sacola incluída.</code>; clicando em Cancelar:</p>
+
+<pre class="devtools">false
+</pre>
+
+<p>e a página mostrou <code>Sem sacola.</code>. O <code>confirm</code> devolve um <a href="booleanos.html">booleano</a>: <code>true</code> para OK, <code>false</code> para Cancelar. Por isso ele vai direto no <code>if</code>.</p>
+
+<h3>No Console, digitando</h3>
+<p>As três funções também funcionam digitadas no Console do <kbd>F12</kbd>. A Ana digitou cada linha, respondeu <code>Bia</code> ao <code>prompt</code> e clicou em OK nas outras caixinhas:</p>
+
+<pre class="devtools">&gt; typeof prompt
+'function'
+&gt; prompt("Qual é o seu nome?")
+'Bia'
+&gt; confirm("Tem certeza?")
+true
+&gt; alert("Oi")
+undefined
+&gt; window.alert === alert
+true
+</pre>
+
+<p>Repare: o <code>prompt</code> devolveu o texto <code>'Bia'</code>, o <code>confirm</code> devolveu <code>true</code>, e o <code>alert</code> não devolve nada (<code>undefined</code>). A última linha mostra de onde elas vêm: são funções do objeto <code>window</code>, a "janela" do navegador. Escrever <code>alert(…)</code> é o mesmo que <code>window.alert(…)</code>.</p>
+
+<hr>
+
+<h2>4. Só no navegador, e com moderação</h2>
+
+<h3 id="node">No Node, elas não existem</h3>
+<p>O <code>window</code> é do navegador. No Node não há janela, e nem <code>prompt</code>, nem <code>alert</code>, nem <code>confirm</code>:</p>
+
+<pre class="file" data-file="perguntar.js">const nome = prompt("Qual é o seu nome?");
+console.log(nome);
+</pre>
+
+<pre class="term">$ node perguntar.js
+/home/ana/perguntar.js:1
+const nome = prompt("Qual é o seu nome?");
+             ^
+
+ReferenceError: prompt is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/perguntar.js:1:14)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>prompt</code> não está definido". No terminal, use o <a href="entrada-teclado.html">readline</a>; o mesmo vale para o <code>alert</code> (que vira <code>console.log</code>). Veja a lista do que é de cada lado em <a href="onde-roda.html">Onde o JavaScript Roda</a>.</p>
+
+<h3>Por que os sites quase não usam</h3>
+<p>As caixinhas são ótimas para aprender e para testes rápidos, mas os sites de verdade quase nunca as usam:</p>
+<ul>
+  <li><strong>Travam a página</strong>: enquanto a caixinha está aberta, nada mais funciona.</li>
+  <li><strong>Não dá para mudar a aparência</strong>: cor, fonte e botões são do navegador.</li>
+  <li><strong>Irritam</strong>: muitos navegadores oferecem a opção de impedir que o site abra mais caixinhas.</li>
+</ul>
+<p>Nos sites, perguntas se fazem com campos na própria página (<a href="formularios.html">Formulários</a>), e avisos se mostram escrevendo na página (<a href="dom-alterar.html">Mudando Textos</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Jeito rápido (caixinha)</th><th>Jeito dos sites</th><th>No Node</th></tr>
+<tr><td>Mostrar uma mensagem</td><td><code>alert("…")</code></td><td>Escrever na página: <code>elemento.textContent = "…"</code></td><td><code>console.log("…")</code></td></tr>
+<tr><td>Perguntar um texto</td><td><code>prompt("…")</code></td><td>Um campo <code>&lt;input&gt;</code> e um botão (<a href="formularios.html">Formulários</a>)</td><td><code>await rl.question("…")</code> (<a href="entrada-teclado.html">readline</a>)</td></tr>
+<tr><td>Pedir sim ou não</td><td><code>confirm("…")</code></td><td>Dois botões na página (<a href="eventos.html">Eventos</a>)</td><td><code>rl.question</code> e comparar com <code>"s"</code></td></tr>
+<tr><td>Ver um valor enquanto programa</td><td>—</td><td><code>console.log</code> e o <kbd>F12</kbd></td><td><code>console.log</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A pessoa cancelou, e o programa usou a resposta</strong>
+<pre class="file" data-file="script.js">const nome = prompt("Qual é o seu nome?");
+console.log(nome);
+console.log(nome.toUpperCase());
+</pre>
+<p>A Ana clicou em <strong>Cancelar</strong>:</p>
+<pre class="devtools">null
+Uncaught TypeError: Cannot read properties of null (reading 'toUpperCase')
+    at script.js:3:18
+</pre>
+<p>Linha por linha: o <code>null</code> é o <code>console.log(nome)</code>, a resposta do Cancelar; <code>Uncaught TypeError</code> é um erro de tipo que ninguém tratou ("<em>uncaught</em>" = "não capturado"); <code>Cannot read properties of null (reading 'toUpperCase')</code> diz que não dá para pegar o <code>toUpperCase</code> de <code>null</code>; e <code>at script.js:3:18</code> é o arquivo, a linha 3 e a coluna 18. No Console de verdade, o erro aparece em vermelho, e o <code>script.js:3</code> é um link que leva à linha. <strong>Como consertar:</strong> teste o <code>null</code> antes de usar a resposta, como na seção 2: <code>if (nome === null) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome da função errado</strong>
+<pre class="file" data-file="script.js">const nome = promt("Qual é o seu nome?");
+console.log(nome);
+</pre>
+<pre class="devtools">Uncaught ReferenceError: promt is not defined
+    at script.js:1:14
+</pre>
+<p>"<code>promt</code> não está definido": faltou o <strong>p</strong> antes do <code>t</code>. Nenhuma caixinha apareceu, e o resto do programa não rodou. <strong>Como consertar:</strong> <code>prompt</code>. Se uma página "não faz nada", abra o Console: o erro estará lá.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>prompt</code> no Node</strong>
+<p>É o <code>ReferenceError: prompt is not defined</code> da <a href="#node">seção 4</a>. <strong>Como consertar:</strong> no terminal, use o <a href="entrada-teclado.html">readline</a>; o <code>prompt</code> é só para páginas.</p>
+</div>
+
+<div class="cenario">
+<strong>A conta deu errado: <code>3010</code> ou <code>NaN</code></strong>
+<p><code>3010</code> é a resposta usada como texto: converta com <code>Number()</code>. <code>NaN</code> aparece quando a pessoa digitou letras, ou vírgula no lugar do ponto (<code>Number("0,5")</code> dá <code>NaN</code>). Confira com <code>Number.isNaN(valor)</code> antes da conta.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Mostra</th><th>Devolve</th></tr>
+<tr><td><code>alert("texto")</code></td><td>Aviso com botão OK</td><td><code>undefined</code></td></tr>
+<tr><td><code>prompt("pergunta")</code></td><td>Pergunta, campo, OK e Cancelar</td><td>O texto digitado; <code>""</code> se vazio; <code>null</code> se Cancelar</td></tr>
+<tr><td><code>prompt("pergunta", "padrão")</code></td><td>O campo já vem com <code>padrão</code></td><td>Igual ao de cima</td></tr>
+<tr><td><code>Number(prompt("…"))</code></td><td>A pergunta</td><td>A resposta como número (ou <code>NaN</code>)</td></tr>
+<tr><td><code>confirm("pergunta")</code></td><td>Pergunta, OK e Cancelar</td><td><code>true</code> (OK) ou <code>false</code> (Cancelar)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of null</code></td><td>A pessoa cancelou o <code>prompt</code>, e o programa usou a resposta</td></tr>
+<tr><td><code>ReferenceError: prompt is not defined</code> no terminal</td><td><code>prompt</code> rodando no Node</td></tr>
+<tr><td><code>ReferenceError: … is not defined</code> no navegador</td><td>Nome da função escrito errado</td></tr>
+<tr><td><code>3010</code> em vez de <code>40</code></td><td>Faltou <code>Number()</code></td></tr>
+<tr><td>Nada acontece na página</td><td>Um erro parou o script: abra o Console (<kbd>F12</kbd>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual função?</h3>
+<p>Complete com <code>alert</code>, <code>prompt</code> ou <code>confirm</code>:</p>
+<div class="ex-code">Para perguntar a cidade da pessoa: <input data-answer="prompt" aria-label="função">("Sua cidade?")<br>Para perguntar "Deseja sair?": <input data-answer="confirm" aria-label="função">("Deseja sair?")<br>Para avisar "Pedido enviado!": <input data-answer="alert" aria-label="função">("Pedido enviado!")</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que devolve?</h3>
+<p>A pessoa clicou em <strong>Cancelar</strong> num <code>prompt</code>. O que ele devolveu?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor devolvido"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. A pessoa digitou <code>5</code> em <code>const n = prompt("Número?");</code>. Quanto vale <code>n + 5</code>?</p>
+<label><input type="radio" name="q3"> 10</label>
+<label><input type="radio" name="q3"> <code>NaN</code></label>
+<label><input type="radio" name="q3"> <code>"55"</code></label>
+<label><input type="radio" name="q3"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que <code>confirm("Tem certeza?")</code> devolve quando a pessoa clica em OK?</p>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>"OK"</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que <code>node app.js</code> dá <code>ReferenceError: alert is not defined</code>?</p>
+<label><input type="radio" name="q5"> Porque faltou um <code>import</code></label>
+<label><input type="radio" name="q5"> Porque <code>alert</code> é do navegador (do <code>window</code>) e não existe no Node</label>
+<label><input type="radio" name="q5"> Porque o texto do alert está sem aspas</label>
+<label><input type="radio" name="q5"> Porque o Node está desatualizado</label>
+</div>
+
+<h3>Missão final: o pedido da padaria</h3>
+
+<div class="tryweb" data-acoes="responder 10" data-goal="texto:#saida~Total: R$ 5.25;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete o <code>script.js</code>: pergunte com <code>prompt</code> quantos pães a pessoa quer (cada um custa R$ 0,50; converta a resposta), pergunte com <code>confirm</code> se ela quer sacola (mais R$ 0,25) e mostre na página <code>Total: R$</code> com o valor e 2 casas (<code>total.toFixed(2)</code>). Teste com <code>10</code> pães e OK na sacola: <code>Total: R$ 5.25</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">// 1. pergunte quantos pães (prompt) e converta com Number
+
+// 2. pergunte se quer sacola (confirm)
+
+// 3. calcule o total e mostre na página:
+// document.querySelector("#saida").textContent = `Total: R$ ${total.toFixed(2)}`;
+</pre>
+<pre class="solucao" data-file="script.js">const quantidade = Number(prompt("Quantos pães?"));
+const querSacola = confirm("Quer uma sacola? (R$ 0,25)");
+let total = quantidade * 0.5;
+if (querSacola) {
+  total = total + 0.25;
+}
+document.querySelector("#saida").textContent = `Total: R$ ${total.toFixed(2)}`;
+</pre>
+</div>
+
+<p>No Chromium do lab, a solução mostrou <code>Total: R$ 5.25</code> com OK na sacola e <code>Total: R$ 5.00</code> com Cancelar.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>alert("…")</code> mostra um aviso; <code>prompt("…")</code> pergunta um texto; <code>confirm("…")</code> pede OK ou Cancelar. As três travam a página até a resposta.</li>
+  <li>O <code>prompt</code> devolve texto (<code>Number()</code> para contas), <code>""</code> se a pessoa não digitar nada e <code>null</code> se ela cancelar: teste o <code>null</code> antes de usar.</li>
+  <li>O <code>confirm</code> devolve <code>true</code> ou <code>false</code>, prontos para o <code>if</code>.</li>
+  <li>São funções do <code>window</code>: só existem no navegador. No Node, use o <a href="entrada-teclado.html">readline</a>.</li>
+  <li>Servem para aprender e testar; nos sites, use <a href="formularios.html">formulários</a> e escreva na página.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
