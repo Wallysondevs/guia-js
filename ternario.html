@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Operador Ternário (? :) — escolhendo entre dois valores | Guia JavaScript</title>
+<meta name="description" content="O operador ternário do JavaScript para quem nunca programou: condição ? valor1 : valor2, a diferença entre escolher um valor e fazer uma ação, o ternário dentro de template strings (singular e plural), ternários em cadeia, a comparação com if … else, || e ??, e os erros reais do Node.js 24 (os dois-pontos esquecidos, const dentro do ternário, a precedência com +).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Operador Ternário (? :)</span></h1>
+
+<p class="intro">Muitas vezes o <code>if … else</code> só serve para escolher entre <strong>dois valores</strong>: "aprovada" ou "reprovada", "item" ou "itens", R$ 15 de frete ou zero. Para esses casos existe uma forma curta, que cabe numa linha: o <strong>operador ternário</strong>, escrito com <code>?</code> e <code>:</code>. Ele se chama assim porque é o único operador do JavaScript com <strong>três</strong> partes ("ternário" quer dizer "de três").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve <code>condição ? valorSeSim : valorSeNão</code>, e como ler em voz alta.</li>
+  <li>Por que o ternário <strong>produz um valor</strong>, e o <code>if</code> não.</li>
+  <li>Onde ele brilha: numa <code>const</code>, dentro de um template string, no singular/plural.</li>
+  <li>Ternários em cadeia, e quando é melhor voltar ao <code>if</code>.</li>
+  <li>A diferença entre o ternário, o <code>||</code> e o <code>??</code>.</li>
+  <li>Os erros reais: os dois-pontos esquecidos, <code>const</code> dentro do ternário e a armadilha da precedência com <code>+</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "com açúcar ou sem?"</h2>
+<p>Na padaria, o atendente pergunta: <em>"Café com açúcar?"</em>. Dependendo da resposta, ele te entrega <strong>uma</strong> de duas xícaras: a adoçada ou a amarga. Ele não faz um discurso; ele só escolhe qual xícara entregar.</p>
+<p>O ternário é isso: uma pergunta e duas respostas prontas. Ele te <strong>entrega</strong> uma delas, e você faz o que quiser com ela: guarda numa variável, mostra na tela, junta num texto.</p>
+
+<hr>
+
+<h2>1. A forma do ternário</h2>
+
+<pre class="file" data-file="situacao.js">const nota = 8;
+const situacao = nota &gt;= 7 ? "Aprovada" : "Reprovada";
+console.log(situacao);
+</pre>
+
+<dl class="anatomy">
+  <dt>nota &gt;= 7</dt><dd>A <strong>condição</strong>, a pergunta. Os parênteses são opcionais aqui (no <code>if</code> eles são obrigatórios).</dd>
+  <dt>?</dt><dd>Separa a pergunta das respostas. Leia como "<strong>se sim</strong>, então…".</dd>
+  <dt>"Aprovada"</dt><dd>O valor entregue quando a condição é verdadeira (ou truthy; veja <a href="truthy-falsy.html">Truthy e Falsy</a>).</dd>
+  <dt>:</dt><dd>Leia como "<strong>senão</strong>…".</dd>
+  <dt>"Reprovada"</dt><dd>O valor entregue quando a condição é falsa.</dd>
+  <dt>const situacao = …</dt><dd>O valor escolhido vai direto para a constante.</dd>
+</dl>
+
+<pre class="term">$ node situacao.js
+Aprovada
+</pre>
+
+<p>Em voz alta: "a situação é: a nota é maior ou igual a 7? Se sim, <em>Aprovada</em>; senão, <em>Reprovada</em>".</p>
+
+<h3>O mesmo com <code>if … else</code></h3>
+<p>Compare com a versão da aula <a href="if-else.html">else e else if</a>:</p>
+
+<pre class="file" data-file="situacao-if.js">const nota = 8;
+let situacao;
+if (nota &gt;= 7) {
+  situacao = "Aprovada";
+} else {
+  situacao = "Reprovada";
+}
+console.log(situacao);
+</pre>
+
+<pre class="term">$ node situacao-if.js
+Aprovada
+</pre>
+
+<p>Mesma saída, mas repare: com o <code>if</code>, a variável tem de ser <code>let</code> (criada vazia e preenchida depois) e o nome <code>situacao</code> aparece três vezes. Com o ternário, é uma linha, e dá para usar <code>const</code>.</p>
+
+<div class="tryjs" data-goal="out:Maior de idade;;src:\?[^:]*:">
+<p class="try-task"><strong>Missão:</strong> complete o ternário para a constante <code>tipo</code> valer <code>"Maior de idade"</code> se a idade for 18 ou mais, e <code>"Menor de idade"</code> senão. Teste também com uma idade menor.</p>
+<pre class="script" data-file="main.js">const idade = 20;
+const tipo = "";
+console.log(tipo);
+</pre>
+<pre class="solucao" data-file="main.js">const idade = 20;
+const tipo = idade &gt;= 18 ? "Maior de idade" : "Menor de idade";
+console.log(tipo);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O ternário produz um valor; o <code>if</code>, não</h2>
+<p>Esta é a diferença mais importante. O ternário é uma <strong>expressão</strong>: como <code>2 + 3</code>, ele <strong>vale</strong> alguma coisa. O <code>if</code> é uma <strong>instrução</strong>: ele manda o programa fazer coisas, mas não vale nada. Por isso o ternário pode ir em qualquer lugar onde caberia um valor:</p>
+
+<pre class="file" data-file="valor.js">const quantidade = 3;
+const vip = false;
+
+console.log(quantidade &gt; 0 ? "Em estoque" : "Esgotado");
+console.log(`Frete: R$ ${vip ? 0 : 15}`);
+console.log("Total: R$ " + (100 + (vip ? 0 : 15)));
+</pre>
+
+<pre class="term">$ node valor.js
+Em estoque
+Frete: R$ 15
+Total: R$ 115
+</pre>
+
+<dl class="anatomy">
+  <dt>console.log(… ? … : …)</dt><dd>O valor escolhido vai direto para o <code>console.log</code>.</dd>
+  <dt>${vip ? 0 : 15}</dt><dd>Dentro do <code>${ }</code> de um template string (veja <a href="template-strings.html">Template Strings</a>) cabe qualquer expressão, inclusive um ternário.</dd>
+  <dt>100 + (vip ? 0 : 15)</dt><dd>Numa conta. Os parênteses em volta do ternário são importantes aqui: veja <a href="#errado">Quando dá errado</a>.</dd>
+</dl>
+
+<p>Já um <code>if</code> dentro do <code>${ }</code> o Node recusa, porque o <code>if</code> não tem valor para pôr no texto:</p>
+
+<pre class="file" data-file="ifdentro.js">const vip = true;
+console.log(`Frete: ${if (vip) { 0 }}`);
+</pre>
+
+<pre class="term">$ node ifdentro.js
+/home/ana/ifdentro.js:2
+console.log(`Frete: ${if (vip) { 0 }}`);
+                      ^^
+
+SyntaxError: Unexpected token 'if'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>if</code> inesperado": dentro do <code>${ }</code>, o Node esperava um valor e encontrou uma instrução.</p>
+
+<hr>
+
+<h2>3. O uso clássico: singular e plural</h2>
+<p>A lista de compras da Ana mostra quantos itens faltam comprar. Com 1, é "item"; com outro número, "itens":</p>
+
+<pre class="file" data-file="plural.js">const faltam = 1;
+console.log(`Falta ${faltam} ${faltam === 1 ? "item" : "itens"} na lista.`);
+
+const faltam2 = 4;
+console.log(`Faltam ${faltam2} ${faltam2 === 1 ? "item" : "itens"} na lista.`);
+</pre>
+
+<pre class="term">$ node plural.js
+Falta 1 item na lista.
+Faltam 4 itens na lista.
+</pre>
+
+<p>Sem o ternário, a Ana teria de escrever "1 itens" ou um <code>if … else</code> com duas frases inteiras quase iguais.</p>
+
+<div class="tryjs" data-goal="out:Você tem 1 mensagem nova.;;src:\?">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Você tem 1 mensagens novas.</code>. Use um ternário dentro do template para escrever <code>mensagem nova</code> quando for 1, e <code>mensagens novas</code> nos outros casos. Depois teste com 5.</p>
+<pre class="script" data-file="main.js">const novas = 1;
+console.log(`Você tem ${novas} mensagens novas.`);
+</pre>
+<pre class="solucao" data-file="main.js">const novas = 1;
+console.log(`Você tem ${novas} ${novas === 1 ? "mensagem nova" : "mensagens novas"}.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Ternários em cadeia</h2>
+<p>A parte do "senão" pode ser <strong>outro ternário</strong>. É o equivalente ao <code>else if</code>. Os conceitos da escola da Ana:</p>
+
+<pre class="file" data-file="cadeia.js">const nota = 6;
+const conceito =
+  nota &gt;= 9 ? "A" :
+  nota &gt;= 7 ? "B" :
+  nota &gt;= 5 ? "C" :
+  "D";
+console.log(`Conceito ${conceito}`);
+</pre>
+
+<pre class="term">$ node cadeia.js
+Conceito C
+</pre>
+
+<p>Escrito assim, uma pergunta por linha, ainda dá para ler: "nota maior ou igual a 9? A. Senão, maior ou igual a 7? B…". Funciona exatamente como a cadeia de <code>else if</code>: a primeira condição verdadeira ganha. Mas, se você escrever tudo numa linha só, vira isto:</p>
+
+<pre class="file" data-file="cadeia-linha.js">const nota = 6;
+const conceito = nota &gt;= 9 ? "A" : nota &gt;= 7 ? "B" : nota &gt;= 5 ? "C" : "D";
+console.log(conceito);
+</pre>
+
+<pre class="term">$ node cadeia-linha.js
+C
+</pre>
+
+<p>Funciona igual, mas é difícil de ler. Muitas equipes têm a regra: ternário em cadeia, só um por linha, ou nem isso. Com três caminhos ou mais, o <code>if … else if</code> costuma ser mais claro.</p>
+
+<hr>
+
+<h2>5. Ternário é para escolher valores, não para fazer coisas</h2>
+<p>Tecnicamente, dá para pôr <strong>ações</strong> nos dois lados:</p>
+
+<pre class="file" data-file="acao.js">const logado = true;
+logado ? console.log("Bem-vinda de volta!") : console.log("Faça o login.");
+</pre>
+
+<pre class="term">$ node acao.js
+Bem-vinda de volta!
+</pre>
+
+<p>Funciona, mas é um uso torto: o ternário existe para <strong>entregar um valor</strong>, e aqui o valor é jogado fora. Quando cada caminho <strong>faz</strong> algo (mostrar, mudar uma variável, salvar), use <code>if … else</code>. Ou, se as duas ações são iguais e só muda o texto, mova o ternário para dentro: <code>console.log(logado ? "Bem-vinda de volta!" : "Faça o login.");</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Mostrar o apelido, ou o nome quando não há apelido, tem três formas curtas:</p>
+
+<pre class="file" data-file="formas.js">const nome = "Beatriz";
+const apelido = "";
+
+console.log(apelido ? apelido : nome);
+console.log(apelido || nome);
+console.log(apelido ?? nome);
+</pre>
+
+<pre class="term">$ node formas.js
+Beatriz
+Beatriz
+
+</pre>
+
+<dl class="anatomy">
+  <dt>apelido ? apelido : nome</dt><dd>O ternário com truthy: o texto vazio é falsy, então vai o <code>nome</code>.</dd>
+  <dt>apelido || nome</dt><dd>O "ou" faz exatamente o mesmo, mais curto: dá o primeiro se ele for truthy, senão o segundo (veja <a href="operadores-logicos.html">Operadores Lógicos</a>).</dd>
+  <dt>apelido ?? nome</dt><dd>O <code>??</code> só troca <code>null</code> e <code>undefined</code>. O <code>""</code> não é nenhum dos dois, então ele ficou com o texto vazio: a terceira linha da saída está <strong>em branco</strong>. Aqui o <code>??</code> não era o que a Ana queria (veja <a href="optional-chaining.html">?. e ??</a>).</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Escolher entre dois valores por uma condição qualquer</td><td><code>cond ? a : b</code></td></tr>
+<tr><td>"Este valor, ou um padrão se ele for vazio/zero/falsy"</td><td><code>valor || padrao</code></td></tr>
+<tr><td>"Este valor, ou um padrão se ele não existir" (0 e <code>""</code> valem)</td><td><code>valor ?? padrao</code></td></tr>
+<tr><td>Três caminhos ou mais</td><td><code>if … else if</code> (ou ternário em cadeia, um por linha)</td></tr>
+<tr><td>Cada caminho faz uma ação</td><td><code>if … else</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os dois-pontos</strong>
+<pre class="file" data-file="semdoispontos.js">const nota = 8;
+const situacao = nota &gt;= 7 ? "Aprovada";
+console.log(situacao);
+</pre>
+<pre class="term">$ node semdoispontos.js
+/home/ana/semdoispontos.js:2
+const situacao = nota &gt;= 7 ? "Aprovada";
+                                       ^
+
+SyntaxError: Unexpected token ';'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semdoispontos.js:2</dt><dd>O problema está na linha 2.</dd>
+  <dt>const situacao = nota &gt;= 7 ? "Aprovada";</dt><dd>A linha 2, com a setinha embaixo do <code>;</code>.</dd>
+  <dt>SyntaxError: Unexpected token ';'</dt><dd>"Ponto e vírgula inesperado". Depois do <code>"Aprovada"</code>, o Node esperava o <code>:</code> com a segunda resposta, e encontrou o fim da instrução. O ternário <strong>sempre</strong> tem as duas respostas: não existe "ternário sem senão".</dd>
+</dl>
+<p><strong>Como consertar:</strong> escreva o "senão": <code>nota &gt;= 7 ? "Aprovada" : "Reprovada"</code>. Se você realmente só quer fazer algo quando a condição é verdadeira, e nada senão, isso é um <code>if</code> sem <code>else</code> (aula <a href="if.html">if</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Instrução dentro do ternário</strong>
+<pre class="file" data-file="constdentro.js">const nota = 8;
+nota &gt;= 7 ? const situacao = "Aprovada" : const situacao = "Reprovada";
+</pre>
+<pre class="term">$ node constdentro.js
+/home/ana/constdentro.js:2
+nota &gt;= 7 ? const situacao = "Aprovada" : const situacao = "Reprovada";
+            ^^^^^
+
+SyntaxError: Unexpected token 'const'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"<code>const</code> inesperado". Os lados do ternário só aceitam <strong>expressões</strong> (coisas que têm valor); <code>const</code>, <code>let</code>, <code>if</code> e os laços são instruções e não cabem ali. <strong>Como consertar:</strong> o <code>const</code> vai do lado de fora, recebendo o valor do ternário: <code>const situacao = nota &gt;= 7 ? "Aprovada" : "Reprovada";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A armadilha da precedência</strong>
+<p>Este não dá erro. A Ana quer mostrar se o pedido está pago:</p>
+<pre class="file" data-file="precedencia.js">const pago = false;
+console.log("Pagamento: " + pago ? "confirmado" : "pendente");
+</pre>
+<pre class="term">$ node precedencia.js
+confirmado
+</pre>
+<p>Saiu "confirmado" com <code>pago</code> igual a <code>false</code>, e sem o "Pagamento:" na frente! O <code>+</code> tem <strong>prioridade maior</strong> que o <code>?</code> (veja <a href="precedencia.html">Precedência dos Operadores</a>). Então o Node primeiro juntou <code>"Pagamento: " + pago</code>, que deu o texto <code>"Pagamento: false"</code>, e só depois perguntou: esse texto é truthy? É (texto não vazio), então entregou <code>"confirmado"</code>. <strong>Como consertar:</strong> parênteses em volta do ternário: <code>"Pagamento: " + (pago ? "confirmado" : "pendente")</code>. Ou use um template string: <code>`Pagamento: ${pago ? "confirmado" : "pendente"}`</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Pagamento: pendente;;semerro">
+<p class="try-task"><strong>Missão:</strong> conserte a precedência para o programa mostrar <code>Pagamento: pendente</code>.</p>
+<pre class="script" data-file="main.js">const pago = false;
+console.log("Pagamento: " + pago ? "confirmado" : "pendente");
+</pre>
+<pre class="solucao" data-file="main.js">const pago = false;
+console.log("Pagamento: " + (pago ? "confirmado" : "pendente"));
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>cond ? a : b</code></td><td>Vale <code>a</code> se <code>cond</code> for truthy; senão, vale <code>b</code></td></tr>
+<tr><td><code>const x = cond ? a : b;</code></td><td>Guarda o valor escolhido</td></tr>
+<tr><td><code>`… ${n === 1 ? "item" : "itens"}`</code></td><td>Singular/plural dentro do texto</td></tr>
+<tr><td><code>"…" + (cond ? a : b)</code></td><td>Num <code>+</code>, sempre com parênteses</td></tr>
+<tr><td><code>c1 ? a : c2 ? b : c</code></td><td>Em cadeia: a primeira condição verdadeira ganha</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected token ';'</code> num ternário</td><td>Faltou o <code>:</code> e a segunda resposta</td></tr>
+<tr><td><code>SyntaxError: Unexpected token 'const'</code></td><td>Instrução (<code>const</code>, <code>let</code>…) dentro do ternário</td></tr>
+<tr><td>Sempre a primeira resposta, e o texto da frente sumiu</td><td><code>"texto" + cond ? a : b</code> sem parênteses</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code">const status = online <input data-answer="?" aria-label="primeiro símbolo"> "Online" <input data-answer=":" aria-label="segundo símbolo"> "Offline";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<pre class="file" data-file="ex2.js">const temperatura = 30;
+console.log(temperatura &gt; 25 ? "calor" : "frio");
+</pre>
+<div class="ex-code">Mostra <input data-answer="calor" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é a diferença principal entre o ternário e o <code>if … else</code>?</p>
+<label><input type="radio" name="q3"> O ternário é mais rápido</label>
+<label><input type="radio" name="q3"> O ternário produz um valor, que pode ir numa variável ou num texto</label>
+<label><input type="radio" name="q3"> O ternário não aceita condições com <code>&amp;&amp;</code></label>
+<label><input type="radio" name="q3"> O <code>if</code> só funciona com números</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>const n = 0;</code>, o que mostra <code>console.log(n ? "tem" : "vazio");</code>?</p>
+<label><input type="radio" name="q4"> <code>tem</code></label>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>vazio</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual linha está certa?</p>
+<label><input type="radio" name="q5"> <code>const preco = vip ? 90 : 100;</code></label>
+<label><input type="radio" name="q5"> <code>vip ? const preco = 90 : const preco = 100;</code></label>
+<label><input type="radio" name="q5"> <code>const preco = vip ? 90;</code></label>
+<label><input type="radio" name="q5"> <code>const preco = if (vip) 90 else 100;</code></label>
+</div>
+
+<h3>Missão final: o selo do produto</h3>
+
+<div class="tryjs" data-goal="out:Arroz: últimas unidades;;src:esgotado;;src:disponível;;src:\?">
+<p class="try-task"><strong>Missão:</strong> a vitrine da lojinha mostra um selo em cada produto: <code>esgotado</code> se o estoque for 0, <code>últimas unidades</code> se for menor que 5, e <code>disponível</code> nos outros casos. Troque o <code>"?"</code> por um ternário em cadeia, uma pergunta por linha. Com o estoque 3, deve aparecer <code>Arroz: últimas unidades</code>; depois teste com 0 e com 20.</p>
+<pre class="script" data-file="main.js">const estoque = 3;
+const selo = "?";
+console.log(`Arroz: ${selo}`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = 3;
+const selo =
+  estoque === 0 ? "esgotado" :
+  estoque &lt; 5 ? "últimas unidades" :
+  "disponível";
+console.log(`Arroz: ${selo}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>condição ? valorSeSim : valorSeNão</code> escolhe um entre dois valores. Leia: "condição? Se sim, isto; senão, aquilo".</li>
+  <li>O ternário é uma <strong>expressão</strong> (tem valor): cabe numa <code>const</code>, num <code>console.log</code>, dentro do <code>${ }</code>. O <code>if</code> é uma instrução e não cabe nesses lugares.</li>
+  <li>Uso clássico: singular e plural, <code>`${n === 1 ? "item" : "itens"}`</code>.</li>
+  <li>Em cadeia, funciona como o <code>else if</code>; escreva uma pergunta por linha, ou volte ao <code>if</code>.</li>
+  <li>Para fazer <strong>ações</strong>, use <code>if … else</code>; o ternário é para <strong>valores</strong>.</li>
+  <li>Os dois lados são obrigatórios; instruções não cabem dentro; e com <code>+</code>, ponha parênteses em volta do ternário.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
