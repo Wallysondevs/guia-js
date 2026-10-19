@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Operadores — referência completa com a tabela de precedência | Guia JavaScript</title>
+<meta name="description" content="Referência rápida de todos os operadores do JavaScript: aritméticos (+ - * / % **), atribuição (+=, ||=, ??=), incremento, comparação (=== × ==), lógicos (&amp;&amp; || !), ??, ?., ternário, typeof, in, delete, spread e bits, com exemplo, resultado real do Node.js 24 e a tabela de precedência.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Operadores</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida de todos os <strong>operadores</strong> do JavaScript: os símbolos e palavras que fazem contas (<code>+</code>, <code>*</code>), guardam valores (<code>=</code>, <code>+=</code>), comparam (<code>===</code>, <code>&lt;</code>), combinam condições (<code>&amp;&amp;</code>, <code>||</code>), escolhem um valor padrão (<code>??</code>), leem com cuidado (<code>?.</code>) e perguntam coisas sobre um valor (<code>typeof</code>, <code>in</code>). No fim está a <strong>tabela de precedência</strong>: a ordem em que o JavaScript faz as operações quando há várias na mesma linha.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>.</li>
+  <li><strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana. Textos aparecem entre aspas simples (<code>'105'</code>): é o jeito do modo interativo mostrar que o resultado é uma <strong>string</strong>, e não um número.</li>
+  <li>Quando o resultado é um erro, a tabela mostra a mensagem como o Node escreveu (em inglês); a explicação em português está em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</li>
+  <li>A coluna <strong>Aula</strong> leva à aula que explica o operador com calma.</li>
+</ul>
+</div>
+
+<p>Assim fica no terminal da Ana:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 7 / 2
+3.5
+&gt; "10" + 5
+'105'
+&gt; 2 + 3 * 4
+14
+&gt; 1 === "1"
+false
+&gt; 0 ?? 42
+0
+&gt; .exit
+</pre>
+
+<p>O <code>7 / 2</code> deu <code>3.5</code>: no JavaScript, a divisão nunca corta as casas decimais. O <code>"10" + 5</code> deu o <strong>texto</strong> <code>'105'</code>, e não <code>15</code>: com uma string, o <code>+</code> junta em vez de somar. O <code>2 + 3 * 4</code> deu <code>14</code>, porque a multiplicação vem antes da soma. E o <code>===</code> não considera o número <code>1</code> igual ao texto <code>"1"</code>.</p>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#aritmeticos">Aritméticos</a>: <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code> <code>**</code></li>
+  <li><a href="#texto">Com textos</a>: <code>+</code> que junta, <code>+</code> e <code>-</code> na frente</li>
+  <li><a href="#incremento">Incremento</a>: <code>++</code> <code>--</code></li>
+  <li><a href="#atribuicao">Atribuição</a>: <code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>**=</code> <code>||=</code> <code>&amp;&amp;=</code> <code>??=</code></li>
+  <li><a href="#comparacao">Comparação</a>: <code>===</code> <code>!==</code> <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></li>
+  <li><a href="#logicos">Lógicos e valor padrão</a>: <code>&amp;&amp;</code> <code>||</code> <code>!</code> <code>??</code></li>
+  <li><a href="#outros">Outros</a>: <code>?.</code> <code>? :</code> <code>typeof</code> <code>instanceof</code> <code>in</code> <code>delete</code> <code>...</code> <code>,</code> <code>void</code></li>
+  <li><a href="#bits">Bits</a>: <code>&amp;</code> <code>|</code> <code>^</code> <code>~</code> <code>&lt;&lt;</code> <code>&gt;&gt;</code> <code>&gt;&gt;&gt;</code></li>
+  <li><a href="#precedencia">A tabela de precedência</a></li>
+  <li><a href="#erros">Erros de sintaxe com operadores</a></li>
+</ul>
+
+<hr>
+
+<h2 id="aritmeticos">Aritméticos</h2>
+
+<p>No JavaScript existe um tipo só para números (<code>number</code>): inteiros e números com vírgula são a mesma coisa. Por isso <code>10 / 2</code> dá <code>5</code>, sem <code>.0</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>+</code></td><td>soma</td><td><code>7 + 2</code></td><td><code>9</code></td><td><a href="operadores-aritmeticos.html">Operadores Aritméticos</a></td></tr>
+<tr><td><code>-</code></td><td>subtração; sozinho na frente, troca o sinal</td><td><code>7 - 2</code>, <code>-7</code></td><td><code>5</code>, <code>-7</code></td><td></td></tr>
+<tr><td><code>*</code></td><td>multiplicação</td><td><code>7 * 2</code></td><td><code>14</code></td><td></td></tr>
+<tr><td><code>/</code></td><td>divisão, com as casas decimais</td><td><code>7 / 2</code>, <code>10 / 2</code></td><td><code>3.5</code>, <code>5</code></td><td></td></tr>
+<tr><td><code>%</code></td><td>resto da divisão. O resultado tem o sinal do <strong>primeiro</strong> número</td><td><code>7 % 2</code>, <code>-7 % 2</code>, <code>5.5 % 2</code></td><td><code>1</code>, <code>-1</code>, <code>1.5</code></td><td><a href="operadores-aritmeticos.html">Operadores Aritméticos</a></td></tr>
+<tr><td><code>**</code></td><td>potência (<span class="versao">ES2016</span>)</td><td><code>2 ** 10</code>, <code>2 ** 0.5</code>, <code>2 ** -1</code></td><td><code>1024</code>, <code>1.4142135623730951</code>, <code>0.5</code></td><td></td></tr>
+<tr><td></td><td>dividir por zero não é erro: dá infinito</td><td><code>1 / 0</code>, <code>-1 / 0</code></td><td><code>Infinity</code>, <code>-Infinity</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td></td><td>…ou <code>NaN</code> ("não é um número")</td><td><code>0 / 0</code>, <code>7 % 0</code></td><td><code>NaN</code>, <code>NaN</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="texto">Com textos (strings)</h2>
+
+<p>O <code>+</code> tem dois trabalhos: se um dos lados é uma string, ele <strong>junta</strong> (<em>concatena</em>). Os outros operadores aritméticos tentam converter o texto em número. Essa conversão sozinha é a origem de muitas pegadinhas: veja <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>+</code></td><td>junta textos</td><td><code>"Ana" + " " + "Lima"</code></td><td><code>'Ana Lima'</code></td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td></td><td>texto com número: junta</td><td><code>"10" + 5</code></td><td><code>'105'</code></td><td><a href="conversao-automatica.html">Conversão Automática</a></td></tr>
+<tr><td></td><td>vai da esquerda para a direita: soma enquanto são números, junta depois do primeiro texto</td><td><code>1 + 2 + "3"</code>, <code>"1" + 2 + 3</code></td><td><code>'33'</code>, <code>'123'</code></td><td></td></tr>
+<tr><td><code>-</code> <code>*</code> <code>/</code></td><td>convertem o texto em número</td><td><code>"10" - 5</code>, <code>"3" * "4"</code></td><td><code>5</code>, <code>12</code></td><td></td></tr>
+<tr><td><code>+</code> (na frente)</td><td>converte em número (o jeito curto do <code>Number()</code>)</td><td><code>+"42"</code>, <code>+""</code>, <code>+"abc"</code></td><td><code>42</code>, <code>0</code>, <code>NaN</code></td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>-</code> (na frente)</td><td>converte e troca o sinal</td><td><code>-"5"</code></td><td><code>-5</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Para montar frases, prefira a template string</strong>
+<p>Em vez de <code>"Total: " + total + " reais"</code>, escreva <code>`Total: ${total} reais`</code>, com crase. Fica mais fácil de ler e não tem pegadinha de soma × junção. Veja <a href="template-strings.html">Template Strings</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="incremento">Incremento e decremento</h2>
+
+<p>Somam ou tiram 1 de uma variável (que precisa ser <code>let</code>). A diferença está no <strong>valor que a expressão devolve</strong>. Nos exemplos, a variável começou com <code>let n = 5</code> e cada linha continua da anterior.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>n++</code></td><td>soma 1, mas devolve o valor de <strong>antes</strong></td><td><code>n++</code> e depois <code>n</code></td><td><code>5</code>, <code>6</code></td><td><a href="incremento.html">Incremento e Decremento</a></td></tr>
+<tr><td><code>++n</code></td><td>soma 1 e devolve o valor <strong>novo</strong></td><td><code>++n</code></td><td><code>7</code></td><td></td></tr>
+<tr><td><code>n--</code></td><td>tira 1, devolve o de antes</td><td><code>n--</code></td><td><code>7</code> (e <code>n</code> fica <code>6</code>)</td><td></td></tr>
+<tr><td><code>--n</code></td><td>tira 1, devolve o novo</td><td><code>--n</code></td><td><code>5</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="atribuicao">Atribuição</h2>
+
+<p>Todos guardam um valor numa variável e <strong>devolvem</strong> o valor guardado (é ele que o modo interativo mostra). Os exemplos de conta continuam um do outro, a partir de <code>let x = 10</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>É o mesmo que</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>=</code></td><td>guarda o valor</td><td><code>let x = 10</code></td><td><code>undefined</code> (o <code>let</code> não devolve nada; <code>x</code> vale <code>10</code>)</td><td><a href="variaveis.html">Variáveis</a></td></tr>
+<tr><td><code>+=</code></td><td><code>x = x + 5</code></td><td><code>x += 5</code></td><td><code>15</code></td><td><a href="atribuicao.html">Atribuição</a></td></tr>
+<tr><td><code>-=</code></td><td><code>x = x - 3</code></td><td><code>x -= 3</code></td><td><code>12</code></td><td></td></tr>
+<tr><td><code>*=</code></td><td><code>x = x * 2</code></td><td><code>x *= 2</code></td><td><code>24</code></td><td></td></tr>
+<tr><td><code>/=</code></td><td><code>x = x / 4</code></td><td><code>x /= 4</code></td><td><code>6</code></td><td></td></tr>
+<tr><td><code>%=</code></td><td><code>x = x % 4</code></td><td><code>x %= 4</code></td><td><code>2</code></td><td></td></tr>
+<tr><td><code>**=</code></td><td><code>x = x ** 3</code></td><td><code>x **= 3</code></td><td><code>8</code></td><td></td></tr>
+<tr><td><code>||=</code></td><td>guarda só se a variável for "falsa" (<code>""</code>, <code>0</code>, <code>null</code>…) <span class="versao">ES2021</span></td><td><code>let nome = ""</code> e <code>nome ||= "Sem nome"</code></td><td><code>'Sem nome'</code></td><td><a href="truthy-falsy.html">Truthy e Falsy</a></td></tr>
+<tr><td></td><td>cuidado: o <code>0</code> também é "falso"</td><td><code>let qtd = 0</code> e <code>qtd ||= 10</code></td><td><code>10</code></td><td></td></tr>
+<tr><td><code>??=</code></td><td>guarda só se a variável for <code>null</code> ou <code>undefined</code> <span class="versao">ES2021</span></td><td><code>let preco = null</code> e <code>preco ??= 9.9</code></td><td><code>9.9</code></td><td><a href="optional-chaining.html">?. e ??</a></td></tr>
+<tr><td><code>&amp;&amp;=</code></td><td>guarda só se a variável for "verdadeira" <span class="versao">ES2021</span></td><td><code>let ativo = true</code> e <code>ativo &amp;&amp;= "sim"</code></td><td><code>'sim'</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="comparacao">Comparação</h2>
+
+<p>Todos devolvem <code>true</code> (verdadeiro) ou <code>false</code> (falso). <strong>Use sempre <code>===</code> e <code>!==</code></strong>: o <code>==</code> antigo converte os tipos antes de comparar e dá resultados estranhos.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Pergunta</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>===</code></td><td>é igual, <strong>e do mesmo tipo</strong>?</td><td><code>1 === "1"</code>, <code>null === undefined</code></td><td><code>false</code>, <code>false</code></td><td><a href="operadores-comparacao.html">Comparação (== × ===)</a></td></tr>
+<tr><td><code>!==</code></td><td>é diferente (no valor ou no tipo)?</td><td><code>1 !== "1"</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>==</code></td><td>é igual, depois de converter? (evite)</td><td><code>1 == "1"</code>, <code>0 == false</code>, <code>null == undefined</code></td><td><code>true</code>, <code>true</code>, <code>true</code></td><td><a href="operadores-comparacao.html">Comparação (== × ===)</a></td></tr>
+<tr><td><code>!=</code></td><td>é diferente, depois de converter? (evite)</td><td><code>1 != "1"</code></td><td><code>false</code></td><td></td></tr>
+<tr><td></td><td><code>NaN</code> não é igual nem a ele mesmo</td><td><code>NaN === NaN</code></td><td><code>false</code> (use <code>Number.isNaN(x)</code>)</td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td></td><td>arrays e objetos: só se forem <strong>o mesmo</strong></td><td><code>[] == []</code></td><td><code>false</code></td><td><a href="objetos-referencia.html">Objetos são Referências</a></td></tr>
+<tr><td><code>&lt;</code> <code>&gt;</code></td><td>menor? maior?</td><td><code>3 &lt; 5</code></td><td><code>true</code></td><td><a href="operadores-comparacao.html">Comparação</a></td></tr>
+<tr><td></td><td>dois textos: letra a letra, pela ordem dos códigos (maiúsculas antes; <code>"10"</code> antes de <code>"9"</code>)</td><td><code>"a" &lt; "b"</code>, <code>"Z" &lt; "a"</code>, <code>"10" &lt; "9"</code></td><td><code>true</code>, <code>true</code>, <code>true</code></td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td></td><td>número com texto: o texto vira número</td><td><code>10 &lt; "9"</code></td><td><code>false</code></td><td></td></tr>
+<tr><td><code>&lt;=</code> <code>&gt;=</code></td><td>menor ou igual? maior ou igual?</td><td><code>3 &lt;= 3</code></td><td><code>true</code></td><td></td></tr>
+<tr><td></td><td>não existe "entre": compara o <code>true</code>/<code>false</code> do primeiro com o terceiro</td><td><code>1 &lt; 2 &lt; 3</code>, <code>3 &gt; 2 &gt; 1</code></td><td><code>true</code>, <code>false</code> (é <code>true &gt; 1</code>)</td><td></td></tr>
+</table>
+</div>
+
+<p>Para "x está entre 1 e 3", escreva <code>x &gt;= 1 &amp;&amp; x &lt;= 3</code>.</p>
+
+<hr>
+
+<h2 id="logicos">Lógicos e valor padrão</h2>
+
+<p>O <code>&amp;&amp;</code> e o <code>||</code> não devolvem só <code>true</code>/<code>false</code>: devolvem <strong>um dos dois lados</strong>, e só olham o segundo se precisarem. Os valores "falsos" (<em>falsy</em>) são: <code>false</code>, <code>0</code>, <code>""</code>, <code>null</code>, <code>undefined</code> e <code>NaN</code>. Todo o resto é "verdadeiro" (<em>truthy</em>). Mais em <a href="truthy-falsy.html">Truthy e Falsy</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>"e": <code>a</code>, se <code>a</code> for falso; senão, <code>b</code></td><td><code>true &amp;&amp; "ok"</code>, <code>0 &amp;&amp; "ok"</code></td><td><code>'ok'</code>, <code>0</code></td><td><a href="operadores-logicos.html">Operadores Lógicos</a></td></tr>
+<tr><td><code>a || b</code></td><td>"ou": <code>a</code>, se <code>a</code> for verdadeiro; senão, <code>b</code></td><td><code>"Ana" || "padrão"</code>, <code>"" || "padrão"</code></td><td><code>'Ana'</code>, <code>'padrão'</code></td><td></td></tr>
+<tr><td><code>!a</code></td><td>"não": <code>true</code> se <code>a</code> for falso</td><td><code>!true</code>, <code>!0</code></td><td><code>false</code>, <code>true</code></td><td></td></tr>
+<tr><td><code>!!a</code></td><td>transforma em <code>true</code>/<code>false</code></td><td><code>!!"texto"</code></td><td><code>true</code></td><td><a href="booleanos.html">Booleanos</a></td></tr>
+<tr><td><code>a ?? b</code></td><td>"coalescência nula": <code>a</code>, a não ser que seja <code>null</code> ou <code>undefined</code> <span class="versao">ES2020</span></td><td><code>null ?? 42</code>, <code>undefined ?? "vazio"</code></td><td><code>42</code>, <code>'vazio'</code></td><td><a href="optional-chaining.html">?. e ??</a></td></tr>
+<tr><td></td><td>a diferença para o <code>||</code>: <code>0</code> e <code>""</code> são mantidos</td><td><code>0 ?? 42</code>, <code>"" ?? "vazio"</code></td><td><code>0</code>, <code>''</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Estoque: 0;;out:Desconto: sem informação;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> a lojinha da Ana tem <strong>0</strong> cadernos no estoque, mas o programa diz "sem informação", porque o <code>||</code> trata o <code>0</code> como falso. Troque os dois <code>||</code> por <code>??</code>: o estoque deve aparecer como <code>Estoque: 0</code> e o desconto (que é <code>null</code>) continua <code>Desconto: sem informação</code>.</p>
+<pre class="script" data-file="main.js">const estoque = 0;
+const desconto = null;
+
+console.log(`Estoque: ${estoque || "sem informação"}`);
+console.log(`Desconto: ${desconto || "sem informação"}`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = 0;
+const desconto = null;
+
+console.log(`Estoque: ${estoque ?? "sem informação"}`);
+console.log(`Desconto: ${desconto ?? "sem informação"}`);
+</pre>
+</div>
+
+<p>No lab, a versão com <code>||</code> e a versão com <code>??</code> saíram assim:</p>
+
+<pre class="term">$ node estoque.js
+Estoque: sem informação
+Desconto: sem informação
+$ node estoque2.js
+Estoque: 0
+Desconto: sem informação
+</pre>
+
+<hr>
+
+<h2 id="outros">Outros operadores</h2>
+
+<p>Nos exemplos, <code>ana</code> é o objeto <code>const ana = { nome: "Ana", end: null }</code> (o endereço ainda não foi preenchido).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>?.</code></td><td>"encadeamento opcional": lê a propriedade só se o que vem antes existir; senão, devolve <code>undefined</code> <span class="versao">ES2020</span></td><td><code>ana.end?.rua</code>, <code>ana.nome?.length</code></td><td><code>undefined</code>, <code>3</code></td><td><a href="optional-chaining.html">?. e ??</a></td></tr>
+<tr><td></td><td>sem o <code>?.</code>, ler dentro de <code>null</code> é erro</td><td><code>ana.end.rua</code></td><td><code>TypeError: Cannot read properties of null (reading 'rua')</code></td><td><a href="ref-erros.html">Mensagens de Erro</a></td></tr>
+<tr><td><code>?.()</code></td><td>chama a função só se ela existir</td><td><code>ana.falar?.()</code></td><td><code>undefined</code></td><td></td></tr>
+<tr><td><code>c ? a : b</code></td><td>ternário: "se <code>c</code>, então <code>a</code>, senão <code>b</code>"</td><td><code>7 &gt; 5 ? "passou" : "reprovou"</code></td><td><code>'passou'</code></td><td><a href="ternario.html">O Operador Ternário</a></td></tr>
+<tr><td><code>typeof</code></td><td>devolve o nome do tipo, como texto</td><td><code>typeof 42</code>, <code>typeof "Ana"</code>, <code>typeof undefined</code></td><td><code>'number'</code>, <code>'string'</code>, <code>'undefined'</code></td><td><a href="typeof.html">typeof</a></td></tr>
+<tr><td></td><td>as surpresas do <code>typeof</code></td><td><code>typeof null</code>, <code>typeof []</code>, <code>typeof function () {}</code></td><td><code>'object'</code>, <code>'object'</code>, <code>'function'</code></td><td></td></tr>
+<tr><td><code>instanceof</code></td><td>o objeto foi criado por esta classe?</td><td><code>[] instanceof Array</code></td><td><code>true</code></td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>in</code></td><td>o objeto tem esta propriedade?</td><td><code>"nome" in ana</code>, <code>"idade" in ana</code></td><td><code>true</code>, <code>false</code></td><td><a href="objetos-propriedades.html">Propriedades</a></td></tr>
+<tr><td><code>delete</code></td><td>apaga uma propriedade</td><td><code>delete ana.end</code> e depois <code>ana</code></td><td><code>true</code>, <code>{ nome: 'Ana' }</code></td><td><a href="objetos-propriedades.html">Propriedades</a></td></tr>
+<tr><td><code>...</code></td><td>espalhar (<em>spread</em>): abre um array ou texto em itens separados</td><td><code>Math.max(...[3, 9, 4])</code>, <code>[..."Ana"]</code></td><td><code>9</code>, <code>[ 'A', 'n', 'a' ]</code></td><td><a href="spread-rest.html">Spread e Rest</a></td></tr>
+<tr><td><code>,</code></td><td>vírgula: faz tudo e devolve o último (raro; aparece no <code>for</code>)</td><td><code>(1, 2, 3)</code></td><td><code>3</code></td><td><a href="for.html">for</a></td></tr>
+<tr><td><code>void</code></td><td>descarta o valor e devolve <code>undefined</code> (raro)</td><td><code>void 0</code></td><td><code>undefined</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="bits">Bits</h2>
+
+<p>Trabalham com os <strong>bits</strong> (os zeros e uns) dos números, que antes são convertidos em inteiros de 32 bits. São raros no dia a dia; aparecem em códigos de cores, permissões e jogos. Cuidado: o <code>^</code> <strong>não é potência</strong> (potência é <code>**</code>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>&amp;</code></td><td>E bit a bit (<code>0101 &amp; 0011 = 0001</code>)</td><td><code>5 &amp; 3</code></td><td><code>1</code></td></tr>
+<tr><td><code>|</code></td><td>OU bit a bit</td><td><code>5 | 3</code></td><td><code>7</code></td></tr>
+<tr><td><code>^</code></td><td>OU exclusivo (<em>xor</em>)</td><td><code>5 ^ 3</code></td><td><code>6</code></td></tr>
+<tr><td><code>~</code></td><td>NÃO bit a bit: inverte todos os bits</td><td><code>~5</code></td><td><code>-6</code></td></tr>
+<tr><td><code>&lt;&lt;</code></td><td>empurra os bits para a esquerda (cada casa = vezes 2)</td><td><code>1 &lt;&lt; 4</code></td><td><code>16</code></td></tr>
+<tr><td><code>&gt;&gt;</code></td><td>empurra para a direita, mantendo o sinal</td><td><code>256 &gt;&gt; 4</code>, <code>-16 &gt;&gt; 2</code></td><td><code>16</code>, <code>-4</code></td></tr>
+<tr><td><code>&gt;&gt;&gt;</code></td><td>empurra para a direita enchendo com zeros (o sinal some)</td><td><code>-16 &gt;&gt;&gt; 28</code></td><td><code>15</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="precedencia">A tabela de precedência</h2>
+
+<p>Quando uma expressão tem vários operadores, o JavaScript faz primeiro os de <strong>maior</strong> precedência. Esta é a tabela da documentação da MDN (<em>Operator precedence</em>), resumida, da maior para a menor. Operadores na mesma linha têm a mesma precedência e são feitos da esquerda para a direita, menos o <code>**</code>, as atribuições e o ternário, que vão da <strong>direita</strong> para a esquerda.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ordem</th><th>Operadores</th><th>Exemplo</th><th>Resultado</th><th>Porque</th></tr>
+<tr><td>1 (primeiro)</td><td>parênteses <code>( )</code></td><td><code>(2 + 3) * 4</code></td><td><code>20</code></td><td>o que está entre parênteses vem antes de tudo</td></tr>
+<tr><td>2</td><td><code>.</code> <code>?.</code> <code>[ ]</code> chamada <code>f()</code> <code>new</code></td><td><code>ana.nome?.length</code></td><td><code>3</code></td><td>ler propriedades vem antes das contas</td></tr>
+<tr><td>3</td><td><code>x++</code> <code>x--</code></td><td colspan="3">o incremento "depois" (veja <a href="#incremento">Incremento</a>)</td></tr>
+<tr><td>4</td><td>os de um operando só: <code>!</code> <code>~</code> <code>+x</code> <code>-x</code> <code>++x</code> <code>--x</code> <code>typeof</code> <code>void</code> <code>delete</code> <code>await</code></td><td><code>!1 == 2</code>, <code>typeof 1 + 1</code></td><td><code>false</code>, <code>'number1'</code></td><td>é <code>(!1) == 2</code>; e <code>(typeof 1) + 1</code> = <code>"number" + 1</code></td></tr>
+<tr><td>5</td><td><code>**</code></td><td><code>2 ** 3 ** 2</code>, <code>(2 ** 3) ** 2</code></td><td><code>512</code>, <code>64</code></td><td>da direita para a esquerda: <code>2 ** (3 ** 2)</code> = <code>2 ** 9</code></td></tr>
+<tr><td>6</td><td><code>*</code> <code>/</code> <code>%</code></td><td rowspan="2"><code>2 + 3 * 4</code>, <code>10 - 4 - 3</code></td><td rowspan="2"><code>14</code>, <code>3</code></td><td rowspan="2">a multiplicação vem antes; mesma linha, da esquerda para a direita: <code>(10 - 4) - 3</code></td></tr>
+<tr><td>7</td><td><code>+</code> <code>-</code></td></tr>
+<tr><td>8</td><td><code>&lt;&lt;</code> <code>&gt;&gt;</code> <code>&gt;&gt;&gt;</code></td><td colspan="3"></td></tr>
+<tr><td>9</td><td><code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code> <code>in</code> <code>instanceof</code></td><td><code>1 &lt; 2 &lt; 3</code></td><td><code>true</code></td><td><code>(1 &lt; 2) &lt; 3</code> = <code>true &lt; 3</code></td></tr>
+<tr><td>10</td><td><code>==</code> <code>!=</code> <code>===</code> <code>!==</code></td><td><code>1 | 2 === 3</code></td><td><code>1</code></td><td>o <code>===</code> vem <strong>antes</strong> do <code>|</code>: <code>1 | (2 === 3)</code> = <code>1 | false</code></td></tr>
+<tr><td>11</td><td><code>&amp;</code></td><td colspan="3" rowspan="3">os de bits vêm <strong>depois</strong> das comparações; use parênteses: <code>(n &amp; 1) === 0</code></td></tr>
+<tr><td>12</td><td><code>^</code></td></tr>
+<tr><td>13</td><td><code>|</code></td></tr>
+<tr><td>14</td><td><code>&amp;&amp;</code></td><td rowspan="2"><code>(null ?? 0) || 5</code></td><td rowspan="2"><code>5</code></td><td rowspan="2">o <code>??</code> não pode ser misturado com <code>&amp;&amp;</code>/<code>||</code> sem parênteses (veja <a href="#erros">os erros</a>)</td></tr>
+<tr><td>15</td><td><code>||</code> <code>??</code></td></tr>
+<tr><td>16</td><td><code>? :</code> <code>=</code> <code>+=</code> e as outras atribuições, <code>=&gt;</code>, <code>...</code></td><td><code>7 &gt; 5 ? "passou" : "reprovou"</code></td><td><code>'passou'</code></td><td>a comparação acontece antes da escolha</td></tr>
+<tr><td>17 (por último)</td><td><code>,</code></td><td><code>(1, 2, 3)</code></td><td><code>3</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Na dúvida, use parênteses</strong>
+<p>Ninguém decora a tabela inteira. Os parênteses deixam a intenção clara para quem lê e para o JavaScript: <code>(a + b) / 2</code>, <code>!(x === y)</code>, <code>(n &amp; 1) === 0</code>. A explicação com mais exemplos está em <a href="precedencia.html">Precedência dos Operadores</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Média: 8;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana tirou 7, 8 e 9, mas o programa diz que a média é <code>18</code>. O problema é a precedência: a divisão acontece antes da soma, então só o <code>n3</code> está sendo dividido por 3. Use parênteses para que a soma aconteça primeiro. O resultado certo é <code>Média: 8</code>.</p>
+<pre class="script" data-file="main.js">const n1 = 7;
+const n2 = 8;
+const n3 = 9;
+
+const media = n1 + n2 + n3 / 3;
+console.log(`Média: ${media}`);
+</pre>
+<pre class="solucao" data-file="main.js">const n1 = 7;
+const n2 = 8;
+const n3 = 9;
+
+const media = (n1 + n2 + n3) / 3;
+console.log(`Média: ${media}`);
+</pre>
+</div>
+
+<p>No lab: o programa original mostrou <code>Média: 18</code>; com os parênteses, <code>Média: 8</code>.</p>
+
+<hr>
+
+<h2 id="erros">Erros de sintaxe com operadores</h2>
+
+<p>Alguns jeitos de escrever parecem certos mas o JavaScript recusa antes de rodar qualquer linha (um <code>SyntaxError</code>, "erro de sintaxe"). Mensagens reais do modo interativo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem do Node</th><th>O que significa</th><th>Escreva</th></tr>
+<tr><td><code>-2 ** 2</code></td><td><code>SyntaxError: Unary operator used immediately before exponentiation expression. Parenthesis must be used to disambiguate operator precedence</code></td><td>"Operador de um operando só (o <code>-</code>) logo antes de uma potência. Use parênteses para deixar claro"</td><td><code>(-2) ** 2</code> (dá <code>4</code>) ou <code>-(2 ** 2)</code></td></tr>
+<tr><td><code>null ?? 0 || 5</code></td><td><code>SyntaxError: Unexpected token '||'</code></td><td>"Símbolo inesperado <code>||</code>": o <code>??</code> não se mistura com <code>||</code> ou <code>&amp;&amp;</code> sem parênteses</td><td><code>(null ?? 0) || 5</code> (dá <code>5</code>)</td></tr>
+<tr><td><code>x = 5 = 6</code></td><td><code>SyntaxError: Invalid left-hand side in assignment</code></td><td>"Lado esquerdo inválido na atribuição": só dá para guardar valor numa variável (ou propriedade), não num número</td><td><code>x = 6</code></td></tr>
+<tr><td><code>x++ ++</code></td><td><code>SyntaxError: Unexpected token '++'</code></td><td>"Símbolo inesperado <code>++</code>"</td><td><code>x += 2</code></td></tr>
+</table>
+</div>
+
+<p>Num arquivo, o mesmo <code>-2 ** 2</code> aparece assim:</p>
+
+<pre class="term">$ node potencia.js
+/home/ana/potencia.js:1
+const x = -2 ** 2;
+          ^^^^^
+
+SyntaxError: Unary operator used immediately before exponentiation expression. Parenthesis must be used to disambiguate operator precedence
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>^^^^^</code> marca o pedaço que o JavaScript recusou: <code>-2 **</code>. Como é erro de sintaxe, nenhuma linha do programa chegou a rodar. Para ler uma mensagem de erro inteira, veja <a href="erros.html">Lendo uma Mensagem de Erro</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Aritméticos: <code>+ - * / % **</code>. A divisão dá casas decimais (<code>7 / 2</code> → <code>3.5</code>); dividir por zero dá <code>Infinity</code> ou <code>NaN</code>, não erro.</li>
+  <li>Com uma string, o <code>+</code> junta (<code>"10" + 5</code> → <code>'105'</code>); os outros convertem em número. Para frases, use template strings.</li>
+  <li><code>x++</code> devolve o valor de antes; <code>++x</code>, o novo. <code>+=</code>, <code>-=</code>… encurtam <code>x = x + …</code>; <code>??=</code> e <code>||=</code> dão valor padrão.</li>
+  <li>Compare com <code>===</code> e <code>!==</code>, nunca com <code>==</code>. Não existe "entre": use <code>x &gt;= 1 &amp;&amp; x &lt;= 3</code>.</li>
+  <li><code>&amp;&amp;</code> e <code>||</code> devolvem um dos lados. <code>??</code> só troca <code>null</code>/<code>undefined</code> (mantém <code>0</code> e <code>""</code>); <code>?.</code> lê sem quebrar quando algo falta.</li>
+  <li><code>typeof</code> dá o tipo em texto (<code>typeof null</code> é <code>'object'</code>!); <code>in</code>, <code>delete</code> e <code>instanceof</code> perguntam e mexem em objetos; <code>...</code> espalha.</li>
+  <li>Precedência, resumida: parênteses; <code>. ?. ()</code>; <code>! typeof -x</code>; <code>**</code>; <code>* / %</code>; <code>+ -</code>; comparações; igualdades; bits; <code>&amp;&amp;</code>; <code>|| ??</code>; ternário e atribuições; vírgula. Na dúvida, parênteses.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
