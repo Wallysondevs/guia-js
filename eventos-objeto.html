@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript O Objeto do Evento — target, key, preventDefault e delegação | Guia JavaScript</title>
+<meta name="description" content="O objeto do evento no JavaScript para quem nunca programou: o parâmetro evento, type, target e currentTarget, a posição do clique, key e code das teclas, preventDefault para impedir o link de abrir, a propagação (o evento que sobe até o body), stopPropagation, a delegação de eventos com matches e closest, e os erros reais do navegador (evento is not defined, preventdefault is not a function, o enter minúsculo).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Objeto do Evento</span></h1>
+
+<p class="intro">Na aula <a href="eventos.html">Eventos</a>, a função do ouvinte só sabia que <strong>algo</strong> tinha acontecido: "clicaram no botão". Mas muitas vezes ela precisa de detalhes. <strong>Qual</strong> tecla foi apertada? Em <strong>qual</strong> item da lista clicaram? <strong>Onde</strong> o mouse estava? O navegador entrega essas respostas num pacote, o <strong>objeto do evento</strong>, a cada vez que chama a sua função. Nesta aula você aprende a abrir esse pacote.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como receber o objeto do evento: o parâmetro <code>evento</code> da função do ouvinte.</li>
+  <li>As informações mais usadas: <code>type</code>, <code>target</code> e <code>currentTarget</code>, a posição do clique, e <code>key</code> e <code>code</code> das teclas.</li>
+  <li>Como impedir o que o navegador faria sozinho: <code>preventDefault()</code> (o link que não abre).</li>
+  <li>Que o evento <strong>sobe</strong> pela página (propagação), e como pará-lo com <code>stopPropagation()</code>.</li>
+  <li>A <strong>delegação de eventos</strong>: um ouvinte só, no pai, cuidando de todos os filhos, até dos que forem criados depois.</li>
+  <li>Os erros reais mais comuns: o parâmetro esquecido, o método com letra errada e a tecla com nome errado.</li>
+</ul>
+</div>
+
+<p>Como na aula anterior, tudo aqui é do <strong>navegador</strong>, e as respostas do Console foram colhidas no Chromium da máquina da Ana, com cliques e teclas de verdade.</p>
+
+<hr>
+
+<h2>A ideia: o envelope que chega com a campainha</h2>
+<p>Lembra do combinado da campainha? Agora imagine que, junto com o toque, cai um <strong>envelope</strong> por baixo da porta. Dentro dele há uma ficha: "tipo do aviso: campainha; quem tocou: o carteiro; hora: 10h15; porta: a da frente". O filho da Ana pode ignorar o envelope e só ir abrir a porta, como antes. Ou pode ler a ficha e agir de acordo: se for o carteiro, pega a carta; se for a vizinha, oferece café.</p>
+<p>O objeto do evento é esse envelope. O navegador o preenche e o entrega como <strong>primeiro argumento</strong> da sua função. Para recebê-lo, basta a função ter um parâmetro.</p>
+
+<hr>
+
+<h2>1. Recebendo o objeto do evento</h2>
+
+<pre class="file" data-file="index.html">&lt;button id="botao"&gt;Comprar &lt;strong&gt;agora&lt;/strong&gt;&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+
+botao.addEventListener("click", (evento) =&gt; {
+  console.log(evento);
+  console.log(evento.type);
+  console.log(evento.target);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>(evento) =&gt;</dt><dd>A função agora tem um <strong>parâmetro</strong>. O nome é você quem escolhe: <code>evento</code>, <code>e</code>, <code>ev</code>, <code>event</code>… Em código pronto você vai ver muito o <code>e</code>, curtinho. O valor é sempre o mesmo: o objeto que o navegador entregou.</dd>
+  <dt>console.log(evento)</dt><dd>Mostra o objeto inteiro no Console. Ele tem dezenas de propriedades; ninguém usa todas.</dd>
+  <dt>evento.type</dt><dd>O <strong>tipo</strong> do evento, o mesmo nome que você passou para o <code>addEventListener</code>: <code>"click"</code>.</dd>
+  <dt>evento.target</dt><dd>O <strong>alvo</strong>: o elemento exato onde o evento aconteceu.</dd>
+</dl>
+
+<p>A Ana clicou no botão, na palavra "Comprar":</p>
+
+<pre class="devtools">PointerEvent {isTrusted: true, pointerId: 1, width: 1, height: 1, pressure: 0, …}
+click
+&lt;button id="botao"&gt;Comprar &lt;strong&gt;agora&lt;/strong&gt;&lt;/button&gt;
+</pre>
+
+<p>A primeira linha é o objeto: um <code>PointerEvent</code> ("evento de ponteiro", o tipo que o Chrome usa para cliques de mouse, dedo e caneta). No Console de verdade, clicando no triângulo ao lado dele, a lista se abre com todas as propriedades. O <code>isTrusted: true</code> quer dizer que foi uma pessoa de verdade que clicou (e não um código fingindo um clique). As outras duas linhas são o tipo e o alvo.</p>
+
+<h3>A ficha do evento: as propriedades mais usadas</h3>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>O que diz</th><th>Exemplo</th></tr>
+<tr><td><code>evento.type</code></td><td>O nome do evento</td><td><code>"click"</code>, <code>"keydown"</code>, <code>"input"</code></td></tr>
+<tr><td><code>evento.target</code></td><td>O elemento onde o evento <strong>aconteceu</strong> (o mais de dentro)</td><td>o <code>&lt;strong&gt;</code> dentro do botão</td></tr>
+<tr><td><code>evento.currentTarget</code></td><td>O elemento cujo ouvinte está rodando <strong>agora</strong> (o do <code>addEventListener</code>)</td><td>o <code>&lt;button&gt;</code></td></tr>
+<tr><td><code>evento.clientX</code>, <code>evento.clientY</code></td><td>Onde estava o ponteiro, em pixels, a partir do canto de cima à esquerda da janela</td><td><code>61</code>, <code>18</code></td></tr>
+<tr><td><code>evento.button</code></td><td>Qual botão do mouse: 0 = esquerdo, 1 = do meio, 2 = direito</td><td><code>0</code></td></tr>
+<tr><td><code>evento.key</code></td><td>A tecla, como texto (só em eventos de teclado)</td><td><code>"a"</code>, <code>"A"</code>, <code>"Enter"</code></td></tr>
+<tr><td><code>evento.code</code></td><td>A <strong>posição</strong> da tecla no teclado</td><td><code>"KeyA"</code>, <code>"Space"</code></td></tr>
+<tr><td><code>evento.shiftKey</code>, <code>ctrlKey</code>, <code>altKey</code></td><td><code>true</code> se a tecla Shift, Ctrl ou Alt estava apertada junto</td><td><code>false</code></td></tr>
+<tr><td><code>evento.preventDefault()</code></td><td>Um <strong>método</strong>: cancela o que o navegador faria sozinho</td><td>seção 3</td></tr>
+<tr><td><code>evento.stopPropagation()</code></td><td>Um <strong>método</strong>: para a subida do evento</td><td>seção 4</td></tr>
+</table>
+</div>
+
+<h3><code>target</code> × <code>currentTarget</code></h3>
+<p>Repare que o botão tem um <code>&lt;strong&gt;</code> dentro. A Ana clicou duas vezes: primeiro em "Comprar", depois em "agora", mostrando as duas propriedades com o nome da etiqueta (<code>tagName</code>):</p>
+
+<pre class="file" data-file="script.js">botao.addEventListener("click", (evento) =&gt; {
+  console.log(evento.target.tagName, evento.currentTarget.tagName);
+});
+</pre>
+
+<pre class="devtools">BUTTON BUTTON
+STRONG BUTTON
+</pre>
+
+<p>No segundo clique, o <code>target</code> foi o <code>STRONG</code>: o elemento mais de dentro, aquele que estava exatamente debaixo do ponteiro. O <code>currentTarget</code> continuou sendo o <code>BUTTON</code>, o dono do ouvinte. Quando você quer "o botão que tem o ouvinte", use <code>currentTarget</code> (ou a própria variável <code>botao</code>); o <code>target</code> pode ser qualquer coisa lá dentro.</p>
+
+<div class="tryweb" data-goal="texto:#saida~Você escolheu: Média;;src:evento\.(current)?[tT]arget;;semerro" data-acoes="clicar #tamanhos button:nth-child(2)">
+<p class="try-task"><strong>Missão:</strong> a Ana quer <strong>um</strong> ouvinte só para os três botões de pizza, que estão dentro da <code>div</code> <code>#tamanhos</code>. O ouvinte já está na <code>div</code>. Use o alvo do evento (<code>evento.target.textContent</code>) para mostrar <code>Você escolheu: Média</code> quando clicarem em Média.</p>
+<pre class="script" data-file="index.html">&lt;div id="tamanhos"&gt;
+  &lt;button&gt;Pequena&lt;/button&gt;
+  &lt;button&gt;Média&lt;/button&gt;
+  &lt;button&gt;Grande&lt;/button&gt;
+&lt;/div&gt;
+&lt;p id="saida"&gt;Escolha o tamanho.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const tamanhos = document.querySelector("#tamanhos");
+const saida = document.querySelector("#saida");
+
+tamanhos.addEventListener("click", (evento) =&gt; {
+  saida.textContent = "Você escolheu: ?";
+});
+</pre>
+<pre class="solucao" data-file="script.js">const tamanhos = document.querySelector("#tamanhos");
+const saida = document.querySelector("#saida");
+
+tamanhos.addEventListener("click", (evento) =&gt; {
+  saida.textContent = `Você escolheu: ${evento.target.textContent}`;
+});
+</pre>
+</div>
+
+<p>Funcionou com um ouvinte só porque o clique no botão também "chega" na <code>div</code> que está em volta dele. Por quê? É a seção 4. (E se você clicar no espaço entre dois botões? O alvo é a própria <code>div</code>, e aparece o texto de todos os botões juntos. A seção 5 mostra como se proteger disso.)</p>
+
+<hr>
+
+<h2>2. Eventos de teclado: <code>key</code> e <code>code</code></h2>
+<p>Num evento <code>keydown</code>, o objeto traz a tecla. A Ana pôs este ouvinte num campo de texto e digitou <code>a</code>, <code>A</code>, Enter, a seta para baixo e a barra de espaço:</p>
+
+<pre class="file" data-file="script.js">const campo = document.querySelector("#campo");
+
+campo.addEventListener("keydown", (e) =&gt; {
+  console.log(`key: ${e.key} | code: ${e.code}`);
+});
+</pre>
+
+<pre class="devtools">key: a | code: KeyA
+key: A | code: KeyA
+key: Enter | code: Enter
+key: ArrowDown | code: ArrowDown
+key:   | code: Space
+</pre>
+
+<dl class="anatomy">
+  <dt>e.key</dt><dd>O que a tecla <strong>escreve</strong> (ou o nome dela, se ela não escreve nada). <code>a</code> e <code>A</code> são diferentes. A barra de espaço tem <code>key</code> igual a um espaço, <code>" "</code> (por isso a linha parece vazia). As teclas especiais têm nomes com a primeira letra maiúscula: <code>"Enter"</code>, <code>"Escape"</code>, <code>"Backspace"</code>, <code>"Tab"</code>, <code>"ArrowUp"</code>, <code>"ArrowDown"</code>.</dd>
+  <dt>e.code</dt><dd>Qual tecla <strong>física</strong> foi apertada, não importa o que ela escreva: <code>a</code> e <code>A</code> são as duas <code>"KeyA"</code>. Serve para jogos (as teclas W, A, S, D ficam no mesmo lugar em qualquer teclado).</dd>
+</dl>
+
+<p>Na grande maioria dos casos, use <code>key</code>: "a pessoa apertou Enter?" é <code>e.key === "Enter"</code>. Para atalhos com Ctrl, junte as duas perguntas: <code>e.ctrlKey &amp;&amp; e.key === "s"</code> ("Ctrl e S ao mesmo tempo").</p>
+
+<div class="tryweb" data-goal="console:Adicionado: Café;;semerro" data-acoes="digitar #item Café;;tecla #item Enter">
+<p class="try-task"><strong>Missão:</strong> faça o campo mostrar <code>Adicionado: Café</code> no Console quando a pessoa digitar <code>Café</code> e apertar <strong>Enter</strong>. Use o <code>e.key</code> num <code>if</code>; as outras teclas não devem mostrar nada.</p>
+<pre class="script" data-file="index.html">&lt;input id="item" placeholder="Item e Enter"&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const item = document.querySelector("#item");
+
+item.addEventListener("keydown", (e) =&gt; {
+  // se a tecla for Enter, mostre `Adicionado: ${item.value}`
+});
+</pre>
+<pre class="solucao" data-file="script.js">const item = document.querySelector("#item");
+
+item.addEventListener("keydown", (e) =&gt; {
+  if (e.key === "Enter") {
+    console.log(`Adicionado: ${item.value}`);
+  }
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Cancelando o comportamento normal: <code>preventDefault()</code></h2>
+<p>Várias coisas o navegador faz <strong>sozinho</strong>, sem JavaScript nenhum: clicar num link abre outro endereço; apertar Enter num formulário o envia; clicar num <code>checkbox</code> o marca. Isso se chama o comportamento <strong>padrão</strong> (<em>default</em>). O método <code>preventDefault()</code> ("prevenir o padrão") cancela esse comportamento, e o seu código decide o que fazer no lugar:</p>
+
+<pre class="file" data-file="index.html">&lt;a id="link" href="cardapio.html"&gt;Ver o cardápio&lt;/a&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const link = document.querySelector("#link");
+
+link.addEventListener("click", (evento) =&gt; {
+  evento.preventDefault();
+  console.log("Link clicado, mas a página não saiu do lugar.", evento.defaultPrevented);
+});
+</pre>
+
+<pre class="devtools">Link clicado, mas a página não saiu do lugar. true
+</pre>
+
+<p>Sem o <code>preventDefault()</code>, o clique levaria a Ana para <code>cardapio.html</code>. Com ele, a página fica onde está, e o <code>defaultPrevented</code> ("o padrão foi prevenido?") confirma: <code>true</code>. O uso mais importante disso é no <strong>formulário</strong>: impedir que ele seja enviado (e a página recarregada) para o JavaScript conferir os dados antes. É a próxima aula, <a href="formularios.html">Formulários</a>.</p>
+
+<div class="warning">
+<strong>Use com cuidado</strong>
+<p>Um link que não abre, ou uma tecla que não funciona, confunde a pessoa. Só cancele o padrão quando o seu código fizer outra coisa útil no lugar (mostrar o cardápio na própria página, validar o formulário…).</p>
+</div>
+
+<hr>
+
+<h2>4. O evento sobe: propagação</h2>
+<p>Quando você clica num item de uma lista, você também está clicando na lista, na <code>div</code> que tem a lista, no <code>body</code>… O navegador avisa todos eles, <strong>de dentro para fora</strong>: primeiro o alvo, depois o pai, depois o avô, até o topo da página. Isso se chama <strong>propagação</strong> (em inglês, <em>bubbling</em>: o evento sobe como uma bolha de sabão na água).</p>
+
+<pre class="file" data-file="index.html">&lt;div id="caixa"&gt;
+  &lt;ul id="lista"&gt;
+    &lt;li&gt;Pão&lt;/li&gt;
+    &lt;li&gt;Leite&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">document.querySelector("#lista li").addEventListener("click", () =&gt; {
+  console.log("1. o li ouviu");
+});
+document.querySelector("#lista").addEventListener("click", () =&gt; {
+  console.log("2. o ul ouviu");
+});
+document.querySelector("#caixa").addEventListener("click", () =&gt; {
+  console.log("3. a div ouviu");
+});
+document.body.addEventListener("click", (evento) =&gt; {
+  console.log("4. o body ouviu; o alvo foi:", evento.target.textContent);
+});
+</pre>
+
+<p>Um clique só, no Pão:</p>
+
+<pre class="devtools">1. o li ouviu
+2. o ul ouviu
+3. a div ouviu
+4. o body ouviu; o alvo foi: Pão
+</pre>
+
+<p>Os quatro ouvintes rodaram, do mais de dentro para o mais de fora, e o <code>target</code> continuou sendo o <code>li</code> do Pão até o fim. É exatamente o que aconteceu na missão da pizza: o clique no botão subiu até a <code>div</code>.</p>
+
+<h3>Parando a subida: <code>stopPropagation()</code></h3>
+<p>Se o ouvinte do <code>li</code> chamar <code>evento.stopPropagation()</code> ("parar a propagação"), os de fora não ficam sabendo:</p>
+
+<pre class="file" data-file="script.js">document.querySelector("#lista").addEventListener("click", () =&gt; {
+  console.log("ul ouviu");
+});
+document.querySelector("#lista li").addEventListener("click", (evento) =&gt; {
+  evento.stopPropagation();
+  console.log("li ouviu e parou a subida");
+});
+</pre>
+
+<pre class="devtools">li ouviu e parou a subida
+</pre>
+
+<p>Só o <code>li</code> falou. É raro precisar disso; um caso típico é um botão "apagar" dentro de um cartão que, clicado, abriria o cartão. Na dúvida, não pare a propagação: ela é justamente o que torna possível a próxima seção.</p>
+
+<hr>
+
+<h2>5. Delegação: um ouvinte para todos</h2>
+<p>Juntando o <code>target</code> e a propagação, sai uma das técnicas mais úteis da página web. Em vez de pôr um ouvinte em cada botão "x" da lista de compras, a Ana põe <strong>um</strong> ouvinte na lista e, quando o clique chega, pergunta ao <code>target</code>: "foi num botão de apagar?". Isso se chama <strong>delegação de eventos</strong>: a lista cuida dos cliques no lugar dos filhos.</p>
+
+<pre class="file" data-file="index.html">&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão &lt;button class="apagar"&gt;x&lt;/button&gt;&lt;/li&gt;
+  &lt;li&gt;Leite &lt;button class="apagar"&gt;x&lt;/button&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;button id="novo"&gt;Adicionar Café&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+
+lista.addEventListener("click", (evento) =&gt; {
+  if (evento.target.matches(".apagar")) {
+    const item = evento.target.closest("li");
+    console.log(`Apagando: ${item.firstChild.textContent.trim()}`);
+    item.remove();
+  }
+});
+
+document.querySelector("#novo").addEventListener("click", () =&gt; {
+  const item = document.createElement("li");
+  item.textContent = "Café ";
+  const x = document.createElement("button");
+  x.className = "apagar";
+  x.textContent = "x";
+  item.append(x);
+  lista.append(item);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>lista.addEventListener("click", …)</dt><dd>Um ouvinte só, no <code>ul</code>. Todo clique em qualquer coisa dentro da lista sobe até ele.</dd>
+  <dt>evento.target.matches(".apagar")</dt><dd>"O alvo combina com o seletor <code>.apagar</code>?" Devolve <code>true</code> ou <code>false</code>. Se a pessoa clicou no texto "Pão", e não no "x", é <code>false</code>, e nada acontece.</dd>
+  <dt>evento.target.closest("li")</dt><dd>"O mais próximo": sobe a partir do alvo e devolve o primeiro elemento que combina com <code>li</code> (o próprio alvo, o pai, o avô…). Aqui, o <code>li</code> que tem aquele botão.</dd>
+  <dt>item.firstChild.textContent.trim()</dt><dd>O primeiro pedaço do <code>li</code> é o texto "Pão " (com o espaço antes do botão); o <code>trim()</code> tira o espaço.</dd>
+  <dt>item.remove()</dt><dd>Tira o item inteiro da página (veja <a href="dom-criar.html">Criando e Removendo Elementos</a>).</dd>
+</dl>
+
+<p>A Ana clicou em "Adicionar Café", depois no "x" do Café (que acabou de ser criado) e depois no "x" do Pão:</p>
+
+<pre class="devtools">Apagando: Café
+Apagando: Pão
+</pre>
+
+<p>Repare: o "x" do Café <strong>não existia</strong> quando o script rodou, e mesmo assim funcionou. Com um ouvinte em cada botão, seria preciso lembrar de ligar um ouvinte novo a cada item criado. Com a delegação, o ouvinte está na lista, que existe desde o começo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Um ouvinte em cada filho</th><th>Delegação (um ouvinte no pai)</th></tr>
+<tr><td>Itens criados depois</td><td>Precisa ligar um ouvinte em cada item novo</td><td>Funciona sozinho</td></tr>
+<tr><td>Muitos itens (100, 1000)</td><td>100, 1000 ouvintes</td><td>1 ouvinte</td></tr>
+<tr><td>Quem é o elemento?</td><td>A própria variável do <code>forEach</code></td><td><code>evento.target</code> + <code>matches</code> / <code>closest</code></td></tr>
+<tr><td>Melhor para</td><td>Poucos elementos fixos</td><td>Listas, tabelas, tudo que cresce</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para saber <strong>qual</strong> elemento foi clicado, há três caminhos:</p>
+<ul>
+  <li><strong>A própria variável:</strong> com um ouvinte por elemento, use a variável (<code>botao</code>) ou o <code>evento.currentTarget</code>. Os dois são o dono do ouvinte.</li>
+  <li><strong><code>evento.target</code></strong>: com delegação, quando o filho não tem nada dentro (um <code>&lt;button&gt;x&lt;/button&gt;</code>).</li>
+  <li><strong><code>evento.target.closest("seletor")</code></strong>: com delegação, quando o filho pode ter coisas dentro (um botão com um ícone, um cartão com foto e texto). É o mais seguro.</li>
+</ul>
+
+<p>E o nome do parâmetro: <code>evento</code>, <code>e</code>, <code>ev</code> e <code>event</code> funcionam igual. Este guia usa <code>evento</code> nos exemplos longos e <code>e</code> nos curtos. Só não esqueça de <strong>declarar</strong> o parâmetro (veja o primeiro erro abaixo).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um botão, um ouvinte</td><td>A variável do botão, ou <code>evento.currentTarget</code></td></tr>
+<tr><td>Lista que cresce, muitos itens</td><td>Delegação: ouvinte no pai + <code>evento.target.closest(…)</code></td></tr>
+<tr><td>Saber a tecla</td><td><code>evento.key</code> (<code>evento.code</code> para a posição física, em jogos)</td></tr>
+<tr><td>Impedir o link, o envio do formulário</td><td><code>evento.preventDefault()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o <code>evento</code> sem declarar o parâmetro</strong>
+<pre class="file" data-file="script.js">const link = document.querySelector("#link");
+link.addEventListener("click", () =&gt; {
+  evento.preventDefault();
+  console.log("não saiu");
+});
+</pre>
+<pre class="devtools">Uncaught ReferenceError: evento is not defined
+    at script.js:3:3
+</pre>
+<dl class="anatomy">
+  <dt>ReferenceError: evento is not defined</dt><dd>"<code>evento</code> não está definido". Os parênteses da função estão vazios, <code>()</code>, então dentro dela não existe nenhuma variável chamada <code>evento</code>.</dd>
+  <dt>at script.js:3:3</dt><dd>Onde: linha 3, coluna 3 do <code>script.js</code>, dentro da função do ouvinte. Repare que o erro só aparece <strong>na hora do clique</strong>, e não quando a página abre: o código de dentro do ouvinte só roda quando o evento acontece.</dd>
+</dl>
+<p>E tem um efeito colateral: como o erro aconteceu <strong>antes</strong> do <code>preventDefault()</code>, o padrão não foi cancelado, e o navegador abriu o <code>cardapio.html</code> (no lab, o <code>location.href</code> depois do clique já era <code>file:///home/ana/…/cardapio.html</code>). A mensagem aparece no Console por um instante e some com a troca de página (a não ser que a opção "Preserve log", "preservar o registro", do Console esteja ligada). <strong>Como consertar:</strong> declare o parâmetro: <code>(evento) =&gt; { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu o método com a letra errada</strong>
+<pre class="file" data-file="script.js">link.addEventListener("click", (evento) =&gt; {
+  evento.preventdefault();
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: evento.preventdefault is not a function
+    at script.js:3:10
+</pre>
+<p>"<code>evento.preventdefault</code> não é uma função". O nome certo tem o <strong>D</strong> maiúsculo: <code>preventDefault</code>. O mesmo vale para <code>stopPropagation</code> (com <strong>P</strong>) e para <code>currentTarget</code> (com <strong>T</strong>): <code>evento.currenttarget</code> não dá erro, mas vale <code>undefined</code>. <strong>Como consertar:</strong> corrija as maiúsculas.</p>
+</div>
+
+<div class="cenario">
+<strong>A tecla nunca é reconhecida, e não há erro</strong>
+<pre class="file" data-file="script.js">busca.addEventListener("keydown", (evento) =&gt; {
+  if (evento.key === "enter") {
+    console.log("buscando");
+  }
+});
+</pre>
+<p>A Ana digitou e apertou Enter: o Console continuou vazio. O <code>key</code> da tecla Enter é <code>"Enter"</code>, com <strong>E maiúsculo</strong>, e <code>"Enter" === "enter"</code> é <code>false</code> (veja <a href="operadores-comparacao.html">Comparação</a>). <strong>Como consertar:</strong> escreva o nome exato: <code>"Enter"</code>, <code>"Escape"</code>, <code>"ArrowUp"</code>. Na dúvida, ponha um <code>console.log(evento.key)</code> no ouvinte e aperte a tecla para ver o nome.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>target</code> não era quem você pensava</strong>
+<pre class="file" data-file="script.js">botao.addEventListener("click", (evento) =&gt; {
+  evento.target.classList.add("escolhido");
+});
+</pre>
+<p>Às vezes funciona, às vezes não: quando a pessoa clica no <code>&lt;strong&gt;agora&lt;/strong&gt;</code> dentro do botão, quem ganha a classe é o <code>strong</code>, e não o botão (seção 1). Nenhuma mensagem de erro avisa. <strong>Como consertar:</strong> use <code>evento.currentTarget</code> (o dono do ouvinte) ou, com delegação, <code>evento.target.closest("button")</code>.</p>
+</div>
+
+<div class="tryweb" data-goal="console:Apagando: Leite;;semerro" data-acoes="clicar #lista li:nth-child(2) .apagar">
+<p class="try-task"><strong>Missão:</strong> este script de delegação tem dois erros (um dá mensagem, o outro não faz nada em silêncio). Conserte até clicar no "x" do Leite mostrar <code>Apagando: Leite</code> e tirar o item.</p>
+<pre class="script" data-file="index.html">&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão &lt;button class="apagar"&gt;x&lt;/button&gt;&lt;/li&gt;
+  &lt;li&gt;Leite &lt;button class="apagar"&gt;x&lt;/button&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lista");
+
+lista.addEventListener("click", () =&gt; {
+  if (evento.target.matches("apagar")) {
+    const item = evento.target.closest("li");
+    console.log(`Apagando: ${item.firstChild.textContent.trim()}`);
+    item.remove();
+  }
+});
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("#lista");
+
+lista.addEventListener("click", (evento) =&gt; {
+  if (evento.target.matches(".apagar")) {
+    const item = evento.target.closest("li");
+    console.log(`Apagando: ${item.firstChild.textContent.trim()}`);
+    item.remove();
+  }
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>el.addEventListener("click", (evento) =&gt; { … })</code></td><td>Recebe o objeto do evento no parâmetro</td></tr>
+<tr><td><code>evento.type</code></td><td>O nome do evento</td></tr>
+<tr><td><code>evento.target</code></td><td>Onde o evento aconteceu (o elemento mais de dentro)</td></tr>
+<tr><td><code>evento.currentTarget</code></td><td>O dono do ouvinte que está rodando</td></tr>
+<tr><td><code>evento.key</code> / <code>evento.code</code></td><td>A tecla (o que escreve) / a posição física da tecla</td></tr>
+<tr><td><code>evento.ctrlKey</code>, <code>shiftKey</code>, <code>altKey</code></td><td><code>true</code> se a tecla estava apertada junto</td></tr>
+<tr><td><code>evento.clientX</code>, <code>evento.clientY</code></td><td>Posição do ponteiro na janela, em pixels</td></tr>
+<tr><td><code>evento.preventDefault()</code></td><td>Cancela o comportamento padrão (link, envio do formulário)</td></tr>
+<tr><td><code>evento.stopPropagation()</code></td><td>Para a subida do evento para os elementos de fora</td></tr>
+<tr><td><code>el.matches(".classe")</code></td><td><code>true</code> se o elemento combina com o seletor</td></tr>
+<tr><td><code>el.closest("li")</code></td><td>O próprio elemento ou o ancestral mais próximo que combina (ou <code>null</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: evento is not defined</code></td><td>A função do ouvinte não declarou o parâmetro: <code>()</code> no lugar de <code>(evento)</code></td></tr>
+<tr><td><code>evento.preventdefault is not a function</code></td><td>Maiúsculas erradas: o certo é <code>preventDefault</code></td></tr>
+<tr><td><code>if (evento.key === "enter")</code> nunca entra</td><td>O nome da tecla é <code>"Enter"</code>, com maiúscula</td></tr>
+<tr><td>Às vezes funciona, às vezes pega o elemento errado</td><td>Usou <code>target</code> onde queria <code>currentTarget</code> ou <code>closest</code></td></tr>
+<tr><td>Um clique dispara vários ouvintes</td><td>É a propagação: o evento sobe para os pais</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o atalho</h3>
+<p>Complete para o ouvinte reagir só à tecla Escape:</p>
+<div class="ex-code">campo.addEventListener("keydown", (<input data-answer="e" aria-label="parâmetro">) =&gt; {<br>&nbsp;&nbsp;if (e.<input data-answer="key" aria-label="propriedade da tecla"> === "Escape") {<br>&nbsp;&nbsp;&nbsp;&nbsp;campo.value = "";<br>&nbsp;&nbsp;}<br>});</div>
+</div>
+
+<div class="exercise">
+<h3>2. O link que não abre</h3>
+<p>Qual método do objeto do evento impede o navegador de abrir o link? Escreva só o nome, sem parênteses.</p>
+<div class="ex-code"><code>evento.</code><input data-answer="preventDefault" aria-label="nome do método"><code>()</code></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O botão tem <code>&lt;img&gt;</code> dentro, e o ouvinte está no botão. A pessoa clica na imagem. Quanto vale <code>evento.target.tagName</code>?</p>
+<label><input type="radio" name="q3"> <code>"BUTTON"</code></label>
+<label><input type="radio" name="q3"> <code>"BODY"</code></label>
+<label><input type="radio" name="q3"> <code>"IMG"</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Uma lista recebe itens novos a cada clique em "Adicionar", e cada item tem um botão "x". Qual é a melhor forma de fazer os "x" funcionarem?</p>
+<label><input type="radio" name="q4"> Um ouvinte só, na lista, olhando o <code>evento.target</code> (delegação)</label>
+<label><input type="radio" name="q4"> Um <code>querySelectorAll(".apagar")</code> com <code>forEach</code>, uma vez, no começo do script</label>
+<label><input type="radio" name="q4"> Um ouvinte no <code>body</code> com <code>stopPropagation()</code></label>
+<label><input type="radio" name="q4"> Não dá para fazer botões em itens criados depois</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Um <code>li</code> está dentro de um <code>ul</code>, e os dois têm ouvinte de clique. A pessoa clica no <code>li</code>. Em que ordem os ouvintes rodam?</p>
+<label><input type="radio" name="q5"> Primeiro o do <code>ul</code>, depois o do <code>li</code></label>
+<label><input type="radio" name="q5"> Primeiro o do <code>li</code>, depois o do <code>ul</code></label>
+<label><input type="radio" name="q5"> Só o do <code>li</code></label>
+<label><input type="radio" name="q5"> Só o do <code>ul</code></label>
+</div>
+
+<h3>Missão final: marcar o que já foi comprado</h3>
+
+<div class="tryweb" data-goal="dom:#lista li.comprado;;texto:#lista li.comprado~Leite;;src:closest;;semerro" data-acoes="clicar #lista li:nth-child(2) span">
+<p class="try-task"><strong>Missão:</strong> no mercado, a Ana quer tocar num item para marcá-lo como comprado. Ponha <strong>um</strong> ouvinte de clique na lista e, com <code>evento.target.closest("li")</code>, ligue e desligue a classe <code>comprado</code> do item clicado (<code>classList.toggle("comprado")</code>; veja <a href="dom-estilo.html">Mudando o Estilo</a>). Repare que o nome está dentro de um <code>span</code>: por isso o <code>closest</code>, e não o <code>target</code> direto.</p>
+<pre class="script" data-file="index.html">&lt;ul id="lista"&gt;
+  &lt;li&gt;&lt;span&gt;Pão&lt;/span&gt; (2)&lt;/li&gt;
+  &lt;li&gt;&lt;span&gt;Leite&lt;/span&gt; (1)&lt;/li&gt;
+  &lt;li&gt;&lt;span&gt;Café&lt;/span&gt; (1)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;link rel="stylesheet" href="style.css"&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="style.css">li { cursor: pointer; }
+.comprado { text-decoration: line-through; color: gray; }
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lista");
+
+// um ouvinte só, na lista
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("#lista");
+
+lista.addEventListener("click", (evento) =&gt; {
+  const item = evento.target.closest("li");
+  if (item) {
+    item.classList.toggle("comprado");
+  }
+});
+</pre>
+</div>
+
+<p>O <code>if (item)</code> protege do clique no espaço vazio da lista, fora de qualquer <code>li</code>: aí o <code>closest("li")</code> não acha nada e devolve <code>null</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O navegador entrega um <strong>objeto do evento</strong> como primeiro argumento do ouvinte: declare o parâmetro, <code>(evento) =&gt; { … }</code>.</li>
+  <li><code>evento.target</code> é onde o evento aconteceu (o elemento mais de dentro); <code>evento.currentTarget</code> é o dono do ouvinte.</li>
+  <li>Nos eventos de teclado, <code>evento.key</code> diz a tecla (<code>"Enter"</code>, <code>"a"</code>, <code>"ArrowUp"</code>), com as maiúsculas exatas.</li>
+  <li><code>evento.preventDefault()</code> cancela o que o navegador faria sozinho (abrir o link, enviar o formulário).</li>
+  <li>O evento <strong>sobe</strong> do alvo até o topo da página (propagação); <code>stopPropagation()</code> para a subida.</li>
+  <li><strong>Delegação</strong>: um ouvinte no pai, com <code>target.matches</code> ou <code>target.closest</code>, cuida de todos os filhos, até dos criados depois.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
