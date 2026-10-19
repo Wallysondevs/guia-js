@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript NaN, Infinity e a Precisão (0.1 + 0.2) — os números especiais | Guia JavaScript</title>
+<meta name="description" content="Os números especiais do JavaScript para quem nunca programou: NaN (de onde vem, por que contagia, NaN === NaN é false, Number.isNaN), Infinity e a divisão por zero, Number.isFinite, e a precisão dos decimais: por que 0.1 + 0.2 dá 0.30000000000000004 e como lidar com dinheiro (toFixed, centavos, Number.EPSILON), com saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">NaN, Infinity e a Precisão</span></h1>
+
+<p class="intro">Na calculadora, dividir por zero mostra "Erro". No JavaScript, não: <strong>nenhuma conta com <code>number</code> dá erro</strong>. Quando a conta não tem resposta, o resultado é um valor especial: <code>NaN</code> ("não é um número") ou <code>Infinity</code> ("infinito"). E, para completar, algumas contas com decimais saem levemente tortas: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>. Esta aula explica os três casos e, principalmente, como se proteger deles, porque os três aparecem <strong>sem nenhuma mensagem de erro</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o <code>NaN</code>, de onde ele vem e por que ele "contagia" as contas seguintes.</li>
+  <li>Por que <code>NaN === NaN</code> é <code>false</code>, e como testar com <code>Number.isNaN</code>.</li>
+  <li>O que é o <code>Infinity</code>, por que <code>1 / 0</code> não dá erro e como testar com <code>Number.isFinite</code>.</li>
+  <li>Por que <code>0.1 + 0.2</code> não dá exatamente <code>0.3</code>.</li>
+  <li>Três jeitos de lidar com dinheiro: mostrar com <code>toFixed(2)</code>, contar em <strong>centavos</strong> e comparar com tolerância.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: o caixa que nunca trava</h2>
+<p>Imagine um caixa de padaria que <strong>nunca</strong> mostra "Erro". Se alguém digita letras no lugar do preço, ele escreve no visor "não é um número" e continua. Se alguém divide a conta por zero pessoas, ele escreve "infinito". Parece prático, mas é perigoso: o caixa continua somando, e no fim do dia o fechamento sai "não é um número" sem ninguém saber onde começou o problema.</p>
+<p>O <code>number</code> do JavaScript é esse caixa. Seu trabalho, como programador, é <strong>conferir</strong> os valores especiais antes que eles se espalhem.</p>
+
+<hr>
+
+<h2>1. <code>NaN</code>: "não é um número"</h2>
+<p><code>NaN</code> vem do inglês <em>Not a Number</em>, "não é um número". É o resultado de uma conta que <strong>não tem resposta numérica</strong>:</p>
+
+<pre class="file" data-file="nan.js">console.log("abc" * 2);
+console.log(Number("doze"));
+console.log(0 / 0);
+console.log(Math.sqrt(-1));
+console.log(typeof NaN);
+</pre>
+
+<pre class="term">$ node nan.js
+NaN
+NaN
+NaN
+NaN
+number
+</pre>
+
+<dl class="anatomy">
+  <dt>"abc" * 2</dt><dd>Multiplicar um texto que não é número. O JavaScript tentou transformar <code>"abc"</code> em número, não conseguiu, e o resultado é <code>NaN</code>.</dd>
+  <dt>Number("doze")</dt><dd>O <code>Number(…)</code> converte um texto em número (aula <a href="conversao.html">Conversão</a>). "doze", por extenso, ele não entende.</dd>
+  <dt>0 / 0</dt><dd>Zero dividido por zero não tem resposta na matemática.</dd>
+  <dt>Math.sqrt(-1)</dt><dd>A raiz quadrada de um número negativo (o <code>Math.sqrt</code> é a raiz quadrada; veja <a href="math.html">Math</a>).</dd>
+  <dt>typeof NaN → number</dt><dd>Sim: o "não é um número" é do tipo <code>number</code>. Ele é o valor que o tipo <code>number</code> usa para dizer "resultado inválido".</dd>
+</dl>
+
+<p>A causa mais comum, na vida real, é a segunda: um texto que veio do usuário (do teclado, de um formulário) e não pôde ser convertido. Repare que, em <strong>nenhuma</strong> das linhas, apareceu uma mensagem de erro.</p>
+
+<h3>O <code>NaN</code> contagia</h3>
+<p>Qualquer conta com um <code>NaN</code> dá <code>NaN</code>. Ele se espalha de variável em variável:</p>
+
+<pre class="file" data-file="contagia.js">const preco = Number("quatro e cinquenta");
+const quantidade = 2;
+const total = preco * quantidade;
+const comEntrega = total + 5;
+console.log("Preço:", preco);
+console.log("Total:", total);
+console.log("Com entrega:", comEntrega);
+</pre>
+
+<pre class="term">$ node contagia.js
+Preço: NaN
+Total: NaN
+Com entrega: NaN
+</pre>
+
+<p>O problema nasceu na linha 1, mas só foi visto na hora de mostrar. Num programa grande, a linha que mostra o <code>NaN</code> pode estar muito longe da linha que o criou. Por isso, <strong>confira o valor logo depois de converter</strong> (seção 2).</p>
+
+<div class="tryjs" data-goal="out:Total: 9;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Total: NaN</code>. Descubra qual valor não pôde ser convertido e escreva-o com algarismos, para aparecer <code>Total: 9</code>.</p>
+<pre class="script" data-file="main.js">const preco = Number("4.5");
+const quantidade = Number("dois");
+const total = preco * quantidade;
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = Number("4.5");
+const quantidade = Number("2");
+const total = preco * quantidade;
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Testando o <code>NaN</code>: <code>Number.isNaN</code></h2>
+<p>O jeito óbvio de perguntar "deu NaN?" não funciona:</p>
+
+<pre class="file" data-file="igual.js">const resultado = "abc" * 2;
+console.log(resultado === NaN);
+console.log(NaN === NaN);
+console.log(Number.isNaN(resultado));
+console.log(Number.isNaN(42));
+</pre>
+
+<pre class="term">$ node igual.js
+false
+false
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>resultado === NaN → false</dt><dd>Mesmo o resultado sendo <code>NaN</code>, a comparação deu <code>false</code>.</dd>
+  <dt>NaN === NaN → false</dt><dd>O <code>NaN</code> <strong>não é igual nem a ele mesmo</strong>. É uma regra do padrão de números que o JavaScript segue (o mesmo de quase todas as linguagens): dois "resultados inválidos" não são considerados iguais, porque podem ter vindo de contas completamente diferentes.</dd>
+  <dt>Number.isNaN(resultado) → true</dt><dd>O jeito certo: <code>Number.isNaN(valor)</code> ("é NaN?") responde <code>true</code> só para o <code>NaN</code>.</dd>
+</dl>
+
+<div class="note">
+<strong><code>isNaN</code> × <code>Number.isNaN</code></strong>
+<p>Existe também um <code>isNaN</code> sozinho, mais antigo. Ele primeiro tenta converter o valor em número, e por isso responde diferente para textos:</p>
+<pre class="file" data-file="isnan.js">console.log(isNaN("abc"));
+console.log(Number.isNaN("abc"));
+console.log(isNaN(NaN), Number.isNaN(NaN));
+</pre>
+<pre class="term">$ node isnan.js
+true
+false
+true true
+</pre>
+<p><code>isNaN("abc")</code> pergunta "isto, convertido em número, daria NaN?" (sim). <code>Number.isNaN("abc")</code> pergunta "isto <strong>é</strong> o valor NaN?" (não: é um texto). Prefira o <code>Number.isNaN</code>, que não faz conversões escondidas.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>Infinity</code>: o infinito</h2>
+<p>Dividir um número por zero, no JavaScript, não é erro: dá <code>Infinity</code> (ou <code>-Infinity</code>, se o número for negativo). O mesmo acontece quando o resultado passa do maior número que o <code>number</code> consegue guardar (veja <a href="numeros.html">Números</a>):</p>
+
+<pre class="file" data-file="infinito.js">console.log(1 / 0);
+console.log(-1 / 0);
+console.log(10 ** 1000);
+console.log(Number.MAX_VALUE * 2);
+console.log(Infinity + 1);
+console.log(Infinity - Infinity);
+console.log(typeof Infinity);
+</pre>
+
+<pre class="term">$ node infinito.js
+Infinity
+-Infinity
+Infinity
+Infinity
+Infinity
+NaN
+number
+</pre>
+
+<dl class="anatomy">
+  <dt>1 / 0 → Infinity</dt><dd>Divisão por zero. (Repare que <code>0 / 0</code>, na seção 1, deu <code>NaN</code>, e não <code>Infinity</code>.)</dd>
+  <dt>10 ** 1000 → Infinity</dt><dd>10 elevado a 1000 (o <code>**</code> é a potência) é grande demais: passou do limite e virou infinito.</dd>
+  <dt>Infinity + 1 → Infinity</dt><dd>Infinito mais um continua infinito.</dd>
+  <dt>Infinity - Infinity → NaN</dt><dd>Essa conta não tem resposta: <code>NaN</code>.</dd>
+  <dt>typeof Infinity → number</dt><dd>Também é do tipo <code>number</code>.</dd>
+</dl>
+
+<h3>Testando: <code>Number.isFinite</code></h3>
+<p>A Ana dividiu a conta do lanche entre os amigos, mas a variável <code>pessoas</code> ficou com 0:</p>
+
+<pre class="file" data-file="finito.js">const pessoas = 0;
+const conta = 120;
+const porPessoa = conta / pessoas;
+console.log("Cada um paga:", porPessoa);
+console.log(Number.isFinite(porPessoa));
+console.log(Number.isFinite(40));
+console.log(Number.isFinite(NaN));
+</pre>
+
+<pre class="term">$ node finito.js
+Cada um paga: Infinity
+false
+true
+false
+</pre>
+
+<p><code>Number.isFinite(valor)</code> ("é finito?") responde <code>true</code> só para um número "normal": nem <code>Infinity</code>, nem <code>-Infinity</code>, nem <code>NaN</code>. É o teste mais completo para conferir se uma conta deu um resultado utilizável. Com o <a href="if.html">if</a>, você vai poder avisar "ninguém para dividir a conta" antes de fazer a divisão.</p>
+
+<div class="tip">
+<strong>Curiosidade: o <code>-0</code></strong>
+<p>O <code>number</code> tem até um "zero negativo": <code>0 * -1</code> mostra <code>-0</code> no Node. Na prática ele se comporta como zero (<code>-0 === 0</code> dá <code>true</code>), e você quase nunca vai precisar se preocupar com ele.</p>
+</div>
+
+<hr>
+
+<h2>4. A precisão: <code>0.1 + 0.2</code></h2>
+<p>Agora, o caso mais famoso do JavaScript:</p>
+
+<pre class="file" data-file="precisao.js">console.log(0.1 + 0.2);
+console.log(0.1 + 0.2 === 0.3);
+console.log(0.3 - 0.1);
+console.log(0.1 * 3);
+console.log(1.1 * 3);
+console.log(19.9 * 3);
+console.log(0.5 + 0.25);
+</pre>
+
+<pre class="term">$ node precisao.js
+0.30000000000000004
+false
+0.19999999999999998
+0.30000000000000004
+3.3000000000000003
+59.699999999999996
+0.75
+</pre>
+
+<p>Não é um defeito do Node, nem do JavaScript: o Python, o Java, o C e quase todas as linguagens dão o mesmo resultado, porque todas guardam decimais do mesmo jeito (um padrão chamado IEEE 754).</p>
+
+<h3>Por que isso acontece?</h3>
+<p>Tente escrever <strong>um terço</strong> em decimal: 0,3333333… Os 3 nunca acabam. Se você tiver espaço para só 16 algarismos, vai guardar 0,3333333333333333, que é <strong>quase</strong> um terço, mas não exatamente. E 1/3 + 1/3 + 1/3 com esses valores dá 0,9999999999999999, e não 1.</p>
+<p>O computador guarda os números em <strong>binário</strong> (base 2), e na base 2 o 0,1 é como o 1/3 na base 10: uma dízima que não acaba. O computador guarda um valor <strong>muito próximo</strong> de 0,1, mas não exato. Somando dois valores "quase certos", o erro, que é minúsculo, às vezes aparece no 17º algarismo.</p>
+<p>Repare na última linha: <code>0.5 + 0.25</code> deu exatamente <code>0.75</code>. Metades, quartos e oitavos são "redondos" em binário, como 0,5 é redondo em decimal. Só alguns decimais têm o problema.</p>
+
+<h3>O problema na vida real: dinheiro</h3>
+
+<pre class="file" data-file="carrinho.js">const chiclete = 1.1;
+const bala = 2.2;
+const total = chiclete + bala;
+console.log("Total:", total);
+console.log("Total:", total.toFixed(2));
+console.log(total === 3.3);
+</pre>
+
+<pre class="term">$ node carrinho.js
+Total: 3.3000000000000003
+Total: 3.30
+false
+</pre>
+
+<p>Um cliente nenhum gostaria de ver <code>R$ 3.3000000000000003</code> na nota. E pior: o programa acha que o total <strong>não é</strong> 3,30 (a comparação deu <code>false</code>). Há três jeitos de lidar com isso.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de lidar com a precisão</h2>
+
+<h3>1) Arredondar na hora de mostrar: <code>toFixed(2)</code></h3>
+<p>O <code>valor.toFixed(2)</code> devolve o número como <strong>texto</strong>, com exatamente 2 casas decimais (a linha do meio do <code>carrinho.js</code>: <code>3.30</code>). É o suficiente quando o problema é só a aparência. Os detalhes estão em <a href="numeros-formatar.html">Formatando Números</a>.</p>
+
+<pre class="file" data-file="arredondar.js">const total = 0.1 + 0.2;
+console.log(total);
+console.log(total.toFixed(2));
+console.log(Math.round(total * 100) / 100);
+console.log(Number(total.toFixed(2)));
+</pre>
+
+<pre class="term">$ node arredondar.js
+0.30000000000000004
+0.30
+0.3
+0.3
+</pre>
+
+<p>As duas últimas linhas arredondam e continuam com um <strong>número</strong> (não texto): <code>Math.round</code> arredonda para o inteiro mais próximo, então "multiplicar por 100, arredondar, dividir por 100" deixa 2 casas.</p>
+
+<div class="tryjs" data-goal="out:Total: 3.30;;src:toFixed\(\s*2\s*\);;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Total: 3.3000000000000003</code>. Use o <code>toFixed(2)</code> na hora de mostrar o total, para aparecer <code>Total: 3.30</code>.</p>
+<pre class="script" data-file="main.js">const chiclete = 1.1;
+const bala = 2.2;
+const total = chiclete + bala;
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const chiclete = 1.1;
+const bala = 2.2;
+const total = chiclete + bala;
+console.log("Total:", total.toFixed(2));
+</pre>
+</div>
+
+<h3>2) Fazer as contas em centavos</h3>
+<p>Inteiros não têm o problema (até o limite de 9 quatrilhões, visto em <a href="numeros.html">Números</a>). Então os programas de loja e de banco costumam guardar o dinheiro <strong>em centavos</strong> e só dividir por 100 na hora de mostrar:</p>
+
+<pre class="file" data-file="centavos.js">const chiclete = 110;
+const bala = 220;
+const totalCentavos = chiclete + bala;
+console.log("Total em centavos:", totalCentavos);
+console.log("Total em reais:", totalCentavos / 100);
+console.log(totalCentavos === 330);
+</pre>
+
+<pre class="term">$ node centavos.js
+Total em centavos: 330
+Total em reais: 3.3
+true
+</pre>
+
+<p>Todas as contas foram com inteiros, então são exatas, e a comparação deu <code>true</code>. É o jeito mais seguro para dinheiro.</p>
+
+<h3>3) Comparar com tolerância: <code>Number.EPSILON</code></h3>
+<p>Quando precisa comparar dois decimais, em vez de "são iguais?", pergunte "a diferença entre eles é minúscula?". O <code>Number.EPSILON</code> é a menor diferença que o <code>number</code> enxerga perto do 1:</p>
+
+<pre class="file" data-file="epsilon.js">const a = 0.1 + 0.2;
+const b = 0.3;
+console.log(Number.EPSILON);
+console.log(Math.abs(a - b) &lt; Number.EPSILON);
+</pre>
+
+<pre class="term">$ node epsilon.js
+2.220446049250313e-16
+true
+</pre>
+
+<p><code>Math.abs</code> tira o sinal da diferença (o "valor absoluto"), e o <code>&lt;</code> pergunta se ela é menor que o epsilon (cerca de 0,0000000000000002). Deu <code>true</code>: para todos os efeitos, são iguais. (Esse truque serve para números perto de 1; para números grandes, a tolerância precisa ser maior.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Só mostrar um valor bonito na tela</td><td><code>total.toFixed(2)</code> (vira texto)</td></tr>
+<tr><td>Arredondar e continuar fazendo contas</td><td><code>Math.round(total * 100) / 100</code></td></tr>
+<tr><td>Dinheiro: somar, multiplicar, comparar</td><td><strong>Centavos</strong> (inteiros), divididos por 100 só para mostrar</td></tr>
+<tr><td>Comparar dois decimais calculados</td><td><code>Math.abs(a - b) &lt; Number.EPSILON</code></td></tr>
+<tr><td>Saber se uma conta deu um número utilizável</td><td><code>Number.isFinite(valor)</code></td></tr>
+<tr><td>Saber se deu <code>NaN</code></td><td><code>Number.isNaN(valor)</code> (nunca <code>=== NaN</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Nenhum dos problemas desta aula dá mensagem de erro. Os sintomas são valores estranhos na tela.</p>
+
+<div class="cenario">
+<strong>Apareceu <code>NaN</code> no resultado</strong>
+<pre class="file" data-file="virgula.js">console.log(Number("4,50"));
+console.log(Number("4.50"));
+</pre>
+<pre class="term">$ node virgula.js
+NaN
+4.5
+</pre>
+<p>Causa provável: um texto que não pôde virar número. O caso campeão no Brasil é a <strong>vírgula decimal</strong> que o usuário digitou: <code>Number("4,50")</code> dá <code>NaN</code>; <code>Number("4.50")</code> dá <code>4.5</code>. Outros: <code>"R$ 4.50"</code>, espaço no meio, texto vazio de propósito. <strong>Como consertar:</strong> confira com <code>Number.isNaN</code> logo depois de converter e, se for o caso, troque a vírgula por ponto antes (aula <a href="strings-substituir.html">Substituindo</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>toFixed</code> mostrou <code>NaN</code></strong>
+<pre class="file" data-file="fixednan.js">const preco = Number("R$ 4,50");
+console.log(preco.toFixed(2));
+</pre>
+<pre class="term">$ node fixednan.js
+NaN
+</pre>
+<p>O <code>toFixed</code> não "conserta" um <code>NaN</code>: só formata. O problema está antes, na conversão. <strong>Como consertar:</strong> o mesmo do cenário anterior.</p>
+</div>
+
+<div class="cenario">
+<strong>Testou <code>=== NaN</code> e nunca deu <code>true</code></strong>
+<p>Sintoma: <code>valor === NaN</code> é sempre <code>false</code>, mesmo quando o valor é <code>NaN</code> (seção 2). <strong>Como consertar:</strong> <code>Number.isNaN(valor)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Apareceu <code>Infinity</code></strong>
+<p>Causa provável: divisão por zero, quase sempre uma variável que ficou com 0 sem você esperar (zero pessoas, zero itens, zero dias). <strong>Como consertar:</strong> confira o divisor antes de dividir, ou o resultado com <code>Number.isFinite</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um valor com muitas casas (<code>3.3000000000000003</code>) ou uma comparação que devia dar <code>true</code></strong>
+<p>Causa: a precisão dos decimais (seção 4). <strong>Como consertar:</strong> <code>toFixed(2)</code> para mostrar; centavos para dinheiro; tolerância para comparar.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>toFixed</code> arredondou "errado"</strong>
+<pre class="file" data-file="fixed.js">console.log((1.005).toFixed(2));
+console.log((1.005).toFixed(20));
+console.log((2.345).toFixed(2));
+</pre>
+<pre class="term">$ node fixed.js
+1.00
+1.00499999999999989342
+2.35
+</pre>
+<p>Pela regra da escola, 1,005 arredondado para 2 casas daria 1,01. Saiu <code>1.00</code>, porque o número guardado não é 1,005: é 1,00499999999999989342… (a segunda linha mostra com 20 casas), e esse número arredonda para baixo. Já o <code>2.345</code> arredondou para cima. É a mesma causa do <code>0.1 + 0.2</code>. Para valores em que cada centavo importa, conte em centavos desde o começo.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th></tr>
+<tr><td><code>"abc" * 2</code>, <code>Number("doze")</code>, <code>0 / 0</code></td><td><code>NaN</code></td></tr>
+<tr><td><code>NaN + 1</code>, <code>NaN * 0</code></td><td><code>NaN</code> (contagia)</td></tr>
+<tr><td><code>NaN === NaN</code></td><td><code>false</code></td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td><code>true</code> só se <code>x</code> for <code>NaN</code></td></tr>
+<tr><td><code>1 / 0</code>, <code>-1 / 0</code></td><td><code>Infinity</code>, <code>-Infinity</code></td></tr>
+<tr><td><code>10 ** 1000</code></td><td><code>Infinity</code> (passou do limite)</td></tr>
+<tr><td><code>Number.isFinite(x)</code></td><td><code>true</code> se <code>x</code> for um número comum (nem <code>NaN</code>, nem infinito)</td></tr>
+<tr><td><code>0.1 + 0.2</code></td><td><code>0.30000000000000004</code></td></tr>
+<tr><td><code>(0.1 + 0.2).toFixed(2)</code></td><td><code>"0.30"</code> (texto)</td></tr>
+<tr><td><code>Number.EPSILON</code></td><td><code>2.220446049250313e-16</code></td></tr>
+<tr><td><code>typeof NaN</code>, <code>typeof Infinity</code></td><td><code>"number"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<div class="ex-code"><code>console.log(10 / 0);</code> → <input data-answer="Infinity" aria-label="dez dividido por zero"><br><code>console.log("dez" * 2);</code> → <input data-answer="NaN" aria-label="texto vezes dois"><br><code>console.log(NaN === NaN);</code> → <input data-answer="false" aria-label="NaN igual a NaN"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o teste</h3>
+<p>Complete para perguntar se <code>media</code> deu <code>NaN</code>:</p>
+<div class="ex-code">Number.<input data-answer="isNaN" aria-label="método">(media)</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>?</p>
+<label><input type="radio" name="q3"> Porque o Node tem um defeito que nunca foi consertado</label>
+<label><input type="radio" name="q3"> Porque faltou ponto e vírgula</label>
+<label><input type="radio" name="q3"> Porque o computador guarda os decimais em binário, e 0,1 é uma dízima em binário</label>
+<label><input type="radio" name="q3"> Porque o <code>+</code> juntou os números como texto</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Qual é o jeito mais seguro de somar preços em reais?</p>
+<label><input type="radio" name="q4"> Guardar em centavos (inteiros) e dividir por 100 só para mostrar</label>
+<label><input type="radio" name="q4"> Usar <code>toFixed(2)</code> em cada soma e somar os textos</label>
+<label><input type="radio" name="q4"> Escrever os preços com vírgula</label>
+<label><input type="radio" name="q4"> Comparar com <code>=== NaN</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que mostra <code>console.log(Number.isFinite(1 / 0));</code>?</p>
+<label><input type="radio" name="q5"> <code>true</code></label>
+<label><input type="radio" name="q5"> <code>false</code></label>
+<label><input type="radio" name="q5"> <code>Infinity</code></label>
+<label><input type="radio" name="q5"> Dá erro de divisão por zero</label>
+</div>
+
+<h3>Missão final: o troco certo</h3>
+
+<div class="tryjs" data-goal="out:Total certo? true;;src:\b10\b;;src:\b20\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa diz que 10 centavos mais 20 centavos <strong>não</strong> dão 30 centavos (<code>Total certo? false</code>). Reescreva as três quantias em <strong>centavos</strong> (inteiros: <code>10</code>, <code>20</code> e <code>30</code>) para aparecer <code>Total certo? true</code>.</p>
+<pre class="script" data-file="main.js">const bala = 0.1;
+const chiclete = 0.2;
+const total = bala + chiclete;
+console.log("Total:", total);
+console.log("Total certo?", total === 0.3);
+</pre>
+<pre class="solucao" data-file="main.js">const bala = 10;
+const chiclete = 20;
+const total = bala + chiclete;
+console.log("Total:", total);
+console.log("Total certo?", total === 30);
+</pre>
+</div>
+
+<p>No lab, o código inicial mostrou <code>Total: 0.30000000000000004</code> e <code>Total certo? false</code>; a solução, <code>Total: 30</code> e <code>Total certo? true</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Contas com <code>number</code> nunca dão erro: quando não há resposta, o resultado é <code>NaN</code> ou <code>Infinity</code>, os dois do tipo <code>number</code>.</li>
+  <li><code>NaN</code> ("não é um número") vem de conversões que falham e de contas impossíveis. Ele contagia todas as contas seguintes e não é igual nem a si mesmo: teste com <code>Number.isNaN</code>.</li>
+  <li><code>Infinity</code> vem da divisão por zero e de números grandes demais. <code>Number.isFinite</code> confere se um valor é um número comum.</li>
+  <li>Decimais são guardados em binário e alguns (como 0,1) não são exatos: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>, em quase todas as linguagens.</li>
+  <li>Para mostrar: <code>toFixed(2)</code>. Para dinheiro: conte em <strong>centavos</strong>. Para comparar decimais: <code>Math.abs(a - b) &lt; Number.EPSILON</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
