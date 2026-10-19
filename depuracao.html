@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript: depurando com console.log, node inspect e debugger | Guia JavaScript</title>
+<meta name="description" content="Depuração em JavaScript para quem nunca programou: achar erros de lógica com console.log estratégico, console.table, console.trace e console.count, o depurador do terminal (node inspect, pontos de parada, watch), a palavra debugger, o node --inspect com o Chrome DevTools e um método para caçar bugs, com saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Depurando</span></h1>
+
+<p class="intro">Os erros mais fáceis são os que <strong>dão mensagem</strong>: o Node diz o tipo, a linha e até aponta com <code>^</code> (veja <a href="erros.html">Lendo uma Mensagem de Erro</a>). Os difíceis são os <strong>silenciosos</strong>: o programa roda até o fim, sem reclamar, e mostra <code>NaN</code>, <code>undefined</code> ou um número que não faz sentido. Para esses, você precisa <strong>olhar dentro</strong> do programa enquanto ele roda. Isso se chama <strong>depurar</strong> (em inglês, <em>debug</em>, "tirar os insetos": os defeitos de um programa são chamados de <em>bugs</em>, "insetos").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A técnica mais usada do mundo: <strong><code>console.log</code> estratégico</strong>, com rótulos, com <code>{ }</code> e dentro dos laços.</li>
+  <li>Os ajudantes do console para depurar: <code>console.table</code>, <code>console.dir</code>, <code>console.trace</code>, <code>console.count</code> e <code>console.assert</code>.</li>
+  <li>O <strong>depurador</strong> do terminal, <code>node inspect</code>: parar o programa numa linha, andar uma linha por vez e espiar as variáveis.</li>
+  <li>A palavra <code>debugger</code>, que marca um ponto de parada no próprio código.</li>
+  <li>O <code>node --inspect</code> com o <strong>Chrome DevTools</strong>, o depurador com janelas e botões.</li>
+  <li>Um método para caçar qualquer bug, e os tropeços comuns.</li>
+</ul>
+</div>
+
+<p>Todas as saídas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), inclusive as sessões do depurador. Só a parte do Chrome DevTools (seção 6) é descrita sem ter sido colhida: ela está marcada como <strong>ilustrativa</strong>.</p>
+
+<hr>
+
+<h2>A ideia: o detetive e as pegadas</h2>
+<p>Quando a torta some da janela, o detetive não fica olhando para o prato vazio. Ele segue as <strong>pegadas</strong>: às 10h a torta estava lá; às 11h, não. Então ele vai olhando o que aconteceu entre 10h e 11h, cada vez mais perto, até achar o culpado.</p>
+<p>Depurar é igual. O resultado final está errado (o prato vazio). Você coloca "câmeras" no meio do caminho para ver os valores em cada ponto, e vai estreitando: aqui ainda estava certo, ali já estava errado. O bug está entre os dois.</p>
+<ul>
+  <li>O <code>console.log</code> é uma câmera que você instala no código e que fotografa o valor naquele instante.</li>
+  <li>O <strong>depurador</strong> é poder <strong>parar o tempo</strong> numa linha, olhar tudo em volta e andar uma linha por vez.</li>
+</ul>
+
+<hr>
+
+<h2>1. O bug silencioso</h2>
+<p>A professora da Ana quer a média de quatro notas:</p>
+
+<pre class="file" data-file="media.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt;= notas.length; i++) {
+  total += notas[i];
+}
+const media = total / notas.length;
+console.log(`Média: ${media}`);
+</pre>
+
+<pre class="term">$ node media.js
+Média: NaN
+</pre>
+
+<p>Nenhum erro, nenhum <code>^</code>, nenhuma linha. Só um <code>NaN</code> ("não é um número") onde devia estar <code>8.5</code>. Para o Node, está tudo certo: ele fez exatamente o que foi escrito. Onde o número se estragou?</p>
+
+<hr>
+
+<h2>2. <code>console.log</code> estratégico</h2>
+<p>A pergunta é "o que está acontecendo dentro do laço?". Então a câmera vai <strong>dentro do laço</strong>, mostrando tudo o que importa em cada volta, com rótulos para não confundir:</p>
+
+<pre class="file" data-file="media-log.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt;= notas.length; i++) {
+  console.log("volta", i, "nota:", notas[i], "total antes:", total);
+  total += notas[i];
+}
+const media = total / notas.length;
+console.log(`Média: ${media}`);
+</pre>
+
+<pre class="term">$ node media-log.js
+volta 0 nota: 7 total antes: 0
+volta 1 nota: 8 total antes: 7
+volta 2 nota: 10 total antes: 15
+volta 3 nota: 9 total antes: 25
+volta 4 nota: undefined total antes: 34
+Média: NaN
+</pre>
+
+<p>Pronto, a pegada apareceu: são 4 notas, mas o laço deu <strong>5</strong> voltas. Na volta 4, <code>notas[4]</code> não existe (as posições vão de 0 a 3) e vale <code>undefined</code>; e <code>34 + undefined</code> dá <code>NaN</code>. O culpado é o <code>&lt;=</code> da condição: com <code>i &lt;= notas.length</code>, o <code>i</code> chega a 4. O certo é <code>i &lt; notas.length</code>. Esse erro de "uma volta a mais" é tão comum que tem nome: erro <strong>"por um"</strong> (em inglês, <em>off-by-one</em>).</p>
+
+<div class="tryjs" data-goal="out:Média: 8.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode o programa com o <code>console.log</code> de depuração, veja em que volta o problema aparece, conserte a condição do <code>for</code> e, no fim, apague a linha do <code>console.log</code> de depuração. O resultado certo é <code>Média: 8.5</code>.</p>
+<pre class="script" data-file="main.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt;= notas.length; i++) {
+  console.log("volta", i, "nota:", notas[i], "total antes:", total);
+  total += notas[i];
+}
+const media = total / notas.length;
+console.log(`Média: ${media}`);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt; notas.length; i++) {
+  total += notas[i];
+}
+const media = total / notas.length;
+console.log(`Média: ${media}`);
+</pre>
+</div>
+
+<h3>Dicas para um bom <code>console.log</code> de depuração</h3>
+<p>Outro bug: a lojinha calcula o total com frete, e o resultado sai esquisito.</p>
+
+<pre class="file" data-file="rotulo.js">const preco = 4.5;
+const quantidade = "3";
+const total = preco * quantidade;
+const frete = "10";
+console.log(total + frete);
+console.log(preco, quantidade, frete);
+console.log({ preco, quantidade, frete });
+console.log(typeof quantidade, typeof frete);
+</pre>
+
+<pre class="term">$ node rotulo.js
+13.510
+4.5 3 10
+{ preco: 4.5, quantidade: '3', frete: '10' }
+string string
+</pre>
+
+<dl class="anatomy">
+  <dt>13.510</dt><dd>O sintoma: deveria ser 23.5. Parece que o 13.5 e o 10 foram "grudados".</dd>
+  <dt>console.log(preco, quantidade, frete)</dt><dd>Vários valores separados por vírgula saem numa linha. Mas repare: <code>4.5 3 10</code> <strong>esconde</strong> o problema. Não dá para ver que o <code>3</code> e o <code>10</code> são textos.</dd>
+  <dt>console.log({ preco, quantidade, frete })</dt><dd>O truque das chaves: cria na hora um objeto com o <strong>nome</strong> e o <strong>valor</strong> de cada variável (veja <a href="objetos.html">Objetos</a>). E o Node mostra os textos <strong>entre aspas</strong>: <code>quantidade: '3'</code>, <code>frete: '10'</code>. Achado! O <code>+</code> entre um número e um texto junta os dois como texto (veja <a href="conversao-automatica.html">Conversão Automática</a>).</dd>
+  <dt>typeof</dt><dd>Quando desconfiar do tipo, pergunte: <code>typeof frete</code> respondeu <code>string</code> (veja <a href="typeof.html">typeof</a>).</dd>
+</dl>
+
+<p>A multiplicação <code>4.5 * "3"</code> deu certo porque o <code>*</code> converte o texto em número; o <code>+</code> não converte, ele junta. A correção é converter: <code>Number(frete)</code> (veja <a href="conversao.html">Conversão</a>).</p>
+
+<div class="tryjs" data-goal="out:Total com frete: 23.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> use o <code>console.log({ … })</code> que já está aí para ver os tipos e conserte a conta do total, para aparecer <code>Total com frete: 23.5</code>.</p>
+<pre class="script" data-file="main.js">const preco = 4.5;
+const quantidade = "3";
+const frete = "10";
+console.log({ preco, quantidade, frete });
+const total = preco * quantidade + frete;
+console.log(`Total com frete: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = 4.5;
+const quantidade = "3";
+const frete = "10";
+const total = preco * quantidade + Number(frete);
+console.log(`Total com frete: ${total}`);
+</pre>
+</div>
+
+<div class="tip">
+<strong>Regras de ouro do <code>console.log</code> de depuração</strong>
+<ul>
+  <li><strong>Sempre com rótulo</strong>: <code>console.log("total:", total)</code> ou <code>console.log({ total })</code>. Com cinco <code>console.log(total)</code> espalhados, você não sabe qual linha é de qual.</li>
+  <li><strong>Antes e depois</strong> da linha suspeita: se antes está certo e depois está errado, achou.</li>
+  <li><strong>Dentro dos laços</strong>, mostre o contador junto (<code>i</code>).</li>
+  <li><strong>Apague</strong> quando terminar. <code>console.log</code> de depuração esquecido polui a saída do programa.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>3. Os outros ajudantes do console</h2>
+<p>O <code>console</code> tem mais ferramentas, várias delas pensadas para depurar (a aula <a href="console-outros.html">console.error, warn e table</a> mostra o básico).</p>
+
+<h3><code>console.table</code>: uma lista de objetos em forma de tabela</h3>
+
+<pre class="file" data-file="tabela.js">const compras = [
+  { produto: "pão", preco: 0.75, qtd: 10 },
+  { produto: "leite", preco: 5.49, qtd: 2 },
+  { produto: "café", preco: 18.9, qtd: 1 },
+];
+console.table(compras);
+</pre>
+
+<pre class="term">$ node tabela.js
+┌─────────┬─────────┬───────┬─────┐
+│ (index) │ produto │ preco │ qtd │
+├─────────┼─────────┼───────┼─────┤
+│ 0       │ 'pão'   │ 0.75  │ 10  │
+│ 1       │ 'leite' │ 5.49  │ 2   │
+│ 2       │ 'café'  │ 18.9  │ 1   │
+└─────────┴─────────┴───────┴─────┘
+</pre>
+
+<p>Com dezenas de itens, é muito mais fácil achar o que está fora do lugar numa tabela do que numa sopa de chaves.</p>
+
+<h3>Objetos muito "fundos": <code>[Object]</code> e o <code>console.dir</code></h3>
+
+<pre class="file" data-file="fundo.js">const pedido = {
+  cliente: { nome: "Ana", endereco: { rua: "Rua das Flores", cidade: { nome: "Recife", uf: "PE" } } },
+};
+console.log(pedido);
+console.dir(pedido, { depth: null });
+console.log(JSON.stringify(pedido, null, 2));
+</pre>
+
+<pre class="term">$ node fundo.js
+{
+  cliente: {
+    nome: 'Ana',
+    endereco: { rua: 'Rua das Flores', cidade: [Object] }
+  }
+}
+{
+  cliente: {
+    nome: 'Ana',
+    endereco: { rua: 'Rua das Flores', cidade: { nome: 'Recife', uf: 'PE' } }
+  }
+}
+{
+  "cliente": {
+    "nome": "Ana",
+    "endereco": {
+      "rua": "Rua das Flores",
+      "cidade": {
+        "nome": "Recife",
+        "uf": "PE"
+      }
+    }
+  }
+}
+</pre>
+
+<p>O <code>console.log</code> do Node só desce <strong>dois níveis</strong> dentro de um objeto; mais fundo que isso, ele resume como <code>[Object]</code>. A cidade estava lá, só não foi mostrada. Para ver tudo: <code>console.dir(objeto, { depth: null })</code> ("profundidade: sem limite") ou <code>JSON.stringify(objeto, null, 2)</code> (o JSON com 2 espaços de recuo; veja <a href="json.html">JSON</a>).</p>
+
+<h3><code>console.trace</code>: "quem me chamou?"</h3>
+
+<pre class="file" data-file="rastro.js">function calcularFrete(peso) {
+  console.trace("calculando frete para", peso);
+  return peso * 2;
+}
+function fecharPedido() {
+  return calcularFrete(3);
+}
+fecharPedido();
+</pre>
+
+<pre class="term">$ node rastro.js
+Trace: calculando frete para 3
+    at calcularFrete (/home/ana/rastro.js:2:11)
+    at fecharPedido (/home/ana/rastro.js:6:10)
+    at Object.&lt;anonymous&gt; (/home/ana/rastro.js:8:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+</pre>
+
+<p>O <code>console.trace</code> ("rastrear") mostra a mensagem e a <strong>pilha de chamadas</strong> daquele momento, igual à de um erro, mas sem parar o programa. Útil quando uma função é chamada de vários lugares e você quer saber de onde veio a chamada que deu problema: aqui, <code>calcularFrete</code> foi chamada por <code>fecharPedido</code> (linha 6), que foi chamada na linha 8.</p>
+
+<h3><code>console.count</code> e <code>console.assert</code></h3>
+
+<pre class="file" data-file="contar.js">function vender(produto) {
+  console.count(produto);
+}
+vender("pão");
+vender("leite");
+vender("pão");
+vender("pão");
+</pre>
+
+<pre class="term">$ node contar.js
+pão: 1
+leite: 1
+pão: 2
+pão: 3
+</pre>
+
+<p>O <code>console.count</code> ("contar") conta quantas vezes passou por ali com cada rótulo. Bom para responder "essa função está sendo chamada quantas vezes?".</p>
+
+<pre class="file" data-file="assert.js">const estoque = -2;
+console.assert(estoque &gt;= 0, "Estoque negativo!", estoque);
+console.assert(10 &gt;= 0, "isto não aparece");
+console.log("Fim");
+</pre>
+
+<pre class="term">$ node assert.js
+Assertion failed: Estoque negativo! -2
+Fim
+</pre>
+
+<p>O <code>console.assert</code> ("afirmar") só escreve quando a condição é <strong>falsa</strong>: "eu afirmo que o estoque é maior ou igual a zero; se não for, me avise". Quando a condição é verdadeira, fica quieto. Ele não para o programa (o <code>Fim</code> apareceu).</p>
+
+<hr>
+
+<h2>4. O depurador do terminal: <code>node inspect</code></h2>
+<p>O <code>console.log</code> tem um limite: você precisa adivinhar <strong>antes</strong> o que mostrar, e rodar de novo a cada palpite. Um <strong>depurador</strong> deixa você <strong>pausar</strong> o programa numa linha e olhar o que quiser, na hora. O Node já vem com um, no terminal: troque <code>node media.js</code> por <code>node inspect media.js</code>.</p>
+
+<p>A Ana abriu o programa da média (o que dá <code>NaN</code>) no depurador. Ela digitou, um por vez: <code>sb(4)</code>, três <code>watch</code>, cinco vezes <code>c</code> e, no fim, <code>.exit</code>. Esta é a sessão inteira:</p>
+
+<pre class="term">$ node inspect media.js
+&lt; Debugger listening on ws://127.0.0.1:9229/5fc94865-d0fa-4048-b3de-d244e611589d
+&lt; For help, see: https://nodejs.org/learn/getting-started/debugging
+&lt;
+connecting to 127.0.0.1:9229 ... ok
+&lt; Debugger attached.
+&lt;
+Break on start in media.js:1
+&gt; 1 const notas = [7, 8, 10, 9];
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+debug&gt; sb(4)
+  1 const notas = [7, 8, 10, 9];
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+  7 console.log(`Média: ${media}`);
+  8
+debug&gt; watch('i')
+debug&gt; watch('notas[i]')
+debug&gt; watch('total')
+debug&gt; c
+break in media.js:4
+Watchers:
+  0: i = 0
+  1: notas[i] = 7
+  2: total = 0
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+debug&gt; c
+break in media.js:4
+Watchers:
+  0: i = 1
+  1: notas[i] = 8
+  2: total = 7
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+debug&gt; c
+break in media.js:4
+Watchers:
+  0: i = 2
+  1: notas[i] = 10
+  2: total = 15
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+debug&gt; c
+break in media.js:4
+Watchers:
+  0: i = 3
+  1: notas[i] = 9
+  2: total = 25
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+debug&gt; c
+break in media.js:4
+Watchers:
+  0: i = 4
+  1: notas[i] = undefined
+  2: total = 34
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt;= notas.length; i++) {
+&gt; 4   total += notas[i];
+  5 }
+  6 const media = total / notas.length;
+debug&gt; .exit
+</pre>
+
+<p>Parte por parte:</p>
+<dl class="anatomy">
+  <dt>&lt; Debugger listening on ws://127.0.0.1:9229/…</dt><dd>"Depurador escutando em…": o Node abriu uma "porta" de depuração no próprio computador (<code>127.0.0.1</code> é o endereço do próprio computador; <code>9229</code> é o número da porta). O código comprido no fim muda a cada vez. As linhas que começam com <code>&lt;</code> são recados do programa que está sendo depurado.</dd>
+  <dt>connecting … ok / Debugger attached.</dt><dd>O depurador do terminal se conectou ao programa ("depurador acoplado").</dd>
+  <dt>Break on start in media.js:1</dt><dd>"Pausa no início, em <code>media.js</code>, linha 1". O programa ainda <strong>não rodou</strong> nenhuma linha: está parado, esperando você. A setinha <code>&gt;</code> marca a próxima linha a rodar.</dd>
+  <dt>debug&gt;</dt><dd>O prompt do depurador: é aqui que você digita os comandos.</dd>
+  <dt>sb(4)</dt><dd><em>set breakpoint</em>, "marcar um <strong>ponto de parada</strong>" na linha 4. Toda vez que o programa chegar nela, ele pausa. O depurador mostra o código com a linha marcada.</dd>
+  <dt>watch('i'), watch('notas[i]'), watch('total')</dt><dd>"Vigiar": a cada pausa, o depurador mostra o valor dessas expressões, na lista <code>Watchers</code> ("vigias"). É como deixar três <code>console.log</code> prontos, sem mexer no arquivo.</dd>
+  <dt>c</dt><dd><em>continue</em>, "continuar": roda até o próximo ponto de parada. Cada <code>c</code> foi uma volta do laço.</dd>
+  <dt>i = 4, notas[i] = undefined</dt><dd>A pegada do bug, de novo: na quinta parada, o <code>i</code> vale 4 e <code>notas[4]</code> é <code>undefined</code>. O programa está <strong>parado antes</strong> de somar; a próxima linha vai estragar o total.</dd>
+  <dt>.exit</dt><dd>Sai do depurador (e encerra o programa).</dd>
+</dl>
+
+<h3>Andando uma linha por vez</h3>
+<p>Em vez de pular de ponto de parada em ponto de parada, dá para andar <strong>linha por linha</strong> com <code>n</code> (<em>next</em>, "próxima"). E o <code>exec</code> calcula qualquer expressão no meio da pausa. Nesta sessão, o programa é o da média já consertado, com uma linha <code>debugger;</code> dentro do laço (ela é explicada na seção 5):</p>
+
+<pre class="file" data-file="comdebugger.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt; notas.length; i++) {
+  debugger;
+  total += notas[i];
+}
+console.log(`Média: ${total / notas.length}`);
+</pre>
+
+<pre class="term">$ node inspect comdebugger.js
+&lt; Debugger listening on ws://127.0.0.1:9229/646b3f7d-6acb-4945-b537-f01d67f85720
+&lt; For help, see: https://nodejs.org/learn/getting-started/debugging
+&lt;
+connecting to 127.0.0.1:9229 ... ok
+&lt; Debugger attached.
+&lt;
+Break on start in comdebugger.js:1
+&gt; 1 const notas = [7, 8, 10, 9];
+  2 let total = 0;
+  3 for (let i = 0; i &lt; notas.length; i++) {
+debug&gt; c
+break in comdebugger.js:4
+  2 let total = 0;
+  3 for (let i = 0; i &lt; notas.length; i++) {
+&gt; 4   debugger;
+  5   total += notas[i];
+  6 }
+debug&gt; watch('total')
+debug&gt; watch('i')
+debug&gt; n
+step in comdebugger.js:5
+Watchers:
+  0: total = 0
+  1: i = 0
+
+  3 for (let i = 0; i &lt; notas.length; i++) {
+  4   debugger;
+&gt; 5   total += notas[i];
+  6 }
+  7 console.log(`Média: ${total / notas.length}`);
+debug&gt; c
+break in comdebugger.js:4
+Watchers:
+  0: total = 7
+  1: i = 1
+
+  2 let total = 0;
+  3 for (let i = 0; i &lt; notas.length; i++) {
+&gt; 4   debugger;
+  5   total += notas[i];
+  6 }
+debug&gt; exec notas[i]
+8
+debug&gt; n
+step in comdebugger.js:5
+Watchers:
+  0: total = 7
+  1: i = 1
+
+  3 for (let i = 0; i &lt; notas.length; i++) {
+  4   debugger;
+&gt; 5   total += notas[i];
+  6 }
+  7 console.log(`Média: ${total / notas.length}`);
+debug&gt; n
+step in comdebugger.js:3
+Watchers:
+  0: total = 15
+  1: i = 1
+
+  1 const notas = [7, 8, 10, 9];
+  2 let total = 0;
+&gt; 3 for (let i = 0; i &lt; notas.length; i++) {
+  4   debugger;
+  5   total += notas[i];
+debug&gt; n
+step in comdebugger.js:3
+Watchers:
+  0: total = 15
+  1: i = 2
+
+  1 const notas = [7, 8, 10, 9];
+  2 let total = 0;
+&gt; 3 for (let i = 0; i &lt; notas.length; i++) {
+  4   debugger;
+  5   total += notas[i];
+debug&gt; .exit
+</pre>
+
+<p>Siga o <code>total</code> e o <code>i</code>: depois do <code>n</code> na linha 5, o <code>total</code> passou de 7 para 15 (somou o 8). O depurador volta à linha 3 duas vezes: uma para o <code>i++</code> (o <code>i</code> vira 2) e outra para testar a condição. É o programa em câmera lenta.</p>
+
+<h3>Os comandos do <code>node inspect</code></h3>
+<p>O comando <code>help</code>, dentro do depurador, lista todos. Os do dia a dia:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>Em inglês</th><th>O que faz</th></tr>
+<tr><td><code>c</code></td><td><em>continue</em></td><td>Roda até o próximo ponto de parada (ou até o fim)</td></tr>
+<tr><td><code>n</code></td><td><em>next</em></td><td>Roda a linha atual e para na próxima (sem entrar nas funções)</td></tr>
+<tr><td><code>s</code></td><td><em>step</em></td><td>Como o <code>n</code>, mas <strong>entra</strong> na função chamada na linha</td></tr>
+<tr><td><code>o</code></td><td><em>out</em></td><td>Termina a função atual e para em quem a chamou</td></tr>
+<tr><td><code>sb(4)</code> · <code>cb('media.js', 4)</code></td><td><em>set / clear breakpoint</em></td><td>Marca · tira um ponto de parada na linha 4</td></tr>
+<tr><td><code>watch('expr')</code> · <code>unwatch('expr')</code></td><td><em>watch</em></td><td>Vigia · deixa de vigiar uma expressão</td></tr>
+<tr><td><code>exec expr</code></td><td><em>execute</em></td><td>Calcula a expressão agora (ex.: <code>exec notas[i]</code>)</td></tr>
+<tr><td><code>repl</code></td><td></td><td>Um modo interativo dentro da pausa, para digitar várias expressões (<kbd>Ctrl</kbd>+<kbd>C</kbd> volta ao <code>debug&gt;</code>)</td></tr>
+<tr><td><code>bt</code></td><td><em>backtrace</em></td><td>Mostra a pilha de chamadas naquele momento</td></tr>
+<tr><td><code>list</code></td><td></td><td>Mostra o código em volta da linha atual</td></tr>
+<tr><td><code>restart</code> · <code>.exit</code></td><td></td><td>Recomeça o programa · sai do depurador</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. A palavra <code>debugger</code></h2>
+<p>Em vez de marcar o ponto de parada com <code>sb(4)</code>, você pode escrevê-lo <strong>no código</strong>: a linha <code>debugger;</code>. Quando há um depurador ligado (o <code>node inspect</code>, o Chrome DevTools…), o programa pausa ali, como você viu na segunda sessão: o primeiro <code>c</code> já parou na linha 4, a do <code>debugger</code>.</p>
+<p>E quando <strong>não</strong> há depurador nenhum? A linha é simplesmente ignorada:</p>
+
+<pre class="term">$ node comdebugger.js
+Média: 8.5
+</pre>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode este programa na caixa. Ele tem um <code>debugger;</code> dentro do laço, mas como nenhum depurador está ligado, roda direto até o fim. O <code>console.table</code> mostra as notas.</p>
+<pre class="script" data-file="main.js">const notas = [7, 8, 10, 9];
+let total = 0;
+for (let i = 0; i &lt; notas.length; i++) {
+  debugger;
+  total += notas[i];
+}
+console.log(`Média: ${total / notas.length}`);
+console.table(notas);
+</pre>
+</div>
+
+<div class="warning">
+<strong>Não esqueça o <code>debugger</code> no código</strong>
+<p>Sem depurador, ele não faz mal; mas, no dia em que alguém abrir o DevTools do navegador numa página com um <code>debugger</code> esquecido, a página vai pausar ali sem ninguém entender por quê. Terminou de depurar, apague.</p>
+</div>
+
+<hr>
+
+<h2>6. O depurador com janelas: <code>node --inspect</code> e o Chrome DevTools</h2>
+<p>O <code>node inspect</code> é todo em texto. O mesmo depurador pode ser usado com <strong>janelas e botões</strong>: as ferramentas de desenvolvedor do Chrome (o DevTools, aquele do <kbd>F12</kbd>, veja <a href="console-navegador.html">O Console do Navegador</a>). Para isso, rode o programa com <code>--inspect-brk</code> ("inspecionar e pausar no começo"):</p>
+
+<pre class="term">$ node --inspect-brk media.js
+Debugger listening on ws://127.0.0.1:9229/a751f70e-bd70-4fcc-bdbc-af70ad3eee40
+For help, see: https://nodejs.org/learn/getting-started/debugging
+</pre>
+
+<p>O programa fica <strong>parado</strong>, esperando um depurador se conectar (o terminal não volta para o <code>$</code>). Com <code>--inspect</code>, sem o <code>-brk</code>, o Node abre a porta mas <strong>não espera</strong>: o programa roda direto, e só pausa num <code>debugger</code> ou num ponto de parada se o DevTools já estiver conectado. No lab, sem ninguém conectado, ele foi até o fim:</p>
+
+<pre class="term">$ node --inspect media.js
+Debugger listening on ws://127.0.0.1:9229/d6a5f11e-ecce-4330-a496-9ec821f77ef6
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Média: NaN
+</pre>
+
+<p>Daqui em diante, a parte do Chrome é <strong>ilustrativa</strong> (não foi colhida no lab). Com o programa parado pelo <code>--inspect-brk</code>:</p>
+<ol class="passo">
+  <li>Abra o Chrome (ou o Edge) e digite na barra de endereços: <code>chrome://inspect</code> (no Edge, <code>edge://inspect</code>).</li>
+  <li>Na seção <strong>Remote Target</strong> ("alvo remoto") aparece o seu programa, com o caminho do arquivo. Clique em <strong>inspect</strong>. (Outro jeito: o link <strong>Open dedicated DevTools for Node</strong>.)</li>
+  <li>Abre uma janela do DevTools, na aba <strong>Sources</strong> ("fontes"), com o seu código e a primeira linha destacada: o programa está pausado ali.</li>
+  <li>Clique no <strong>número de uma linha</strong> para marcar um ponto de parada (aparece uma marquinha azul). Clique de novo para tirar.</li>
+  <li>Use os botões do painel da direita (ou as teclas): <kbd>F8</kbd> continuar (o <code>c</code>), <kbd>F10</kbd> próxima linha (o <code>n</code>), <kbd>F11</kbd> entrar na função (o <code>s</code>).</li>
+  <li>No painel <strong>Scope</strong> ("escopo") aparecem <strong>todas</strong> as variáveis e seus valores, sem precisar de <code>watch</code>. Passar o mouse sobre uma variável no código também mostra o valor.</li>
+  <li>A aba <strong>Console</strong>, enquanto o programa está pausado, calcula expressões com as variáveis daquele momento (o <code>exec</code>).</li>
+</ol>
+
+<p>É o mesmo depurador do navegador. Numa página web (as aulas de <a href="dom.html">DOM</a>), você nem precisa do <code>--inspect</code>: aperte <kbd>F12</kbd>, vá à aba Sources, abra o seu <code>script.js</code> e marque os pontos de parada; um <code>debugger;</code> no script também pausa a página quando o DevTools está aberto. Editores como o VS Code têm o mesmo depurador embutido (menu <strong>Run and Debug</strong>, "executar e depurar").</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual ferramenta usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Ferramenta</th></tr>
+<tr><td>Deu mensagem de erro</td><td>Leia a mensagem primeiro (<a href="erros.html">Lendo uma Mensagem de Erro</a>): ela já diz a linha</td></tr>
+<tr><td>Resultado errado, programa pequeno, você desconfia de um ponto</td><td><code>console.log</code> com rótulo (ou <code>{ variavel }</code>)</td></tr>
+<tr><td>Lista de objetos para conferir</td><td><code>console.table</code></td></tr>
+<tr><td>Objeto grande, aparece <code>[Object]</code></td><td><code>console.dir(obj, { depth: null })</code> ou <code>JSON.stringify(obj, null, 2)</code></td></tr>
+<tr><td>"De onde veio essa chamada?"</td><td><code>console.trace</code></td></tr>
+<tr><td>"Quantas vezes passou aqui?"</td><td><code>console.count</code></td></tr>
+<tr><td>Não sabe nem onde começar a olhar; laço longo; muitas variáveis</td><td>Depurador: <code>node inspect</code> ou <code>--inspect</code> + DevTools, com pontos de parada</td></tr>
+<tr><td>Página web</td><td><kbd>F12</kbd>: Console e Sources</td></tr>
+</table>
+</div>
+
+<h3>Um método para caçar qualquer bug</h3>
+<ol class="passo">
+  <li><strong>Reproduza.</strong> Ache um jeito de fazer o erro acontecer sempre (os mesmos dados, os mesmos passos).</li>
+  <li><strong>Diga o que esperava</strong> e o que aconteceu. "Esperava 8.5, veio NaN."</li>
+  <li><strong>Divida ao meio.</strong> Ponha um <code>console.log</code> (ou um ponto de parada) no meio do caminho. O valor está certo ali? Então o bug está depois; senão, antes. Repita na metade que sobrou.</li>
+  <li><strong>Desconfie das certezas.</strong> "Essa variável com certeza é número": confira com <code>typeof</code>.</li>
+  <li><strong>Mude uma coisa por vez</strong> e rode de novo.</li>
+  <li><strong>Explique em voz alta.</strong> Contar o programa linha por linha para alguém (ou para um patinho de borracha na mesa, o famoso "método do patinho") faz você perceber o que pulou.</li>
+</ol>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>console.log</code> sem rótulo que confunde</strong>
+<p>Com <code>console.log(total)</code> em três lugares, a saída é uma coluna de números sem nome, e você acaba olhando o número errado. Pior: o <code>console.log(a, b, c)</code> esconde os tipos (<code>4.5 3 10</code>, na seção 2). Use rótulo ou <code>{ }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O objeto aparece "cortado", com <code>[Object]</code></strong>
+<p>Não é que a informação sumiu: o <code>console.log</code> do Node só mostra dois níveis de profundidade (seção 3). Use <code>console.dir(obj, { depth: null })</code>. Com arrays, algo parecido: o Node mostra só os 100 primeiros itens e termina com um aviso como <code>... 50 more items</code> ("mais 50 itens").</p>
+</div>
+
+<div class="cenario">
+<strong><code>debug&gt;</code> não reconhece o nome da variável</strong>
+<p>No <code>debug&gt;</code>, só os comandos do depurador funcionam direto. Para calcular uma expressão, use <code>exec</code> na frente (<code>exec total</code>) ou entre no <code>repl</code>. E só existem as variáveis que já foram criadas até a linha onde o programa está parado: no <code>Break on start</code>, nenhuma linha rodou ainda.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa "travou" depois do <code>--inspect-brk</code></strong>
+<p>Ele não travou: está esperando o depurador (é o que o <code>-brk</code> pede). Conecte o Chrome em <code>chrome://inspect</code>, ou aperte <kbd>Ctrl</kbd>+<kbd>C</kbd> e rode sem a opção.</p>
+</div>
+
+<div class="cenario">
+<strong>Os <code>console.log</code> de depuração ficaram no programa</strong>
+<p>Linhas como <code>volta 0 nota: 7 total antes: 0</code> no meio da saída de um programa "pronto" confundem quem usa. Antes de dar o trabalho por terminado, procure e apague os <code>console.log</code> de depuração e os <code>debugger</code>. (Se o aviso é útil de verdade, ele vira um <code>console.error</code> com uma mensagem clara.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>console.log("rótulo:", valor)</code></td><td>Mostra o valor com um nome na frente</td></tr>
+<tr><td><code>console.log({ a, b })</code></td><td>Mostra nome e valor de cada variável (textos entre aspas)</td></tr>
+<tr><td><code>console.table(lista)</code></td><td>Lista de objetos em forma de tabela</td></tr>
+<tr><td><code>console.dir(obj, { depth: null })</code></td><td>Objeto inteiro, sem cortar em <code>[Object]</code></td></tr>
+<tr><td><code>console.trace("msg")</code></td><td>Mensagem + pilha de chamadas, sem parar</td></tr>
+<tr><td><code>console.count("rótulo")</code></td><td>Conta as passagens: <code>rótulo: 1</code>, <code>rótulo: 2</code>…</td></tr>
+<tr><td><code>console.assert(cond, "msg")</code></td><td>Avisa (<code>Assertion failed: msg</code>) só se a condição for falsa</td></tr>
+<tr><td><code>node inspect arquivo.js</code></td><td>Roda no depurador do terminal, pausado na linha 1</td></tr>
+<tr><td><code>node --inspect-brk arquivo.js</code></td><td>Abre a porta de depuração e espera o Chrome DevTools (<code>chrome://inspect</code>)</td></tr>
+<tr><td><code>node --inspect arquivo.js</code></td><td>Abre a porta, mas roda sem esperar</td></tr>
+<tr><td><code>debugger;</code></td><td>Ponto de parada no código (só age com um depurador ligado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar o nome e o valor das variáveis <code>preco</code> e <code>total</code> de uma vez:</p>
+<div class="ex-code">console.log(<input data-answer="{ preco, total }|{preco, total}|{ preco, total}|{preco, total }" aria-label="objeto com as duas variáveis">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual comando?</h3>
+<p>No <code>debug&gt;</code> do <code>node inspect</code>, qual comando de uma letra roda até o próximo ponto de parada?</p>
+<div class="ex-code"><input data-answer="c" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Um laço <code>for (let i = 0; i &lt;= lista.length; i++)</code> soma os itens e o resultado sai <code>NaN</code>. Qual é o bug mais provável?</p>
+<label><input type="radio" name="q3"> A lista está vazia</label>
+<label><input type="radio" name="q3"> Faltou <code>const</code></label>
+<label><input type="radio" name="q3"> O <code>&lt;=</code> faz uma volta a mais, e o último item lido é <code>undefined</code></label>
+<label><input type="radio" name="q3"> O <code>i++</code> deveria ser <code>i--</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que acontece com a linha <code>debugger;</code> quando você roda <code>node programa.js</code>, sem depurador?</p>
+<label><input type="radio" name="q4"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> Nada: ela é ignorada</label>
+<label><input type="radio" name="q4"> O programa pausa e espera</label>
+<label><input type="radio" name="q4"> Abre o Chrome sozinho</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O <code>console.log</code> mostrou <code>cidade: [Object]</code>. O que fazer para ver o conteúdo?</p>
+<label><input type="radio" name="q5"> Nada: o objeto está vazio</label>
+<label><input type="radio" name="q5"> Usar <code>console.count</code></label>
+<label><input type="radio" name="q5"> Rodar com <code>node inspect</code>, obrigatoriamente</label>
+<label><input type="radio" name="q5"> Usar <code>console.dir(obj, { depth: null })</code> ou <code>JSON.stringify(obj, null, 2)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual é a diferença entre <code>node --inspect-brk</code> e <code>node --inspect</code>?</p>
+<label><input type="radio" name="q6"> O <code>-brk</code> pausa logo no começo e espera o depurador; o outro roda direto</label>
+<label><input type="radio" name="q6"> O <code>-brk</code> desliga o depurador</label>
+<label><input type="radio" name="q6"> Nenhuma</label>
+<label><input type="radio" name="q6"> O <code>-brk</code> só funciona no navegador</label>
+</div>
+
+<h3>Missão final: o desconto que não desconta</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 90;;semerro;;src:\+=">
+<p class="try-task"><strong>Missão:</strong> a compra de R$ 30 + R$ 50 + R$ 20, com 10% de desconto, deveria dar <code>Total: R$ 90</code>, mas o programa mostra <code>Total: R$ 18</code>, sem erro nenhum. Ponha um <code>console.log({ preco, total })</code> dentro do laço, veja o que acontece com o <code>total</code> a cada volta e conserte a linha que soma.</p>
+<pre class="script" data-file="main.js">const precos = [30, 50, 20];
+let total = 0;
+for (const preco of precos) {
+  total = preco;
+}
+const comDesconto = total * 0.9;
+console.log(`Total: R$ ${comDesconto}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [30, 50, 20];
+let total = 0;
+for (const preco of precos) {
+  total += preco;
+}
+const comDesconto = total * 0.9;
+console.log(`Total: R$ ${comDesconto}`);
+</pre>
+</div>
+
+<p>No lab, o programa original mostrou <code>Total: R$ 18</code> (só o último preço, 20, com desconto) e o consertado, <code>Total: R$ 90</code>. O <code>total = preco</code> <strong>trocava</strong> o total a cada volta, em vez de <strong>somar</strong> (<code>total += preco</code>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Depurar é achar erros <strong>silenciosos</strong> (de lógica): o programa roda, mas o resultado está errado.</li>
+  <li><code>console.log</code> estratégico: com rótulo ou <code>{ }</code>, dentro dos laços, antes e depois da linha suspeita; apague no fim.</li>
+  <li><code>console.table</code>, <code>console.dir(…, { depth: null })</code>, <code>console.trace</code>, <code>console.count</code> e <code>console.assert</code> ajudam em casos específicos.</li>
+  <li><code>node inspect arquivo.js</code> abre o depurador do terminal: <code>sb(linha)</code>, <code>c</code>, <code>n</code>, <code>s</code>, <code>watch('x')</code>, <code>exec x</code>, <code>.exit</code>.</li>
+  <li><code>debugger;</code> é um ponto de parada no código; sem depurador, é ignorado.</li>
+  <li><code>node --inspect-brk</code> + <code>chrome://inspect</code> dá o mesmo depurador com janelas, como o <kbd>F12</kbd> do navegador.</li>
+  <li>Método: reproduzir, comparar o esperado com o obtido, dividir ao meio, conferir os tipos, mudar uma coisa por vez.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
