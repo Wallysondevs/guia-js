@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Campos Privados (#) — o que só a classe pode mexer | Guia JavaScript</title>
+<meta name="description" content="Campos e métodos privados (#) no JavaScript para quem está começando: #saldo num cofrinho, por que esconder dados, ler com get, métodos privados (#validar), o teste #campo in obj, o jeito antigo com _sublinhado, a alternativa com closure e os erros reais do Node.js 24 (Private field must be declared in an enclosing class).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Campos Privados</span> (#)</h1>
+
+<p class="intro">Até agora, qualquer parte do programa podia mexer em qualquer propriedade de um objeto: ler, trocar, apagar. Para a maioria das coisas, tudo bem. Mas pense no <strong>saldo</strong> de um cofrinho: ele só deveria mudar por um <strong>depósito</strong> ou um <strong>saque</strong>, que conferem se o valor faz sentido. Se qualquer linha puder escrever <code>cofre.saldo = 1000000</code>, as conferências não servem para nada. Os <strong>campos privados</strong>, escritos com <code>#</code> na frente do nome, são propriedades que <strong>só o código de dentro da classe</strong> consegue ver e mudar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que esconder dados de um objeto (e o problema de deixar tudo aberto).</li>
+  <li>Como criar e usar um campo privado: <code>#saldo = 0;</code> e <code>this.#saldo</code>.</li>
+  <li>Como deixar o mundo <strong>ler</strong> sem poder <strong>mudar</strong>, com <code>get</code>.</li>
+  <li>Métodos privados (<code>#validar()</code>), o teste <code>#campo in obj</code>, e o que acontece na herança.</li>
+  <li>O jeito antigo (<code>_saldo</code>, com sublinhado) e a alternativa com closure.</li>
+  <li>O erro que você mais vai ver: <code>Private field '#saldo' must be declared in an enclosing class</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Os campos privados chegaram ao JavaScript no <span class="versao">ES2022</span>; qualquer Node atual e qualquer navegador atual os entendem.</p>
+
+<hr>
+
+<h2>A ideia: o cofrinho com cadeado</h2>
+<p>Um cofrinho de porquinho tem uma fenda: você <strong>coloca</strong> moedas por ela, mas não consegue enfiar a mão e tirar (nem trocar as moedas por pedrinhas). O dinheiro está lá dentro, guardado; o único jeito de mexer é pelas aberturas que o fabricante fez. Um objeto com campos privados é igual:</p>
+<ul>
+  <li>o <strong>campo privado</strong> é o dinheiro lá dentro: existe, ocupa espaço, mas ninguém de fora encosta nele;</li>
+  <li>os <strong>métodos</strong> (<code>depositar</code>, <code>sacar</code>) são as aberturas: fazem as conferências e só então mexem no dinheiro.</li>
+</ul>
+<p>Os programadores chamam isso de <strong>encapsulamento</strong> ("pôr numa cápsula"): esconder os detalhes e mostrar só o que é seguro usar.</p>
+
+<hr>
+
+<h2>1. O problema: tudo aberto</h2>
+<p>Primeiro, o cofrinho do jeito que você já sabe escrever, com o saldo numa propriedade comum:</p>
+
+<pre class="file" data-file="publico.js">class Cofrinho {
+  constructor() {
+    this.saldo = 0;
+  }
+
+  depositar(valor) {
+    if (valor &lt;= 0) {
+      console.log("Depósito inválido!");
+      return;
+    }
+    this.saldo = this.saldo + valor;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+cofre.depositar(-20);
+cofre.saldo = 1000000;
+console.log(cofre.saldo);
+</pre>
+
+<pre class="term">$ node publico.js
+Depósito inválido!
+1000000
+</pre>
+
+<p>O <code>depositar</code> fez o trabalho dele direitinho: recusou o depósito de -20. Mas a linha <code>cofre.saldo = 1000000</code> passou por cima de tudo: o saldo virou um milhão sem depósito nenhum. Num programa pequeno, é você mesmo quem escreveria essa linha sem querer (um erro de digitação, um <code>=</code> no lugar de <code>===</code>); num programa grande, é outra pessoa da equipe que nem sabia que não podia.</p>
+
+<hr>
+
+<h2>2. O campo privado: <code>#saldo</code></h2>
+
+<pre class="file" data-file="privado.js">class Cofrinho {
+  #saldo = 0;
+
+  depositar(valor) {
+    if (valor &lt;= 0) {
+      console.log("Depósito inválido!");
+      return;
+    }
+    this.#saldo = this.#saldo + valor;
+  }
+
+  verSaldo() {
+    return this.#saldo;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+cofre.depositar(-20);
+cofre.saldo = 1000000;
+console.log(cofre.verSaldo());
+console.log(cofre.saldo);
+console.log(cofre);
+console.log(Object.keys(cofre));
+console.log(JSON.stringify(cofre));
+console.log(cofre["#saldo"]);
+</pre>
+
+<dl class="anatomy">
+  <dt>#saldo = 0;</dt><dd>A <strong>declaração</strong> do campo privado, no corpo da classe, fora de qualquer método. O <code>#</code> (cerquilha, "jogo da velha") <strong>faz parte do nome</strong>: o campo se chama <code>#saldo</code>. Cada cofrinho criado ganha o seu, começando em 0. Declarar é <strong>obrigatório</strong>: sem esta linha, nenhum <code>this.#saldo</code> funciona.</dd>
+  <dt>this.#saldo = this.#saldo + valor;</dt><dd>Dentro da classe, o campo se usa como qualquer outro, só que sempre com o <code>#</code>.</dd>
+  <dt>verSaldo()</dt><dd>Uma "abertura" só para <strong>olhar</strong>: devolve o valor, mas não deixa trocar.</dd>
+  <dt>cofre.saldo = 1000000;</dt><dd>Não deu erro, mas também não mexeu no <code>#saldo</code>: criou uma propriedade <strong>pública</strong> nova, chamada <code>saldo</code> (sem <code>#</code>), que não tem nada a ver com o dinheiro do cofre.</dd>
+</dl>
+
+<pre class="term">$ node privado.js
+Depósito inválido!
+50
+1000000
+Cofrinho { saldo: 1000000 }
+[ 'saldo' ]
+{"saldo":1000000}
+undefined
+</pre>
+
+<p>Leia a saída de cima para baixo:</p>
+<ul>
+  <li><code>50</code>: o saldo de verdade, pelo <code>verSaldo()</code>. O "um milhão" não chegou nele.</li>
+  <li><code>1000000</code>: a propriedade pública que a linha <code>cofre.saldo = …</code> criou. É uma etiqueta colada do lado de fora do cofre; o dinheiro de dentro continua 50.</li>
+  <li><code>Cofrinho { saldo: 1000000 }</code>: o <code>console.log</code> do Node <strong>não mostra</strong> o <code>#saldo</code>, só o que é público.</li>
+  <li><code>[ 'saldo' ]</code> e <code>{"saldo":1000000}</code>: o <code>Object.keys</code> e o <code>JSON.stringify</code> (aula <a href="json.html">JSON</a>) também não enxergam campos privados.</li>
+  <li><code>undefined</code>: <code>cofre["#saldo"]</code>, com o nome entre aspas, procura uma propriedade comum que se chamaria <code>"#saldo"</code>, e ela não existe. Não há truque com colchetes para chegar no privado.</li>
+</ul>
+
+<div class="tip">
+<strong>O <code>#</code> faz parte do nome</strong>
+<p><code>this.#saldo</code> e <code>this.saldo</code> são <strong>duas coisas diferentes</strong>, que podem existir ao mesmo tempo no mesmo objeto (como na saída acima). Esquecer o <code>#</code> numa linha dentro da classe não dá erro: só cria uma propriedade pública por engano.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Saldo: R$ 50;;src:#saldo">
+<p class="try-task"><strong>Missão:</strong> rode e veja o saldo virar um milhão pela linha "malandra" do fim. Depois proteja o cofrinho: declare <code>#saldo = 0;</code> no corpo da classe, apague o <code>constructor</code> e troque todo <code>this.saldo</code> por <code>this.#saldo</code>. Não apague a linha malandra: com o campo privado, ela deixa de fazer efeito e a saída vira <code>Saldo: R$ 50</code>.</p>
+<pre class="script" data-file="main.js">class Cofrinho {
+  constructor() {
+    this.saldo = 0;
+  }
+
+  depositar(valor) {
+    if (valor &gt; 0) {
+      this.saldo = this.saldo + valor;
+    }
+  }
+
+  verSaldo() {
+    return this.saldo;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+cofre.saldo = 1000000; // a linha malandra
+console.log(`Saldo: R$ ${cofre.verSaldo()}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Cofrinho {
+  #saldo = 0;
+
+  depositar(valor) {
+    if (valor &gt; 0) {
+      this.#saldo = this.#saldo + valor;
+    }
+  }
+
+  verSaldo() {
+    return this.#saldo;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+cofre.saldo = 1000000; // a linha malandra
+console.log(`Saldo: R$ ${cofre.verSaldo()}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. E se alguém tentar ler de fora?</h2>
+<p>Do lado de fora da classe, escrever <code>cofre.#saldo</code> (com o <code>#</code>) não é nem permitido:</p>
+
+<pre class="file" data-file="fora.js">class Cofrinho {
+  #saldo = 0;
+
+  depositar(valor) {
+    this.#saldo = this.#saldo + valor;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+console.log(cofre.#saldo);
+</pre>
+
+<pre class="term">$ node fora.js
+/home/ana/fora.js:11
+console.log(cofre.#saldo);
+                 ^
+
+SyntaxError: Private field '#saldo' must be declared in an enclosing class
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>/home/ana/fora.js:11</dt><dd>A linha 11, a do <code>console.log(cofre.#saldo)</code>.</dd>
+  <dt>SyntaxError</dt><dd>Um erro de <strong>escrita</strong>, não de execução. O Node recusou o arquivo inteiro antes de rodar a primeira linha: nem o <code>depositar(50)</code> chegou a acontecer.</dd>
+  <dt>Private field '#saldo' must be declared in an enclosing class</dt><dd>"O campo privado <code>#saldo</code> precisa estar declarado numa classe <strong>em volta</strong> (daqui)". A linha 11 não está dentro de classe nenhuma, então para ela não existe <code>#saldo</code>.</dd>
+  <dt>at wrapSafe (node:internal…)</dt><dd>A pilha mostra só o Node lendo o arquivo (<code>wrapSafe</code> é a parte que confere a escrita): nada do seu código chegou a rodar.</dd>
+</dl>
+
+<p>É a proteção mais forte possível: o JavaScript nem deixa <strong>escrever</strong> um programa que lê o campo de fora. Com um método privado (seção 5), a mensagem é a mesma: <code>cofre.#registrar("oi")</code> fora da classe dá <code>Private field '#registrar' must be declared in an enclosing class</code>.</p>
+
+<hr>
+
+<h2>4. Ler sem poder mudar: <code>get</code></h2>
+<p>O <code>verSaldo()</code> funciona, mas na aula <a href="getters-setters.html">get e set</a> você viu um jeito mais elegante: um <strong>getter</strong>. Com um <code>get saldo()</code> e <strong>nenhum</strong> <code>set</code>, quem está de fora lê <code>cofre.saldo</code> como uma propriedade comum, mas não consegue trocar:</p>
+
+<pre class="file" data-file="getter.js">class Cofrinho {
+  #saldo = 0;
+  #historico = [];
+
+  constructor(dono) {
+    this.dono = dono;
+  }
+
+  get saldo() {
+    return this.#saldo;
+  }
+
+  depositar(valor) {
+    if (!this.#valorValido(valor)) {
+      console.log(`Depósito de ${valor} recusado`);
+      return;
+    }
+    this.#saldo = this.#saldo + valor;
+    this.#registrar(`+${valor}`);
+  }
+
+  sacar(valor) {
+    if (!this.#valorValido(valor) || valor &gt; this.#saldo) {
+      console.log(`Saque de ${valor} recusado`);
+      return;
+    }
+    this.#saldo = this.#saldo - valor;
+    this.#registrar(`-${valor}`);
+  }
+
+  extrato() {
+    return `${this.dono}: ${this.#historico.join(" ")} = ${this.#saldo}`;
+  }
+
+  #valorValido(valor) {
+    return typeof valor === "number" &amp;&amp; valor &gt; 0;
+  }
+
+  #registrar(texto) {
+    this.#historico.push(texto);
+  }
+}
+
+const cofre = new Cofrinho("Ana");
+cofre.depositar(50);
+cofre.depositar(30);
+cofre.sacar(100);
+cofre.sacar(20);
+cofre.depositar("10");
+console.log(cofre.saldo);
+console.log(cofre.extrato());
+cofre.saldo = 999;
+console.log(cofre.saldo);
+console.log(cofre);
+</pre>
+
+<pre class="term">$ node getter.js
+Saque de 100 recusado
+Depósito de 10 recusado
+60
+Ana: +50 +30 -20 = 60
+60
+Cofrinho { dono: 'Ana' }
+</pre>
+
+<ul>
+  <li>O saque de 100 foi recusado (só havia 80), e o depósito de <code>"10"</code> também: entre aspas, é um <strong>texto</strong>, não um número (o <code>typeof</code> é da aula <a href="typeof.html">typeof</a>).</li>
+  <li><code>cofre.saldo</code>, sem parênteses, chamou o <code>get saldo()</code> e mostrou 60.</li>
+  <li><code>cofre.saldo = 999</code> foi <strong>ignorado em silêncio</strong>: o saldo continuou 60. Não existe <code>set saldo</code>, então não há como trocar. (No <a href="https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Strict_mode">modo estrito</a>, que é o padrão dentro de módulos <code>import</code>/<code>export</code>, essa linha dá erro: no lab, com <code>"use strict";</code> no topo do arquivo, saiu <code>TypeError: Cannot set property saldo of #&lt;Cofrinho&gt; which has only a getter</code>, "não dá para mudar a propriedade <code>saldo</code>, que só tem um getter".)</li>
+  <li>O <code>console.log(cofre)</code> só mostra o <code>dono</code>, a única propriedade pública. Os dois campos privados e os dois métodos privados ficam escondidos.</li>
+</ul>
+
+<hr>
+
+<h2>5. Métodos privados</h2>
+<p>No cofrinho acima, repare em <code>#valorValido(valor)</code> e <code>#registrar(texto)</code>: são <strong>métodos privados</strong>. Eles se escrevem como os normais, com <code>#</code> no nome, e se chamam com <code>this.#valorValido(…)</code>. Servem para os <strong>ajudantes internos</strong>: pedaços de código que os métodos públicos usam, mas que não fazem sentido para quem está de fora. Ninguém precisa chamar <code>cofre.#registrar("+1000")</code> para inventar uma linha no extrato; deixar privado garante que ninguém <strong>consegue</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Membro do <code>Cofrinho</code></th><th>Quem pode usar</th><th>Por quê</th></tr>
+<tr><td><code>dono</code></td><td>Todo mundo</td><td>Não tem perigo: é só um nome</td></tr>
+<tr><td><code>saldo</code> (o <code>get</code>)</td><td>Todo mundo, só para ler</td><td>Mostra o saldo sem deixar mudar</td></tr>
+<tr><td><code>depositar</code>, <code>sacar</code>, <code>extrato</code></td><td>Todo mundo</td><td>São as "aberturas" do cofre, com as conferências</td></tr>
+<tr><td><code>#saldo</code>, <code>#historico</code></td><td>Só a classe</td><td>Só mudam por depósito ou saque</td></tr>
+<tr><td><code>#valorValido</code>, <code>#registrar</code></td><td>Só a classe</td><td>Ajudantes internos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. Privado é da classe, não da família: a herança</h2>
+<p>Um campo privado é privado até para as <strong>classes filhas</strong> (aula <a href="heranca.html">Herança</a>). A Ana tentou criar um cofrinho que rende juros mexendo direto no <code>#saldo</code> da mãe:</p>
+
+<pre class="file" data-file="filha.js">class Cofrinho {
+  #saldo = 0;
+
+  depositar(valor) {
+    this.#saldo = this.#saldo + valor;
+  }
+}
+
+class CofrinhoComJuros extends Cofrinho {
+  renderJuros() {
+    this.#saldo = this.#saldo * 1.01;
+  }
+}
+</pre>
+
+<pre class="term">$ node filha.js
+/home/ana/filha.js:11
+    this.#saldo = this.#saldo * 1.01;
+        ^
+
+SyntaxError: Private field '#saldo' must be declared in an enclosing class
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>A mesma mensagem: o <code>#saldo</code> foi declarado na classe <code>Cofrinho</code>, e a <code>CofrinhoComJuros</code> é <strong>outra</strong> classe. A filha herda os métodos públicos, e é por eles que ela deve passar, como todo mundo:</p>
+
+<pre class="file" data-file="filha-ok.js">class Cofrinho {
+  #saldo = 0;
+
+  get saldo() {
+    return this.#saldo;
+  }
+
+  depositar(valor) {
+    this.#saldo = this.#saldo + valor;
+  }
+}
+
+class CofrinhoComJuros extends Cofrinho {
+  renderJuros() {
+    this.depositar(this.saldo * 0.01);
+  }
+}
+
+const cofre = new CofrinhoComJuros();
+cofre.depositar(200);
+cofre.renderJuros();
+console.log(cofre.saldo);
+</pre>
+
+<pre class="term">$ node filha-ok.js
+202
+</pre>
+
+<p>Os juros de 1% sobre 200 entraram como um depósito de 2, pelo método público. Assim, se um dia o <code>depositar</code> ganhar uma conferência nova, os juros também passam por ela.</p>
+
+<h3>"Este objeto tem o campo privado?" — <code>#campo in obj</code></h3>
+<p>Dentro da classe, dá para perguntar se um objeto qualquer tem o campo privado dela, com <code>#saldo in obj</code>. É um jeito seguro de saber se ele é mesmo um <code>Cofrinho</code> criado por esta classe:</p>
+
+<pre class="file" data-file="in.js">class Cofrinho {
+  #saldo = 0;
+
+  static ehCofrinho(obj) {
+    return #saldo in obj;
+  }
+}
+
+console.log(Cofrinho.ehCofrinho(new Cofrinho()));
+console.log(Cofrinho.ehCofrinho({ saldo: 0 }));
+</pre>
+
+<pre class="term">$ node in.js
+true
+false
+</pre>
+
+<p>O objeto <code>{ saldo: 0 }</code> tem um <code>saldo</code> comum, mas não o <code>#saldo</code> da classe: <code>false</code>. (O <code>static</code> é o da aula <a href="static.html">Membros static</a>; campos e métodos static também podem ser privados: <code>static #contador = 0;</code>.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<h3>O jeito antigo: o sublinhado <code>_saldo</code></h3>
+<p>Antes de 2022, o JavaScript não tinha campos privados de verdade. Os programadores combinaram um <strong>aviso</strong>: um nome começando com sublinhado (<code>_saldo</code>) quer dizer "isto é interno, não mexa". Mas é só um combinado:</p>
+
+<pre class="file" data-file="sublinhado.js">class Cofrinho {
+  constructor() {
+    this._saldo = 0;
+  }
+
+  depositar(valor) {
+    this._saldo = this._saldo + valor;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+cofre._saldo = 1000000;
+console.log(cofre);
+</pre>
+
+<pre class="term">$ node sublinhado.js
+Cofrinho { _saldo: 1000000 }
+</pre>
+
+<p>O JavaScript deixou mudar sem reclamar: o <code>_</code> é uma letra como outra qualquer. Você vai ver muito <code>_algo</code> em código antigo e em bibliotecas. Em código novo, use <code>#</code>.</p>
+
+<h3>Sem classe: a variável presa numa closure</h3>
+<p>Também dá para esconder um valor sem classe nenhuma, com uma função que cria o objeto e uma variável que só as funções de dentro enxergam (aula <a href="closures.html">Closures</a>):</p>
+
+<pre class="file" data-file="closure.js">function criarCofrinho() {
+  let saldo = 0;
+  return {
+    depositar(valor) {
+      saldo = saldo + valor;
+    },
+    verSaldo() {
+      return saldo;
+    },
+  };
+}
+
+const cofre = criarCofrinho();
+cofre.depositar(50);
+console.log(cofre.verSaldo());
+console.log(cofre.saldo);
+</pre>
+
+<pre class="term">$ node closure.js
+50
+undefined
+</pre>
+
+<p>O <code>saldo</code> é uma variável da função <code>criarCofrinho</code>, não uma propriedade do objeto: de fora, <code>cofre.saldo</code> não existe. Era o jeito "privado de verdade" antes do <code>#</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Protege de verdade?</th><th>Quando usar</th></tr>
+<tr><td><code>#saldo</code> numa classe</td><td>Sim: de fora nem se consegue escrever o nome</td><td>Código novo com classes (o padrão)</td></tr>
+<tr><td><code>_saldo</code></td><td>Não: é só um aviso para os humanos</td><td>Reconhecer em código antigo; não escreva assim</td></tr>
+<tr><td>Variável numa closure</td><td>Sim</td><td>Quando o resto do código já usa funções em vez de classes</td></tr>
+<tr><td>Propriedade comum (<code>this.saldo</code>)</td><td>Não</td><td>Dados que podem mudar livremente (nome, cor, apelido)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o campo sem declarar no corpo da classe</strong>
+<p>Quem está acostumado a criar propriedades no construtor tenta fazer o mesmo com o privado:</p>
+<pre class="file" data-file="sem-declarar.js">class Cofrinho {
+  constructor() {
+    this.#saldo = 0;
+  }
+}
+
+const cofre = new Cofrinho();
+</pre>
+<pre class="term">$ node sem-declarar.js
+/home/ana/sem-declarar.js:3
+    this.#saldo = 0;
+        ^
+
+SyntaxError: Private field '#saldo' must be declared in an enclosing class
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Desta vez a linha <strong>está</strong> dentro da classe, e mesmo assim deu erro. Uma propriedade comum nasce na hora em que você escreve <code>this.saldo = 0</code>; um campo privado, não: ele precisa ser <strong>declarado</strong> antes, no corpo da classe. <strong>Como consertar:</strong> acrescente <code>#saldo;</code> (ou <code>#saldo = 0;</code>) logo depois do <code>class Cofrinho {</code>. Se o valor inicial vem do construtor, declare sem valor e dê o valor lá, como na missão final.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou ler ou chamar o privado de fora</strong>
+<p>É o caso da seção 3: <code>cofre.#saldo</code> ou <code>cofre.#registrar()</code> fora da classe dão o mesmo <code>SyntaxError: Private field '…' must be declared in an enclosing class</code>, e o programa inteiro não roda. <strong>Como consertar:</strong> crie um método público ou um <code>get</code> que devolva o que o resto do programa precisa saber.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>#</code> numa linha</strong>
+<p>Este não dá erro, e por isso é o pior:</p>
+<pre class="file" data-file="esqueceu.js">class Cofrinho {
+  #saldo = 0;
+
+  depositar(valor) {
+    this.saldo = this.saldo + valor;
+  }
+
+  verSaldo() {
+    return this.#saldo;
+  }
+}
+
+const cofre = new Cofrinho();
+cofre.depositar(50);
+console.log(cofre);
+console.log(cofre.verSaldo());
+</pre>
+<pre class="term">$ node esqueceu.js
+Cofrinho { saldo: NaN }
+0
+</pre>
+<p>No <code>depositar</code>, faltou o <code>#</code>. O JavaScript entendeu que era uma propriedade <strong>pública</strong> chamada <code>saldo</code>, diferente do <code>#saldo</code>: ela não existia (valia <code>undefined</code>), <code>undefined + 50</code> deu <code>NaN</code> (aula <a href="numeros-especiais.html">NaN, Infinity…</a>), e o saldo privado continuou 0. <strong>Como consertar:</strong> procure no código as linhas com o nome do campo e confira se todas têm o <code>#</code>. Se o <code>console.log(objeto)</code> mostrar uma propriedade que você queria privada, faltou um <code>#</code> em algum lugar.</p>
+</div>
+
+<div class="cenario">
+<strong>A classe filha tentou usar o privado da mãe</strong>
+<p>Também é o mesmo <code>SyntaxError</code>, apontando a linha da filha (seção 6). <strong>Como consertar:</strong> use os métodos públicos (ou um <code>get</code>) que a mãe oferece.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>#campo = valor;</code> ou <code>#campo;</code></td><td>Declara um campo privado no corpo da classe (obrigatório)</td></tr>
+<tr><td><code>this.#campo</code></td><td>Lê ou muda o campo, só dentro da classe</td></tr>
+<tr><td><code>#metodo() { … }</code> e <code>this.#metodo()</code></td><td>Método privado: um ajudante interno</td></tr>
+<tr><td><code>get campo() { return this.#campo; }</code></td><td>Deixa ler de fora, sem deixar mudar</td></tr>
+<tr><td><code>#campo in obj</code></td><td>Dentro da classe: <code>true</code> se o objeto tem esse campo privado</td></tr>
+<tr><td><code>static #campo</code></td><td>Campo privado da própria classe</td></tr>
+<tr><td><code>console.log</code>, <code>Object.keys</code>, <code>JSON.stringify</code></td><td>Não mostram os campos privados</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Private field '#x' must be declared in an enclosing class</code></td><td>Usou <code>#x</code> fora da classe, numa classe filha, ou esqueceu de declarar <code>#x;</code> no corpo da classe</td></tr>
+<tr><td>Uma propriedade sem <code>#</code> aparece no <code>console.log</code>, ou o saldo virou <code>NaN</code></td><td>Faltou o <code>#</code> numa linha dentro da classe</td></tr>
+<tr><td><code>obj.campo = …</code> não faz efeito</td><td>Só existe um <code>get</code> (sem <code>set</code>): é de propósito</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o campo <code>pontos</code> ser privado e começar em 0:</p>
+<div class="ex-code">class Jogador {<br>&nbsp;&nbsp;<input data-answer="#pontos" aria-label="declaração do campo"> = 0;<br>&nbsp;&nbsp;marcar() {<br>&nbsp;&nbsp;&nbsp;&nbsp;this.<input data-answer="#pontos" aria-label="o campo de novo"> = this.#pontos + 1;<br>&nbsp;&nbsp;}<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com a classe <code>Cofrinho</code> da seção 2 (que tem só <code>#saldo</code> e nenhum campo público), o que mostra <code>console.log(Object.keys(new Cofrinho()).length)</code>?</p>
+<div class="ex-code">Mostra <input data-answer="0" aria-label="número"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Fora da classe, o programa tem a linha <code>console.log(cofre.#saldo);</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> Mostra <code>undefined</code></label>
+<label><input type="radio" name="q3"> <code>SyntaxError</code>, e o programa inteiro não roda</label>
+<label><input type="radio" name="q3"> Mostra o saldo normalmente</label>
+<label><input type="radio" name="q3"> Roda até essa linha e para com <code>TypeError</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual é a diferença entre <code>_saldo</code> e <code>#saldo</code>?</p>
+<label><input type="radio" name="q4"> Nenhuma: os dois são privados</label>
+<label><input type="radio" name="q4"> <code>_saldo</code> é privado e <code>#saldo</code> é público</label>
+<label><input type="radio" name="q4"> <code>_saldo</code> é só um aviso (dá para mudar de fora); <code>#saldo</code> é protegido pela linguagem</label>
+<label><input type="radio" name="q4"> <code>#saldo</code> só funciona no navegador</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma classe filha (<code>extends</code>) pode usar <code>this.#saldo</code> declarado na classe mãe?</p>
+<label><input type="radio" name="q5"> Não: o privado é só da classe que o declarou</label>
+<label><input type="radio" name="q5"> Sim, a filha herda tudo</label>
+<label><input type="radio" name="q5"> Sim, mas só para ler</label>
+<label><input type="radio" name="q5"> Só se chamar <code>super(#saldo)</code></label>
+</div>
+
+<h3>Missão final: a senha do armário</h3>
+
+<div class="tryjs" data-goal="out:Confere 1234? true;;out:Confere 0000? false;;out:Dá para ler? undefined;;src:#valor\b">
+<p class="try-task"><strong>Missão:</strong> o armário da padaria tem uma senha. Do jeito que está, qualquer um lê a senha com <code>senha.valor</code>. Troque o campo comum por um campo <strong>privado</strong> <code>#valor</code>: declare <code>#valor;</code> no corpo da classe e use <code>this.#valor</code> no construtor e no <code>confere</code>. A última linha deve passar a mostrar <code>Dá para ler? undefined</code>, e o <code>confere</code> deve continuar funcionando (<code>true</code> para <code>"1234"</code>, <code>false</code> para <code>"0000"</code>).</p>
+<pre class="script" data-file="main.js">class Senha {
+  constructor(valor) {
+    this.valor = valor;
+  }
+
+  confere(tentativa) {
+    return tentativa === this.valor;
+  }
+}
+
+const senha = new Senha("1234");
+console.log(`Confere 1234? ${senha.confere("1234")}`);
+console.log(`Confere 0000? ${senha.confere("0000")}`);
+console.log(`Dá para ler? ${senha.valor}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Senha {
+  #valor;
+
+  constructor(valor) {
+    this.#valor = valor;
+  }
+
+  confere(tentativa) {
+    return tentativa === this.#valor;
+  }
+}
+
+const senha = new Senha("1234");
+console.log(`Confere 1234? ${senha.confere("1234")}`);
+console.log(`Confere 0000? ${senha.confere("0000")}`);
+console.log(`Dá para ler? ${senha.valor}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Confere 1234? true</code>, <code>Confere 0000? false</code> e <code>Dá para ler? undefined</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um campo com <code>#</code> no nome (<code>#saldo</code>) é <strong>privado</strong>: só o código dentro da classe consegue ler e mudar. É o <strong>encapsulamento</strong>: mostrar só as "aberturas" seguras.</li>
+  <li>O campo privado precisa ser <strong>declarado</strong> no corpo da classe (<code>#saldo = 0;</code>) e se usa sempre com o <code>#</code>: <code>this.#saldo</code>.</li>
+  <li>Tentar usar o privado fora da classe (ou numa filha, ou sem declarar) dá <code>SyntaxError: Private field '#…' must be declared in an enclosing class</code>, e o programa nem começa.</li>
+  <li>Para deixar ler sem deixar mudar, use um <code>get</code> sem <code>set</code>. Métodos também podem ser privados: <code>#registrar()</code>.</li>
+  <li><code>console.log</code>, <code>Object.keys</code> e <code>JSON.stringify</code> não mostram campos privados.</li>
+  <li><code>_saldo</code> é só um combinado antigo, sem proteção. Em código novo, use <code>#</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
