@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Formatando Datas — 05/03/2026, "quinta-feira, 5 de março" e Intl | Guia JavaScript</title>
+<meta name="description" content="Formatar datas em JavaScript para quem nunca programou: montar 05/03/2026 com padStart, toLocaleDateString(&quot;pt-BR&quot;), toLocaleTimeString, dateStyle e timeStyle, o dia da semana e o mês por extenso, Intl.DateTimeFormat, outros fusos com timeZone, toISOString para guardar, &quot;ontem&quot; e &quot;em 3 dias&quot; com Intl.RelativeTimeFormat, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Formatando Datas</span></h1>
+
+<p class="intro">Na aula <a href="date.html">Datas (Date)</a>, você criou datas e leu as partes delas. Mas, quando chega a hora de mostrar, o JavaScript tem o costume americano: <code>Thu Mar 05 2026</code> ou <code>2026-03-05T17:30:00.000Z</code>. A agenda da Ana precisa de <strong>05/03/2026</strong>, de <strong>quinta-feira, 5 de março</strong>, de <strong>14:30</strong>, e até de <strong>amanhã</strong>. Esta aula mostra como transformar uma data num texto do jeito que as pessoas leem, primeiro montando à mão e depois com as ferramentas prontas do JavaScript.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como montar <code>05/03/2026 às 09:05</code> à mão, com <code>padStart</code>.</li>
+  <li>Como usar <code>toLocaleDateString</code>, <code>toLocaleTimeString</code> e <code>toLocaleString</code> com <code>"pt-BR"</code>.</li>
+  <li>Os estilos prontos (<code>dateStyle</code> e <code>timeStyle</code>) e as opções para escolher cada parte: o dia da semana, o mês por extenso, a hora com 2 dígitos.</li>
+  <li>Como formatar muitas datas com <code>Intl.DateTimeFormat</code> e mostrar o mesmo horário em outra cidade com <code>timeZone</code>.</li>
+  <li>Como guardar uma data em texto com <code>toISOString</code>, e a armadilha da data que muda de dia.</li>
+  <li>Como escrever "ontem", "amanhã" e "em 3 dias" com <code>Intl.RelativeTimeFormat</code>.</li>
+  <li>Os erros reais do Node 24 ao formatar.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>, no horário de Brasília), com <code>node arquivo.js</code>. Tudo aqui é da linguagem e funciona igual no navegador; só o fuso horário do seu computador pode mudar o resultado de exemplos que comparam fusos.</p>
+
+<hr>
+
+<h2>A ideia: a mesma data, várias etiquetas</h2>
+<p>A consulta da Ana é no dia 5 de março de 2026, às 14h30. Isso é <strong>um</strong> instante. Mas ele pode ser escrito de muitos jeitos: <code>05/03/2026</code> no formulário, <code>quinta-feira, 5 de março</code> na agenda, <code>14:30</code> no lembrete do celular, <code>3/5/2026</code> para uma prima nos Estados Unidos (onde o mês vem antes do dia), <code>amanhã</code> numa mensagem. Como os números da aula <a href="numeros-formatar.html">Formatando Números</a>: o <code>Date</code> é o valor, e o texto formatado é a <strong>etiqueta</strong>. Guarde a data como <code>Date</code>; formate só na hora de mostrar.</p>
+
+<hr>
+
+<h2>1. Montando à mão: <code>padStart</code></h2>
+<p>Com os métodos <code>get</code> da aula anterior dá para montar qualquer formato. O detalhe é o <strong>zero à esquerda</strong>: <code>getDate()</code> devolve <code>5</code>, e a gente quer <code>05</code>. O <code>padStart(2, "0")</code> completa o texto com zeros no começo até ter 2 caracteres (veja <a href="strings-metodos.html">Métodos de String</a>):</p>
+
+<pre class="file" data-file="manual.js">const consulta = new Date(2026, 2, 5, 9, 5);
+
+const dia = String(consulta.getDate()).padStart(2, "0");
+const mes = String(consulta.getMonth() + 1).padStart(2, "0");
+const ano = consulta.getFullYear();
+const hora = String(consulta.getHours()).padStart(2, "0");
+const minuto = String(consulta.getMinutes()).padStart(2, "0");
+
+console.log(`${dia}/${mes}/${ano} às ${hora}:${minuto}`);
+</pre>
+
+<pre class="term">$ node manual.js
+05/03/2026 às 09:05
+</pre>
+
+<dl class="anatomy">
+  <dt>String(consulta.getDate())</dt><dd>O <code>padStart</code> é um método de <strong>texto</strong>, então o número vira texto antes (veja <a href="conversao.html">Conversão</a>).</dd>
+  <dt>.padStart(2, "0")</dt><dd><code>"5"</code> vira <code>"05"</code>; <code>"12"</code>, que já tem 2 caracteres, fica igual.</dd>
+  <dt>consulta.getMonth() + 1</dt><dd>O mês do <code>Date</code> começa em 0: some 1 <strong>antes</strong> do <code>padStart</code>.</dd>
+</dl>
+
+<p>Montar à mão é bom quando você precisa de um formato muito específico (por exemplo, <code>2026-03-05</code> para o nome de um arquivo). Para mostrar a uma pessoa, as ferramentas da próxima seção fazem o mesmo em uma linha, e ainda sabem os nomes dos meses e dos dias da semana.</p>
+
+<hr>
+
+<h2>2. O jeito brasileiro: <code>toLocaleDateString("pt-BR")</code></h2>
+<p>Como nos números, o <code>"pt-BR"</code> é a <strong>localidade</strong>: os costumes do português do Brasil. Três métodos, um para cada pedaço:</p>
+
+<pre class="file" data-file="locale-data.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+console.log(consulta.toLocaleDateString("pt-BR"));
+console.log(consulta.toLocaleTimeString("pt-BR"));
+console.log(consulta.toLocaleString("pt-BR"));
+console.log(consulta.toLocaleDateString("en-US"));
+console.log(consulta.toLocaleDateString("pt-PT"));
+</pre>
+
+<pre class="term">$ node locale-data.js
+05/03/2026
+14:30:00
+05/03/2026, 14:30:00
+3/5/2026
+05/03/2026
+</pre>
+
+<dl class="anatomy">
+  <dt>toLocaleDateString("pt-BR") → 05/03/2026</dt><dd>Só a data (<em>date</em>), já com os zeros.</dd>
+  <dt>toLocaleTimeString("pt-BR") → 14:30:00</dt><dd>Só a hora (<em>time</em>), no relógio de 24 horas, com os segundos.</dd>
+  <dt>toLocaleString("pt-BR") → 05/03/2026, 14:30:00</dt><dd>Data e hora juntas, separadas por vírgula.</dd>
+  <dt>"en-US" → 3/5/2026</dt><dd>Nos Estados Unidos, o mês vem primeiro e não há zeros. Para eles, <code>3/5</code> é 5 de março; para nós, seria 3 de maio. Por isso, <strong>sempre diga a localidade</strong>.</dd>
+  <dt>"pt-PT" → 05/03/2026</dt><dd>Portugal escreve a data curta igual ao Brasil.</dd>
+</dl>
+
+<div class="tip">
+<strong>Sem a localidade, quem decide é o computador</strong>
+<p><code>data.toLocaleDateString()</code>, sem nada entre os parênteses, usa a língua do computador (ou do navegador) de quem roda o programa. No notebook da Ana, que está em português, saiu <code>05/03/2026</code>; no computador de um americano sairia <code>3/5/2026</code>. Escreva <code>"pt-BR"</code> e o resultado será o mesmo em qualquer lugar.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Prova: 05/03/2026;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra a data no formato do JavaScript, em inglês. Faça ele mostrar <code>Prova: 05/03/2026</code>.</p>
+<pre class="script" data-file="main.js">const prova = new Date(2026, 2, 5);
+console.log(`Prova: ${prova}`);
+</pre>
+<pre class="solucao" data-file="main.js">const prova = new Date(2026, 2, 5);
+console.log(`Prova: ${prova.toLocaleDateString("pt-BR")}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Estilos prontos: <code>dateStyle</code> e <code>timeStyle</code></h2>
+<p>Depois da localidade, esses métodos aceitam um <a href="objetos.html">objeto</a> de opções. As mais simples são os estilos prontos: <code>"full"</code> (completo), <code>"long"</code> (longo), <code>"medium"</code> (médio) e <code>"short"</code> (curto):</p>
+
+<pre class="file" data-file="estilos.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+console.log(consulta.toLocaleDateString("pt-BR", { dateStyle: "full" }));
+console.log(consulta.toLocaleDateString("pt-BR", { dateStyle: "long" }));
+console.log(consulta.toLocaleDateString("pt-BR", { dateStyle: "medium" }));
+console.log(consulta.toLocaleDateString("pt-BR", { dateStyle: "short" }));
+console.log(consulta.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }));
+console.log(consulta.toLocaleTimeString("pt-BR", { timeStyle: "short" }));
+</pre>
+
+<pre class="term">$ node estilos.js
+quinta-feira, 5 de março de 2026
+5 de março de 2026
+5 de mar. de 2026
+05/03/2026
+05/03/2026, 14:30
+14:30
+</pre>
+
+<p>O JavaScript sabe que 5 de março de 2026 é uma quinta-feira e escreve os nomes em português, com as letras minúsculas que o português usa. O <code>timeStyle: "short"</code> tira os segundos: <code>14:30</code>.</p>
+
+<hr>
+
+<h2>4. Escolhendo cada parte</h2>
+<p>Em vez de um estilo pronto, você pode dizer <strong>quais partes</strong> quer e <strong>como</strong>: <code>weekday</code> (dia da semana), <code>day</code> (dia), <code>month</code> (mês), <code>year</code> (ano), <code>hour</code> (hora) e <code>minute</code> (minuto). O JavaScript junta as partes na ordem e com as palavras de ligação da língua:</p>
+
+<pre class="file" data-file="partes-opcoes.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+console.log(consulta.toLocaleDateString("pt-BR", { weekday: "long" }));
+console.log(consulta.toLocaleDateString("pt-BR", { month: "long" }));
+console.log(consulta.toLocaleDateString("pt-BR", { month: "short" }));
+console.log(consulta.toLocaleDateString("pt-BR", { day: "numeric", month: "long" }));
+console.log(consulta.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }));
+console.log(consulta.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }));
+console.log(consulta.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+</pre>
+
+<pre class="term">$ node partes-opcoes.js
+quinta-feira
+março
+mar.
+5 de março
+março de 2026
+qui., 05/03
+14:30
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Opção</th><th>Valores</th><th>Exemplo no lab</th></tr>
+<tr><td><code>weekday</code></td><td><code>"long"</code>, <code>"short"</code>, <code>"narrow"</code></td><td><code>quinta-feira</code>, <code>qui.</code></td></tr>
+<tr><td><code>day</code></td><td><code>"numeric"</code>, <code>"2-digit"</code></td><td><code>5</code>, <code>05</code></td></tr>
+<tr><td><code>month</code></td><td><code>"numeric"</code>, <code>"2-digit"</code>, <code>"long"</code>, <code>"short"</code>, <code>"narrow"</code></td><td><code>março</code>, <code>mar.</code>, <code>03</code></td></tr>
+<tr><td><code>year</code></td><td><code>"numeric"</code>, <code>"2-digit"</code></td><td><code>2026</code></td></tr>
+<tr><td><code>hour</code>, <code>minute</code>, <code>second</code></td><td><code>"numeric"</code>, <code>"2-digit"</code></td><td><code>14:30</code></td></tr>
+</table>
+</div>
+
+<p>O mês sozinho por extenso (<code>{ month: "long" }</code>) é um jeito fácil de ter os nomes dos meses sem escrever um array com eles.</p>
+
+<h3>Muitas datas: <code>Intl.DateTimeFormat</code></h3>
+<p>Como o <code>Intl.NumberFormat</code> dos números, o <code>Intl.DateTimeFormat</code> cria um <strong>formatador</strong> uma vez, para usar com o <code>.format(data)</code> quantas vezes quiser:</p>
+
+<pre class="file" data-file="intl-data.js">const formato = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+
+const provas = [new Date(2026, 2, 5), new Date(2026, 2, 12), new Date(2026, 3, 2)];
+for (const prova of provas) {
+  console.log(`Prova: ${formato.format(prova)}`);
+}
+</pre>
+
+<pre class="term">$ node intl-data.js
+Prova: quinta-feira, 5 de março
+Prova: quinta-feira, 12 de março
+Prova: quinta-feira, 2 de abril
+</pre>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque as opções do formatador: tire o <code>weekday</code>, ponha <code>year: "numeric"</code>, troque <code>"long"</code> por <code>"short"</code>, ou mude <code>"pt-BR"</code> para <code>"en-US"</code>, <code>"es"</code> ou <code>"fr"</code>.</p>
+<pre class="script" data-file="main.js">const formato = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+
+const provas = [new Date(2026, 2, 5), new Date(2026, 2, 12), new Date(2026, 3, 2)];
+for (const prova of provas) {
+  console.log(`Prova: ${formato.format(prova)}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. O mesmo instante em outra cidade: <code>timeZone</code></h2>
+<p>A Ana marcou uma reunião por vídeo às 14h30 de Brasília, com gente de Manaus, Lisboa e Tóquio. Que horas vai ser para cada um? A opção <code>timeZone</code> ("fuso horário") formata o <strong>mesmo instante</strong> no relógio de outro lugar. Os nomes dos fusos seguem o padrão <code>Continente/Cidade</code>, em inglês:</p>
+
+<pre class="file" data-file="fusos.js">const reuniao = new Date("2026-03-05T14:30:00-03:00");
+
+const opcoes = { dateStyle: "short", timeStyle: "short" };
+console.log(`Brasília: ${reuniao.toLocaleString("pt-BR", { ...opcoes, timeZone: "America/Sao_Paulo" })}`);
+console.log(`Manaus:   ${reuniao.toLocaleString("pt-BR", { ...opcoes, timeZone: "America/Manaus" })}`);
+console.log(`Lisboa:   ${reuniao.toLocaleString("pt-BR", { ...opcoes, timeZone: "Europe/Lisbon" })}`);
+console.log(`Tóquio:   ${reuniao.toLocaleString("pt-BR", { ...opcoes, timeZone: "Asia/Tokyo" })}`);
+</pre>
+
+<pre class="term">$ node fusos.js
+Brasília: 05/03/2026, 14:30
+Manaus:   05/03/2026, 13:30
+Lisboa:   05/03/2026, 17:30
+Tóquio:   06/03/2026, 02:30
+</pre>
+
+<dl class="anatomy">
+  <dt>"2026-03-05T14:30:00-03:00"</dt><dd>O texto ISO com o fuso no fim: <code>-03:00</code> quer dizer "3 horas atrás do UTC", o horário de Brasília. Assim o instante é o mesmo em qualquer computador.</dd>
+  <dt>{ ...opcoes, timeZone: "Asia/Tokyo" }</dt><dd>Um objeto novo com as opções de sempre mais o fuso (o <code>...</code> copia as opções; veja <a href="spread-rest.html">Spread e Rest</a>).</dd>
+  <dt>Tóquio: 06/03/2026, 02:30</dt><dd>Para quem está no Japão, a reunião é de madrugada, e já no dia 6.</dd>
+</dl>
+
+<p>Sem <code>timeZone</code>, os métodos usam o fuso do computador: no lab, o de Brasília (<code>America/Sao_Paulo</code>).</p>
+
+<hr>
+
+<h2>6. Para guardar, não para mostrar: <code>toISOString</code></h2>
+<p>Para salvar uma data num arquivo, mandar para um servidor ou guardar no <code>localStorage</code>, o formato certo é o <strong>ISO</strong>, em UTC, que qualquer programa no mundo entende:</p>
+
+<pre class="file" data-file="iso.js">const consulta = new Date(2026, 2, 5, 14, 30);
+const tarde = new Date(2026, 2, 5, 22, 30);
+
+console.log(consulta.toISOString());
+console.log(tarde.toISOString());
+console.log(tarde.toISOString().slice(0, 10));
+console.log(JSON.stringify({ consulta }));
+</pre>
+
+<pre class="term">$ node iso.js
+2026-03-05T17:30:00.000Z
+2026-03-06T01:30:00.000Z
+2026-03-06
+{"consulta":"2026-03-05T17:30:00.000Z"}
+</pre>
+
+<dl class="anatomy">
+  <dt>2026-03-05T17:30:00.000Z</dt><dd>As 14h30 de Brasília são 17h30 em UTC (o <code>Z</code>). Para ler de volta: <code>new Date("2026-03-05T17:30:00.000Z")</code>.</dd>
+  <dt>22h30 → 2026-03-06T01:30:00.000Z</dt><dd><strong>Atenção:</strong> às 22h30 de Brasília, em UTC já é dia 6.</dd>
+  <dt>toISOString().slice(0, 10) → 2026-03-06</dt><dd>Um atalho muito comum na internet para pegar "a data de hoje" no formato <code>ano-mês-dia</code>. Mas ele pega o dia <strong>em UTC</strong>: depois das 21h no Brasil, dá o dia seguinte. Para o dia local, monte com <code>padStart</code> (seção 1).</dd>
+  <dt>JSON.stringify</dt><dd>Ao virar <a href="json.html">JSON</a>, uma data vira esse mesmo texto ISO, sozinha.</dd>
+</dl>
+
+<hr>
+
+<h2>7. "Ontem", "amanhã", "em 3 dias": <code>Intl.RelativeTimeFormat</code></h2>
+<p>Os aplicativos de mensagem não dizem "05/03/2026"; dizem "ontem" ou "há 5 minutos". O <code>Intl.RelativeTimeFormat</code> ("formato de tempo relativo") escreve essas frases. Você dá um número (negativo é passado, positivo é futuro) e a unidade (<code>"day"</code>, <code>"week"</code>, <code>"minute"</code>…):</p>
+
+<pre class="file" data-file="relativo.js">const relativo = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
+
+console.log(relativo.format(-1, "day"));
+console.log(relativo.format(1, "day"));
+console.log(relativo.format(3, "day"));
+console.log(relativo.format(-2, "week"));
+console.log(relativo.format(-5, "minute"));
+</pre>
+
+<pre class="term">$ node relativo.js
+ontem
+amanhã
+em 3 dias
+há 2 semanas
+há 5 minutos
+</pre>
+
+<p>O <code>numeric: "auto"</code> permite as palavras especiais (<code>ontem</code>, <code>amanhã</code>, <code>anteontem</code>); sem ele, sairia <code>há 1 dia</code>. Juntando com a diferença de datas da aula <a href="date.html">Datas</a>, a agenda da Ana fica assim:</p>
+
+<pre class="file" data-file="quando.js">const umDia = 1000 * 60 * 60 * 24;
+const relativo = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
+const hoje = new Date(2026, 2, 5);
+
+const eventos = [
+  ["Prova de matemática", new Date(2026, 2, 6)],
+  ["Aniversário da Bia", new Date(2026, 2, 12)],
+  ["Pagamento da luz", new Date(2026, 2, 3)]
+];
+
+for (const [nome, data] of eventos) {
+  const dias = Math.round((data - hoje) / umDia);
+  console.log(`${nome}: ${relativo.format(dias, "day")}`);
+}
+</pre>
+
+<pre class="term">$ node quando.js
+Prova de matemática: amanhã
+Aniversário da Bia: em 7 dias
+Pagamento da luz: anteontem
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td><code>05/03/2026</code></td><td><code>padStart</code> à mão · <code>d.toLocaleDateString("pt-BR")</code></td><td><code>toLocaleDateString("pt-BR")</code>: uma linha, sem erro de mês</td></tr>
+<tr><td><code>quinta-feira, 5 de março de 2026</code></td><td>Arrays com os nomes + <code>get</code> · <code>{ dateStyle: "full" }</code></td><td><code>dateStyle</code>: os nomes já vêm prontos e certos</td></tr>
+<tr><td>Formatar muitas datas iguais</td><td><code>toLocaleDateString</code> em cada uma · <code>Intl.DateTimeFormat</code></td><td><code>Intl.DateTimeFormat</code>: cria uma vez, usa muitas</td></tr>
+<tr><td><code>2026-03-05</code> (nome de arquivo, banco de dados)</td><td><code>padStart</code> à mão · <code>toISOString().slice(0, 10)</code></td><td><code>padStart</code> (dia local); o <code>toISOString</code> usa o dia em UTC</td></tr>
+<tr><td>Guardar e ler de volta</td><td><code>toISOString()</code> · <code>getTime()</code></td><td>Qualquer um dos dois; nunca o texto formatado para pessoas</td></tr>
+<tr><td>"ontem", "em 3 dias"</td><td><code>if</code>s à mão · <code>Intl.RelativeTimeFormat</code></td><td><code>Intl.RelativeTimeFormat</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou <code>toLocaleDateString</code> num texto</strong>
+<pre class="file" data-file="erro-texto.js">const data = "2026-03-05";
+console.log(data.toLocaleDateString("pt-BR"));
+</pre>
+<pre class="term">$ node erro-texto.js
+/home/ana/erro-texto.js:2
+console.log(data.toLocaleDateString("pt-BR"));
+                 ^
+
+TypeError: data.toLocaleDateString is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/erro-texto.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/erro-texto.js:2</dt><dd>O arquivo e a linha 2.</dd>
+  <dt>console.log(data.toLocaleDateString("pt-BR")); e o ^</dt><dd>O <code>^</code> aponta para o <code>toLocaleDateString</code>.</dd>
+  <dt>TypeError: data.toLocaleDateString is not a function</dt><dd>"<code>data.toLocaleDateString</code> não é uma função". A variável se chama <code>data</code>, mas guarda um <strong>texto</strong> (entre aspas), e texto não tem esse método: ele é dos objetos <code>Date</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/erro-texto.js:2:18)</dt><dd>Linha 2, coluna 18, no programa principal; as linhas com <code>node:internal</code> são o Node carregando o arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>Acontece muito com datas que vieram de um arquivo JSON ou de um formulário: elas chegam como texto. <strong>Como consertar:</strong> crie o <code>Date</code> antes. Se o texto tiver hora (<code>"2026-03-05T00:00:00"</code>), <code>new Date(texto)</code> resolve; se for só a data, lembre que ela é lida em UTC (veja <a href="date.html">Datas</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Nome de fuso que não existe</strong>
+<pre class="file" data-file="erro-fuso.js">const data = new Date(2026, 2, 5);
+console.log(data.toLocaleString("pt-BR", { timeZone: "Brasilia" }));
+</pre>
+<pre class="term">$ node erro-fuso.js
+/home/ana/erro-fuso.js:2
+console.log(data.toLocaleString("pt-BR", { timeZone: "Brasilia" }));
+                 ^
+
+RangeError: Invalid time zone specified: Brasilia
+    at Date.toLocaleString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-fuso.js:2:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Fuso horário inválido: Brasilia". Os fusos têm nomes oficiais, no formato <code>Continente/Cidade</code>, em inglês e sem acento: o de Brasília é <code>"America/Sao_Paulo"</code>. <strong>Como consertar:</strong> use o nome oficial (outros: <code>"America/Manaus"</code>, <code>"America/Noronha"</code>, <code>"Europe/Lisbon"</code>, <code>"UTC"</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou um estilo pronto com partes</strong>
+<pre class="file" data-file="erro-misturar.js">const data = new Date(2026, 2, 5);
+console.log(data.toLocaleDateString("pt-BR", { dateStyle: "long", weekday: "long" }));
+</pre>
+<pre class="term">$ node erro-misturar.js
+/home/ana/erro-misturar.js:2
+console.log(data.toLocaleDateString("pt-BR", { dateStyle: "long", weekday: "long" }));
+                 ^
+
+TypeError: Invalid option : option
+    at Date.toLocaleDateString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-misturar.js:2:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Opção inválida". A mensagem do Node não ajuda muito, mas a regra é: <strong>ou</strong> um estilo pronto (<code>dateStyle</code>/<code>timeStyle</code>), <strong>ou</strong> as partes (<code>weekday</code>, <code>day</code>, <code>month</code>…), nunca os dois juntos. <strong>Como consertar:</strong> <code>{ dateStyle: "full" }</code> (que já tem o dia da semana) ou <code>{ weekday: "long", day: "numeric", month: "long", year: "numeric" }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A data era inválida</strong>
+<pre class="file" data-file="erro-invalida.js">const data = new Date("05/13/2026x");
+console.log(data.toLocaleDateString("pt-BR"));
+</pre>
+<pre class="term">$ node erro-invalida.js
+Invalid Date
+</pre>
+<p>Formatar uma data inválida não dá erro: sai o texto <code>Invalid Date</code>, que pode ir parar na tela de alguém. <strong>Como consertar:</strong> confira antes de formatar, com <code>Number.isNaN(data.getTime())</code> (veja <a href="date.html">Datas</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Montou à mão e esqueceu o <code>+ 1</code> e os zeros</strong>
+<pre class="file" data-file="erro-sem-zero.js">const data = new Date(2026, 2, 5);
+console.log(`${data.getDate()}/${data.getMonth()}/${data.getFullYear()}`);
+</pre>
+<pre class="term">$ node erro-sem-zero.js
+5/2/2026
+</pre>
+<p>Era 5 de março, e saiu "5 de fevereiro", sem zeros. <strong>Como consertar:</strong> <code>getMonth() + 1</code> e <code>padStart(2, "0")</code>, ou simplesmente <code>data.toLocaleDateString("pt-BR")</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita (para <code>new Date(2026, 2, 5, 14, 30)</code>)</th><th>Resultado no lab</th></tr>
+<tr><td><code>d.toLocaleDateString("pt-BR")</code></td><td><code>05/03/2026</code></td></tr>
+<tr><td><code>d.toLocaleTimeString("pt-BR")</code></td><td><code>14:30:00</code></td></tr>
+<tr><td><code>d.toLocaleString("pt-BR")</code></td><td><code>05/03/2026, 14:30:00</code></td></tr>
+<tr><td><code>{ dateStyle: "full" }</code></td><td><code>quinta-feira, 5 de março de 2026</code></td></tr>
+<tr><td><code>{ dateStyle: "long" }</code> / <code>"medium"</code></td><td><code>5 de março de 2026</code> / <code>5 de mar. de 2026</code></td></tr>
+<tr><td><code>{ timeStyle: "short" }</code></td><td><code>14:30</code></td></tr>
+<tr><td><code>{ weekday: "long" }</code> / <code>{ month: "long" }</code></td><td><code>quinta-feira</code> / <code>março</code></td></tr>
+<tr><td><code>new Intl.DateTimeFormat("pt-BR", opções).format(d)</code></td><td>Formatador reaproveitável</td></tr>
+<tr><td><code>{ timeZone: "Asia/Tokyo" }</code></td><td>O mesmo instante no relógio de Tóquio</td></tr>
+<tr><td><code>d.toISOString()</code></td><td><code>2026-03-05T17:30:00.000Z</code> (UTC, para guardar)</td></tr>
+<tr><td><code>new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" }).format(-1, "day")</code></td><td><code>ontem</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar <code>05/03/2026</code>:</p>
+<div class="ex-code">const prova = new Date(2026, 2, 5);<br>console.log(prova.<input data-answer="toLocaleDateString" aria-label="nome do método">("<input data-answer="pt-BR" aria-label="localidade">"));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O zero à esquerda</h3>
+<p>Complete para o dia 5 virar <code>"05"</code>:</p>
+<div class="ex-code">String(5).<input data-answer="padStart" aria-label="nome do método">(2, "<input data-answer="0" aria-label="caractere de preenchimento">")</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual opção mostra <code>quinta-feira, 5 de março de 2026</code>?</p>
+<label><input type="radio" name="q3"> <code>{ dateStyle: "short" }</code></label>
+<label><input type="radio" name="q3"> <code>{ weekday: "long" }</code></label>
+<label><input type="radio" name="q3"> <code>{ dateStyle: "full" }</code></label>
+<label><input type="radio" name="q3"> <code>{ timeStyle: "full" }</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um programa no Brasil roda <code>new Date().toISOString().slice(0, 10)</code> às 23h do dia 5 de março. O que aparece?</p>
+<label><input type="radio" name="q4"> <code>2026-03-05</code></label>
+<label><input type="radio" name="q4"> <code>2026-03-06</code>, porque em UTC já é dia 6</label>
+<label><input type="radio" name="q4"> <code>05/03/2026</code></label>
+<label><input type="radio" name="q4"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que mostra <code>new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" }).format(1, "day")</code>?</p>
+<label><input type="radio" name="q5"> <code>amanhã</code></label>
+<label><input type="radio" name="q5"> <code>ontem</code></label>
+<label><input type="radio" name="q5"> <code>em 1 dia</code></label>
+<label><input type="radio" name="q5"> <code>1 day</code></label>
+</div>
+
+<h3>Missão final: o lembrete da consulta</h3>
+
+<div class="tryjs" data-goal="out:quinta-feira, 5 de março de 2026;;out:às 14:30;;src:toLocale|DateTimeFormat">
+<p class="try-task"><strong>Missão:</strong> o lembrete está saindo com números crus. Use as ferramentas desta aula para ele mostrar <code>Consulta: quinta-feira, 5 de março de 2026 às 14:30</code> (dica: <code>dateStyle: "full"</code> para a data e <code>timeStyle: "short"</code> para a hora).</p>
+<pre class="script" data-file="main.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+const data = `${consulta.getDay()}, ${consulta.getDate()}/${consulta.getMonth()}`;
+const hora = `${consulta.getHours()}h${consulta.getMinutes()}`;
+
+console.log(`Consulta: ${data} às ${hora}`);
+</pre>
+<pre class="solucao" data-file="main.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+const data = consulta.toLocaleDateString("pt-BR", { dateStyle: "full" });
+const hora = consulta.toLocaleTimeString("pt-BR", { timeStyle: "short" });
+
+console.log(`Consulta: ${data} às ${hora}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Consulta: quinta-feira, 5 de março de 2026 às 14:30</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Guarde a data como <code>Date</code> e formate só na hora de mostrar. Sempre diga a localidade: <code>"pt-BR"</code>.</li>
+  <li><code>toLocaleDateString("pt-BR")</code> → <code>05/03/2026</code>; <code>toLocaleTimeString</code> → <code>14:30:00</code>; <code>toLocaleString</code> → as duas juntas.</li>
+  <li>Estilos prontos: <code>dateStyle</code>/<code>timeStyle</code> (<code>"full"</code>, <code>"long"</code>, <code>"medium"</code>, <code>"short"</code>). Ou escolha as partes: <code>weekday</code>, <code>day</code>, <code>month</code>, <code>year</code>, <code>hour</code>, <code>minute</code>. Nunca os dois juntos.</li>
+  <li>Para muitas datas, <code>new Intl.DateTimeFormat("pt-BR", opções)</code> e <code>.format(d)</code>. Para outro fuso, <code>timeZone: "Continente/Cidade"</code>.</li>
+  <li>Para guardar, <code>toISOString()</code> (em UTC; cuidado com o <code>slice(0, 10)</code> à noite). Para "ontem" e "em 3 dias", <code>Intl.RelativeTimeFormat</code>.</li>
+  <li>À mão: <code>getMonth() + 1</code> e <code>padStart(2, "0")</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
