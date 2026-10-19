@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript DOM — o que é o DOM, a árvore da página | Guia JavaScript</title>
+<meta name="description" content="O que é o DOM, para quem nunca programou: o HTML é a planta e o DOM é a casa construída, a árvore de nós (pai, filhos, irmãos), o objeto document, explorar a página no Console do navegador (document.title, querySelector, children, childNodes, nodeType), por que o arquivo HTML não muda, e o ReferenceError: document is not defined do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O que é o DOM</span></h1>
+
+<p class="intro">Até agora, o JavaScript deste guia rodou quase sempre no terminal, com o Node. A partir desta aula, ele volta para a sua casa de origem: o <strong>navegador</strong>. Lá, a grande função do JavaScript é <strong>mexer na página</strong>: trocar um texto, mostrar uma mensagem, esconder um menu, acrescentar um item a uma lista. Para isso, o navegador entrega ao JavaScript uma versão da página feita de objetos, que ele pode ler e alterar. Essa versão se chama <strong>DOM</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o DOM, com a comparação da <strong>planta</strong> e da <strong>casa</strong>.</li>
+  <li>Por que o DOM é uma <strong>árvore</strong>, e o que são nós, pais, filhos e irmãos.</li>
+  <li>O objeto <code>document</code>, a porta de entrada para a página.</li>
+  <li>Como explorar o DOM no <strong>Console</strong> do navegador: <code>document.title</code>, <code>querySelector</code>, <code>children</code>, <code>textContent</code>.</li>
+  <li>Os tipos de nó (elemento e texto) e por que <code>childNodes</code> tem mais itens que <code>children</code>.</li>
+  <li>Por que mudar o DOM não muda o arquivo <code>.html</code>.</li>
+  <li>O erro real <code>ReferenceError: document is not defined</code>, quando se tenta usar o DOM no Node.</li>
+</ul>
+</div>
+
+<p>As respostas do Console mostradas nesta aula foram colhidas no <strong>Chromium</strong> (a versão livre do Chrome) da máquina da Ana; as do terminal, no <strong>Node.js 24</strong> dela. Para abrir o Console no seu navegador, aperte <kbd>F12</kbd> e escolha a aba <strong>Console</strong> (veja <a href="console-navegador.html">O Console do Navegador</a>).</p>
+
+<hr>
+
+<h2>A ideia: a planta e a casa</h2>
+<p>Um arquivo HTML é como a <strong>planta</strong> de uma casa: um papel que descreve onde fica cada cômodo. Ninguém mora na planta. Quando o navegador abre o arquivo, ele lê a planta e <strong>constrói a casa</strong>: cria, na memória, um objeto para cada parte da página. Essa casa construída é o <strong>DOM</strong>, sigla de <em>Document Object Model</em> ("modelo de objetos do documento").</p>
+<ul>
+  <li>O que você <strong>vê</strong> na tela é desenhado a partir do DOM, e não direto do arquivo.</li>
+  <li>O JavaScript mexe no DOM: muda a cor de uma parede, troca um móvel de lugar, constrói um quarto novo. A tela acompanha <strong>na hora</strong>.</li>
+  <li>A planta (o arquivo <code>.html</code>) continua igual. Se você recarregar a página, o navegador constrói a casa de novo, a partir da planta original.</li>
+</ul>
+
+<hr>
+
+<h2>1. A página vira uma árvore</h2>
+<p>Esta é a página da padaria da Ana, salva como <code>padaria/index.html</code>:</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p&gt;Pão quentinho todo dia!&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Pão francês&lt;/li&gt;
+    &lt;li&gt;Pão de queijo&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>Repare que as tags ficam <strong>umas dentro das outras</strong>: o <code>&lt;li&gt;</code> está dentro do <code>&lt;ul&gt;</code>, que está dentro do <code>&lt;body&gt;</code>, que está dentro do <code>&lt;html&gt;</code>. O navegador transforma esse "dentro de" numa <strong>árvore</strong>, como uma árvore genealógica de cabeça para baixo:</p>
+
+<pre class="file" data-file="a árvore do DOM">document
+└── html
+    ├── head
+    │   ├── meta
+    │   └── title
+    │       └── "Padaria da Ana"
+    └── body
+        ├── h1
+        │   └── "Padaria da Ana"
+        ├── p
+        │   └── "Pão quentinho todo dia!"
+        └── ul
+            ├── li
+            │   └── "Pão francês"
+            └── li
+                └── "Pão de queijo"
+</pre>
+
+<p>Cada caixinha da árvore se chama <strong>nó</strong> (em inglês, <em>node</em>). E os nós têm "parentes", com os nomes da família:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Quer dizer</th><th>Exemplo nesta página</th></tr>
+<tr><td><strong>Raiz</strong></td><td>O nó do topo, de onde tudo sai</td><td><code>document</code></td></tr>
+<tr><td><strong>Pai</strong> (<em>parent</em>)</td><td>O nó logo acima</td><td>O pai do <code>h1</code> é o <code>body</code></td></tr>
+<tr><td><strong>Filhos</strong> (<em>children</em>)</td><td>Os nós logo abaixo</td><td>Os filhos do <code>ul</code> são os dois <code>li</code></td></tr>
+<tr><td><strong>Irmãos</strong> (<em>siblings</em>)</td><td>Nós com o mesmo pai</td><td><code>h1</code>, <code>p</code> e <code>ul</code> são irmãos</td></tr>
+</table>
+</div>
+
+<p>Os textos (<code>"Padaria da Ana"</code>, <code>"Pão francês"</code>) também são nós: são os <strong>nós de texto</strong>, sempre nas pontas da árvore. Os nós das tags (<code>h1</code>, <code>ul</code>, <code>li</code>) se chamam <strong>elementos</strong>.</p>
+
+<hr>
+
+<h2>2. O <code>document</code>: a porta de entrada</h2>
+<p>No navegador, o JavaScript recebe pronto um objeto chamado <code>document</code> ("documento"). Ele é a raiz da árvore: <strong>tudo</strong> na página se alcança a partir dele. A Ana abriu a página da padaria no Chromium, apertou <kbd>F12</kbd> e digitou no Console:</p>
+
+<pre class="devtools">&gt; document.title
+'Padaria da Ana'
+&gt; document.querySelector("h1")
+&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&gt; document.querySelector("h1").textContent
+'Padaria da Ana'
+&gt; document.documentElement.nodeName
+'HTML'
+&gt; document.querySelector("h1").parentElement.nodeName
+'BODY'
+</pre>
+
+<dl class="anatomy">
+  <dt>document.title</dt><dd>O título da página, o texto do <code>&lt;title&gt;</code> (aparece na aba do navegador).</dd>
+  <dt>document.querySelector("h1")</dt><dd>"Seletor de consulta": procura na árvore o <strong>primeiro</strong> elemento que combina com <code>"h1"</code> e o devolve. O Console mostra o elemento como HTML (no Chrome de verdade, dá para clicar nele e abrir a árvore). A aula <a href="dom-selecionar.html">Selecionando Elementos</a> é toda sobre isso.</dd>
+  <dt>.textContent</dt><dd>"Conteúdo de texto": o texto que está dentro do elemento.</dd>
+  <dt>document.documentElement</dt><dd>O elemento <code>&lt;html&gt;</code>, o primeiro filho elemento do <code>document</code>. O <code>nodeName</code> é o nome do nó, em maiúsculas para os elementos.</dd>
+  <dt>.parentElement</dt><dd>O pai de um elemento: o pai do <code>h1</code> é o <code>BODY</code>.</dd>
+</dl>
+
+<p>Repare nas aspas simples em <code>'Padaria da Ana'</code>: no Console, o resultado de uma expressão que é texto aparece entre aspas, para você saber que é uma string.</p>
+
+<h3>Os filhos de um elemento</h3>
+
+<pre class="devtools">&gt; document.body.children
+(3) [h1, p, ul]
+&gt; document.body.children.length
+3
+&gt; document.querySelector("ul").children[1].textContent
+'Pão de queijo'
+</pre>
+
+<p>O <code>children</code> ("filhos") é uma lista dos elementos filhos, que se usa quase como um <a href="arrays.html">array</a>: tem <code>length</code> e posições contadas a partir do 0. O <code>(3)</code> na frente é o jeito do Console dizer "3 itens". O <code>children[1]</code> do <code>ul</code> é o segundo <code>li</code>.</p>
+
+<h3>Mudando a casa pelo Console</h3>
+<p>Agora o mais divertido: dar um valor novo ao <code>textContent</code>.</p>
+
+<pre class="devtools">&gt; document.querySelector("h1").textContent = "Padaria e Confeitaria da Ana"
+'Padaria e Confeitaria da Ana'
+</pre>
+
+<p>Na mesma hora, o título grande da página mudou na tela para <strong>Padaria e Confeitaria da Ana</strong>. Você acabou de mudar o DOM. (A linha de resposta é só o valor que foi atribuído; quem mudou foi a página.) A aula <a href="dom-alterar.html">Mudando Textos e Atributos</a> mostra isso em detalhes.</p>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente:</strong> clique em Rodar e olhe o Console da caixa. Depois, acrescente no <code>script.js</code> uma linha que mostre o texto do <code>&lt;p&gt;</code>: <code>console.log(document.querySelector("p").textContent);</code></p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;p&gt;Pão quentinho todo dia!&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Pão francês&lt;/li&gt;
+  &lt;li&gt;Pão de queijo&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log(document.querySelector("h1").textContent);
+console.log(document.querySelector("ul").children[0].textContent);
+</pre>
+</div>
+
+<p>Aqui o código está num arquivo <code>script.js</code>, ligado à página pela tag <code>&lt;script src="script.js"&gt;</code> no fim do <code>&lt;body&gt;</code>. É o jeito normal de pôr JavaScript numa página, e é o assunto da próxima aula, <a href="script-na-pagina.html">JavaScript na Página</a>.</p>
+
+<hr>
+
+<h2>3. Elementos e nós de texto</h2>
+<p>Cada nó tem um <code>nodeType</code> ("tipo de nó"), um número que diz o que ele é:</p>
+
+<pre class="devtools">&gt; document.querySelector("p").nodeType
+1
+&gt; document.querySelector("p").firstChild
+"Pão quentinho todo dia!"
+&gt; document.querySelector("p").firstChild.nodeType
+3
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>nodeType</code></th><th>Tipo de nó</th><th>Exemplo</th></tr>
+<tr><td><code>1</code></td><td>Elemento (uma tag)</td><td><code>&lt;p&gt;</code>, <code>&lt;h1&gt;</code>, <code>&lt;li&gt;</code></td></tr>
+<tr><td><code>3</code></td><td>Texto</td><td><code>"Pão quentinho todo dia!"</code></td></tr>
+<tr><td><code>8</code></td><td>Comentário</td><td><code>&lt;!-- assim --&gt;</code></td></tr>
+<tr><td><code>9</code></td><td>O documento</td><td><code>document</code></td></tr>
+</table>
+</div>
+
+<p>O <code>firstChild</code> ("primeiro filho") do <code>&lt;p&gt;</code> é um nó de <strong>texto</strong>: o Console o mostra entre aspas duplas, sem tag nenhuma.</p>
+
+<h3>A pegadinha dos espaços: <code>children</code> × <code>childNodes</code></h3>
+
+<pre class="devtools">&gt; document.body.children.length
+3
+&gt; document.body.childNodes.length
+7
+</pre>
+
+<p>Por que 7? O <code>children</code> conta só os <strong>elementos</strong> (<code>h1</code>, <code>p</code>, <code>ul</code>). O <code>childNodes</code> ("nós filhos") conta <strong>todos</strong> os nós, inclusive os de texto. E as <strong>quebras de linha e os espaços</strong> que a Ana usou para deixar o HTML arrumado também viram nós de texto, invisíveis na tela: um antes do <code>h1</code>, um entre o <code>h1</code> e o <code>p</code>, um entre o <code>p</code> e o <code>ul</code>, e um depois do <code>ul</code>. São 3 elementos + 4 textos de espaço = 7.</p>
+<p>Por isso, no dia a dia, prefira <code>children</code>, <code>firstElementChild</code> e <code>parentElement</code>, que só enxergam elementos.</p>
+
+<hr>
+
+<h2>4. O DOM muda; o arquivo, não</h2>
+<p>Depois de mudar o título pelo Console, a Ana fez duas coisas:</p>
+<ol class="passo">
+  <li>Clicou com o botão direito na página e escolheu <strong>Inspecionar</strong>. A aba <strong>Elementos</strong> (<em>Elements</em>) do DevTools mostra o <strong>DOM</strong> de agora: lá estava <code>&lt;h1&gt;Padaria e Confeitaria da Ana&lt;/h1&gt;</code>.</li>
+  <li>Apertou <kbd>Ctrl</kbd>+<kbd>U</kbd> (<strong>Exibir código-fonte</strong>). Essa tela mostra o <strong>arquivo</strong> que o navegador recebeu: lá continuava <code>&lt;h1&gt;Padaria da Ana&lt;/h1&gt;</code>.</li>
+</ol>
+<p>Quando ela recarregou a página (<kbd>F5</kbd>), o título voltou a ser <strong>Padaria da Ana</strong>: o navegador construiu a casa de novo a partir da planta. (O que aparece em cada tela foi descrito em texto: o lab da Ana roda o Chromium sem janela, então não há foto dessas telas.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde olhar</th><th>O que mostra</th><th>Muda quando o JavaScript mexe?</th></tr>
+<tr><td>Exibir código-fonte (<kbd>Ctrl</kbd>+<kbd>U</kbd>)</td><td>O arquivo HTML, a <strong>planta</strong></td><td>Não</td></tr>
+<tr><td>Inspecionar → Elementos (<kbd>F12</kbd>)</td><td>O DOM, a <strong>casa</strong> como está agora</td><td>Sim, na hora</td></tr>
+<tr><td>A tela</td><td>O desenho feito a partir do DOM</td><td>Sim, na hora</td></tr>
+</table>
+</div>
+
+<p>Para guardar uma mudança de verdade, há dois caminhos: editar o arquivo <code>.html</code>, ou guardar os dados em algum lugar e refazer a mudança toda vez que a página abre (a aula <a href="localstorage.html">Guardando Dados</a> mostra como).</p>
+
+<hr>
+
+<h2>5. O DOM é do navegador, não do JavaScript</h2>
+<p>Um detalhe importante: o <code>document</code> <strong>não faz parte da linguagem JavaScript</strong>. Ele é uma ferramenta que o <strong>navegador</strong> oferece ao JavaScript. O Node não tem página nenhuma para mostrar, então não tem <code>document</code> (nem <code>window</code>, a janela):</p>
+
+<pre class="file" data-file="tipo.js">console.log(typeof document);
+console.log(typeof window);
+console.log(typeof console);
+</pre>
+
+<pre class="term">$ node tipo.js
+undefined
+undefined
+object
+</pre>
+
+<p>No Node, <code>document</code> e <code>window</code> não existem (<code>typeof</code> dá <code>"undefined"</code>, veja <a href="typeof.html">typeof</a>), mas o <code>console</code> existe nos dois. No Console do Chromium, <code>typeof document</code> deu <code>'object'</code>. A tabela da aula <a href="onde-roda.html">Onde o JavaScript Roda</a> resume o que existe em cada lugar.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o <code>document</code> no Node</strong>
+<pre class="file" data-file="titulo.js">const titulo = document.querySelector("h1");
+console.log(titulo.textContent);
+</pre>
+<pre class="term">$ node titulo.js
+/home/ana/titulo.js:1
+const titulo = document.querySelector("h1");
+               ^
+
+ReferenceError: document is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/titulo.js:1:16)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «  … mais 6 linhas "at" internas do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/titulo.js:1</dt><dd>O arquivo e a linha do problema.</dd>
+  <dt>const titulo = … e o ^</dt><dd>A linha copiada, com o <code>^</code> embaixo do começo de <code>document</code>.</dd>
+  <dt>ReferenceError: document is not defined</dt><dd>"Erro de referência: <code>document</code> não está definido." O Node procurou uma variável chamada <code>document</code> e não achou nenhuma (veja <a href="tipos-erro.html">Os Tipos de Erro</a>).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/titulo.js:1:16)</dt><dd>O erro aconteceu no código solto do arquivo (fora de funções), linha 1, coluna 16.</dd>
+</dl>
+<p><strong>Como consertar:</strong> código que usa <code>document</code> tem de rodar <strong>numa página</strong>, no navegador (ou numa caixa <code>.tryweb</code> do guia). Para salvar o código num arquivo e ligá-lo à página, veja <a href="script-na-pagina.html">JavaScript na Página</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu o nome errado</strong>
+<pre class="devtools">&gt; documento
+Uncaught ReferenceError: documento is not defined
+    at &lt;anonymous&gt;:1:1
+</pre>
+<p>O nome é em inglês e em minúsculas: <code>document</code>. No Console do navegador, o erro aparece com <code>Uncaught</code> ("não capturado") na frente, e o <code>at &lt;anonymous&gt;:1:1</code> quer dizer "no código que você digitou no Console, linha 1, coluna 1".</p>
+</div>
+
+<div class="cenario">
+<strong>O elemento não existe (ainda)</strong>
+<p>Se o <code>querySelector</code> não acha nada, ele devolve <code>null</code>, e a linha seguinte quebra com <code>TypeError: Cannot set properties of null</code> (ou <code>Cannot read properties of null</code>). Os dois motivos mais comuns são um seletor escrito errado e um <code>&lt;script&gt;</code> que roda antes de o elemento ser construído. Eles são o assunto das próximas aulas: <a href="script-na-pagina.html">JavaScript na Página</a> e <a href="dom-selecionar.html">Selecionando Elementos</a>.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:h1~Padaria e Confeitaria da Ana;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça o JavaScript trocar o título da página para <code>Padaria e Confeitaria da Ana</code>, dando um valor novo ao <code>textContent</code> do <code>h1</code>, como a Ana fez no Console.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;p&gt;Pão quentinho todo dia!&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const titulo = document.querySelector("h1");
+console.log(titulo.textContent);
+</pre>
+<pre class="solucao" data-file="script.js">const titulo = document.querySelector("h1");
+console.log(titulo.textContent);
+titulo.textContent = "Padaria e Confeitaria da Ana";
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que dá</th></tr>
+<tr><td><code>document</code></td><td>A raiz do DOM; só existe no navegador</td></tr>
+<tr><td><code>document.title</code></td><td>O título da página (o <code>&lt;title&gt;</code>)</td></tr>
+<tr><td><code>document.documentElement</code> / <code>document.head</code> / <code>document.body</code></td><td>Os elementos <code>&lt;html&gt;</code>, <code>&lt;head&gt;</code> e <code>&lt;body&gt;</code></td></tr>
+<tr><td><code>document.querySelector("h1")</code></td><td>O primeiro elemento que combina com o seletor, ou <code>null</code></td></tr>
+<tr><td><code>el.textContent</code></td><td>O texto de dentro do elemento (dá para ler e para mudar)</td></tr>
+<tr><td><code>el.children</code> / <code>el.childNodes</code></td><td>Os filhos elementos / todos os nós filhos (inclusive textos e espaços)</td></tr>
+<tr><td><code>el.parentElement</code></td><td>O elemento pai</td></tr>
+<tr><td><code>el.firstElementChild</code> / <code>el.firstChild</code></td><td>O primeiro filho elemento / o primeiro nó filho</td></tr>
+<tr><td><code>el.nodeName</code> / <code>el.nodeType</code></td><td>O nome do nó (<code>'BODY'</code>) / o tipo (1 elemento, 3 texto, 9 documento)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code">DOM é a sigla de Document <input data-answer="Object" aria-label="segunda palavra"> Model.<br>No navegador, a raiz da árvore é o objeto <input data-answer="document" aria-label="nome do objeto">.</div>
+</div>
+
+<div class="exercise">
+<h3>2. Parentes na árvore</h3>
+<p>Na página da padaria, qual é o elemento pai dos dois <code>&lt;li&gt;</code>? (Escreva só o nome da tag, sem os sinais <code>&lt; &gt;</code>.)</p>
+<div class="ex-code"><input data-answer="ul" aria-label="nome da tag"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O JavaScript mudou o texto de um parágrafo, e a Ana apertou <kbd>Ctrl</kbd>+<kbd>U</kbd>. O que ela vê no código-fonte?</p>
+<label><input type="radio" name="q3"> O texto novo</label>
+<label><input type="radio" name="q3"> Os dois textos, o antigo riscado</label>
+<label><input type="radio" name="q3"> O texto antigo: o código-fonte é o arquivo, e o arquivo não muda</label>
+<label><input type="radio" name="q3"> Uma página em branco</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que acontece com <code>node pagina.js</code> se o arquivo tem <code>document.querySelector("h1")</code>?</p>
+<label><input type="radio" name="q4"> Mostra o <code>h1</code> da última página aberta no navegador</label>
+<label><input type="radio" name="q4"> <code>ReferenceError: document is not defined</code></label>
+<label><input type="radio" name="q4"> Devolve <code>null</code></label>
+<label><input type="radio" name="q4"> Abre o navegador sozinho</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Num <code>&lt;body&gt;</code> com três elementos escritos em linhas separadas, por que <code>childNodes.length</code> dá mais que 3?</p>
+<label><input type="radio" name="q5"> Porque as quebras de linha e os espaços entre as tags também viram nós de texto</label>
+<label><input type="radio" name="q5"> Porque o <code>childNodes</code> conta os netos também</label>
+<label><input type="radio" name="q5"> Porque o navegador duplica cada elemento</label>
+<label><input type="radio" name="q5"> Porque o <code>childNodes</code> começa a contar do 1</label>
+</div>
+
+<h3>Missão final: contando os pães</h3>
+
+<div class="tryweb" data-goal="console:A lista tem 3 itens;;src:children">
+<p class="try-task"><strong>Missão:</strong> sem contar à mão, faça o JavaScript mostrar no Console <code>A lista tem 3 itens</code>. Pegue o <code>&lt;ul&gt;</code> com <code>document.querySelector("ul")</code> e use o <code>length</code> dos <code>children</code> dele dentro de uma template string.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Pães de hoje&lt;/h1&gt;
+&lt;ul&gt;
+  &lt;li&gt;Pão francês&lt;/li&gt;
+  &lt;li&gt;Pão de queijo&lt;/li&gt;
+  &lt;li&gt;Pão de milho&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">// mostre quantos itens a lista tem
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("ul");
+console.log(`A lista tem ${lista.children.length} itens`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O arquivo HTML é a <strong>planta</strong>; o <strong>DOM</strong> é a casa que o navegador constrói a partir dela, feita de objetos que o JavaScript pode ler e mudar.</li>
+  <li>O DOM é uma <strong>árvore</strong> de nós: elementos (as tags) e textos, com pai, filhos e irmãos.</li>
+  <li>O <code>document</code> é a raiz e a porta de entrada: <code>document.title</code>, <code>document.body</code>, <code>document.querySelector(…)</code>.</li>
+  <li><code>children</code> só tem elementos; <code>childNodes</code> tem também os nós de texto, inclusive os espaços entre as tags.</li>
+  <li>Mudar o DOM muda a tela na hora, mas não o arquivo: recarregando, tudo volta.</li>
+  <li>O DOM é do <strong>navegador</strong>: no Node, <code>document</code> não existe (<code>ReferenceError: document is not defined</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
