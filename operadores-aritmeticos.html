@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Operadores Aritméticos — +, -, *, /, % e ** | Guia JavaScript</title>
+<meta name="description" content="Os operadores aritméticos do JavaScript para quem nunca programou: somar, subtrair, multiplicar, dividir, o resto da divisão (%), a potência (**), a ordem das contas e os parênteses, divisão por zero (Infinity), porcentagem, e os erros reais do Node.js 24 (-2 ** 2, o x no lugar do *, o // do Python).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Operadores Aritméticos</span></h1>
+
+<p class="intro">Computador, no fundo, é uma calculadora muito rápida. Somar o total das compras, calcular o troco, tirar a média da turma, descobrir se um número é par: tudo isso usa os <strong>operadores aritméticos</strong>, os sinais das contas. O JavaScript tem seis: os quatro da escola (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>) e mais dois que você talvez não conheça: o <strong>resto da divisão</strong> (<code>%</code>) e a <strong>potência</strong> (<code>**</code>).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os seis operadores aritméticos e o símbolo de cada um no teclado.</li>
+  <li>Como a divisão funciona, e o que acontece quando se divide por zero.</li>
+  <li>Para que serve o resto da divisão (<code>%</code>): par ou ímpar, horas e minutos, caixas de ovos.</li>
+  <li>A potência (<code>**</code>) e a raiz quadrada.</li>
+  <li>Qual conta o JavaScript faz primeiro, e como os parênteses mudam isso.</li>
+  <li>Como calcular uma porcentagem (e por que o <code>%</code> <strong>não</strong> é porcentagem).</li>
+  <li>Os erros reais: <code>-2 ** 2</code>, o <code>x</code> no lugar do <code>*</code> e o <code>//</code> de outras linguagens.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a calculadora do celular</h2>
+<p>Você já usa operadores todo dia, na calculadora do celular: digita <code>12</code>, aperta <code>×</code>, digita <code>0,75</code>, aperta <code>=</code>. No JavaScript é a mesma coisa, com três diferenças:</p>
+<ul>
+  <li>O "vezes" é o <strong>asterisco</strong> <code>*</code> e o "dividir" é a <strong>barra</strong> <code>/</code>, porque os símbolos <code>×</code> e <code>÷</code> não existem no teclado comum.</li>
+  <li>As casas decimais usam <strong>ponto</strong>: <code>0.75</code>, e não <code>0,75</code>.</li>
+  <li>Não tem tecla <code>=</code> para "ver o resultado": você pede para mostrar com <code>console.log</code>, ou guarda o resultado numa variável.</li>
+</ul>
+
+<hr>
+
+<h2>1. Os seis operadores</h2>
+
+<pre class="file" data-file="basico.js">console.log(7 + 3);
+console.log(7 - 3);
+console.log(7 * 3);
+console.log(7 / 3);
+console.log(7 % 3);
+console.log(7 ** 3);
+</pre>
+
+<pre class="term">$ node basico.js
+10
+4
+21
+2.3333333333333335
+1
+343
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Nome</th><th>Exemplo</th><th>Resultado</th><th>Lê-se</th></tr>
+<tr><td><code>+</code></td><td>Adição</td><td><code>7 + 3</code></td><td><code>10</code></td><td>"7 mais 3"</td></tr>
+<tr><td><code>-</code></td><td>Subtração</td><td><code>7 - 3</code></td><td><code>4</code></td><td>"7 menos 3"</td></tr>
+<tr><td><code>*</code></td><td>Multiplicação</td><td><code>7 * 3</code></td><td><code>21</code></td><td>"7 vezes 3"</td></tr>
+<tr><td><code>/</code></td><td>Divisão</td><td><code>7 / 3</code></td><td><code>2.3333333333333335</code></td><td>"7 dividido por 3"</td></tr>
+<tr><td><code>%</code></td><td>Resto da divisão</td><td><code>7 % 3</code></td><td><code>1</code></td><td>"o resto de 7 dividido por 3"</td></tr>
+<tr><td><code>**</code></td><td>Potência (exponenciação)</td><td><code>7 ** 3</code></td><td><code>343</code></td><td>"7 elevado a 3"</td></tr>
+</table>
+</div>
+
+<p>Os valores dos dois lados de um operador se chamam <strong>operandos</strong>. Em <code>7 + 3</code>, o <code>+</code> é o operador, e o <code>7</code> e o <code>3</code> são os operandos. Os espaços em volta do operador são opcionais (<code>7+3</code> também funciona), mas o guia usa sempre, porque deixam a conta mais fácil de ler.</p>
+<p>Repare no <code>2.3333333333333335</code>: a dízima não tem fim, o computador guarda só um pedaço dela, e o último dígito sai "torto". Isso é a precisão dos números com vírgula, explicada em <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>.</p>
+
+<hr>
+
+<h2>2. Contas com variáveis</h2>
+<p>Na vida real, os números ficam guardados em variáveis com nomes que dizem o que eles são. A Ana comprou 12 pães de R$ 0,75 e pagou com uma nota de 20:</p>
+
+<pre class="file" data-file="padaria.js">const precoPao = 0.75;
+const quantidade = 12;
+const total = precoPao * quantidade;
+const pago = 20;
+const troco = pago - total;
+console.log("Total:", total);
+console.log("Troco:", troco);
+</pre>
+
+<dl class="anatomy">
+  <dt>const total = precoPao * quantidade;</dt><dd>O JavaScript primeiro faz a conta do lado direito do <code>=</code> (0,75 vezes 12) e depois guarda o resultado em <code>total</code>. O <code>=</code> aqui não é o "igual" da matemática: é "guarde em" (veja <a href="atribuicao.html">Atribuição</a>).</dd>
+  <dt>const troco = pago - total;</dt><dd>Uma conta pode usar o resultado de outra. Como <code>total</code> já vale 9, o troco é 20 menos 9.</dd>
+  <dt>console.log("Total:", total);</dt><dd>Mostra o texto e o valor, separados por um espaço (veja <a href="console-log.html">console.log()</a>).</dd>
+</dl>
+
+<pre class="term">$ node padaria.js
+Total: 9
+Troco: 11
+</pre>
+
+<p>Com nomes assim, quem lê o programa entende a conta sem precisar de comentário. Compare com <code>const t = 20 - 0.75 * 12;</code>: funciona igual, mas o que é cada número?</p>
+
+<div class="tryjs" data-goal="out:Troco: 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana resolveu levar também um bolo de R$ 6. Acrescente uma constante <code>precoBolo</code> com o valor 6 e some o bolo no <code>total</code>, para o troco dar <code>Troco: 5</code>.</p>
+<pre class="script" data-file="main.js">const precoPao = 0.75;
+const quantidade = 12;
+const total = precoPao * quantidade;
+const pago = 20;
+const troco = pago - total;
+console.log("Total:", total);
+console.log("Troco:", troco);
+</pre>
+<pre class="solucao" data-file="main.js">const precoPao = 0.75;
+const quantidade = 12;
+const precoBolo = 6;
+const total = precoPao * quantidade + precoBolo;
+const pago = 20;
+const troco = pago - total;
+console.log("Total:", total);
+console.log("Troco:", troco);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A divisão, e a divisão por zero</h2>
+
+<pre class="file" data-file="divisao.js">console.log(10 / 2);
+console.log(10 / 4);
+console.log(10 / 3);
+console.log(Math.trunc(10 / 3));
+console.log(10 / 0);
+console.log(-10 / 0);
+console.log(0 / 0);
+</pre>
+
+<pre class="term">$ node divisao.js
+5
+2.5
+3.3333333333333335
+3
+Infinity
+-Infinity
+NaN
+</pre>
+
+<dl class="anatomy">
+  <dt>10 / 2 → 5 e 10 / 4 → 2.5</dt><dd>No JavaScript, a divisão sempre dá o resultado <strong>completo</strong>, com casas decimais se precisar. (Em algumas linguagens, dividir dois inteiros joga as casas fora; aqui, não.)</dd>
+  <dt>Math.trunc(10 / 3) → 3</dt><dd>Se você quer só a parte inteira da divisão (quantas vezes o 3 "cabe" no 10), use <code>Math.trunc</code> ("truncar", cortar). O JavaScript não tem um operador próprio para isso; o <code>Math</code> tem aula própria: <a href="math.html">Math</a>.</dd>
+  <dt>10 / 0 → Infinity</dt><dd>Na matemática da escola, dividir por zero "não pode". O JavaScript não para o programa: ele responde <code>Infinity</code> ("infinito"), ou <code>-Infinity</code> se o número for negativo.</dd>
+  <dt>0 / 0 → NaN</dt><dd>Zero dividido por zero não tem resposta nenhuma: <code>NaN</code>, "não é um número". Os dois valores especiais estão em <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>.</dd>
+</dl>
+
+<p>Como a divisão por zero não dá erro, um <code>Infinity</code> ou um <code>NaN</code> na tela é a pista de que alguma conta dividiu por algo que valia zero (por exemplo, a média de uma turma sem nenhum aluno).</p>
+
+<hr>
+
+<h2>4. O resto da divisão: <code>%</code></h2>
+<p>Lembra da divisão "com resto" da escola? 10 dividido por 3 dá 3, e <strong>sobra 1</strong>. O <code>%</code> responde só a sobra:</p>
+
+<pre class="file" data-file="resto.js">console.log(10 % 3);
+console.log(12 % 2);
+console.log(13 % 2);
+console.log(2 % 5);
+console.log(-7 % 3);
+console.log(7.5 % 2);
+</pre>
+
+<pre class="term">$ node resto.js
+1
+0
+1
+2
+-1
+1.5
+</pre>
+
+<dl class="anatomy">
+  <dt>10 % 3 → 1</dt><dd>O 3 cabe 3 vezes no 10 (3 × 3 = 9), e sobra 1.</dd>
+  <dt>12 % 2 → 0 e 13 % 2 → 1</dt><dd>O truque mais famoso do <code>%</code>: um número dividido por 2 sobra <strong>0</strong> quando é <strong>par</strong> e <strong>1</strong> quando é <strong>ímpar</strong>.</dd>
+  <dt>2 % 5 → 2</dt><dd>O 5 não cabe nenhuma vez no 2: sobra o 2 inteiro.</dd>
+  <dt>-7 % 3 → -1</dt><dd>Com número negativo, o resto fica com o sinal do primeiro número.</dd>
+  <dt>7.5 % 2 → 1.5</dt><dd>Funciona até com casas decimais: o 2 cabe 3 vezes no 7,5 e sobra 1,5.</dd>
+</dl>
+
+<p>O resto parece coisa de prova de matemática, mas resolve problemas do dia a dia. A granja embala ovos em caixas de 12. Com 50 ovos, quantas caixas ficam cheias, e quantos ovos sobram?</p>
+
+<pre class="file" data-file="ovos.js">const ovos = 50;
+const caixas = Math.trunc(ovos / 12);
+const sobra = ovos % 12;
+console.log(`${caixas} caixas cheias e ${sobra} ovos soltos`);
+</pre>
+
+<pre class="term">$ node ovos.js
+4 caixas cheias e 2 ovos soltos
+</pre>
+
+<p>A mesma dupla (<code>Math.trunc</code> da divisão e <code>%</code>) transforma minutos em horas e minutos, porque uma hora tem 60 minutos:</p>
+
+<pre class="file" data-file="minutos.js">const totalMinutos = 135;
+const horas = Math.trunc(totalMinutos / 60);
+const minutos = totalMinutos % 60;
+console.log(`${totalMinutos} minutos = ${horas} h e ${minutos} min`);
+</pre>
+
+<pre class="term">$ node minutos.js
+135 minutos = 2 h e 15 min
+</pre>
+
+<div class="tryjs" data-goal="out:7 caixas cheias e 6 ovos soltos;;src:%">
+<p class="try-task"><strong>Experimente:</strong> chegaram <strong>90</strong> ovos. Troque o valor de <code>ovos</code> e rode. Depois, experimente caixas de meia dúzia (troque os dois <code>12</code> por <code>6</code>) e veja se sobra algum.</p>
+<pre class="script" data-file="main.js">const ovos = 50;
+const caixas = Math.trunc(ovos / 12);
+const sobra = ovos % 12;
+console.log(`${caixas} caixas cheias e ${sobra} ovos soltos`);
+</pre>
+<pre class="solucao" data-file="main.js">const ovos = 90;
+const caixas = Math.trunc(ovos / 12);
+const sobra = ovos % 12;
+console.log(`${caixas} caixas cheias e ${sobra} ovos soltos`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. A potência: <code>**</code></h2>
+<p>Dois asteriscos seguidos, <code>**</code>, elevam um número a outro: <code>2 ** 3</code> é 2 × 2 × 2.</p>
+
+<pre class="file" data-file="potencia.js">console.log(2 ** 3);
+console.log(10 ** 2);
+console.log(5 ** 0);
+console.log(2 ** -1);
+console.log(9 ** 0.5);
+console.log(Math.pow(2, 3));
+</pre>
+
+<pre class="term">$ node potencia.js
+8
+100
+1
+0.5
+3
+8
+</pre>
+
+<dl class="anatomy">
+  <dt>2 ** 3 → 8 e 10 ** 2 → 100</dt><dd>"2 ao cubo" e "10 ao quadrado".</dd>
+  <dt>5 ** 0 → 1</dt><dd>Qualquer número elevado a zero dá 1, como na matemática.</dd>
+  <dt>2 ** -1 → 0.5</dt><dd>Expoente negativo é "1 dividido por": 1 / 2.</dd>
+  <dt>9 ** 0.5 → 3</dt><dd>Elevar a 0,5 é tirar a <strong>raiz quadrada</strong>. (O <code>Math.sqrt(9)</code> faz o mesmo, com um nome mais claro: aula <a href="math.html">Math</a>.)</dd>
+  <dt>Math.pow(2, 3) → 8</dt><dd>O jeito antigo de fazer potência, de antes de o <code>**</code> existir (ele chegou em 2016, no ECMAScript 2016). Você vai ver em código antigo; prefira o <code>**</code>.</dd>
+</dl>
+
+<div class="warning">
+<strong>O <code>^</code> não é potência</strong>
+<p>Em calculadoras e planilhas, <code>2^3</code> é potência. No JavaScript, o <code>^</code> é outra coisa (uma operação com os bits do número), e <code>2 ^ 3</code> dá <code>1</code>, sem erro nenhum. Para potência, sempre <code>**</code>.</p>
+</div>
+
+<hr>
+
+<h2>6. Quem vem primeiro: a ordem das contas</h2>
+<p>Como na escola, o JavaScript não faz as contas simplesmente da esquerda para a direita: ele segue uma <strong>ordem de prioridade</strong> (os programadores dizem <em>precedência</em>):</p>
+<ol class="passo">
+  <li>Primeiro, o que está entre <strong>parênteses</strong>.</li>
+  <li>Depois, a <strong>potência</strong> (<code>**</code>).</li>
+  <li>Depois, <strong>multiplicação, divisão e resto</strong> (<code>*</code>, <code>/</code>, <code>%</code>), da esquerda para a direita.</li>
+  <li>Por último, <strong>soma e subtração</strong> (<code>+</code>, <code>-</code>), da esquerda para a direita.</li>
+</ol>
+
+<pre class="file" data-file="ordem.js">console.log(2 + 3 * 4);
+console.log((2 + 3) * 4);
+console.log(10 - 4 - 3);
+console.log(2 ** 3 ** 2);
+console.log((8 + 6 + 10) / 3);
+console.log(8 + 6 + 10 / 3);
+</pre>
+
+<pre class="term">$ node ordem.js
+14
+20
+3
+512
+8
+17.333333333333332
+</pre>
+
+<dl class="anatomy">
+  <dt>2 + 3 * 4 → 14</dt><dd>A multiplicação vem antes: 3 × 4 = 12, e depois 2 + 12 = 14.</dd>
+  <dt>(2 + 3) * 4 → 20</dt><dd>Os parênteses mandam: 2 + 3 = 5, e depois 5 × 4 = 20.</dd>
+  <dt>10 - 4 - 3 → 3</dt><dd>Mesma prioridade: da esquerda para a direita. (10 − 4) − 3 = 3.</dd>
+  <dt>2 ** 3 ** 2 → 512</dt><dd>A exceção: a potência vai da <strong>direita para a esquerda</strong>. Primeiro 3 ** 2 = 9, depois 2 ** 9 = 512.</dd>
+  <dt>(8 + 6 + 10) / 3 → 8</dt><dd>A média de três notas: some tudo <strong>entre parênteses</strong> e depois divida.</dd>
+  <dt>8 + 6 + 10 / 3 → 17.33…</dt><dd>Sem os parênteses, só o 10 foi dividido por 3. Uma média de 17 para notas de 0 a 10: o erro mais comum de quem começa.</dd>
+</dl>
+
+<p>Na dúvida, <strong>use parênteses</strong>: eles nunca atrapalham e deixam a intenção clara. A tabela completa da prioridade de todos os operadores está em <a href="precedencia.html">Precedência dos Operadores</a>.</p>
+
+<div class="tryjs" data-goal="out:Média: 8;;semerro">
+<p class="try-task"><strong>Missão:</strong> a média das notas da Ana está saindo <code>17.333333333333332</code>. Ponha os parênteses no lugar certo para ela dar <code>Média: 8</code>.</p>
+<pre class="script" data-file="main.js">const nota1 = 8;
+const nota2 = 6;
+const nota3 = 10;
+const media = nota1 + nota2 + nota3 / 3;
+console.log(`Média: ${media}`);
+</pre>
+<pre class="solucao" data-file="main.js">const nota1 = 8;
+const nota2 = 6;
+const nota3 = 10;
+const media = (nota1 + nota2 + nota3) / 3;
+console.log(`Média: ${media}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>7. O sinal de menos sozinho</h2>
+<p>O <code>-</code> também funciona com um valor só, na frente dele, para <strong>trocar o sinal</strong>:</p>
+
+<pre class="file" data-file="sinal.js">const temperatura = 5;
+console.log(-temperatura);
+console.log(- -temperatura);
+console.log(3 - -2);
+</pre>
+
+<pre class="term">$ node sinal.js
+-5
+5
+5
+</pre>
+
+<p><code>-temperatura</code> é "o contrário de 5": −5. Dois sinais de menos se cancelam, como na matemática, e <code>3 - -2</code> é 3 + 2. (O <code>+</code> na frente de um valor também existe, mas serve para converter texto em número: veja <a href="conversao.html">Conversão</a>.) E existem ainda o <code>++</code> e o <code>--</code>, que somam ou tiram 1 de uma variável: aula <a href="incremento.html">Incremento e Decremento</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa: a porcentagem</h2>
+<p>O JavaScript não tem um operador de porcentagem. O <code>%</code> é o <strong>resto</strong>, e confundir os dois é um erro clássico. Uma camiseta custa R$ 80 e está com 10% de desconto:</p>
+
+<pre class="file" data-file="porcento.js">const preco = 80;
+console.log(preco % 10);
+console.log(preco * 10 / 100);
+console.log(preco * 0.10);
+console.log(preco - preco * 10 / 100);
+console.log(preco * 0.9);
+</pre>
+
+<pre class="term">$ node porcento.js
+0
+8
+8
+72
+72
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que é</th></tr>
+<tr><td><code>preco % 10</code></td><td><code>0</code></td><td><strong>Errado</strong>: é o resto de 80 dividido por 10, e não 10%</td></tr>
+<tr><td><code>preco * 10 / 100</code></td><td><code>8</code></td><td>10% de 80, do jeito da escola ("10 por cento" = 10 dividido por 100). Fica clara a porcentagem</td></tr>
+<tr><td><code>preco * 0.10</code></td><td><code>8</code></td><td>10% de 80, com a porcentagem já em decimal (10% = 0,10)</td></tr>
+<tr><td><code>preco - preco * 10 / 100</code></td><td><code>72</code></td><td>O preço com o desconto, em duas partes que dá para ler</td></tr>
+<tr><td><code>preco * 0.9</code></td><td><code>72</code></td><td>O mesmo, num atalho: pagar 90% do preço</td></tr>
+</table>
+</div>
+
+<p>Qual usar? A que deixa a conta mais fácil de entender para quem vai ler. Para um programa de loja, uma constante com nome ajuda mais que qualquer atalho: <code>const desconto = preco * percentualDesconto / 100;</code>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Sinal de menos antes de uma potência</strong>
+<pre class="file" data-file="menosquadrado.js">console.log(-2 ** 2);
+</pre>
+<pre class="term">$ node menosquadrado.js
+/home/ana/menosquadrado.js:1
+console.log(-2 ** 2);
+            ^^^^^
+
+SyntaxError: Unary operator used immediately before exponentiation expression. Parenthesis must be used to disambiguate operator precedence
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/menosquadrado.js:1</dt><dd>O arquivo e a linha: a 1.</dd>
+  <dt>console.log(-2 ** 2); e o ^^^^^</dt><dd>Os <code>^</code> sublinham o trecho <code>-2 **</code>, onde está a ambiguidade.</dd>
+  <dt>SyntaxError: Unary operator used immediately before exponentiation expression…</dt><dd>"Erro de sintaxe: operador de um valor só usado logo antes de uma potência. É preciso usar parênteses para tirar a dúvida da prioridade". A dúvida é: você quer (−2)² = 4, ou −(2²) = −4? Em vez de adivinhar, o JavaScript se recusa a rodar.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Todas as linhas <code>at</code> são de dentro do Node: o erro foi achado <strong>antes</strong> de o seu programa começar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> diga o que quer com parênteses: <code>(-2) ** 2</code> (dá 4) ou <code>-(2 ** 2)</code> (dá −4).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>x</code> ou <code>×</code> para multiplicar</strong>
+<pre class="file" data-file="vezes.js">console.log(5 x 3);
+</pre>
+<pre class="term">$ node vezes.js
+/home/ana/vezes.js:1
+console.log(5 x 3);
+            ^
+
+SyntaxError: missing ) after argument list
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Falta o <code>)</code> depois da lista de argumentos". A mensagem parece não ter nada a ver, mas faz sentido do ponto de vista do JavaScript: ele leu <code>console.log(5</code> e esperava um operador ou o <code>)</code>. Veio um <code>x</code>, que para ele é só uma letra (poderia ser o nome de uma variável), e ele concluiu que você esqueceu de fechar o parêntese. Com o símbolo <code>×</code> a mensagem é a mesma. <strong>Como consertar:</strong> <code>5 * 3</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>//</code> para divisão inteira (como no Python)</strong>
+<pre class="file" data-file="barras.js">console.log(7 // 2);
+</pre>
+<pre class="term">$ node barras.js
+/home/ana/barras.js:1
+console.log(7 // 2);
+            ^
+
+SyntaxError: missing ) after argument list
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>No Python, <code>7 // 2</code> é a divisão inteira. No JavaScript, <code>//</code> começa um <strong>comentário</strong> (veja <a href="comentarios.html">Comentários</a>): tudo depois dele na linha é ignorado. O JavaScript leu só <code>console.log(7</code>, e faltou o <code>)</code>. <strong>Como consertar:</strong> <code>Math.trunc(7 / 2)</code>, que dá 3.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>%</code> como porcentagem</strong>
+<p>Não dá erro, só resultado errado: <code>80 % 10</code> deu <code>0</code> no lab, e não 8. O <code>%</code> é o resto da divisão. <strong>Como consertar:</strong> <code>80 * 10 / 100</code> (veja <a href="#formas">a porcentagem</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu o número com vírgula</strong>
+<p>No JavaScript, a vírgula <strong>separa</strong> coisas, e o resultado depende de onde ela está. Em <code>const preco = 0,75;</code>, o Node para com <code>SyntaxError: Unexpected number</code> ("número inesperado"), com os <code>^^</code> embaixo do <code>75</code>. Pior é dentro do <code>console.log</code>: <code>console.log(0,75 * 12)</code> não dá erro e mostra <code>0 900</code>, dois valores separados, o <code>0</code> e o <code>75 * 12</code>. <strong>Como consertar:</strong> use ponto: <code>0.75</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Somou e o resultado grudou</strong>
+<p>Se um dos valores for texto, o <code>+</code> junta em vez de somar: <code>"7" + 3</code> dá <code>"73"</code>. Os outros operadores convertem o texto para número e funcionam. Veja <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:2 h e 15 min;;semerro">
+<p class="try-task"><strong>Missão:</strong> quem escreveu este programa veio do Python e usou <code>//</code>, e quem escreveu a segunda conta confundiu o resto com porcentagem. O programa nem dá erro (o <code>//</code> só transformou o <code>60;</code> em comentário), mas mostra <code>135 minutos = 135 h e 2.25 min</code>. Conserte as duas linhas para o programa mostrar <code>135 minutos = 2 h e 15 min</code>.</p>
+<pre class="script" data-file="main.js">const totalMinutos = 135;
+const horas = totalMinutos // 60;
+const minutos = totalMinutos / 60;
+console.log(`${totalMinutos} minutos = ${horas} h e ${minutos} min`);
+</pre>
+<pre class="solucao" data-file="main.js">const totalMinutos = 135;
+const horas = Math.trunc(totalMinutos / 60);
+const minutos = totalMinutos % 60;
+console.log(`${totalMinutos} minutos = ${horas} h e ${minutos} min`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que faz</th></tr>
+<tr><td><code>a + b</code></td><td><code>7 + 3</code> → <code>10</code></td><td>Soma (com texto, junta)</td></tr>
+<tr><td><code>a - b</code></td><td><code>7 - 3</code> → <code>4</code></td><td>Subtração</td></tr>
+<tr><td><code>a * b</code></td><td><code>7 * 3</code> → <code>21</code></td><td>Multiplicação</td></tr>
+<tr><td><code>a / b</code></td><td><code>10 / 4</code> → <code>2.5</code></td><td>Divisão (sempre completa)</td></tr>
+<tr><td><code>a % b</code></td><td><code>10 % 3</code> → <code>1</code></td><td>Resto da divisão; <code>n % 2</code> é 0 para par e 1 para ímpar</td></tr>
+<tr><td><code>a ** b</code></td><td><code>2 ** 3</code> → <code>8</code></td><td>Potência; <code>x ** 0.5</code> é a raiz quadrada</td></tr>
+<tr><td><code>-a</code></td><td><code>-5</code></td><td>Troca o sinal</td></tr>
+<tr><td><code>Math.trunc(a / b)</code></td><td><code>Math.trunc(10 / 3)</code> → <code>3</code></td><td>Só a parte inteira da divisão</td></tr>
+<tr><td><code>x / 0</code> / <code>0 / 0</code></td><td><code>Infinity</code> / <code>NaN</code></td><td>Divisão por zero não dá erro</td></tr>
+<tr><td><code>valor * p / 100</code></td><td><code>80 * 10 / 100</code> → <code>8</code></td><td>Porcentagem</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Média ou total maior do que devia</td><td>Faltaram parênteses: a divisão foi feita antes da soma</td></tr>
+<tr><td><code>Infinity</code> ou <code>NaN</code> no resultado</td><td>Divisão por zero (ou por algo que valia zero)</td></tr>
+<tr><td><code>Unary operator used immediately before exponentiation</code></td><td><code>-2 ** 2</code>: ponha parênteses</td></tr>
+<tr><td><code>missing ) after argument list</code> numa conta</td><td><code>x</code> ou <code>×</code> no lugar do <code>*</code>, ou <code>//</code> (que é comentário)</td></tr>
+<tr><td>Desconto ou porcentagem dando 0 ou valor esquisito</td><td>Usou <code>%</code> (resto) como porcentagem</td></tr>
+<tr><td>"Soma" que gruda os números</td><td>Um dos valores era texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto dá?</h3>
+<p>O que <code>console.log(17 % 5);</code> mostra?</p>
+<div class="ex-code"><input data-answer="2" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A ordem</h3>
+<p>O que <code>console.log(10 - 2 * 3);</code> mostra?</p>
+<div class="ex-code"><input data-answer="4" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Potência</h3>
+<p>Complete para calcular 3 elevado a 4:</p>
+<div class="ex-code">console.log(3 <input data-answer="**" aria-label="operador de potência"> 4);</div>
+</div>
+
+<div class="exercise">
+<h3>4. Divisão por zero</h3>
+<p>O que <code>console.log(5 / 0);</code> mostra?</p>
+<div class="ex-code"><input data-answer="Infinity" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual conta diz se o número guardado em <code>n</code> é par?</p>
+<label><input type="radio" name="q5"> <code>n / 2 === 0</code></label>
+<label><input type="radio" name="q5"> <code>n * 2 === 0</code></label>
+<label><input type="radio" name="q5"> <code>n % 2 === 0</code></label>
+<label><input type="radio" name="q5"> <code>n ** 2 === 0</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Como se calcula 15% de <code>preco</code>?</p>
+<label><input type="radio" name="q6"> <code>preco % 15</code></label>
+<label><input type="radio" name="q6"> <code>preco * 15 / 100</code></label>
+<label><input type="radio" name="q6"> <code>preco / 15</code></label>
+<label><input type="radio" name="q6"> <code>preco ** 15</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. O que <code>(2 + 4) / 2</code> e <code>2 + 4 / 2</code> dão, nessa ordem?</p>
+<label><input type="radio" name="q7"> <code>3</code> e <code>4</code></label>
+<label><input type="radio" name="q7"> <code>3</code> e <code>3</code></label>
+<label><input type="radio" name="q7"> <code>4</code> e <code>3</code></label>
+<label><input type="radio" name="q7"> <code>4</code> e <code>4</code></label>
+</div>
+
+<h3>Missão final: dividindo a pizza</h3>
+
+<div class="tryjs" data-goal="out:Cada um come 2 fatias e sobram 2.;;src:%">
+<p class="try-task"><strong>Missão:</strong> duas pizzas de 8 fatias, para 7 amigos. Complete as duas contas: <code>porPessoa</code> é quantas fatias inteiras cada um come (use <code>Math.trunc</code> e a divisão), e <code>sobram</code> é o resto (use o <code>%</code>). O programa deve mostrar <code>Cada um come 2 fatias e sobram 2.</code></p>
+<pre class="script" data-file="main.js">const fatias = 2 * 8;
+const amigos = 7;
+const porPessoa = 0; // troque o 0 pela conta
+const sobram = 0;    // troque o 0 pela conta
+console.log(`Cada um come ${porPessoa} fatias e sobram ${sobram}.`);
+</pre>
+<pre class="solucao" data-file="main.js">const fatias = 2 * 8;
+const amigos = 7;
+const porPessoa = Math.trunc(fatias / amigos);
+const sobram = fatias % amigos;
+console.log(`Cada um come ${porPessoa} fatias e sobram ${sobram}.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Os operadores aritméticos são <code>+</code>, <code>-</code>, <code>*</code> (vezes), <code>/</code> (dividir), <code>%</code> (resto) e <code>**</code> (potência). Casas decimais usam ponto.</li>
+  <li>A divisão sempre dá o resultado completo (<code>10 / 4</code> é <code>2.5</code>); para a parte inteira, <code>Math.trunc(a / b)</code>. Dividir por zero dá <code>Infinity</code> (ou <code>NaN</code>, para <code>0 / 0</code>), sem erro.</li>
+  <li>O <code>%</code> dá o resto: <code>n % 2</code> diz se é par (0) ou ímpar (1). Ele <strong>não</strong> é porcentagem: 10% de um valor é <code>valor * 10 / 100</code>.</li>
+  <li>Ordem: parênteses, potência, depois <code>* / %</code>, depois <code>+ -</code>. Na dúvida, parênteses: <code>(a + b + c) / 3</code>.</li>
+  <li><code>-2 ** 2</code> é erro (ponha parênteses); <code>x</code> não multiplica e <code>//</code> é comentário.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
