@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Criando e Removendo Elementos — createElement, append e remove | Guia JavaScript</title>
+<meta name="description" content="Como criar e remover elementos da página com JavaScript, para quem nunca programou: document.createElement, textContent, append, prepend, before e after, montar uma lista a partir de um array, remove, replaceChildren, replaceWith, cloneNode, o perigo do innerHTML com texto do usuário e os erros reais do navegador (null, parameter 1 is not of type 'Node', InvalidCharacterError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Criando e Removendo Elementos</span></h1>
+
+<p class="intro">Nas aulas anteriores você <strong>mudou</strong> elementos que já estavam na página: trocou um texto, um atributo, uma cor. Mas muita página precisa de elementos que <strong>não existiam</strong> quando ela abriu: o item novo da lista de compras, a mensagem nova do chat, a linha nova da tabela de notas. E precisa <strong>tirar</strong> coisas: o item já comprado, o aviso que já foi lido. Nesta aula, o JavaScript vai fabricar elementos do zero, colocá-los no lugar certo e removê-los.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como fabricar um elemento com <code>document.createElement</code> e pôr um texto nele com <code>textContent</code>.</li>
+  <li>Por que um elemento criado <strong>ainda não aparece</strong>, e como colocá-lo na página: <code>append</code>, <code>prepend</code>, <code>before</code> e <code>after</code>.</li>
+  <li>Como montar uma lista inteira a partir de um array.</li>
+  <li>Como remover (<code>remove</code>), esvaziar (<code>replaceChildren</code>), trocar (<code>replaceWith</code>) e copiar (<code>cloneNode</code>) elementos.</li>
+  <li>O atalho <code>innerHTML</code>, e por que ele é perigoso com texto digitado pelo usuário.</li>
+  <li>Os erros reais mais comuns: o <code>null</code> do seletor errado, o texto passado para o <code>appendChild</code> e o nome de etiqueta inválido.</li>
+</ul>
+</div>
+
+<p>Esta aula é do <strong>navegador</strong>: <code>document</code> só existe numa página web, não no Node.js (a seção <a href="#errado">Quando dá errado</a> mostra o que o Node responde). As respostas do Console mostradas aqui vieram do Chromium da máquina da Ana; os exemplos rodam nas caixas "Experimente", que abrem a página de verdade no seu navegador. Se ainda não leu, veja antes <a href="dom.html">O que é o DOM</a> e <a href="dom-selecionar.html">Selecionando Elementos</a>.</p>
+
+<hr>
+
+<h2>A ideia: escrever o bilhete e depois colar na geladeira</h2>
+<p>A Ana deixa a lista de compras presa na porta da geladeira com um ímã. Para acrescentar "Café", ela faz três coisas, nesta ordem:</p>
+<ol class="passo">
+  <li><strong>Pega um papelzinho</strong> em branco. Ele existe, está na mão dela, mas ninguém da casa o vê.</li>
+  <li><strong>Escreve</strong> "Café" no papel.</li>
+  <li><strong>Prende</strong> o papel na geladeira, embaixo dos outros. Só agora ele faz parte da lista.</li>
+</ol>
+<p>No JavaScript são os mesmos três passos: <strong>criar</strong> o elemento (<code>createElement</code>), <strong>preencher</strong> (<code>textContent</code>) e <strong>anexar</strong> na página (<code>append</code>). O erro mais comum de quem começa é parar no passo 2: o papel fica escrito na mão, e a lista da geladeira continua igual.</p>
+
+<hr>
+
+<h2>1. Criar, preencher e anexar</h2>
+<p>A página da Ana tem uma lista com dois itens. O script acrescenta um terceiro:</p>
+
+<pre class="file" data-file="index.html">&lt;h2&gt;Compras&lt;/h2&gt;
+&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão&lt;/li&gt;
+  &lt;li&gt;Leite&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+
+const item = document.createElement("li");
+item.textContent = "Café";
+lista.append(item);
+</pre>
+
+<dl class="anatomy">
+  <dt>document.querySelector("#lista")</dt><dd>Acha a lista que já está na página (veja <a href="dom-selecionar.html">Selecionando Elementos</a>). É nela que o item novo vai entrar.</dd>
+  <dt>document.createElement("li")</dt><dd>"Criar elemento". Fabrica um elemento novo, vazio, da etiqueta que você pedir: <code>"li"</code>, <code>"p"</code>, <code>"button"</code>, <code>"img"</code>… Escreva só o <strong>nome</strong> da etiqueta, sem <code>&lt;</code> e <code>&gt;</code>. O elemento nasce <strong>fora</strong> da página: é o papelzinho na mão.</dd>
+  <dt>const item</dt><dd>Guardamos o elemento novo numa variável para poder mexer nele. <code>const</code> porque a variável vai apontar sempre para o mesmo elemento (o conteúdo dele pode mudar à vontade).</dd>
+  <dt>item.textContent = "Café"</dt><dd>Escreve o texto dentro do elemento (veja <a href="dom-alterar.html">Mudando Textos e Atributos</a>).</dd>
+  <dt>lista.append(item)</dt><dd>"Anexar". Põe o <code>item</code> <strong>dentro</strong> da lista, <strong>no fim</strong>, depois do último filho. Só agora ele aparece na tela.</dd>
+</dl>
+
+<p>Na página aparece a lista com três itens: Pão, Leite e Café. No Console do navegador (<kbd>F12</kbd>, aba Console; veja <a href="console-navegador.html">O Console do Navegador</a>), a Ana pediu o HTML da lista depois que o script rodou:</p>
+
+<pre class="devtools">&gt; document.querySelector("#lista").outerHTML
+'&lt;ul id="lista"&gt;\n  &lt;li&gt;Pão&lt;/li&gt;\n  &lt;li&gt;Leite&lt;/li&gt;\n&lt;li&gt;Café&lt;/li&gt;&lt;/ul&gt;'
+</pre>
+
+<p>O <code>outerHTML</code> ("HTML de fora") mostra o elemento com tudo o que tem dentro. Os <code>\n</code> e os espaços são as quebras de linha e a indentação que estavam no arquivo <code>index.html</code>; o <code>&lt;li&gt;Café&lt;/li&gt;</code> entrou colado no fim, sem indentação, porque o JavaScript só colocou o elemento, não espaços. Para o navegador isso não faz diferença nenhuma na tela.</p>
+
+<div class="note">
+<strong>O arquivo não muda</strong>
+<p>O <code>append</code> muda a página <strong>que está aberta</strong> (o DOM), não o arquivo <code>index.html</code>. Se você recarregar a página, ela volta a ter dois itens, e o script acrescenta o Café de novo. Para lembrar de coisas entre uma visita e outra, existe o <a href="localstorage.html">localStorage</a>.</p>
+</div>
+
+<h3>Criado não é o mesmo que estar na página</h3>
+<p>Dá para ver os três passos um por um no Console. A propriedade <code>isConnected</code> ("está conectado?") diz se o elemento já está dentro da página:</p>
+
+<pre class="devtools">&gt; const papel = document.createElement("li")
+undefined
+&gt; papel.textContent = "Manteiga"
+'Manteiga'
+&gt; papel.isConnected
+false
+&gt; document.querySelector("#lista").append(papel)
+undefined
+&gt; papel.isConnected
+true
+</pre>
+
+<p>Depois do <code>createElement</code> e do <code>textContent</code>, o elemento existe e tem texto, mas <code>isConnected</code> é <code>false</code>: nada mudou na tela. Só depois do <code>append</code> ele vira <code>true</code> e a Manteiga aparece na lista. (O <code>undefined</code> depois do <code>const</code> e do <code>append</code> não é erro: é o Console dizendo que aquela instrução não devolve nenhum valor.)</p>
+
+<div class="tryweb" data-goal="texto:#lista~Café;;src:createElement;;semerro" data-acoes="clicar #adicionar">
+<p class="try-task"><strong>Missão:</strong> o botão já está pronto, mas o código do clique só cria o elemento e não faz mais nada. Complete os passos 2 e 3: escreva "Café" no <code>item</code> e anexe-o na lista. Depois rode e clique no botão (clique mais vezes para ver vários cafés).</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Compras&lt;/h2&gt;
+&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão&lt;/li&gt;
+  &lt;li&gt;Leite&lt;/li&gt;
+&lt;/ul&gt;
+&lt;button id="adicionar"&gt;Adicionar Café&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lista");
+const botao = document.querySelector("#adicionar");
+
+botao.addEventListener("click", () =&gt; {
+  const item = document.createElement("li");
+  // passo 2: escreva o texto no item
+  // passo 3: anexe o item na lista
+});
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("#lista");
+const botao = document.querySelector("#adicionar");
+
+botao.addEventListener("click", () =&gt; {
+  const item = document.createElement("li");
+  item.textContent = "Café";
+  lista.append(item);
+});
+</pre>
+</div>
+
+<p>O <code>addEventListener("click", …)</code> quer dizer "quando clicarem no botão, rode esta função". Ele é o assunto da próxima aula, <a href="eventos.html">Eventos</a>; por enquanto, basta saber que o código dentro das chaves roda a cada clique, e por isso cada clique fabrica um <code>li</code> novo.</p>
+
+<hr>
+
+<h2>2. Onde colocar: <code>append</code>, <code>prepend</code>, <code>before</code> e <code>after</code></h2>
+<p>O <code>append</code> põe no fim. Há outros três lugares possíveis, e cada um tem o seu método. Dois põem o elemento <strong>dentro</strong> de outro (como filho); dois põem <strong>ao lado</strong> (como irmão):</p>
+
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+const leite = lista.querySelector("li:nth-child(2)");
+
+const primeiro = document.createElement("li");
+primeiro.textContent = "Arroz";
+lista.prepend(primeiro);
+
+const antes = document.createElement("li");
+antes.textContent = "Ovos";
+leite.before(antes);
+
+const depois = document.createElement("li");
+depois.textContent = "Queijo";
+leite.after(depois);
+
+const ultimo = document.createElement("li");
+ultimo.textContent = "Café";
+lista.append(ultimo);
+</pre>
+
+<p>Com a mesma página (Pão e Leite), a lista termina assim: <strong>Arroz, Pão, Ovos, Leite, Queijo, Café</strong>. Conferido no Console:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#lista li")].map((li) =&gt; li.textContent)
+(6) ['Arroz', 'Pão', 'Ovos', 'Leite', 'Queijo', 'Café']
+</pre>
+
+<p>(O <code>[...]</code> transforma a lista de elementos num array, e o <code>map</code> pega só o texto de cada um; veja <a href="map.html">map</a>. O <code>(6)</code> na frente é o Chrome dizendo que o array tem 6 itens.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Onde o elemento novo entra</th><th>Na geladeira</th></tr>
+<tr><td><code>pai.append(novo)</code></td><td>Dentro do <code>pai</code>, como <strong>último</strong> filho</td><td>Embaixo do último papel</td></tr>
+<tr><td><code>pai.prepend(novo)</code></td><td>Dentro do <code>pai</code>, como <strong>primeiro</strong> filho</td><td>Em cima do primeiro papel</td></tr>
+<tr><td><code>vizinho.before(novo)</code></td><td>Fora do <code>vizinho</code>, logo <strong>antes</strong> dele (irmão)</td><td>Logo acima de um papel escolhido</td></tr>
+<tr><td><code>vizinho.after(novo)</code></td><td>Fora do <code>vizinho</code>, logo <strong>depois</strong> dele (irmão)</td><td>Logo abaixo de um papel escolhido</td></tr>
+</table>
+</div>
+
+<p>Os quatro aceitam <strong>vários</strong> elementos de uma vez (<code>lista.append(a, b, c)</code>) e também <strong>textos</strong> soltos: <code>paragrafo.append(" (promoção!)")</code> acrescenta esse texto no fim do parágrafo, sem precisar criar elemento nenhum.</p>
+
+<hr>
+
+<h2>3. Elementos com atributos e classes</h2>
+<p>O elemento recém-criado é um elemento como qualquer outro: tudo o que você aprendeu em <a href="dom-alterar.html">Mudando Textos e Atributos</a> e em <a href="dom-estilo.html">Mudando o Estilo</a> vale para ele, <strong>antes ou depois</strong> de anexar. Aqui a Ana cria um link e um item marcado com uma classe:</p>
+
+<pre class="file" data-file="script.js">const link = document.createElement("a");
+link.textContent = "Receita de bolo";
+link.href = "https://exemplo.com/bolo";
+document.body.append(link);
+
+const urgente = document.createElement("li");
+urgente.textContent = "Remédio da vó";
+urgente.classList.add("urgente");
+document.querySelector("#lista").prepend(urgente);
+</pre>
+
+<pre class="devtools">&gt; document.querySelector("a").outerHTML
+'&lt;a href="https://exemplo.com/bolo"&gt;Receita de bolo&lt;/a&gt;'
+&gt; document.querySelector(".urgente").outerHTML
+'&lt;li class="urgente"&gt;Remédio da vó&lt;/li&gt;'
+</pre>
+
+<p>O <code>document.body</code> é o <code>&lt;body&gt;</code> da página: um jeito rápido de anexar algo no fim dela inteira.</p>
+
+<hr>
+
+<h2>4. Montar uma lista inteira a partir de um array</h2>
+<p>Raramente se cria um elemento só. O caso mais comum é ter os dados num array e criar <strong>um elemento para cada item</strong>, com um <a href="for-of.html">for … of</a>:</p>
+
+<pre class="file" data-file="script.js">const compras = ["Pão", "Leite", "Café", "Banana"];
+const lista = document.querySelector("#lista");
+
+for (const nome of compras) {
+  const item = document.createElement("li");
+  item.textContent = nome;
+  lista.append(item);
+}
+
+console.log(`A lista tem ${lista.children.length} itens.`);
+</pre>
+
+<p>Com o <code>index.html</code> trazendo só <code>&lt;ul id="lista"&gt;&lt;/ul&gt;</code> (vazia), a página mostra os quatro itens, e o Console mostra:</p>
+
+<pre class="devtools">A lista tem 4 itens.
+</pre>
+
+<p>A cada volta do laço, um <code>li</code> <strong>novo</strong> é criado (o <code>createElement</code> está dentro do <code>for</code>), recebe o nome da vez e é anexado. O <code>lista.children</code> ("os filhos") é a coleção dos elementos dentro da lista; o <code>.length</code> diz quantos são.</p>
+
+<h3>Um elemento só pode estar em um lugar</h3>
+<p>E se a Ana criasse o <code>li</code> <strong>antes</strong> do laço, uma vez só?</p>
+
+<pre class="file" data-file="script.js">const compras = ["Pão", "Leite", "Café", "Banana"];
+const lista = document.querySelector("#lista");
+const item = document.createElement("li");
+
+for (const nome of compras) {
+  item.textContent = nome;
+  lista.append(item);
+}
+
+console.log(`A lista tem ${lista.children.length} itens.`);
+</pre>
+
+<pre class="devtools">A lista tem 1 itens.
+</pre>
+
+<p>A tela mostra só <strong>Banana</strong>. Não deu erro: é a regra do DOM. Um elemento é <strong>um</strong> papel; ele só pode estar num lugar da página. Quando você dá <code>append</code> num elemento que já está na página, ele é <strong>movido</strong>, não copiado. Aqui ele foi "movido" para o mesmo lugar quatro vezes, e o texto foi trocado a cada volta, sobrando o último. Para ter quatro itens, são precisos quatro <code>createElement</code>.</p>
+
+<p>Esse "mover" também é útil de propósito: <code>lista.append(lista.firstElementChild)</code> pega o primeiro item e o leva para o fim.</p>
+
+<div class="tryweb" data-goal="dom:#lista li:nth-child(4);;texto:#lista li:nth-child(4)~Banana;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o programa com o <code>li</code> criado uma vez só, e a lista mostra só a Banana. Mova a linha do <code>createElement</code> para dentro do <code>for</code>, para a lista mostrar os quatro itens.</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Compras&lt;/h2&gt;
+&lt;ul id="lista"&gt;&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const compras = ["Pão", "Leite", "Café", "Banana"];
+const lista = document.querySelector("#lista");
+const item = document.createElement("li");
+
+for (const nome of compras) {
+  item.textContent = nome;
+  lista.append(item);
+}
+
+console.log(`A lista tem ${lista.children.length} itens.`);
+</pre>
+<pre class="solucao" data-file="script.js">const compras = ["Pão", "Leite", "Café", "Banana"];
+const lista = document.querySelector("#lista");
+
+for (const nome of compras) {
+  const item = document.createElement("li");
+  item.textContent = nome;
+  lista.append(item);
+}
+
+console.log(`A lista tem ${lista.children.length} itens.`);
+</pre>
+</div>
+
+<h3>Quando você quer mesmo uma cópia: <code>cloneNode</code></h3>
+<p>Para duplicar um elemento que já existe, use <code>cloneNode(true)</code> ("clonar o nó"). O <code>true</code> quer dizer "com tudo o que tem dentro"; sem ele, a cópia sai vazia, só com a etiqueta e os atributos:</p>
+
+<pre class="devtools">&gt; const pao = document.querySelector("#lista li")
+undefined
+&gt; pao.cloneNode(true).outerHTML
+'&lt;li&gt;Pão&lt;/li&gt;'
+&gt; pao.cloneNode().outerHTML
+'&lt;li&gt;&lt;/li&gt;'
+</pre>
+
+<p>A cópia nasce fora da página, igual a um <code>createElement</code>: é preciso anexá-la.</p>
+
+<hr>
+
+<h2>5. Removendo elementos</h2>
+<p>Para tirar um elemento da página, chame <code>remove()</code> ("remover") <strong>nele mesmo</strong>:</p>
+
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+console.log(`Antes: ${lista.children.length} itens`);
+
+const primeiro = lista.querySelector("li");
+primeiro.remove();
+
+console.log(`Depois: ${lista.children.length} itens`);
+</pre>
+
+<p>Com a lista de Pão e Leite:</p>
+
+<pre class="devtools">Antes: 2 itens
+Depois: 1 itens
+</pre>
+
+<p>O Pão sumiu da tela. O elemento em si continua guardado na variável <code>primeiro</code> (como um papel tirado da geladeira e posto no bolso): se você fizer <code>lista.append(primeiro)</code>, ele volta, agora no fim.</p>
+
+<h3>Esvaziar tudo: <code>replaceChildren()</code></h3>
+<p>Para apagar todos os itens de uma vez, chame <code>replaceChildren()</code> ("substituir os filhos") sem nada nos parênteses: todos os filhos são trocados por nada. Com elementos nos parênteses, ele apaga os antigos e põe os novos:</p>
+
+<pre class="devtools">&gt; const lista = document.querySelector("#lista")
+undefined
+&gt; lista.replaceChildren()
+undefined
+&gt; lista.children.length
+0
+</pre>
+
+<h3>Trocar um por outro: <code>replaceWith</code></h3>
+<p>O <code>replaceWith</code> ("substituir por") põe o elemento novo exatamente no lugar do antigo, que sai da página. A Ana trocou o Leite por Leite sem lactose:</p>
+
+<pre class="file" data-file="script.js">const leite = document.querySelector("#lista li:nth-child(2)");
+const novo = document.createElement("li");
+novo.textContent = "Leite sem lactose";
+leite.replaceWith(novo);
+</pre>
+
+<div class="tryweb" data-goal="console:Restam 1 itens;;semerro" data-acoes="clicar #comprei">
+<p class="try-task"><strong>Experimente:</strong> o botão "Comprei o primeiro" deveria tirar o primeiro item da lista, mas está só mostrando a contagem. Escreva a linha que remove o <code>primeiro</code>. Rode e clique no botão: o Console da caixa tem de mostrar <code>Restam 1 itens</code>.</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Compras&lt;/h2&gt;
+&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão&lt;/li&gt;
+  &lt;li&gt;Leite&lt;/li&gt;
+&lt;/ul&gt;
+&lt;button id="comprei"&gt;Comprei o primeiro&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lista");
+const botao = document.querySelector("#comprei");
+
+botao.addEventListener("click", () =&gt; {
+  const primeiro = lista.querySelector("li");
+  // remova o primeiro aqui
+  console.log(`Restam ${lista.children.length} itens`);
+});
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("#lista");
+const botao = document.querySelector("#comprei");
+
+botao.addEventListener("click", () =&gt; {
+  const primeiro = lista.querySelector("li");
+  primeiro.remove();
+  console.log(`Restam ${lista.children.length} itens`);
+});
+</pre>
+</div>
+
+<p>Clique no botão mais duas vezes depois que a lista esvaziar: na terceira, o <code>querySelector</code> não acha nenhum <code>li</code>, devolve <code>null</code>, e o <code>null.remove()</code> dá erro no Console. A seção <a href="#errado">Quando dá errado</a> explica a mensagem; a proteção é testar antes: <code>if (primeiro) { primeiro.remove(); }</code>, ou usar o <code>primeiro?.remove()</code> (veja <a href="optional-chaining.html">?. e ??</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<h3>O atalho: <code>innerHTML</code></h3>
+<p>Em vez de criar o elemento peça por peça, dá para escrever o HTML num texto e deixar o navegador montar. O <code>innerHTML</code> ("HTML de dentro") lê e troca todo o conteúdo de um elemento:</p>
+
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+lista.innerHTML += "&lt;li&gt;Café&lt;/li&gt;";
+</pre>
+
+<p>Funciona, e é curto. O <code>+=</code> pega o HTML que já estava, junta o novo no fim e põe tudo de volta. Há também o <code>insertAdjacentHTML("beforeend", "&lt;li&gt;Café&lt;/li&gt;")</code>, que acrescenta sem reescrever o resto. Mas os dois têm o mesmo problema quando o texto vem <strong>de uma pessoa</strong>.</p>
+
+<div class="warning">
+<strong>Nunca jogue texto digitado pelo usuário no <code>innerHTML</code></strong>
+<p>Imagine que o nome do item vem de um campo de texto, e alguém digita <code>&lt;img src=x onerror="alert('invadido')"&gt;</code>. Com <code>innerHTML</code>, o navegador lê isso como <strong>HTML</strong>: cria uma imagem quebrada, e o "quando der erro" (<code>onerror</code>) <strong>roda o código</strong> que a pessoa escreveu. Numa página de verdade, esse código poderia roubar dados de quem está usando o site. Esse ataque tem nome: <strong>XSS</strong> (<em>cross-site scripting</em>). Com <code>textContent</code>, o mesmo texto aparece na tela <strong>como texto</strong>, letra por letra, sem rodar nada.</p>
+</div>
+
+<p>A Ana testou os dois jeitos no Console, com um texto inofensivo, <code>&lt;b&gt;Café&lt;/b&gt;</code>:</p>
+
+<pre class="devtools">&gt; const a = document.createElement("li")
+undefined
+&gt; a.innerHTML = "&lt;b&gt;Café&lt;/b&gt;"
+'&lt;b&gt;Café&lt;/b&gt;'
+&gt; a.children.length
+1
+&gt; const b = document.createElement("li")
+undefined
+&gt; b.textContent = "&lt;b&gt;Café&lt;/b&gt;"
+'&lt;b&gt;Café&lt;/b&gt;'
+&gt; b.children.length
+0
+&gt; b.outerHTML
+'&lt;li&gt;&amp;lt;b&amp;gt;Café&amp;lt;/b&amp;gt;&lt;/li&gt;'
+</pre>
+
+<p>No <code>a</code> (<code>innerHTML</code>), o navegador criou um elemento <code>&lt;b&gt;</code> de verdade: 1 filho, e "Café" aparece em negrito. No <code>b</code> (<code>textContent</code>), nenhum filho: o <code>&lt;b&gt;</code> virou texto comum (o <code>&amp;lt;</code> é o jeito de o HTML guardar um <code>&lt;</code> que é só texto), e a tela mostra <code>&lt;b&gt;Café&lt;/b&gt;</code> literalmente.</p>
+
+<h3><code>appendChild</code>: o jeito antigo</h3>
+<p>Em código mais antigo e em muitos tutoriais você vai ver <code>lista.appendChild(item)</code> ("anexar filho"). Ele faz o mesmo que o <code>append</code> com <strong>um</strong> elemento, mas não aceita vários de uma vez nem textos soltos (veja o erro em <a href="#errado">Quando dá errado</a>). Da mesma época são o <code>insertBefore</code> e o <code>removeChild</code> (<code>pai.removeChild(filho)</code>). Reconheça, mas prefira os novos.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto que veio do usuário, de um arquivo, da internet</td><td><code>createElement</code> + <code>textContent</code> + <code>append</code> (sempre)</td></tr>
+<tr><td>Um elemento com atributos, classes, eventos</td><td><code>createElement</code>: você já tem a variável para mexer nele</td></tr>
+<tr><td>Um trecho de HTML fixo, escrito por você no código</td><td><code>innerHTML</code> ou <code>insertAdjacentHTML</code> servem</td></tr>
+<tr><td>Apagar tudo de dentro de um elemento</td><td><code>replaceChildren()</code> (ou <code>innerHTML = ""</code>)</td></tr>
+<tr><td>Tirar um elemento</td><td><code>elemento.remove()</code> (no código antigo: <code>pai.removeChild(elemento)</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O seletor não achou nada: <code>null</code></strong>
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lsita");
+const item = document.createElement("li");
+item.textContent = "Café";
+lista.append(item);
+</pre>
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'append')
+    at script.js:4:7
+</pre>
+<dl class="anatomy">
+  <dt>Uncaught</dt><dd>"Não capturado": o erro aconteceu e ninguém o tratou (veja <a href="try-catch.html">try … catch</a>). O script para nessa linha.</dd>
+  <dt>TypeError</dt><dd>"Erro de tipo": tentaram usar um valor de um jeito que o tipo dele não permite.</dd>
+  <dt>Cannot read properties of null (reading 'append')</dt><dd>"Não dá para ler propriedades de <code>null</code> (lendo <code>append</code>)". A variável <code>lista</code> vale <code>null</code>, e <code>null</code> não tem <code>append</code>.</dd>
+  <dt>at script.js:4:7</dt><dd>Onde: arquivo <code>script.js</code>, linha 4, coluna 7 (o <code>.append</code>).</dd>
+</dl>
+<p>O erro aparece na linha 4, mas a <strong>causa</strong> está na linha 1: <code>#lsita</code>, com as letras trocadas. Quando o <code>querySelector</code> não acha nada, ele não reclama; devolve <code>null</code> em silêncio, e o problema só estoura quando alguém usa esse <code>null</code>. O mesmo acontece se o <code>&lt;script&gt;</code> estiver no <code>&lt;head&gt;</code>, <strong>antes</strong> da lista existir (veja <a href="script-na-pagina.html">JavaScript na Página</a>). <strong>Como consertar:</strong> confira o seletor e a posição do <code>&lt;script&gt;</code>; no Console, <code>document.querySelector("#lsita")</code> mostrando <code>null</code> confirma a suspeita.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um texto para o <code>appendChild</code></strong>
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+lista.appendChild("Café");
+</pre>
+<pre class="devtools">Uncaught TypeError: Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'.
+    at script.js:2:7
+</pre>
+<p>"Falhou ao executar <code>appendChild</code> em <code>Node</code>: o parâmetro 1 não é do tipo <code>Node</code>". <code>Node</code> ("nó") aqui é o nome que o DOM dá a cada pedaço da página (elementos, textos); não tem nada a ver com o Node.js. O <code>appendChild</code> só aceita um nó, e <code>"Café"</code> é uma string. <strong>Como consertar:</strong> crie o <code>li</code> e anexe o elemento, ou use <code>append</code>, que aceita texto (mas lembre: <code>lista.append("Café")</code> põe o texto solto dentro do <code>ul</code>, sem <code>li</code>, o que não forma um item de lista).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu a etiqueta com <code>&lt;</code> e <code>&gt;</code></strong>
+<pre class="file" data-file="script.js">const item = document.createElement("&lt;li&gt;");
+</pre>
+<pre class="devtools">Uncaught InvalidCharacterError: Failed to execute 'createElement' on 'Document': The tag name provided ('&lt;li&gt;') is not a valid name.
+    at script.js:1:23
+</pre>
+<p>"Caractere inválido: o nome de etiqueta fornecido (<code>'&lt;li&gt;'</code>) não é um nome válido". O <code>createElement</code> quer só o <strong>nome</strong>: <code>"li"</code>. <strong>Como consertar:</strong> tire os sinais: <code>document.createElement("li")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nada aparece, e não há erro nenhum</strong>
+<pre class="file" data-file="script.js">const item = document.createElement("li");
+item.textContent = "Café";
+</pre>
+<p>O Console fica limpo e a lista continua igual. É o papel escrito na mão: o elemento foi criado e preenchido, mas <strong>ninguém o anexou</strong>. <strong>Como consertar:</strong> falta o passo 3, <code>document.querySelector("#lista").append(item)</code>. Se aparece só <strong>um</strong> item onde deviam aparecer vários, é o caso da seção 4: o <code>createElement</code> ficou fora do laço.</p>
+</div>
+
+<div class="cenario">
+<strong>Rodou no Node.js</strong>
+<p>O <code>document</code> é do navegador. No terminal, o Node não sabe o que é:</p>
+<pre class="term">$ node script.js
+/home/ana/script.js:1
+const lista = document.querySelector("#lista");
+              ^
+
+ReferenceError: document is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/script.js:1:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"<code>document</code> não está definido". A linha 1 é mostrada com o <code>^</code> embaixo do <code>document</code>. <strong>Como consertar:</strong> código de página roda na página: ponha o arquivo num <code>&lt;script src="script.js"&gt;</code> e abra o HTML no navegador, ou use a caixa <code>.tryweb</code> do guia.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#lista~Café;;semerro">
+<p class="try-task"><strong>Missão:</strong> este script tem dois erros. Abra o Console da caixa, leia a mensagem, conserte, rode de novo e repita até o Café aparecer na lista.</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Compras&lt;/h2&gt;
+&lt;ul id="lista"&gt;
+  &lt;li&gt;Pão&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lsita");
+const item = document.createElement("&lt;li&gt;");
+item.textContent = "Café";
+lista.append(item);
+</pre>
+<pre class="solucao" data-file="script.js">const lista = document.querySelector("#lista");
+const item = document.createElement("li");
+item.textContent = "Café";
+lista.append(item);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>document.createElement("li")</code></td><td>Cria um elemento novo, vazio, fora da página</td></tr>
+<tr><td><code>el.textContent = "…"</code></td><td>Põe um texto dentro (seguro: nunca vira HTML)</td></tr>
+<tr><td><code>pai.append(a, b, "texto")</code></td><td>Anexa no fim, dentro do <code>pai</code></td></tr>
+<tr><td><code>pai.prepend(novo)</code></td><td>Anexa no começo, dentro do <code>pai</code></td></tr>
+<tr><td><code>vizinho.before(novo)</code> / <code>vizinho.after(novo)</code></td><td>Põe ao lado, antes ou depois do <code>vizinho</code></td></tr>
+<tr><td><code>el.remove()</code></td><td>Tira o elemento da página</td></tr>
+<tr><td><code>pai.replaceChildren()</code></td><td>Apaga todos os filhos (ou troca pelos que estiverem nos parênteses)</td></tr>
+<tr><td><code>velho.replaceWith(novo)</code></td><td>Troca um elemento por outro, no mesmo lugar</td></tr>
+<tr><td><code>el.cloneNode(true)</code></td><td>Faz uma cópia, com tudo o que tem dentro (fora da página)</td></tr>
+<tr><td><code>el.isConnected</code></td><td><code>true</code> se o elemento está na página</td></tr>
+<tr><td><code>pai.children.length</code></td><td>Quantos elementos filhos o <code>pai</code> tem</td></tr>
+<tr><td><code>el.innerHTML = "…"</code></td><td>Troca o conteúdo por um HTML escrito em texto (nunca com texto do usuário)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of null (reading 'append')</code></td><td>O <code>querySelector</code> não achou o elemento (seletor errado, ou o <code>&lt;script&gt;</code> rodou antes do HTML)</td></tr>
+<tr><td><code>parameter 1 is not of type 'Node'</code></td><td>Passou um texto (ou outra coisa) para o <code>appendChild</code>, que só aceita elementos</td></tr>
+<tr><td><code>InvalidCharacterError … is not a valid name</code></td><td>Nome de etiqueta com <code>&lt;</code> <code>&gt;</code>, espaço ou outro sinal</td></tr>
+<tr><td>Nada aparece, sem erro</td><td>Faltou anexar o elemento</td></tr>
+<tr><td>Só o último item aparece</td><td>O <code>createElement</code> ficou fora do laço: o mesmo elemento foi movido várias vezes</td></tr>
+<tr><td><code>ReferenceError: document is not defined</code></td><td>Código de página rodando no Node.js</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete os três passos</h3>
+<p>Complete para criar um parágrafo com o texto "Oi" e colocá-lo no fim do <code>body</code>:</p>
+<div class="ex-code">const p = document.<input data-answer="createElement" aria-label="método que cria">("p");<br>p.<input data-answer="textContent" aria-label="propriedade do texto"> = "Oi";<br>document.body.<input data-answer="append|appendChild" aria-label="método que anexa">(p);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos itens?</h3>
+<p>A lista começa vazia. Depois deste código, quantos <code>li</code> ela tem?</p>
+<pre class="file" data-file="script.js">const lista = document.querySelector("#lista");
+const li = document.createElement("li");
+lista.append(li);
+lista.append(li);
+lista.append(document.createElement("li"));
+</pre>
+<div class="ex-code">Tem <input data-answer="2" aria-label="número de itens"> itens.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Você quer pôr o item novo como o <strong>primeiro</strong> da lista <code>ul</code>. Qual método?</p>
+<label><input type="radio" name="q3"> <code>ul.append(novo)</code></label>
+<label><input type="radio" name="q3"> <code>ul.after(novo)</code></label>
+<label><input type="radio" name="q3"> <code>ul.prepend(novo)</code></label>
+<label><input type="radio" name="q3"> <code>ul.before(novo)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O nome de um produto vem de um campo que qualquer visitante preenche. Como colocá-lo na página?</p>
+<label><input type="radio" name="q4"> <code>lista.innerHTML += "&lt;li&gt;" + nome + "&lt;/li&gt;"</code></label>
+<label><input type="radio" name="q4"> Criar o <code>li</code>, pôr o nome com <code>textContent</code> e dar <code>append</code></label>
+<label><input type="radio" name="q4"> <code>lista.insertAdjacentHTML("beforeend", nome)</code></label>
+<label><input type="radio" name="q4"> Tanto faz: os três são iguais</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Depois de <code>const li = document.createElement("li")</code>, quanto vale <code>li.isConnected</code>?</p>
+<label><input type="radio" name="q5"> <code>false</code>: o elemento ainda não foi anexado</label>
+<label><input type="radio" name="q5"> <code>true</code>: todo elemento criado já entra na página</label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+<label><input type="radio" name="q5"> Dá erro</label>
+</div>
+
+<h3>Missão final: a agenda do dia</h3>
+
+<div class="tryweb" data-goal="dom:#agenda li:nth-child(3);;texto:#agenda li:nth-child(3)~18h: Academia;;texto:#total~3 compromissos;;src:createElement;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana guardou os compromissos do dia num array. Para cada um, crie um <code>li</code> com o texto no formato <code>9h: Dentista</code> (use um template string: <code>`${c.hora}: ${c.oque}`</code>) e anexe na lista <code>#agenda</code>. No fim, escreva no parágrafo <code>#total</code> o texto <code>3 compromissos</code>, usando o tamanho do array.</p>
+<pre class="script" data-file="index.html">&lt;h2&gt;Agenda de hoje&lt;/h2&gt;
+&lt;ul id="agenda"&gt;&lt;/ul&gt;
+&lt;p id="total"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const compromissos = [
+  { hora: "9h", oque: "Dentista" },
+  { hora: "14h", oque: "Reunião da escola" },
+  { hora: "18h", oque: "Academia" },
+];
+const agenda = document.querySelector("#agenda");
+const total = document.querySelector("#total");
+
+// crie um li para cada compromisso
+
+</pre>
+<pre class="solucao" data-file="script.js">const compromissos = [
+  { hora: "9h", oque: "Dentista" },
+  { hora: "14h", oque: "Reunião da escola" },
+  { hora: "18h", oque: "Academia" },
+];
+const agenda = document.querySelector("#agenda");
+const total = document.querySelector("#total");
+
+for (const c of compromissos) {
+  const item = document.createElement("li");
+  item.textContent = `${c.hora}: ${c.oque}`;
+  agenda.append(item);
+}
+total.textContent = `${compromissos.length} compromissos`;
+</pre>
+</div>
+
+<p>Para ir além: crie também um botão "Limpar" que chame <code>agenda.replaceChildren()</code> quando for clicado.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Criar um elemento tem três passos: <code>document.createElement("etiqueta")</code>, preencher (<code>textContent</code>, atributos, classes) e <strong>anexar</strong>. Sem o terceiro passo, nada aparece.</li>
+  <li><code>append</code> e <code>prepend</code> põem dentro (no fim, no começo); <code>before</code> e <code>after</code> põem ao lado.</li>
+  <li>Para montar uma lista a partir de um array, crie um elemento <strong>novo a cada volta</strong>: o mesmo elemento só pode estar num lugar, e anexá-lo de novo o move.</li>
+  <li><code>remove()</code> tira um elemento; <code>replaceChildren()</code> esvazia; <code>replaceWith</code> troca; <code>cloneNode(true)</code> copia.</li>
+  <li><code>innerHTML</code> monta HTML a partir de texto: serve para HTML fixo seu, nunca para texto do usuário (XSS). Para texto, <code>textContent</code>.</li>
+  <li><code>Cannot read properties of null</code> quase sempre é um seletor que não achou nada.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
