@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript matrizes — arrays de arrays, linhas e colunas | Guia JavaScript</title>
+<meta name="description" content="Arrays de arrays (matrizes) no JavaScript para quem nunca programou: criar uma tabela de notas, ler e mudar com dois índices [linha][coluna], linhas e colunas, console.table, percorrer com laços aninhados, médias por aluno e por prova, o jogo da velha e os erros reais do Node.js 24 (Cannot read properties of undefined, a vírgula no lugar dos colchetes, fill com o mesmo array).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Arrays de Arrays</span> (Matrizes)</h1>
+
+<p class="intro">Um array guarda uma lista. Mas muita informação do dia a dia tem a forma de uma <strong>tabela</strong>, com linhas e colunas: as notas de cada aluno em cada prova, as poltronas de um cinema, o tabuleiro do jogo da velha, uma planilha. No JavaScript, uma tabela é um <strong>array de arrays</strong>: um array em que cada item é outro array (uma linha). Os matemáticos chamam isso de <strong>matriz</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como montar uma tabela como array de arrays, e como vê-la com <code>console.table</code>.</li>
+  <li>Como ler e mudar um valor com <strong>dois índices</strong>: <code>notas[linha][coluna]</code>.</li>
+  <li>Como saber quantas linhas e quantas colunas a tabela tem.</li>
+  <li>Como percorrer a tabela inteira com dois laços, um dentro do outro.</li>
+  <li>Como calcular a média de cada linha e de cada coluna, e achar o maior valor da tabela.</li>
+  <li>Como criar uma tabela vazia do jeito certo (o jogo da velha), e linhas de tamanhos diferentes.</li>
+  <li>Os erros reais: a linha que não existe, a vírgula no lugar dos colchetes, a mesma linha repetida.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o diário de classe</h2>
+<p>A professora da Ana tem um caderno com as notas da turma. Cada <strong>linha</strong> é um aluno; cada <strong>coluna</strong> é uma prova:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Prova 1</th><th>Prova 2</th><th>Prova 3</th></tr>
+<tr><th>Ana</th><td>7</td><td>8</td><td>6</td></tr>
+<tr><th>Bia</th><td>9</td><td>5</td><td>7</td></tr>
+<tr><th>Caio</th><td>6</td><td>8</td><td>10</td></tr>
+</table>
+</div>
+
+<p>Para achar uma nota, você faz <strong>duas</strong> perguntas: "qual aluno?" (a linha) e "qual prova?" (a coluna). A nota da Bia na prova 3 é 7. No JavaScript, cada linha vira um array (<code>[9, 5, 7]</code> é a linha da Bia), e a tabela vira um array com essas linhas dentro.</p>
+
+<hr>
+
+<h2>1. Criando a tabela</h2>
+
+<pre class="file" data-file="criar.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log(notas);
+console.table(notas);
+</pre>
+
+<pre class="term">$ node criar.js
+[ [ 7, 8, 6 ], [ 9, 5, 7 ], [ 6, 8, 10 ] ]
+┌─────────┬───┬───┬────┐
+│ (index) │ 0 │ 1 │ 2  │
+├─────────┼───┼───┼────┤
+│ 0       │ 7 │ 8 │ 6  │
+│ 1       │ 9 │ 5 │ 7  │
+│ 2       │ 6 │ 8 │ 10 │
+└─────────┴───┴───┴────┘
+</pre>
+
+<dl class="anatomy">
+  <dt>[ … ] por fora</dt><dd>O array de fora: a tabela. Ele tem <strong>3 itens</strong>, e cada item é uma linha.</dd>
+  <dt>[7, 8, 6]</dt><dd>A primeira linha (a Ana): um array comum, com as três notas. As linhas são separadas por vírgula, como quaisquer itens.</dd>
+  <dt>uma linha por linha do código</dt><dd>Escrever cada linha da tabela numa linha do código não é obrigatório, mas deixa a "forma" da tabela visível. A vírgula depois da última linha é permitida e facilita acrescentar outra.</dd>
+  <dt>console.log(notas)</dt><dd>O Node mostra os arrays de dentro de colchetes nos de fora.</dd>
+  <dt>console.table(notas)</dt><dd>Desenha a tabela com bordas (aula <a href="console-outros.html">console.error, warn e table</a>). A coluna <code>(index)</code> mostra o índice de cada linha; o cabeçalho, o índice de cada coluna. É o melhor jeito de "ver" uma matriz.</dd>
+</dl>
+
+<p>Repare que, no JavaScript, a contagem começa do <strong>zero</strong>: a Ana é a linha 0, a Bia a linha 1, o Caio a linha 2; a "prova 1" é a coluna 0.</p>
+
+<hr>
+
+<h2>2. Lendo um valor: <code>[linha][coluna]</code></h2>
+
+<pre class="file" data-file="acessar.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log(notas[1]);
+console.log(notas[1][2]);
+const linhaDaBia = notas[1];
+console.log(linhaDaBia[2]);
+console.log(notas.at(-1).at(-1));
+</pre>
+
+<pre class="term">$ node acessar.js
+[ 9, 5, 7 ]
+7
+7
+10
+</pre>
+
+<dl class="anatomy">
+  <dt>notas[1]</dt><dd>Com <strong>um</strong> índice, você pega uma <strong>linha inteira</strong>: o array da Bia, <code>[ 9, 5, 7 ]</code>.</dd>
+  <dt>notas[1][2]</dt><dd>Com <strong>dois</strong> índices, um valor só. O JavaScript lê da esquerda para a direita: primeiro <code>notas[1]</code> (a linha da Bia), depois o item <code>[2]</code> <strong>dessa linha</strong> (a 3ª prova). Resultado: 7.</dd>
+  <dt>linhaDaBia[2]</dt><dd>O mesmo, em dois passos, com uma variável no meio. Se o <code>[1][2]</code> parecer confuso, pense assim.</dd>
+  <dt>notas.at(-1).at(-1)</dt><dd>O <code>at</code> com <code>-1</code> pega o último item (aula <a href="arrays-acessar.html">Acessando e Alterando Itens</a>): a última nota da última linha, o 10 do Caio.</dd>
+</dl>
+
+<div class="tip">
+<strong>Para não confundir</strong>
+<p>A ordem é sempre <strong>primeiro a linha, depois a coluna</strong>: <code>notas[aluno][prova]</code>. Dê nomes que lembrem isso aos índices (<code>linha</code> e <code>coluna</code>, ou <code>i</code> e <code>j</code>, nessa ordem).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Nota: 8;;src:notas\s*\[\s*2\s*\]\s*\[\s*1\s*\]">
+<p class="try-task"><strong>Missão:</strong> o programa mostra a nota da Ana na prova 1. Troque os índices para mostrar a nota do <strong>Caio</strong> (a 3ª linha) na <strong>prova 2</strong> (a 2ª coluna): deve aparecer <code>Nota: 8</code>.</p>
+<pre class="script" data-file="main.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log("Nota:", notas[0][0]);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log("Nota:", notas[2][1]);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Mudando valores e contando linhas e colunas</h2>
+<p>A Bia pediu revisão da prova 2 e a nota subiu para 6,5. O Caio fez uma prova extra:</p>
+
+<pre class="file" data-file="alterar.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+notas[1][1] = 6.5;
+notas[2].push(9);
+console.log(notas);
+console.log("Linhas:", notas.length);
+console.log("Colunas da linha 0:", notas[0].length);
+console.log("Colunas da linha 2:", notas[2].length);
+</pre>
+
+<pre class="term">$ node alterar.js
+[ [ 7, 8, 6 ], [ 9, 6.5, 7 ], [ 6, 8, 10, 9 ] ]
+Linhas: 3
+Colunas da linha 0: 3
+Colunas da linha 2: 4
+</pre>
+
+<ul>
+  <li><code>notas[1][1] = 6.5</code>: os mesmos dois índices, agora do lado esquerdo do <code>=</code>, <strong>trocam</strong> o valor.</li>
+  <li><code>notas[2].push(9)</code>: <code>notas[2]</code> é um array comum, então tem todos os métodos de array. O <code>push</code> acrescentou uma nota só na linha do Caio.</li>
+  <li><code>notas.length</code> é o número de <strong>linhas</strong> (3). <code>notas[0].length</code> é o número de <strong>colunas</strong> de uma linha. Depois do <code>push</code>, a linha do Caio ficou com 4: no JavaScript, as linhas não precisam ter o mesmo tamanho (seção 7).</li>
+</ul>
+
+<hr>
+
+<h2>4. Percorrendo a tabela inteira</h2>
+<p>Para passar por <strong>todas</strong> as notas, você precisa de dois laços, um dentro do outro (aula <a href="lacos-aninhados.html">Laços Aninhados</a>): o de fora anda pelas linhas; o de dentro, pelas colunas da linha atual.</p>
+
+<pre class="file" data-file="percorrer.js">const alunos = ["Ana", "Bia", "Caio"];
+const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+for (let i = 0; i &lt; notas.length; i++) {
+  for (let j = 0; j &lt; notas[i].length; j++) {
+    console.log(`${alunos[i]}, prova ${j + 1}: ${notas[i][j]}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node percorrer.js
+Ana, prova 1: 7
+Ana, prova 2: 8
+Ana, prova 3: 6
+Bia, prova 1: 9
+Bia, prova 2: 5
+Bia, prova 3: 7
+Caio, prova 1: 6
+Caio, prova 2: 8
+Caio, prova 3: 10
+</pre>
+
+<dl class="anatomy">
+  <dt>for (let i = 0; i &lt; notas.length; i++)</dt><dd>O laço de fora: <code>i</code> é a <strong>linha</strong> (0, 1, 2). O <code>notas.length</code> é o número de linhas.</dd>
+  <dt>for (let j = 0; j &lt; notas[i].length; j++)</dt><dd>O laço de dentro: <code>j</code> é a <strong>coluna</strong>. O limite é o tamanho <strong>da linha atual</strong>, <code>notas[i].length</code>. Assim funciona mesmo se as linhas tiverem tamanhos diferentes.</dd>
+  <dt>notas[i][j]</dt><dd>A nota da linha <code>i</code>, coluna <code>j</code>.</dd>
+  <dt>alunos[i] e j + 1</dt><dd>O nome vem de outro array, na mesma posição da linha. O <code>j + 1</code> mostra "prova 1" em vez de "prova 0", para gente.</dd>
+</dl>
+
+<p>A ordem da saída mostra como os laços trabalham: o de dentro dá a volta <strong>completa</strong> (as três provas) antes de o de fora passar para o próximo aluno.</p>
+
+<h3>Com <code>for … of</code>, quando você não precisa dos índices</h3>
+
+<pre class="file" data-file="forof.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+for (const linha of notas) {
+  let texto = "";
+  for (const nota of linha) {
+    texto += nota + " ";
+  }
+  console.log(texto);
+}
+for (const linha of notas) {
+  console.log(linha.join(" | "));
+}
+</pre>
+
+<pre class="term">$ node forof.js
+7 8 6
+9 5 7
+6 8 10
+7 | 8 | 6
+9 | 5 | 7
+6 | 8 | 10
+</pre>
+
+<p>O <a href="for-of.html">for … of</a> de fora entrega cada <strong>linha</strong> (um array); o de dentro, cada <strong>nota</strong> dessa linha. O segundo bloco faz o mesmo desenho com um laço só, usando o <code>join</code> (aula <a href="arrays-outros.html">some, every, join…</a>) em cada linha.</p>
+
+<hr>
+
+<h2>5. Contas com linhas e colunas</h2>
+
+<pre class="file" data-file="medias.js">const alunos = ["Ana", "Bia", "Caio"];
+const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+const medias = notas.map((linha) =&gt; linha.reduce((soma, n) =&gt; soma + n, 0) / linha.length);
+console.log(medias);
+const mediaProva1 = notas.reduce((soma, linha) =&gt; soma + linha[0], 0) / notas.length;
+console.log("Média da prova 1:", mediaProva1.toFixed(2));
+const todas = notas.flat();
+console.log("Maior nota:", Math.max(...todas));
+</pre>
+
+<pre class="term">$ node medias.js
+[ 7, 7, 8 ]
+Média da prova 1: 7.33
+Maior nota: 10
+</pre>
+
+<dl class="anatomy">
+  <dt>Média de cada <strong>linha</strong> (aluno)</dt><dd>O <a href="map.html">map</a> passa por cada linha; para cada uma, o <a href="reduce.html">reduce</a> soma as notas e a divisão pelo <code>linha.length</code> dá a média. O resultado é um array com uma média por aluno.</dd>
+  <dt>Média de uma <strong>coluna</strong> (prova)</dt><dd>Para a prova 1, some o item <code>[0]</code> de cada linha: <code>soma + linha[0]</code>. Divida pelo número de linhas. O <code>toFixed(2)</code> mostra com 2 casas (aula <a href="numeros-formatar.html">Formatando Números</a>).</dd>
+  <dt>notas.flat()</dt><dd>"Achata" a tabela numa lista só com as 9 notas (aula <a href="arrays-outros.html">some, every, join, flat…</a>). Com ela, o <code>Math.max</code> acha a maior nota da tabela inteira.</dd>
+</dl>
+
+<hr>
+
+<h2>6. Criando uma tabela vazia: o jogo da velha</h2>
+<p>A Ana quer um tabuleiro 3 × 3 começando com espaços em branco. O jeito seguro é o <code>Array.from</code> com uma função, que cria <strong>uma linha nova</strong> para cada posição:</p>
+
+<pre class="file" data-file="velha.js">const tabuleiro = Array.from({ length: 3 }, () =&gt; Array(3).fill(" "));
+tabuleiro[0][0] = "X";
+tabuleiro[1][1] = "O";
+tabuleiro[2][2] = "X";
+console.log(tabuleiro.map((linha) =&gt; linha.join(" | ")).join("\n---------\n"));
+</pre>
+
+<pre class="term">$ node velha.js
+X |   |
+---------
+  | O |
+---------
+  |   | X
+</pre>
+
+<dl class="anatomy">
+  <dt>Array.from({ length: 3 }, () =&gt; …)</dt><dd>Cria 3 linhas. A função roda <strong>3 vezes</strong>, e cada vez devolve um array <strong>novo</strong>.</dd>
+  <dt>Array(3).fill(" ")</dt><dd>Cada linha: 3 casas com um espaço.</dd>
+  <dt>tabuleiro[1][1] = "O"</dt><dd>A jogada: linha 1, coluna 1, o centro.</dd>
+  <dt>map(… join(" | ")).join("\n---------\n")</dt><dd>Para desenhar: cada linha vira um texto com <code>" | "</code> entre as casas, e as linhas são juntadas com uma linha de tracinhos no meio.</dd>
+</dl>
+
+<p>Por que não <code>Array(3).fill(Array(3).fill(" "))</code>, que parece mais curto? A seção <a href="#errado">Quando dá errado</a> mostra.</p>
+
+<hr>
+
+<h2>7. Linhas de tamanhos diferentes</h2>
+<p>Nada obriga as linhas a terem o mesmo tamanho. A escola tem três turmas com quantidades diferentes de alunos:</p>
+
+<pre class="file" data-file="irregular.js">const turmas = [
+  ["Ana", "Bia", "Caio"],
+  ["Davi"],
+  ["Edu", "Fabi"],
+];
+for (let i = 0; i &lt; turmas.length; i++) {
+  console.log(`Turma ${i + 1}: ${turmas[i].length} aluno(s) - ${turmas[i].join(", ")}`);
+}
+</pre>
+
+<pre class="term">$ node irregular.js
+Turma 1: 3 aluno(s) - Ana, Bia, Caio
+Turma 2: 1 aluno(s) - Davi
+Turma 3: 2 aluno(s) - Edu, Fabi
+</pre>
+
+<p>Por isso, ao percorrer, use sempre <code>turmas[i].length</code> (o tamanho da linha atual) no laço de dentro, e nunca um número fixo.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Jeito</th></tr>
+<tr><td>Ver a tabela enquanto programa</td><td><code>console.table(matriz)</code></td></tr>
+<tr><td>Passar por tudo e precisa dos números da linha e da coluna</td><td>Dois <code>for</code> com <code>i</code> e <code>j</code></td></tr>
+<tr><td>Passar por tudo, sem precisar dos índices</td><td>Dois <code>for … of</code></td></tr>
+<tr><td>Um resultado por linha (média, total)</td><td><code>matriz.map(linha =&gt; …)</code></td></tr>
+<tr><td>Uma coluna inteira</td><td><code>matriz.map(linha =&gt; linha[j])</code></td></tr>
+<tr><td>Algo sobre todos os valores (maior, soma total)</td><td><code>matriz.flat()</code> e depois o método de sempre</td></tr>
+<tr><td>Criar uma tabela vazia</td><td><code>Array.from({ length: L }, () =&gt; Array(C).fill(valor))</code></td></tr>
+<tr><td>Uma lista de registros com nome (aluno com nome e notas)</td><td>Um array de <a href="objetos.html">objetos</a>: <code>{ nome: "Ana", notas: [7, 8, 6] }</code> costuma ser mais claro que dois arrays separados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Uma linha que não existe</strong>
+<pre class="file" data-file="fora.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log(notas[0][5]);
+console.log(notas[3][0]);
+</pre>
+<pre class="term">$ node fora.js
+undefined
+/home/ana/fora.js:7
+console.log(notas[3][0]);
+                    ^
+
+TypeError: Cannot read properties of undefined (reading '0')
+    at Object.&lt;anonymous&gt; (/home/ana/fora.js:7:21)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Dois erros diferentes:</p>
+<dl class="anatomy">
+  <dt>undefined</dt><dd>A <strong>coluna</strong> 5 da linha 0 não existe. Como em qualquer array, ler uma posição vazia dá <code>undefined</code>, sem erro.</dd>
+  <dt>/home/ana/fora.js:7 e o <code>^</code></dt><dd>Já a linha 7 quebrou o programa. O <code>^</code> aponta para o <code>[0]</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading '0')</dt><dd>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>'0'</code>)". A tabela tem as linhas 0, 1 e 2; <code>notas[3]</code> é <code>undefined</code>. Em seguida, o JavaScript tentou fazer <code>undefined[0]</code>, e <code>undefined</code> não tem nada dentro para ler. O <code>'0'</code> no fim é o índice que ele tentou ler.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/fora.js:7:21)</dt><dd>O seu programa, linha 7, coluna 21.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira se o índice da linha é menor que <code>notas.length</code>. Num laço, use <code>i &lt; notas.length</code>, nunca <code>i &lt;= notas.length</code>. (Se a linha pode faltar de propósito, <code>notas[3]?.[0]</code> devolve <code>undefined</code> em vez de quebrar: aula <a href="optional-chaining.html">?. e ??</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Vírgula no lugar dos colchetes</strong>
+<p>Quem vem de outras linguagens escreve <code>notas[1, 2]</code>:</p>
+<pre class="file" data-file="virgula.js">const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+console.log(notas[1, 2]);
+console.log(notas[1][2]);
+</pre>
+<pre class="term">$ node virgula.js
+[ 6, 8, 10 ]
+7
+</pre>
+<p>Não deu erro, mas veio a <strong>linha 2 inteira</strong>, e não a nota da Bia. Dentro dos colchetes, <code>1, 2</code> é uma expressão que vale o <strong>último</strong> valor, o 2; então <code>notas[1, 2]</code> é o mesmo que <code>notas[2]</code>. <strong>Como consertar:</strong> um par de colchetes para cada índice: <code>notas[1][2]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A mesma linha repetida: <code>fill</code> com um array</strong>
+<pre class="file" data-file="velha-errado.js">const tabuleiro = Array(3).fill(Array(3).fill(" "));
+tabuleiro[0][0] = "X";
+console.log(tabuleiro.map((linha) =&gt; linha.join(" | ")).join("\n---------\n"));
+</pre>
+<pre class="term">$ node velha-errado.js
+X |   |
+---------
+X |   |
+---------
+X |   |
+</pre>
+<p>Uma jogada só, e apareceram três X! O <code>Array(3).fill(" ")</code> de dentro roda <strong>uma vez</strong> e cria <strong>uma</strong> linha; o <code>fill</code> de fora põe essa <strong>mesma</strong> linha nos três lugares. Mudar a "linha 0" é mudar as três, porque são uma só (o mesmo problema da aula <a href="arrays-copiar.html">Copiando Arrays</a>). <strong>Como consertar:</strong> <code>Array.from({ length: 3 }, () =&gt; Array(3).fill(" "))</code>, como na seção 6.</p>
+</div>
+
+<div class="cenario">
+<strong>Trocou a ordem dos índices</strong>
+<p>Sem erro: você queria "Bia, prova 3" e escreveu <code>notas[2][1]</code> (que é "Caio, prova 2"). Numa tabela quadrada, os dois existem, e o número errado passa despercebido. <strong>Como consertar:</strong> lembre-se: <strong>linha primeiro</strong>. Nomes como <code>notas[aluno][prova]</code> ajudam.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const m = [[1, 2], [3, 4]]</code></td><td>Cria uma matriz de 2 linhas e 2 colunas</td></tr>
+<tr><td><code>m[i]</code></td><td>A linha <code>i</code> (um array)</td></tr>
+<tr><td><code>m[i][j]</code></td><td>O valor da linha <code>i</code>, coluna <code>j</code></td></tr>
+<tr><td><code>m[i][j] = v</code></td><td>Troca o valor</td></tr>
+<tr><td><code>m.length</code> / <code>m[i].length</code></td><td>Número de linhas / de colunas da linha <code>i</code></td></tr>
+<tr><td><code>m[i].push(v)</code> / <code>m.push([…])</code></td><td>Acrescenta um valor na linha <code>i</code> / uma linha nova</td></tr>
+<tr><td><code>console.table(m)</code></td><td>Mostra a matriz como tabela</td></tr>
+<tr><td><code>m.flat()</code></td><td>Todos os valores numa lista só</td></tr>
+<tr><td><code>m.map(linha =&gt; linha[j])</code></td><td>A coluna <code>j</code> inteira</td></tr>
+<tr><td><code>Array.from({ length: L }, () =&gt; Array(C).fill(v))</code></td><td>Matriz L × C preenchida com <code>v</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual valor?</h3>
+<p>Com <code>const m = [[1, 2, 3], [4, 5, 6]];</code>, quanto vale cada expressão?</p>
+<div class="ex-code"><code>m[1][0]</code> vale <input data-answer="4" aria-label="m[1][0]"><br><code>m[0][2]</code> vale <input data-answer="3" aria-label="m[0][2]"><br><code>m.length</code> vale <input data-answer="2" aria-label="m.length"><br><code>m[1].length</code> vale <input data-answer="3" aria-label="m[1].length"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. Na tabela de notas da aula, como se lê a nota do Caio (linha 2) na prova 1 (coluna 0)?</p>
+<label><input type="radio" name="q2"> <code>notas[0][2]</code></label>
+<label><input type="radio" name="q2"> <code>notas[2][0]</code></label>
+<label><input type="radio" name="q2"> <code>notas[2, 0]</code></label>
+<label><input type="radio" name="q2"> <code>notas(2)(0)</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Num laço aninhado que percorre <code>m</code>, qual deve ser o limite do laço de dentro?</p>
+<label><input type="radio" name="q3"> <code>j &lt; m.length</code></label>
+<label><input type="radio" name="q3"> <code>j &lt;= m[i].length</code></label>
+<label><input type="radio" name="q3"> <code>j &lt; m[i].length</code></label>
+<label><input type="radio" name="q3"> <code>j &lt; 3</code>, sempre</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>const m = [[1, 2], [3, 4]]; m[5][0]</code> dá…</p>
+<label><input type="radio" name="q4"> <code>TypeError: Cannot read properties of undefined (reading '0')</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>[ 3, 4 ]</code></label>
+</div>
+
+<h3>Missão final: o boletim da turma</h3>
+
+<div class="tryjs" data-goal="out:Ana: 7;;out:Bia: 7;;out:Caio: 8">
+<p class="try-task"><strong>Missão:</strong> o laço já passa por cada aluno, mas só mostra o nome. Complete-o para calcular a média das notas da linha <code>i</code> e mostrar <code>Ana: 7</code>, <code>Bia: 7</code> e <code>Caio: 8</code>. Dica: some <code>notas[i]</code> com um <code>reduce</code> (ou com um laço de dentro) e divida por <code>notas[i].length</code>.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+for (let i = 0; i &lt; notas.length; i++) {
+  console.log(`${alunos[i]}: ?`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+const notas = [
+  [7, 8, 6],
+  [9, 5, 7],
+  [6, 8, 10],
+];
+for (let i = 0; i &lt; notas.length; i++) {
+  const soma = notas[i].reduce((total, n) =&gt; total + n, 0);
+  console.log(`${alunos[i]}: ${soma / notas[i].length}`);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Ana: 7</code>, <code>Bia: 7</code> e <code>Caio: 8</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma matriz é um <strong>array de arrays</strong>: cada item do array de fora é uma linha.</li>
+  <li><code>m[i]</code> é a linha <code>i</code>; <code>m[i][j]</code> é o valor da linha <code>i</code>, coluna <code>j</code>. <strong>Linha primeiro</strong>, e tudo começa do zero.</li>
+  <li><code>m.length</code> conta as linhas; <code>m[i].length</code>, as colunas daquela linha. As linhas podem ter tamanhos diferentes.</li>
+  <li>Para percorrer tudo: dois laços aninhados, com <code>j &lt; m[i].length</code> no de dentro. <code>console.table</code> ajuda a ver.</li>
+  <li>Para criar uma matriz vazia, <code>Array.from({ length: L }, () =&gt; Array(C).fill(v))</code>. Com <code>fill</code> de um array, todas as linhas são a mesma.</li>
+  <li>Ler uma linha que não existe e depois um item dela dá <code>TypeError: Cannot read properties of undefined</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
