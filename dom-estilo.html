@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Mudando o Estilo — style, getComputedStyle e classList | Guia JavaScript</title>
+<meta name="description" content="Como mudar a aparência da página com JavaScript, para quem nunca programou: a propriedade style (nomes em camelCase, unidades como px, voltar ao normal), getComputedStyle para ler o estilo de verdade, classList (add, remove, toggle, contains, replace), className, esconder e mostrar (display, classe e hidden), e os erros reais do Chromium (background-color, número sem unidade, classe com ponto ou espaço).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Mudando o Estilo</span></h1>
+
+<p class="intro">Trocar o texto já faz muita coisa, mas a página também conversa pela <strong>aparência</strong>: o item esgotado fica cinza e riscado, o aviso importante fica em destaque, o menu aparece e some. Quem cuida da aparência é o CSS, e o JavaScript pode mexer nele de dois jeitos: mudando o <strong>estilo</strong> de um elemento direto (<code>style</code>) ou trocando as <strong>classes</strong> dele (<code>classList</code>). O segundo jeito é o que os profissionais usam quase sempre, e esta aula explica por quê.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Mudar a cor, o fundo e o tamanho com <code>elemento.style</code>, e os nomes das propriedades em <code>camelCase</code>.</li>
+  <li>Por que <code>style.color</code> pode vir vazio, e como ler o estilo de verdade com <code>getComputedStyle</code>.</li>
+  <li>As classes: <code>classList.add</code>, <code>remove</code>, <code>toggle</code>, <code>contains</code> e <code>replace</code>, e o antigo <code>className</code>.</li>
+  <li>Três jeitos de esconder e mostrar um elemento.</li>
+  <li>Quando usar <code>style</code> e quando usar classes.</li>
+  <li>Os erros reais: <code>style.background-color</code>, o número sem <code>px</code>, a classe com ponto e a classe com espaço.</li>
+</ul>
+</div>
+
+<p>As respostas do Console desta aula foram colhidas no <strong>Chromium</strong> da máquina da Ana, com a vitrine abaixo aberta. Se você ainda não conhece CSS, tudo bem: os poucos trechos de CSS da aula são explicados no caminho.</p>
+
+<hr>
+
+<h2>A ideia: pintar a parede ou trocar a etiqueta</h2>
+<p>Na vitrine da padaria, a Ana quer mostrar que a esfiha acabou. Ela tem dois jeitos:</p>
+<ol class="passo">
+  <li><strong>Pintar na hora:</strong> pega a etiqueta da esfiha e pinta de cinza, risca com caneta, diminui a letra. Funciona, mas se amanhã quiser outro jeito de mostrar "esgotado", terá de repintar cada etiqueta.</li>
+  <li><strong>Trocar a etiqueta:</strong> a padaria tem um modelo pronto de etiqueta "ESGOTADO" (cinza e riscada). Ela só pendura esse modelo. Para mudar o visual de todos os esgotados, basta mudar o modelo.</li>
+</ol>
+<p>Pintar na hora é o <code>style</code>. O modelo pronto é uma <strong>classe</strong> do CSS, e pendurá-la é o <code>classList.add</code>.</p>
+
+<p>Esta é a vitrine, com um arquivo de estilo, o <code>estilo.css</code>, que define os modelos (as classes):</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Vitrine da Padaria&lt;/title&gt;
+  &lt;link rel="stylesheet" href="estilo.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 id="titulo"&gt;Vitrine da Padaria&lt;/h1&gt;
+  &lt;p id="aviso" class="aviso"&gt;Fornada nova às 16h!&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li class="item"&gt;Coxinha&lt;/li&gt;
+    &lt;li class="item esgotado"&gt;Esfiha&lt;/li&gt;
+    &lt;li class="item"&gt;Pão de queijo&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="estilo.css">.aviso {
+  color: green;
+}
+.destaque {
+  background-color: gold;
+  font-weight: bold;
+}
+.esgotado {
+  color: gray;
+  text-decoration: line-through;
+}
+.escondido {
+  display: none;
+}
+</pre>
+
+<p>No CSS, <code>.esgotado { … }</code> quer dizer "todo elemento com a classe <code>esgotado</code> fica assim": cor cinza (<code>color: gray</code>) e riscado (<code>text-decoration: line-through</code>). O <code>display: none</code> da classe <code>escondido</code> faz o elemento sumir.</p>
+
+<hr>
+
+<h2>1. <code>style</code>: pintando na hora</h2>
+<p>Todo elemento tem a propriedade <code>style</code>, um objeto com uma propriedade para cada característica do CSS. A Ana digitou no Console:</p>
+
+<pre class="devtools">&gt; const titulo = document.querySelector("#titulo")
+undefined
+&gt; titulo.style.color = "darkred"
+'darkred'
+&gt; titulo.style.backgroundColor = "#fff3c4"
+'#fff3c4'
+&gt; titulo.style.fontSize = "40px"
+'40px'
+</pre>
+
+<p>O título ficou vermelho-escuro, com fundo amarelo-claro e letras maiores. No DOM, essas mudanças viraram o atributo <code>style</code> do elemento:</p>
+
+<pre class="file" data-file="o h1 depois das mudanças">&lt;h1 id="titulo" style="color: darkred; background-color: rgb(255, 243, 196); font-size: 40px;"&gt;Vitrine da Padaria&lt;/h1&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>titulo.style.color = "darkred"</dt><dd>A cor do texto. O valor é um <strong>texto</strong>, igual ao que se escreveria no CSS: um nome de cor (<code>"darkred"</code>), um código (<code>"#fff3c4"</code>) ou <code>"rgb(…)"</code>.</dd>
+  <dt>style.backgroundColor</dt><dd>A cor de fundo. No CSS ela se chama <code>background-color</code>, com hífen; no JavaScript, o hífen some e a letra seguinte vira maiúscula: <code>backgroundColor</code>. É o <strong>camelCase</strong>, o mesmo jeito dos nomes de variáveis. (O navegador guardou o <code>#fff3c4</code> como <code>rgb(255, 243, 196)</code>: é a mesma cor escrita de outro jeito.)</dd>
+  <dt>style.fontSize = "40px"</dt><dd>O tamanho da letra (<code>font-size</code>). Medidas precisam da <strong>unidade</strong> junto, dentro do texto: <code>"40px"</code> (pixels), <code>"2em"</code>, <code>"150%"</code>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No CSS</th><th>No JavaScript</th></tr>
+<tr><td><code>color</code></td><td><code>style.color</code></td></tr>
+<tr><td><code>background-color</code></td><td><code>style.backgroundColor</code></td></tr>
+<tr><td><code>font-size</code></td><td><code>style.fontSize</code></td></tr>
+<tr><td><code>font-weight</code></td><td><code>style.fontWeight</code></td></tr>
+<tr><td><code>text-decoration</code></td><td><code>style.textDecoration</code></td></tr>
+<tr><td><code>border-radius</code></td><td><code>style.borderRadius</code></td></tr>
+<tr><td><code>display</code></td><td><code>style.display</code></td></tr>
+</table>
+</div>
+
+<h3>Voltar ao normal</h3>
+<p>Para desfazer uma mudança do <code>style</code>, dê a ela um texto vazio:</p>
+
+<pre class="devtools">&gt; titulo.style.color = ""
+''
+</pre>
+
+<p>A cor saiu do atributo (<code>style="background-color: rgb(255, 243, 196); font-size: 40px;"</code>), e o título voltou à cor que o CSS da página dá a ele.</p>
+
+<div class="tryweb" data-goal="dom:#titulo[style*=&quot;darkred&quot;];;dom:#titulo[style*=&quot;font-size&quot;];;semerro">
+<p class="try-task"><strong>Missão:</strong> com <code>style</code>, deixe o título com a cor <code>darkred</code> e o tamanho da letra em <code>40px</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Vitrine da Padaria&lt;/h1&gt;
+&lt;p&gt;Fornada nova às 16h!&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const titulo = document.querySelector("#titulo");
+// mude a cor e o tamanho aqui
+</pre>
+<pre class="solucao" data-file="script.js">const titulo = document.querySelector("#titulo");
+titulo.style.color = "darkred";
+titulo.style.fontSize = "40px";
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Lendo o estilo de verdade: <code>getComputedStyle</code></h2>
+<p>Uma pegadinha: o <code>style</code> só conhece o que está <strong>no atributo <code>style</code></strong> do elemento. O aviso é verde, mas por causa da classe do arquivo <code>estilo.css</code>:</p>
+
+<pre class="devtools">&gt; const aviso = document.querySelector("#aviso")
+undefined
+&gt; aviso.style.color
+''
+&gt; getComputedStyle(aviso).color
+'rgb(0, 128, 0)'
+&gt; getComputedStyle(aviso).fontSize
+'16px'
+</pre>
+
+<dl class="anatomy">
+  <dt>aviso.style.color → ''</dt><dd>Vazio: ninguém pôs <code>color</code> no atributo <code>style</code> do aviso.</dd>
+  <dt>getComputedStyle(aviso)</dt><dd>"Pegar o estilo calculado": o resultado final, depois de juntar o CSS da página, as classes, o <code>style</code> e o padrão do navegador. É o que a tela mostra.</dd>
+  <dt>'rgb(0, 128, 0)'</dt><dd>O verde (<code>green</code>), escrito como o navegador guarda as cores: quanto de vermelho, verde e azul, de 0 a 255.</dd>
+  <dt>'16px'</dt><dd>O tamanho de letra padrão do navegador, que ninguém mudou.</dd>
+</dl>
+
+<p>Resumo: para <strong>mudar</strong>, use <code>style</code> (ou classes); para <strong>ler</strong> como está na tela, use <code>getComputedStyle</code> (que só lê: não dá para mudar por ele).</p>
+
+<hr>
+
+<h2>3. <code>classList</code>: trocando a etiqueta</h2>
+<p>Todo elemento tem a lista das suas classes, o <code>classList</code>, com métodos para mexer nela:</p>
+
+<pre class="devtools">&gt; aviso.classList.add("destaque")
+undefined
+&gt; aviso.classList.contains("destaque")
+true
+&gt; aviso.classList.remove("destaque")
+undefined
+&gt; aviso.classList.contains("destaque")
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>classList.add("destaque")</dt><dd>"Adicionar": pendura a classe. O aviso ficou <code>&lt;p id="aviso" class="aviso destaque"&gt;</code>: manteve a classe <code>aviso</code> e ganhou a <code>destaque</code>, com o fundo dourado e o negrito que o CSS define. Se a classe já estiver lá, nada acontece (não repete).</dd>
+  <dt>classList.contains("destaque")</dt><dd>"Contém?": <code>true</code> ou <code>false</code>.</dd>
+  <dt>classList.remove("destaque")</dt><dd>"Remover": tira só essa classe; as outras ficam.</dd>
+</dl>
+
+<p>O nome da classe vai <strong>sem o ponto</strong>: o ponto é do seletor (<code>querySelector(".destaque")</code>), não do nome.</p>
+
+<h3><code>toggle</code>: liga e desliga</h3>
+<p><code>toggle</code> ("alternar") põe a classe se ela não estiver lá, e tira se estiver. E devolve <code>true</code> se a classe ficou, <code>false</code> se saiu:</p>
+
+<pre class="devtools">&gt; aviso.classList.toggle("escondido")
+true
+&gt; getComputedStyle(aviso).display
+'none'
+&gt; aviso.classList.toggle("escondido")
+false
+&gt; getComputedStyle(aviso).display
+'block'
+</pre>
+
+<p>Na primeira vez, a classe <code>escondido</code> entrou e o aviso sumiu da tela (<code>display: none</code>); na segunda, saiu e ele voltou (<code>block</code> é o normal de um parágrafo). É o jeito clássico de um botão "mostrar/esconder" ou de um modo escuro: um <code>toggle</code> a cada clique.</p>
+
+<h3><code>replace</code> e <code>className</code></h3>
+
+<pre class="devtools">&gt; const esfiha = document.querySelector(".esgotado")
+undefined
+&gt; esfiha.classList.replace("esgotado", "destaque")
+true
+&gt; esfiha.className
+'item destaque'
+&gt; esfiha.className = "novo"
+'novo'
+</pre>
+
+<dl class="anatomy">
+  <dt>classList.replace("esgotado", "destaque")</dt><dd>"Substituir": troca uma classe por outra (a esfiha voltou ao estoque e virou destaque). Devolve <code>true</code> se a primeira existia.</dd>
+  <dt>className</dt><dd>O jeito antigo: o atributo <code>class</code> inteiro, como um texto só, com as classes separadas por espaço.</dd>
+  <dt>className = "novo"</dt><dd>Substitui <strong>todas</strong> as classes: a esfiha ficou <code>&lt;li class="novo"&gt;</code> e perdeu a <code>item</code>. Por isso, para mexer numa classe só, prefira o <code>classList</code>.</dd>
+</dl>
+
+<h3>Em vários elementos de uma vez</h3>
+<p>Junte com o <code>querySelectorAll</code> da aula <a href="dom-selecionar.html">Selecionando Elementos</a>:</p>
+
+<pre class="devtools">&gt; document.querySelectorAll(".item").forEach((li) =&gt; li.classList.add("destaque"))
+undefined
+</pre>
+
+<p>Os itens que ainda tinham a classe <code>item</code> (a coxinha e o pão de queijo) ganharam a classe <code>destaque</code>: <code>&lt;li class="item destaque"&gt;Coxinha&lt;/li&gt;</code>.</p>
+
+<div class="tryweb" data-acoes="clicar #esgotou" data-goal="dom:#esfiha.esgotado;;semerro">
+<p class="try-task"><strong>Missão:</strong> quando alguém clicar no botão <strong>Esgotou a esfiha</strong>, a esfiha deve ficar cinza e riscada. Dentro da função do clique, acrescente a classe <code>esgotado</code> à esfiha com <code>classList.add</code>. Depois rode e clique no botão no Resultado. (Para ela voltar a cada clique, experimente <code>toggle</code> no lugar de <code>add</code>.)</p>
+<pre class="script" data-file="index.html">&lt;link rel="stylesheet" href="style.css"&gt;
+&lt;ul&gt;
+  &lt;li&gt;Coxinha&lt;/li&gt;
+  &lt;li id="esfiha"&gt;Esfiha&lt;/li&gt;
+&lt;/ul&gt;
+&lt;button id="esgotou"&gt;Esgotou a esfiha&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="style.css">.esgotado {
+  color: gray;
+  text-decoration: line-through;
+}
+</pre>
+<pre class="script" data-file="script.js">const esfiha = document.querySelector("#esfiha");
+const botao = document.querySelector("#esgotou");
+
+botao.addEventListener("click", () =&gt; {
+  // acrescente a classe esgotado à esfiha
+});
+</pre>
+<pre class="solucao" data-file="script.js">const esfiha = document.querySelector("#esfiha");
+const botao = document.querySelector("#esgotou");
+
+botao.addEventListener("click", () =&gt; {
+  esfiha.classList.add("esgotado");
+});
+</pre>
+</div>
+
+<p>O <code>addEventListener("click", …)</code> ("quando clicar, rode esta função") é o assunto da aula <a href="eventos.html">Eventos</a>; aqui basta saber que o que está dentro das chaves roda a cada clique. A primeira linha do <code>index.html</code> liga a aba <code>style.css</code> à página, como o <code>&lt;link&gt;</code> da vitrine.</p>
+
+<hr>
+
+<h2>4. Esconder e mostrar</h2>
+<p>Esconder um elemento é tão comum que existem três jeitos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Esconder</th><th>Mostrar</th></tr>
+<tr><td>Classe do CSS (recomendado)</td><td><code>el.classList.add("escondido")</code></td><td><code>el.classList.remove("escondido")</code> (ou um <code>toggle</code> para os dois)</td></tr>
+<tr><td><code>style.display</code></td><td><code>el.style.display = "none"</code></td><td><code>el.style.display = ""</code></td></tr>
+<tr><td>Atributo <code>hidden</code></td><td><code>el.hidden = true</code></td><td><code>el.hidden = false</code></td></tr>
+</table>
+</div>
+
+<p>O <code>hidden</code> ("escondido") é um atributo do próprio HTML: no lab, <code>aviso.hidden = true</code> pôs <code>hidden=""</code> na tag, e <code>getComputedStyle(aviso).display</code> deu <code>'none'</code>. Cuidado com um detalhe: se o CSS da página der um <code>display</code> ao elemento (por exemplo, <code>display: flex</code>), o <code>hidden</code> perde a disputa e o elemento não some. A classe não tem esse problema se o seu CSS for escrito para ela.</p>
+
+<hr>
+
+<h2 id="formas">Qual usar: <code>style</code> ou classes?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th><th>Por quê</th></tr>
+<tr><td>Mudar a aparência para um <strong>estado</strong> (esgotado, selecionado, erro, escondido, modo escuro)</td><td><code>classList</code></td><td>O visual fica no CSS, num lugar só; o JavaScript só diz "está esgotado"</td></tr>
+<tr><td>Vários elementos com a mesma aparência</td><td><code>classList</code></td><td>Mudar o modelo no CSS muda todos</td></tr>
+<tr><td>Um valor que muda o tempo todo e é calculado (a largura de uma barra de progresso, a posição de algo que se arrasta)</td><td><code>style</code></td><td>Não dá para ter uma classe para cada valor: <code>barra.style.width = `${porcentagem}%`</code></td></tr>
+<tr><td>Ler como o elemento está na tela</td><td><code>getComputedStyle</code></td><td>O <code>style</code> só vê o atributo <code>style</code></td></tr>
+<tr><td>Saber se o elemento está num estado</td><td><code>classList.contains</code></td><td>Responde <code>true</code>/<code>false</code> direto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu o nome do CSS com hífen</strong>
+<pre class="devtools">&gt; titulo.style.background-color = "gold"
+Uncaught SyntaxError: Invalid left-hand side in assignment
+</pre>
+<p>"Erro de sintaxe: lado esquerdo inválido na atribuição." Para o JavaScript, <code>titulo.style.background - color</code> é uma <strong>conta de menos</strong> entre <code>titulo.style.background</code> e uma variável <code>color</code>, e não dá para guardar um valor numa conta. <strong>Como consertar:</strong> use o nome em camelCase, <code>style.backgroundColor</code>, ou o nome do CSS entre colchetes e aspas: <code>style["background-color"]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu a unidade</strong>
+<pre class="devtools">&gt; titulo.style.fontSize = 20
+20
+&gt; titulo.style.fontSize
+'40px'
+</pre>
+<p>Nenhum erro, e nada mudou: o tamanho continuou <code>40px</code>. O número <code>20</code> sozinho não é um valor válido para o CSS (20 o quê?), e o navegador simplesmente <strong>ignora</strong> valores inválidos. O mesmo acontece com um nome de cor errado. <strong>Como consertar:</strong> <code>titulo.style.fontSize = "20px"</code> (ou, com uma variável, <code>`${tamanho}px`</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs o ponto no nome da classe</strong>
+<pre class="devtools">&gt; aviso.classList.add(".destaque")
+undefined
+</pre>
+<p>Nenhum erro, e nenhum destaque: o aviso ganhou uma classe chamada, literalmente, <code>.destaque</code> (com o ponto): <code>&lt;p id="aviso" class="aviso .destaque"&gt;</code>. O CSS procura a classe <code>destaque</code>, sem ponto, e não acha. <strong>Como consertar:</strong> <code>classList.add("destaque")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Duas classes num texto só</strong>
+<pre class="devtools">&gt; aviso.classList.add("destaque grande")
+Uncaught InvalidCharacterError: Failed to execute 'add' on 'DOMTokenList': The token provided ('destaque grande') contains HTML space characters, which are not valid in tokens.
+    at &lt;anonymous&gt;:1:17
+</pre>
+<p>"Falha ao executar o <code>add</code> na <code>DOMTokenList</code> (o tipo do <code>classList</code>): o nome <code>'destaque grande'</code> contém espaços, que não valem em nomes." Um nome de classe não pode ter espaço. <strong>Como consertar:</strong> para pôr duas classes, passe dois valores separados: <code>classList.add("destaque", "grande")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou o CSS, mas o <code>style</code> "não vê"</strong>
+<p><code>aviso.style.color</code> deu <code>''</code>, mas o aviso está verde na tela. Não é erro: a cor vem da classe, e o <code>style</code> só vê o atributo <code>style</code> (seção 2). <strong>Como consertar:</strong> leia com <code>getComputedStyle(aviso).color</code>, ou pergunte pela classe com <code>classList.contains</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>className</code> apagou as outras classes</strong>
+<p>Depois de <code>esfiha.className = "novo"</code>, a esfiha perdeu a classe <code>item</code> (seção 3), e o visual que dependia dela sumiu. <strong>Como consertar:</strong> use <code>classList.add("novo")</code>, que mantém as outras.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>el.style.propriedade = "valor"</code></td><td>Muda o estilo direto no elemento (nome em camelCase, valor como texto, com unidade)</td></tr>
+<tr><td><code>el.style.propriedade = ""</code></td><td>Desfaz a mudança</td></tr>
+<tr><td><code>getComputedStyle(el).propriedade</code></td><td>Lê o estilo final, como aparece na tela</td></tr>
+<tr><td><code>el.classList.add("a", "b")</code></td><td>Acrescenta uma ou mais classes</td></tr>
+<tr><td><code>el.classList.remove("a")</code></td><td>Tira a classe</td></tr>
+<tr><td><code>el.classList.toggle("a")</code></td><td>Põe se não tem, tira se tem; devolve <code>true</code> se ficou</td></tr>
+<tr><td><code>el.classList.contains("a")</code></td><td><code>true</code> se tem a classe</td></tr>
+<tr><td><code>el.classList.replace("a", "b")</code></td><td>Troca uma classe por outra</td></tr>
+<tr><td><code>el.className</code></td><td>Todas as classes num texto (dar um valor substitui todas)</td></tr>
+<tr><td><code>el.hidden = true</code></td><td>Esconde pelo atributo <code>hidden</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Do CSS para o JavaScript</h3>
+<div class="ex-code"><code>border-radius</code> vira <code>style.<input data-answer="borderRadius" aria-label="nome em camelCase"></code><br><code>font-weight</code> vira <code>style.<input data-answer="fontWeight" aria-label="nome em camelCase"></code></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para o botão de modo escuro ligar e desligar a classe <code>escuro</code> do <code>body</code>:</p>
+<div class="ex-code">document.body.classList.<input data-answer="toggle" aria-label="método que alterna">("escuro");</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Um parágrafo é azul por causa de uma classe do CSS. O que <code>p.style.color</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>'blue'</code></label>
+<label><input type="radio" name="q3"> <code>''</code>, porque o <code>style</code> só vê o atributo <code>style</code></label>
+<label><input type="radio" name="q3"> <code>'rgb(0, 0, 255)'</code></label>
+<label><input type="radio" name="q3"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual linha deixa a letra com 24 pixels?</p>
+<label><input type="radio" name="q4"> <code>el.style.fontSize = 24</code></label>
+<label><input type="radio" name="q4"> <code>el.style.font-size = "24px"</code></label>
+<label><input type="radio" name="q4"> <code>el.style.fontsize = "24px"</code></label>
+<label><input type="radio" name="q4"> <code>el.style.fontSize = "24px"</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Um elemento tem <code>class="item novo"</code>. Depois de <code>el.classList.add("destaque")</code>, como fica?</p>
+<label><input type="radio" name="q5"> <code>class="item novo destaque"</code></label>
+<label><input type="radio" name="q5"> <code>class="destaque"</code></label>
+<label><input type="radio" name="q5"> <code>class="item novo .destaque"</code></label>
+<label><input type="radio" name="q5"> Dá erro, porque já tem duas classes</label>
+</div>
+
+<h3>Missão final: os mais caros em destaque</h3>
+
+<div class="tryweb" data-goal="dom:li[data-preco=&quot;6.50&quot;].destaque;;dom:li[data-preco=&quot;9.00&quot;].destaque;;src:classList">
+<p class="try-task"><strong>Missão:</strong> ponha a classe <code>destaque</code> em todos os itens que custam <strong>mais de R$ 5</strong>. Percorra os <code>li</code> com <code>querySelectorAll</code>, leia o preço com <code>Number(li.dataset.preco)</code> e, se passar de 5, use <code>li.classList.add("destaque")</code>.</p>
+<pre class="script" data-file="index.html">&lt;link rel="stylesheet" href="style.css"&gt;
+&lt;ul&gt;
+  &lt;li data-preco="6.50"&gt;Coxinha&lt;/li&gt;
+  &lt;li data-preco="4.50"&gt;Pão de queijo&lt;/li&gt;
+  &lt;li data-preco="5.00"&gt;Esfiha&lt;/li&gt;
+  &lt;li data-preco="9.00"&gt;Bolo de pote&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="style.css">.destaque {
+  background-color: gold;
+  font-weight: bold;
+}
+</pre>
+<pre class="script" data-file="script.js">const itens = document.querySelectorAll("li");
+// destaque os itens com preço maior que 5
+</pre>
+<pre class="solucao" data-file="script.js">const itens = document.querySelectorAll("li");
+for (const li of itens) {
+  if (Number(li.dataset.preco) &gt; 5) {
+    li.classList.add("destaque");
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>el.style.propriedade = "valor"</code> muda a aparência direto no elemento. Os nomes do CSS com hífen viram camelCase (<code>backgroundColor</code>), e medidas levam a unidade (<code>"40px"</code>). Um texto vazio desfaz.</li>
+  <li>O <code>style</code> só enxerga o atributo <code>style</code>; para ler o estilo que aparece na tela, use <code>getComputedStyle(el)</code>.</li>
+  <li><code>classList</code> mexe nas classes: <code>add</code>, <code>remove</code>, <code>toggle</code>, <code>contains</code>, <code>replace</code>. O nome vai sem ponto e sem espaço.</li>
+  <li>Prefira classes: o visual fica no CSS, e o JavaScript só liga e desliga estados. Use <code>style</code> para valores calculados.</li>
+  <li>Esconder: <code>classList.add("escondido")</code>, <code>style.display = "none"</code> ou <code>hidden = true</code>.</li>
+  <li>Valores inválidos no <code>style</code> (número sem unidade, cor com nome errado) são ignorados sem aviso.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
