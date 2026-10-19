@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Mudando Textos e Atributos — textContent, innerHTML, setAttribute | Guia JavaScript</title>
+<meta name="description" content="Como mudar o texto e os atributos de um elemento da página com JavaScript, para quem nunca programou: textContent, innerText e innerHTML (e o perigo do innerHTML com texto do usuário), getAttribute, setAttribute, removeAttribute e hasAttribute, as propriedades src, href, alt, id, value, checked e disabled, os atributos data- com dataset, e os erros reais do Chromium.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Mudando Textos e Atributos</span></h1>
+
+<p class="intro">Você já sabe <a href="dom-selecionar.html">encontrar um elemento</a> na página. Agora vem a parte que faz a página "ganhar vida": <strong>mudar</strong> o que ele mostra. Nesta aula, a Ana atualiza a página da padaria pelo JavaScript: troca o horário, a foto, o link do WhatsApp, lê o que o cliente digitou. São duas famílias de mudança: o <strong>texto</strong> de dentro do elemento e os <strong>atributos</strong> da tag (<code>src</code>, <code>href</code>, <code>alt</code>, <code>value</code>…).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Ler e trocar o texto de um elemento com <code>textContent</code>.</li>
+  <li>A diferença entre <code>textContent</code>, <code>innerText</code> e <code>innerHTML</code>, e por que o <code>innerHTML</code> é perigoso com texto digitado pelo usuário.</li>
+  <li>Os quatro métodos de atributo: <code>getAttribute</code>, <code>setAttribute</code>, <code>removeAttribute</code> e <code>hasAttribute</code>.</li>
+  <li>O atalho das <strong>propriedades</strong>: <code>img.src</code>, <code>a.href</code>, <code>input.value</code>, <code>checkbox.checked</code>, <code>botao.disabled</code>.</li>
+  <li>Os atributos <code>data-</code> e o <code>dataset</code>.</li>
+  <li>Os erros reais: o texto com tags que aparece cru, o <code>src</code> que vira endereço completo, o <code>value</code> que não muda no atributo.</li>
+</ul>
+</div>
+
+<p>As respostas do Console desta aula foram colhidas no <strong>Chromium</strong> da máquina da Ana, com a página abaixo aberta (com dois cliques, de <code>/home/ana/placa/index.html</code>). As classes e o estilo ficam para a próxima aula, <a href="dom-estilo.html">Mudando o Estilo</a>.</p>
+
+<hr>
+
+<h2>A ideia: a placa da padaria</h2>
+<p>A fachada da padaria tem uma <strong>placa</strong> de letras móveis, daquelas em que se trocam as letras do horário. Mudar o <strong>texto</strong> é trocar as letras da placa. Mas a placa também tem <strong>características</strong>: o tamanho, a foto pendurada ao lado, o número de telefone. No HTML, essas características são os <strong>atributos</strong>: o que vem dentro da tag de abertura, como <code>src="pao.jpg"</code> ou <code>href="…"</code>. O JavaScript pode trocar as duas coisas.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Padaria da Ana&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 id="titulo"&gt;Padaria da Ana&lt;/h1&gt;
+  &lt;p id="horario"&gt;Aberto das &lt;strong&gt;6h&lt;/strong&gt; às 20h&lt;/p&gt;
+  &lt;img id="foto" src="pao.jpg" alt="Pão francês"&gt;
+  &lt;a id="whats" href="https://wa.me/5511999999999"&gt;Fale conosco&lt;/a&gt;
+  &lt;p id="produto" data-preco="4.50" data-estoque="12"&gt;Pão de queijo&lt;/p&gt;
+  &lt;input id="nome" value="Ana"&gt;
+  &lt;input type="checkbox" id="entrega"&gt;
+  &lt;button id="enviar"&gt;Enviar&lt;/button&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<hr>
+
+<h2>1. <code>textContent</code>: o texto de dentro</h2>
+<p>O <code>textContent</code> ("conteúdo de texto") você já viu: lê <strong>todo o texto</strong> de dentro do elemento, inclusive o das tags filhas, sem as tags. E aceita um valor novo:</p>
+
+<pre class="devtools">&gt; document.querySelector("#horario").textContent
+'Aberto das 6h às 20h'
+&gt; document.querySelector("#titulo").textContent = "Padaria e Confeitaria da Ana"
+'Padaria e Confeitaria da Ana'
+</pre>
+
+<p>A primeira linha leu o horário: o <code>&lt;strong&gt;</code> sumiu, ficou só o texto. A segunda trocou o título, e a página mudou na hora. Num arquivo <code>script.js</code>, o normal é guardar o elemento numa constante e depois mexer nele:</p>
+
+<pre class="file" data-file="script.js">const titulo = document.querySelector("#titulo");
+titulo.textContent = "Padaria e Confeitaria da Ana";
+</pre>
+
+<dl class="anatomy">
+  <dt>const titulo = document.querySelector("#titulo");</dt><dd>Seleciona o elemento uma vez só e guarda. A constante guarda o <strong>elemento</strong> (o pedaço da árvore), não o texto: por isso dá para mudar o texto dele depois.</dd>
+  <dt>titulo.textContent = "…";</dt><dd>Apaga <strong>tudo</strong> o que havia dentro do elemento (textos e tags filhas) e põe o texto novo no lugar.</dd>
+</dl>
+
+<div class="tryweb" data-goal="texto:#horario~Aberto das 7h às 19h;;semerro">
+<p class="try-task"><strong>Missão:</strong> no domingo a padaria abre mais tarde. Faça o script trocar o texto do parágrafo <code>#horario</code> para <code>Aberto das 7h às 19h</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Padaria da Ana&lt;/h1&gt;
+&lt;p id="horario"&gt;Aberto das 6h às 20h&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const horario = document.querySelector("#horario");
+console.log(horario.textContent);
+</pre>
+<pre class="solucao" data-file="script.js">const horario = document.querySelector("#horario");
+console.log(horario.textContent);
+horario.textContent = "Aberto das 7h às 19h";
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>innerHTML</code>: o HTML de dentro</h2>
+<p>E se a Ana quiser o novo horário com o <code>7h</code> em negrito? Com <code>textContent</code>, não dá:</p>
+
+<pre class="devtools">&gt; document.querySelector("#horario").textContent = "Aberto das &lt;strong&gt;7h&lt;/strong&gt; às 19h"
+'Aberto das &lt;strong&gt;7h&lt;/strong&gt; às 19h'
+</pre>
+
+<p>Na tela apareceu, ao pé da letra, <code>Aberto das &lt;strong&gt;7h&lt;/strong&gt; às 19h</code>, com os sinais de menor e maior. O <code>textContent</code> trata tudo como <strong>texto</strong>: no DOM, o parágrafo ficou com <code>Aberto das &amp;lt;strong&amp;gt;7h…</code> (o <code>&amp;lt;</code> é o jeito do HTML escrever um <code>&lt;</code> que não abre tag). Para o navegador <strong>interpretar</strong> as tags, use <code>innerHTML</code> ("HTML de dentro"):</p>
+
+<pre class="devtools">&gt; document.querySelector("#horario").innerHTML = "Aberto das &lt;strong&gt;7h&lt;/strong&gt; às 19h"
+'Aberto das &lt;strong&gt;7h&lt;/strong&gt; às 19h'
+</pre>
+
+<p>Agora o <strong>7h</strong> aparece em negrito: o parágrafo ganhou um elemento <code>&lt;strong&gt;</code> de verdade. E, para ler, o <code>innerHTML</code> devolve o HTML com as tags (com a página recém-aberta):</p>
+
+<pre class="devtools">&gt; document.querySelector("#horario").innerHTML
+'Aberto das &lt;strong&gt;6h&lt;/strong&gt; às 20h'
+</pre>
+
+<div class="warning">
+<strong>Nunca ponha no <code>innerHTML</code> um texto que o usuário digitou</strong>
+<p>A Ana fez um mural de recados: o cliente digita num campo, clica em Publicar, e o script faz <code>mural.innerHTML = texto</code>. Um cliente mal-intencionado digitou isto no campo:</p>
+<pre class="file" data-file="o que foi digitado">&lt;img src=x onerror="alert(1)"&gt;
+</pre>
+<p>Ao publicar, o navegador interpretou o texto como HTML: criou uma imagem com endereço <code>x</code> (que não existe), e o <code>onerror</code> ("quando der erro") rodou o JavaScript que o cliente escreveu. No Chromium da Ana, apareceu a janela <code>alert</code> com <code>1</code>. Aqui foi só um aviso, mas poderia ser um código que rouba os dados de quem está logado. Esse ataque se chama <strong>XSS</strong> (<em>cross-site scripting</em>, "script entre sites"), e é um dos mais comuns da internet.</p>
+<p><strong>Regra:</strong> texto que veio de fora (digitado, de um <code>fetch</code>, do endereço da página) vai no <code>textContent</code>, que nunca interpreta tags. Use <code>innerHTML</code> só com HTML que <strong>você</strong> escreveu.</p>
+</div>
+
+<h3>E o <code>innerText</code>?</h3>
+<p>Existe um terceiro: o <code>innerText</code> ("texto de dentro"). Ele devolve o texto <strong>como aparece na tela</strong>, levando o CSS em conta. Com estes dois parágrafos:</p>
+
+<pre class="file" data-file="index.html (trecho)">&lt;p id="misto"&gt;Pão &lt;span style="display: none"&gt;(esgotado)&lt;/span&gt;francês&lt;/p&gt;
+&lt;p id="caixa" style="text-transform: uppercase"&gt;promoção&lt;/p&gt;
+</pre>
+
+<pre class="devtools">&gt; document.querySelector("#misto").textContent
+'Pão (esgotado)francês'
+&gt; document.querySelector("#misto").innerText
+'Pão francês'
+&gt; document.querySelector("#caixa").textContent
+'promoção'
+&gt; document.querySelector("#caixa").innerText
+'PROMOÇÃO'
+</pre>
+
+<p>O <code>textContent</code> lê o que está no HTML, inclusive o <code>(esgotado)</code> escondido pelo <code>display: none</code>. O <code>innerText</code> pula o que está escondido e devolve as maiúsculas que o CSS desenhou. Para o navegador calcular isso, o <code>innerText</code> precisa olhar o estilo da página, o que o torna mais lento. No dia a dia, use <code>textContent</code>; o <code>innerText</code> serve quando você quer exatamente o texto que a pessoa está vendo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>Lendo, devolve</th><th>Recebendo um valor</th><th>Quando usar</th></tr>
+<tr><td><code>textContent</code></td><td>Todo o texto do HTML, sem as tags</td><td>Põe como texto (as tags aparecem cruas)</td><td>Quase sempre</td></tr>
+<tr><td><code>innerText</code></td><td>O texto como aparece na tela (sem o escondido, com o CSS)</td><td>Põe como texto</td><td>Quando precisa do texto visível</td></tr>
+<tr><td><code>innerHTML</code></td><td>O HTML de dentro, com as tags</td><td>Interpreta as tags</td><td>HTML escrito por você, nunca texto do usuário</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Atributos: <code>getAttribute</code> e <code>setAttribute</code></h2>
+<p>Os atributos se leem e se mudam com quatro métodos, que funcionam com <strong>qualquer</strong> atributo:</p>
+
+<pre class="devtools">&gt; document.querySelector("#foto").getAttribute("src")
+'pao.jpg'
+&gt; document.querySelector("#foto").setAttribute("src", "bolo.jpg")
+undefined
+&gt; document.querySelector("#whats").hasAttribute("target")
+false
+&gt; document.querySelector("#whats").setAttribute("target", "_blank")
+undefined
+&gt; document.querySelector("#whats").removeAttribute("target")
+undefined
+&gt; document.querySelector("#whats").hasAttribute("target")
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>getAttribute("src")</dt><dd>"Pegar atributo": devolve o valor <strong>exatamente como está escrito</strong> no HTML: <code>'pao.jpg'</code>. Se o atributo não existe, devolve <code>null</code>.</dd>
+  <dt>setAttribute("src", "bolo.jpg")</dt><dd>"Definir atributo": recebe <strong>dois</strong> valores, o nome e o valor novo. Se o atributo não existir, ele é criado. A foto passou a ser <code>bolo.jpg</code>, e o navegador tentou carregá-la na hora. (O <code>undefined</code> embaixo é só o que o método devolve: nada.)</dd>
+  <dt>hasAttribute("target")</dt><dd>"Tem atributo?": <code>true</code> ou <code>false</code>.</dd>
+  <dt>setAttribute("target", "_blank")</dt><dd>Criou o atributo <code>target="_blank"</code>, que faz o link abrir numa aba nova. O link ficou assim: <code>&lt;a id="whats" href="https://wa.me/5511999999999" target="_blank"&gt;Fale conosco&lt;/a&gt;</code>.</dd>
+  <dt>removeAttribute("target")</dt><dd>"Remover atributo": apagou o <code>target</code>; o <code>hasAttribute</code> voltou a dar <code>false</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>4. O atalho: atributos como propriedades</h2>
+<p>Os atributos mais comuns também existem como <strong>propriedades</strong> do elemento, com o mesmo nome. É o jeito mais usado, porque é mais curto:</p>
+
+<pre class="devtools">&gt; document.querySelector("#foto").alt
+'Pão francês'
+&gt; document.querySelector("#foto").alt = "Bolo de cenoura"
+'Bolo de cenoura'
+&gt; document.querySelector("#titulo").id
+'titulo'
+</pre>
+
+<p>Depois dessas linhas (e do <code>setAttribute</code> da seção 3), a imagem ficou <code>&lt;img id="foto" src="bolo.jpg" alt="Bolo de cenoura"&gt;</code>: mudar a propriedade <code>alt</code> mudou o atributo também.</p>
+
+<h3>A diferença que pega: <code>src</code> e <code>href</code></h3>
+
+<pre class="devtools">&gt; document.querySelector("#foto").getAttribute("src")
+'pao.jpg'
+&gt; document.querySelector("#foto").src
+'file:///home/ana/placa/pao.jpg'
+</pre>
+
+<p>O <code>getAttribute</code> devolve o que está escrito; a propriedade <code>.src</code> devolve o endereço <strong>completo</strong>, já resolvido a partir do endereço da página. Com o <code>href</code> dos links acontece o mesmo. Para comparar com o que está no HTML, use <code>getAttribute</code>; para saber o endereço de verdade, use a propriedade.</p>
+
+<h3>Atributos de formulário: <code>value</code>, <code>checked</code>, <code>disabled</code></h3>
+<p>Aqui está a diferença mais importante entre atributo e propriedade. A Ana leu o campo, clicou nele, digitou <code> Souza</code> no fim, e leu de novo:</p>
+
+<pre class="devtools">&gt; document.querySelector("#nome").value
+'Ana'
+&gt; document.querySelector("#nome").value
+'Ana Souza'
+&gt; document.querySelector("#nome").getAttribute("value")
+'Ana'
+</pre>
+
+<p>A <strong>propriedade</strong> <code>value</code> é o que está <strong>no campo agora</strong>: <code>'Ana Souza'</code>. O <strong>atributo</strong> <code>value</code> é só o valor inicial, escrito no HTML, e não muda quando a pessoa digita: continua <code>'Ana'</code>. Para ler o que o usuário digitou, use <strong>sempre</strong> <code>.value</code> (a aula <a href="formularios.html">Formulários</a> usa isso o tempo todo).</p>
+
+<p>Caixinhas de marcar e botões têm propriedades <strong>booleanas</strong> (<code>true</code>/<code>false</code>):</p>
+
+<pre class="devtools">&gt; document.querySelector("#entrega").checked
+false
+&gt; document.querySelector("#entrega").checked
+true
+&gt; document.querySelector("#enviar").disabled = true
+true
+&gt; document.querySelector("#enviar").disabled = false
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>.checked</dt><dd>"Marcado": <code>false</code> antes; <code>true</code> depois que a Ana clicou na caixinha. Também dá para marcar pelo código: <code>caixa.checked = true</code>.</dd>
+  <dt>.disabled = true</dt><dd>"Desativado": o botão fica cinza e não aceita cliques. No HTML, apareceu o atributo: <code>&lt;button id="enviar" disabled=""&gt;Enviar&lt;/button&gt;</code>.</dd>
+  <dt>.disabled = false</dt><dd>Reativa: o atributo some, e o botão volta a ser <code>&lt;button id="enviar"&gt;Enviar&lt;/button&gt;</code>.</dd>
+</dl>
+
+<div class="tryweb" data-goal="dom:#whats[target=&quot;_blank&quot;];;texto:#whats~Chame no WhatsApp;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça o link abrir numa aba nova (acrescente o atributo <code>target</code> com o valor <code>_blank</code>, com <code>setAttribute</code>) e troque o texto dele para <code>Chame no WhatsApp</code>.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria da Ana&lt;/h1&gt;
+&lt;a id="whats" href="https://wa.me/5511999999999"&gt;Fale conosco&lt;/a&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const link = document.querySelector("#whats");
+console.log(link.getAttribute("href"));
+</pre>
+<pre class="solucao" data-file="script.js">const link = document.querySelector("#whats");
+console.log(link.getAttribute("href"));
+link.setAttribute("target", "_blank");
+link.textContent = "Chame no WhatsApp";
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Atributos <code>data-</code> e o <code>dataset</code></h2>
+<p>Às vezes você quer guardar uma informação <strong>sua</strong> num elemento: o preço de um produto, quantos ainda há no estoque. Para isso existem os atributos que começam com <code>data-</code> ("dados"): o HTML deixa você inventar o nome. O JavaScript os lê pelo <code>dataset</code>:</p>
+
+<pre class="devtools">&gt; document.querySelector("#produto").dataset
+DOMStringMap {preco: '4.50', estoque: '12'}
+&gt; document.querySelector("#produto").dataset.preco
+'4.50'
+&gt; Number(document.querySelector("#produto").dataset.estoque) - 1
+11
+&gt; document.querySelector("#produto").dataset.estoque = 11
+11
+</pre>
+
+<dl class="anatomy">
+  <dt>dataset</dt><dd>Um objeto com todos os atributos <code>data-</code> do elemento, sem o <code>data-</code> na frente: <code>data-preco</code> vira <code>dataset.preco</code>. (O <code>DOMStringMap</code> é o nome do tipo desse objeto.)</dd>
+  <dt>'4.50' e '12'</dt><dd>Repare nas aspas: os valores são sempre <strong>texto</strong>. Para fazer conta, converta com <code>Number(…)</code> (veja <a href="conversao.html">Conversão</a>).</dd>
+  <dt>dataset.estoque = 11</dt><dd>Muda o atributo no HTML: o elemento ficou <code>&lt;p id="produto" data-preco="4.50" data-estoque="11"&gt;</code>. O número virou texto de novo.</dd>
+</dl>
+
+<p>Um nome com hífen vira <code>camelCase</code> no <code>dataset</code>: <code>data-preco-antigo</code> se lê com <code>dataset.precoAntigo</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Jeito curto (propriedade)</th><th>Jeito geral (método)</th></tr>
+<tr><td>Ler o endereço de uma imagem</td><td><code>img.src</code> (completo)</td><td><code>img.getAttribute("src")</code> (como está escrito)</td></tr>
+<tr><td>Trocar a imagem</td><td><code>img.src = "bolo.jpg"</code></td><td><code>img.setAttribute("src", "bolo.jpg")</code></td></tr>
+<tr><td>Ler o que foi digitado</td><td><code>campo.value</code></td><td>(não use <code>getAttribute("value")</code>: é só o valor inicial)</td></tr>
+<tr><td>Desativar um botão</td><td><code>botao.disabled = true</code></td><td><code>botao.setAttribute("disabled", "")</code></td></tr>
+<tr><td>Um atributo <code>data-</code></td><td><code>el.dataset.preco</code></td><td><code>el.getAttribute("data-preco")</code></td></tr>
+<tr><td>Um atributo inventado ou raro (<code>aria-label</code>…)</td><td>—</td><td><code>el.setAttribute("aria-label", "…")</code></td></tr>
+</table>
+</div>
+
+<p>Regra prática: para os atributos comuns (<code>id</code>, <code>src</code>, <code>href</code>, <code>alt</code>, <code>value</code>, <code>checked</code>, <code>disabled</code>), use a <strong>propriedade</strong>. Para os outros, e quando precisa saber o que está escrito no HTML, use os <strong>métodos</strong>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>As tags apareceram cruas na página</strong>
+<p>Você pôs <code>"Aberto das &lt;strong&gt;7h&lt;/strong&gt;"</code> no <code>textContent</code>, e a página mostra os sinais <code>&lt;strong&gt;</code>. O <code>textContent</code> não interpreta tags (seção 2). <strong>Como consertar:</strong> se o HTML foi escrito por você, use <code>innerHTML</code>; se veio do usuário, deixe no <code>textContent</code> mesmo (é ele que protege a página).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o segundo valor do <code>setAttribute</code></strong>
+<pre class="devtools">&gt; document.querySelector("#foto").setAttribute("src")
+Uncaught TypeError: Failed to execute 'setAttribute' on 'Element': 2 arguments required, but only 1 present.
+    at &lt;anonymous&gt;:1:33
+</pre>
+<p>"Falha ao executar o <code>setAttribute</code> no elemento: 2 argumentos necessários, mas só 1 presente." <strong>Como consertar:</strong> <code>setAttribute("src", "bolo.jpg")</code>: o nome e o valor.</p>
+</div>
+
+<div class="cenario">
+<strong>O atributo que não existe: <code>null</code> × <code>''</code></strong>
+<pre class="devtools">&gt; document.querySelector("#foto").getAttribute("title")
+null
+&gt; document.querySelector("#foto").title
+''
+</pre>
+<p>A imagem não tem <code>title</code>. O <code>getAttribute</code> diz isso com <code>null</code>; a propriedade devolve um texto vazio. Para saber se um atributo existe, use <code>hasAttribute</code> ou compare o <code>getAttribute</code> com <code>null</code>; não confie na propriedade.</p>
+</div>
+
+<div class="cenario">
+<strong><code>.value</code> num elemento que não é de formulário</strong>
+<pre class="devtools">&gt; document.querySelector("#titulo").value
+undefined
+</pre>
+<p>Só campos de formulário (<code>input</code>, <code>textarea</code>, <code>select</code>…) têm <code>value</code>. Num <code>&lt;h1&gt;</code>, dá <code>undefined</code>, e dar um valor a ele não muda nada na tela. <strong>Como consertar:</strong> para o texto de um elemento comum, use <code>textContent</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O texto do campo "não muda"</strong>
+<p>A pessoa digitou, mas <code>campo.getAttribute("value")</code> continua dando o valor antigo. Não é defeito: o atributo é o valor <strong>inicial</strong> (seção 4). <strong>Como consertar:</strong> leia <code>campo.value</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou um elemento que não foi achado</strong>
+<p><code>Uncaught TypeError: Cannot set properties of null (setting 'textContent')</code>: o <code>querySelector</code> devolveu <code>null</code>. Confira o seletor (<code>#</code>, ponto) e a posição do <code>&lt;script&gt;</code> (veja <a href="dom-selecionar.html">Selecionando Elementos</a> e <a href="script-na-pagina.html">JavaScript na Página</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>el.textContent</code> / <code>el.textContent = "…"</code></td><td>Lê / troca o texto (sem interpretar tags)</td></tr>
+<tr><td><code>el.innerHTML</code> / <code>el.innerHTML = "…"</code></td><td>Lê / troca o HTML de dentro (interpreta tags; nunca com texto do usuário)</td></tr>
+<tr><td><code>el.innerText</code></td><td>O texto como aparece na tela</td></tr>
+<tr><td><code>el.getAttribute("nome")</code></td><td>O valor como está escrito no HTML, ou <code>null</code></td></tr>
+<tr><td><code>el.setAttribute("nome", "valor")</code></td><td>Cria ou muda o atributo</td></tr>
+<tr><td><code>el.removeAttribute("nome")</code> / <code>el.hasAttribute("nome")</code></td><td>Apaga / pergunta se existe</td></tr>
+<tr><td><code>img.src</code>, <code>a.href</code>, <code>img.alt</code>, <code>el.id</code></td><td>Atributos como propriedades (<code>src</code>/<code>href</code> dão o endereço completo)</td></tr>
+<tr><td><code>campo.value</code></td><td>O que está no campo agora</td></tr>
+<tr><td><code>caixa.checked</code> / <code>botao.disabled</code></td><td><code>true</code>/<code>false</code>: marcado / desativado</td></tr>
+<tr><td><code>el.dataset.nome</code></td><td>O atributo <code>data-nome</code> (sempre texto)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para trocar a imagem por <code>bolo.jpg</code> e o texto alternativo por <code>Bolo</code>:</p>
+<div class="ex-code">const foto = document.querySelector("#foto");<br>foto.<input data-answer="setAttribute" aria-label="método">("src", "bolo.jpg");<br>foto.<input data-answer="alt" aria-label="propriedade"> = "Bolo";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual propriedade?</h3>
+<div class="ex-code">Para ler o que o cliente digitou no campo: <code>campo.<input data-answer="value" aria-label="propriedade do campo"></code><br>Para saber se a caixinha está marcada: <code>caixa.<input data-answer="checked" aria-label="propriedade da caixinha"></code></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O cliente digitou o nome dele num campo, e você quer mostrar "Olá, NOME!" num parágrafo. Qual linha é a segura?</p>
+<label><input type="radio" name="q3"> <code>p.innerHTML = `Olá, ${campo.value}!`</code></label>
+<label><input type="radio" name="q3"> <code>p.innerHTML = campo.getAttribute("value")</code></label>
+<label><input type="radio" name="q3"> <code>p.textContent = `Olá, ${campo.value}!`</code></label>
+<label><input type="radio" name="q3"> <code>p.value = campo.value</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa página aberta de <code>file:///home/ana/site/index.html</code>, a imagem é <code>&lt;img src="logo.png"&gt;</code>. Quanto vale <code>img.src</code>?</p>
+<label><input type="radio" name="q4"> <code>'logo.png'</code></label>
+<label><input type="radio" name="q4"> <code>'file:///home/ana/site/logo.png'</code></label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>&lt;p data-estoque="12"&gt;</code>. O que <code>p.dataset.estoque + 1</code> dá?</p>
+<label><input type="radio" name="q5"> <code>13</code></label>
+<label><input type="radio" name="q5"> Um erro</label>
+<label><input type="radio" name="q5"> <code>NaN</code></label>
+<label><input type="radio" name="q5"> <code>'121'</code>, porque o valor do <code>dataset</code> é texto</label>
+</div>
+
+<h3>Missão final: a etiqueta do produto</h3>
+
+<div class="tryweb" data-goal="texto:#info~Pão de queijo: R$ 4.50 (12 em estoque);;src:dataset">
+<p class="try-task"><strong>Missão:</strong> o produto guarda o preço e o estoque em atributos <code>data-</code>. Leia os dois com o <code>dataset</code> e escreva no parágrafo <code>#info</code>, com <code>textContent</code>: <code>Pão de queijo: R$ 4.50 (12 em estoque)</code> (o nome vem do <code>textContent</code> do produto).</p>
+<pre class="script" data-file="index.html">&lt;p id="produto" data-preco="4.50" data-estoque="12"&gt;Pão de queijo&lt;/p&gt;
+&lt;p id="info"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const produto = document.querySelector("#produto");
+const info = document.querySelector("#info");
+// escreva a etiqueta no #info
+</pre>
+<pre class="solucao" data-file="script.js">const produto = document.querySelector("#produto");
+const info = document.querySelector("#info");
+const { preco, estoque } = produto.dataset;
+info.textContent = `${produto.textContent}: R$ ${preco} (${estoque} em estoque)`;
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>textContent</code> lê e troca o texto de um elemento, sem interpretar tags. É o padrão.</li>
+  <li><code>innerHTML</code> lê e troca o HTML de dentro, interpretando as tags. Nunca o use com texto que veio do usuário (XSS).</li>
+  <li><code>innerText</code> é o texto como aparece na tela (sem o que está escondido, com o CSS aplicado).</li>
+  <li>Atributos: <code>getAttribute</code>, <code>setAttribute(nome, valor)</code>, <code>removeAttribute</code>, <code>hasAttribute</code>; os comuns também são propriedades (<code>src</code>, <code>href</code>, <code>alt</code>, <code>id</code>).</li>
+  <li>Em formulários, a propriedade é o estado atual: <code>value</code> (o que foi digitado), <code>checked</code>, <code>disabled</code>. O atributo <code>value</code> é só o valor inicial.</li>
+  <li>Atributos <code>data-</code> guardam dados seus e se leem com <code>el.dataset</code>, sempre como texto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
