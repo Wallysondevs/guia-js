@@ -175,7 +175,7 @@ Detalhe para o programador: paes = 3
 </table>
 </div>
 
-<p>Então por que existem cinco, se no Node eles se resumem a dois? Porque eles <strong>dizem a intenção</strong> de quem escreveu. Quem lê <code>console.warn(…)</code> no seu código sabe na hora que aquilo é um aviso. E no Console do navegador eles <strong>são</strong> diferentes: cada um tem a sua cor, e dá para filtrar por nível ("só erros", "só avisos").</p>
+<p>Então por que existem cinco, se no Node eles se resumem a dois? Porque eles <strong>dizem a intenção</strong> de quem escreveu. Quem lê <code>console.warn(…)</code> no seu código sabe na hora que aquilo é um aviso. E no Console do navegador eles <strong>são</strong> diferentes: o <code>warn</code> vem em amarelo, o <code>error</code> em vermelho, e dá para filtrar por nível ("só erros", "só avisos"). O <code>console.debug</code> nem aparece, a não ser que você ligue o nível "Detalhado" (<em>Verbose</em>) no Console do Chrome.</p>
 
 <hr>
 
@@ -594,7 +594,7 @@ Atenção: o café está acabando!
 <ul>
   <li>Um programa tem dois canais de saída: a <strong>saída padrão</strong> (<code>console.log</code>, <code>info</code>, <code>debug</code>, <code>table</code>) e a <strong>saída de erro</strong> (<code>console.error</code>, <code>warn</code>). No terminal os dois aparecem juntos; <code>&gt;</code> separa a saída padrão e <code>2&gt;</code>, a de erro.</li>
   <li><code>console.error</code> e <code>console.warn</code> só <strong>escrevem</strong>: o programa continua, e o código de saída segue 0.</li>
-  <li>Use o método que diz a intenção: <code>log</code> para o resultado, <code>warn</code> para avisos, <code>error</code> para problemas. No navegador, cada um tem a sua cor.</li>
+  <li>Use o método que diz a intenção: <code>log</code> para o resultado, <code>warn</code> para avisos, <code>error</code> para problemas. No navegador, o <code>warn</code> aparece em amarelo e o <code>error</code> em vermelho.</li>
   <li><code>console.table</code> mostra listas e objetos como tabela; numa lista de objetos, cada objeto é uma linha e cada campo, uma coluna. <code>console.table(lista, ["a", "b"])</code> escolhe as colunas.</li>
   <li><code>console.count</code> conta chamadas, <code>console.group</code>/<code>groupEnd</code> dão recuo e <code>console.time</code>/<code>timeEnd</code> medem o tempo.</li>
   <li>Os nomes são exatos e em minúsculas: <code>console.tabel</code> dá <code>TypeError … is not a function</code>, e <code>Console</code> dá <code>ReferenceError … is not defined</code>.</li>
