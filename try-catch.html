@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript try … catch … finally — tratando erros | Guia JavaScript</title>
+<meta name="description" content="O try … catch … finally do JavaScript para quem nunca programou: pegar um erro sem o programa parar, o objeto do erro (name, message), o finally que sempre roda, o catch sem parâmetro, JSON.parse e arquivos que não existem (ENOENT), o que o try não pega e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">try … catch … finally</span></h1>
+
+<p class="intro">Até agora, todo erro que acontecia <strong>parava o programa</strong> na hora, com aquela mensagem que você aprendeu a ler em <a href="erros.html">Lendo uma Mensagem de Erro</a>. Mas nem todo problema precisa derrubar tudo. Se a pessoa digitou uma idade inválida, o programa pode pedir de novo; se o arquivo de notas ainda não existe, ele pode começar com uma lista vazia. Para <strong>pegar</strong> um erro e decidir o que fazer com ele, o JavaScript tem o <code>try … catch</code>: "<strong>tente</strong> … e, se der errado, <strong>pegue</strong> o erro".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como funciona o <code>try { } catch (erro) { }</code>, e que o programa <strong>continua</strong> depois dele.</li>
+  <li>O que vem dentro do <code>erro</code>: <code>name</code>, <code>message</code> e a pilha.</li>
+  <li>O <code>finally</code> ("finalmente"), que roda <strong>sempre</strong>, com erro ou sem erro, até depois de um <code>return</code>.</li>
+  <li>O <code>catch</code> sem parâmetro.</li>
+  <li>Dois usos do dia a dia: ler um texto JSON que pode estar errado e ler um arquivo que pode não existir.</li>
+  <li>O que o <code>try</code> <strong>não</strong> pega: erros de sintaxe e erros que acontecem "mais tarde" (num <code>setTimeout</code>).</li>
+  <li>O maior perigo: o <code>catch</code> vazio que "engole" o erro.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o trapezista e a rede</h2>
+<p>No circo, o trapezista faz o número lá no alto. Embaixo dele tem uma <strong>rede de proteção</strong>. Se ele escorregar, cai na rede, levanta, acena para o público, e o espetáculo <strong>continua</strong>. Sem a rede, uma queda acabaria com o show.</p>
+<ul>
+  <li>O <code>try</code> é o número no trapézio: o código que <strong>pode</strong> dar errado.</li>
+  <li>O <code>catch</code> é a rede: só entra em ação se alguém cair (se acontecer um erro).</li>
+  <li>O <code>finally</code> é o agradecimento ao público: acontece no fim, tenha o número dado certo ou não.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro <code>try … catch</code></h2>
+
+<pre class="file" data-file="primeiro.js">console.log("Antes");
+try {
+  const cliente = null;
+  console.log(cliente.nome);
+  console.log("Esta linha não roda");
+} catch (erro) {
+  console.log("Deu um problema:", erro.message);
+}
+console.log("Depois: o programa continuou!");
+</pre>
+
+<dl class="anatomy">
+  <dt>try { … }</dt><dd>"Tente". Entre as chaves vai o código que pode dar errado. Ele roda normalmente, linha por linha.</dd>
+  <dt>console.log(cliente.nome)</dt><dd>Aqui acontece um <code>TypeError</code> (ler <code>.nome</code> de <code>null</code>, veja <a href="tipos-erro.html">Os Tipos de Erro</a>). No mesmo instante, o JavaScript <strong>abandona</strong> o resto do bloco <code>try</code> e pula para o <code>catch</code>.</dd>
+  <dt>"Esta linha não roda"</dt><dd>Como o erro aconteceu na linha de cima, esta é pulada.</dd>
+  <dt>catch (erro) { … }</dt><dd>"Pegue". Só roda se algum erro aconteceu no <code>try</code>. O <code>erro</code> entre parênteses é uma variável que recebe o erro pego (pode ter qualquer nome; <code>erro</code>, <code>e</code> e <code>err</code> são os mais usados).</dd>
+  <dt>erro.message</dt><dd>A mensagem do erro, o mesmo texto que apareceria depois de <code>TypeError:</code>.</dd>
+  <dt>console.log("Depois…")</dt><dd>Depois do <code>catch</code>, o programa segue normalmente. Sem o <code>try</code>, ele teria parado na linha 4.</dd>
+</dl>
+
+<pre class="term">$ node primeiro.js
+Antes
+Deu um problema: Cannot read properties of null (reading 'nome')
+Depois: o programa continuou!
+</pre>
+
+<p>Nada de caminho do arquivo, de <code>^</code>, de linhas <code>at</code>: o erro foi <strong>tratado</strong>, então o Node não precisou avisar nada. O que apareceu foi só o que o <strong>seu</strong> <code>catch</code> escreveu. E o programa terminou bem (código de saída 0).</p>
+
+<h3>Quando não dá erro</h3>
+<p>Se tudo no <code>try</code> der certo, o <code>catch</code> é simplesmente pulado:</p>
+
+<pre class="file" data-file="semerro.js">try {
+  console.log("Tudo certo aqui");
+} catch (erro) {
+  console.log("Nunca chega aqui");
+}
+console.log("Fim");
+</pre>
+
+<pre class="term">$ node semerro.js
+Tudo certo aqui
+Fim
+</pre>
+
+<div class="tryjs" data-goal="out:Depois: o programa continuou!;;semerro;;src:\bcatch\b">
+<p class="try-task"><strong>Missão:</strong> sem rede, este programa cai na linha 3 e o "Depois" nunca aparece. Rode para ver o erro. Depois, ponha a linha 3 dentro de um <code>try</code>, com um <code>catch</code> que mostre <code>erro.message</code>.</p>
+<pre class="script" data-file="main.js">console.log("Antes");
+const cliente = null;
+console.log(cliente.nome);
+console.log("Depois: o programa continuou!");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Antes");
+const cliente = null;
+try {
+  console.log(cliente.nome);
+} catch (erro) {
+  console.log("Deu um problema:", erro.message);
+}
+console.log("Depois: o programa continuou!");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O que vem dentro do <code>erro</code></h2>
+<p>O erro pego é um <strong>objeto</strong> (veja <a href="tipos-erro.html">Os Tipos de Erro</a>). As duas propriedades que você mais vai usar são o <code>name</code> e o <code>message</code>. E, se você mostrar o erro inteiro com <code>console.log</code>, o Node mostra também a pilha:</p>
+
+<pre class="file" data-file="objeto.js">try {
+  null.nome;
+} catch (erro) {
+  console.log(erro.name);
+  console.log(erro.message);
+  console.log(erro);
+}
+</pre>
+
+<pre class="term">$ node objeto.js
+TypeError
+Cannot read properties of null (reading 'nome')
+TypeError: Cannot read properties of null (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/objeto.js:2:8)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que mostra</th><th>Para quê</th></tr>
+<tr><td><code>erro.name</code></td><td>O tipo: <code>TypeError</code></td><td>Decidir o que fazer conforme o tipo</td></tr>
+<tr><td><code>erro.message</code></td><td>Só a mensagem</td><td>Mostrar ao usuário um aviso curto</td></tr>
+<tr><td><code>console.log(erro)</code></td><td>O tipo, a mensagem e as linhas <code>at</code> (a pilha)</td><td>Você, programador, descobrir <strong>onde</strong> foi</td></tr>
+<tr><td><code>erro.stack</code></td><td>O mesmo texto, como string</td><td>Guardar num arquivo de registro (<em>log</em>)</td></tr>
+</table>
+</div>
+
+<p>Repare que o <code>console.log(erro)</code> não mostrou a primeira parte da mensagem de erro (o caminho, a linha do código e o <code>^</code>) nem a versão do Node: essas partes só aparecem quando o erro <strong>não</strong> é tratado e o Node precisa parar o programa.</p>
+
+<div class="tip">
+<strong>Mostre o erro na saída de erros</strong>
+<p>Para avisar de um problema, prefira <code>console.error</code> a <code>console.log</code>: ele escreve na saída de erros, que o terminal consegue separar da saída normal (veja <a href="console-outros.html">console.error, warn e table</a>).</p>
+</div>
+
+<hr>
+
+<h2>3. Um uso de verdade: ler um texto que pode estar errado</h2>
+<p>O <a href="json.html">JSON.parse</a> lança um <code>SyntaxError</code> quando o texto não é um JSON válido. Se o texto vem de fora (de um arquivo, da internet, do teclado), você não controla se ele está certo. É o lugar perfeito para um <code>try</code>:</p>
+
+<pre class="file" data-file="json.js">const textos = ['{"nome": "Ana", "idade": 30}', "{nome: 'Bia'}", ""];
+for (const texto of textos) {
+  try {
+    const pessoa = JSON.parse(texto);
+    console.log(`Li: ${pessoa.nome}`);
+  } catch (erro) {
+    console.log(`Texto inválido (${erro.name}): ${erro.message}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node json.js
+Li: Ana
+Texto inválido (SyntaxError): Expected property name or '}' in JSON at position 1 (line 1 column 2)
+Texto inválido (SyntaxError): Unexpected end of JSON input
+</pre>
+
+<p>O primeiro texto era um JSON correto. O segundo usa aspas simples e nomes sem aspas (não vale em JSON). O terceiro está vazio ("fim inesperado do JSON"). Repare que o <code>try</code> está <strong>dentro</strong> do <code>for</code>: um texto ruim não impede o laço de ir para o próximo.</p>
+
+<hr>
+
+<h2>4. <code>finally</code>: o que roda sempre</h2>
+<p>Às vezes, há uma tarefa que precisa acontecer <strong>com erro ou sem erro</strong>: fechar o caixa, fechar um arquivo, desligar a luz de "carregando…". Para isso existe o <code>finally</code> ("finalmente"):</p>
+
+<pre class="file" data-file="finally.js">function vender(produto, estoque) {
+  console.log(`Abrindo o caixa para vender ${produto}`);
+  try {
+    estoque[produto].quantidade -= 1;
+    console.log(`Vendido! Restam ${estoque[produto].quantidade}`);
+  } catch (erro) {
+    console.log(`Não deu para vender ${produto}: ${erro.message}`);
+  } finally {
+    console.log("Fechando o caixa");
+  }
+}
+const estoque = { pão: { quantidade: 10 } };
+vender("pão", estoque);
+vender("bolo", estoque);
+</pre>
+
+<pre class="term">$ node finally.js
+Abrindo o caixa para vender pão
+Vendido! Restam 9
+Fechando o caixa
+Abrindo o caixa para vender bolo
+Não deu para vender bolo: Cannot read properties of undefined (reading 'quantidade')
+Fechando o caixa
+</pre>
+
+<p>Siga cada venda:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Venda</th><th><code>try</code></th><th><code>catch</code></th><th><code>finally</code></th></tr>
+<tr><td>pão</td><td>roda inteiro</td><td>pulado</td><td><strong>roda</strong></td></tr>
+<tr><td>bolo</td><td>para na linha do erro (não há <code>estoque.bolo</code>)</td><td>roda</td><td><strong>roda</strong></td></tr>
+</table>
+</div>
+
+<h3>O <code>finally</code> roda até depois de um <code>return</code></h3>
+
+<pre class="file" data-file="finallyreturn.js">function teste() {
+  try {
+    console.log("No try");
+    return "valor do try";
+  } finally {
+    console.log("No finally (mesmo depois do return)");
+  }
+}
+console.log(teste());
+</pre>
+
+<pre class="term">$ node finallyreturn.js
+No try
+No finally (mesmo depois do return)
+valor do try
+</pre>
+
+<p>O <code>return</code> manda a função sair, mas antes de sair de verdade, o JavaScript passa pelo <code>finally</code>. Só depois o valor chega ao <code>console.log</code> de fora.</p>
+
+<h3><code>try … finally</code> sem <code>catch</code></h3>
+<p>Dá para usar o <code>finally</code> sem o <code>catch</code>. Aí o erro <strong>não</strong> é tratado: o <code>finally</code> roda e, em seguida, o erro continua e para o programa.</p>
+
+<pre class="file" data-file="trysofinally.js">try {
+  console.log("Trabalhando...");
+  semNome;
+} finally {
+  console.log("Arrumando a mesa");
+}
+console.log("Depois");
+</pre>
+
+<pre class="term">$ node trysofinally.js
+Trabalhando...
+Arrumando a mesa
+/home/ana/trysofinally.js:3
+  semNome;
+  ^
+
+ReferenceError: semNome is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/trysofinally.js:3:3)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>A mesa foi arrumada (o <code>finally</code> rodou), mas o <code>Depois</code> não apareceu: sem rede, o erro derrubou o programa logo em seguida.</p>
+
+<hr>
+
+<h2>5. O <code>catch</code> sem parâmetro</h2>
+<p>Se você não vai usar o erro para nada, pode tirar o <code>(erro)</code> e escrever só <code>catch { … }</code>. Aqui, qualquer texto que não seja número vira 0:</p>
+
+<pre class="file" data-file="semparam.js">function lerNumero(texto) {
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return 0;
+  }
+}
+console.log(lerNumero("42"));
+console.log(lerNumero("quarenta"));
+</pre>
+
+<pre class="term">$ node semparam.js
+42
+0
+</pre>
+
+<p>Essa forma existe desde o ES2019. Use-a quando o motivo do erro realmente não importa; se importa, deixe o <code>(erro)</code> e olhe o que veio nele.</p>
+
+<hr>
+
+<h2>6. Tratar só o erro que você espera</h2>
+<p>Um <code>catch</code> pega <strong>qualquer</strong> erro do <code>try</code>, inclusive os que você não imaginou. O jeito cuidadoso é olhar o erro e tratar só o caso esperado. A Ana guarda as notas num arquivo; na primeira vez que o programa roda, o arquivo ainda não existe (o erro <code>ENOENT</code>, de <a href="tipos-erro.html">Os Tipos de Erro</a>):</p>
+
+<pre class="file" data-file="arquivo.js">const fs = require("node:fs");
+let notas;
+try {
+  notas = fs.readFileSync("notas.txt", "utf8");
+} catch (erro) {
+  if (erro.code === "ENOENT") {
+    console.log("Arquivo notas.txt não existe; começando vazio.");
+    notas = "";
+  } else {
+    throw erro;
+  }
+}
+console.log(`Tamanho das notas: ${notas.length}`);
+</pre>
+
+<pre class="term">$ node arquivo.js
+Arquivo notas.txt não existe; começando vazio.
+Tamanho das notas: 0
+</pre>
+
+<dl class="anatomy">
+  <dt>let notas; antes do try</dt><dd>A variável é criada <strong>fora</strong> do <code>try</code>, para continuar existindo depois dele (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>erro.code === "ENOENT"</dt><dd>"O erro é 'arquivo não encontrado'?" Esse é o caso esperado: começa vazio.</dd>
+  <dt>throw erro</dt><dd>Qualquer <strong>outro</strong> erro (sem permissão, disco com defeito) é "jogado de novo" para cima, e o programa para com a mensagem normal. Assim você não esconde problemas que não sabe resolver. O <code>throw</code> ("lançar") é o assunto da <a href="throw.html">próxima aula</a>.</dd>
+</dl>
+
+<p>A leitura de arquivos com <code>fs</code> tem aula própria: <a href="fs-ler.html">Lendo Arquivos</a>. Para não errar o tipo, você também pode testar com <code>instanceof</code>: <code>if (erro instanceof SyntaxError)</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: <code>try</code> ou testar antes?</h2>
+<p>Muitos erros dá para <strong>evitar</strong> com um <code>if</code> ou com o <code>?.</code>, sem precisar de <code>try</code>. Compare duas formas de mostrar o nome de um cliente que pode ser <code>null</code>:</p>
+
+<pre class="file" data-file="duas-formas.js">const cliente = null;
+
+// com try … catch
+try {
+  console.log(cliente.nome);
+} catch {
+  console.log("visitante");
+}
+
+// testando antes (mais simples)
+console.log(cliente?.nome ?? "visitante");
+</pre>
+
+<pre class="term">$ node duas-formas.js
+visitante
+visitante
+</pre>
+
+<p>O resultado é o mesmo, mas a segunda forma é uma linha só e não esconde outros erros que poderiam acontecer ali.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Dá para saber antes se vai dar certo (valor <code>null</code>, número negativo, lista vazia)</td><td>Teste com <code>if</code>, <code>?.</code> ou <code>??</code> (<a href="optional-chaining.html">?. e ??</a>)</td></tr>
+<tr><td>Só dá para saber tentando (o texto é JSON válido? o arquivo existe? a internet respondeu?)</td><td><code>try … catch</code></td></tr>
+<tr><td>Algo precisa acontecer com erro ou sem erro (fechar, limpar, avisar que terminou)</td><td><code>finally</code></td></tr>
+<tr><td>Um erro que você não sabe resolver</td><td>Deixe passar (ou <code>throw erro</code> de novo): é melhor o programa parar com a mensagem certa do que seguir errado</td></tr>
+<tr><td>Erros em código assíncrono (<code>await</code>)</td><td><code>try … catch</code> em volta do <code>await</code> (aula <a href="async-await.html">async e await</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A variável criada dentro do <code>try</code> sumiu</strong>
+<pre class="file" data-file="escopo.js">try {
+  const resultado = JSON.parse("[1, 2, 3]");
+} catch (erro) {
+  console.log("Erro:", erro.message);
+}
+console.log(resultado);
+</pre>
+<pre class="term">$ node escopo.js
+/home/ana/escopo.js:6
+console.log(resultado);
+            ^
+
+ReferenceError: resultado is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/escopo.js:6:13)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>JSON.parse</code> deu certo, mas o <code>const resultado</code> foi criado <strong>dentro</strong> das chaves do <code>try</code>, e uma <code>const</code> (ou <code>let</code>) só existe dentro do bloco onde nasceu (veja <a href="escopo.html">Escopo</a>). <strong>Como consertar:</strong> crie a variável antes, com <code>let</code>, e só dê o valor dentro do <code>try</code>:</p>
+<pre class="file" data-file="escopo2.js">let resultado = [];
+try {
+  resultado = JSON.parse("[1, 2, 3]");
+} catch (erro) {
+  console.log("Erro:", erro.message);
+}
+console.log(resultado);
+</pre>
+<pre class="term">$ node escopo2.js
+[ 1, 2, 3 ]
+</pre>
+</div>
+
+<div class="cenario">
+<strong>O <code>try</code> não pega erro de sintaxe do próprio arquivo</strong>
+<pre class="file" data-file="sintaxe.js">try {
+  console.log("oi";
+} catch (erro) {
+  console.log("Peguei:", erro.message);
+}
+</pre>
+<pre class="term">$ node sintaxe.js
+/home/ana/sintaxe.js:2
+  console.log("oi";
+              ^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>Peguei:</code> não apareceu. Um erro de sintaxe acontece quando o Node <strong>lê</strong> o arquivo, antes de rodar qualquer linha, inclusive o <code>try</code>. A rede ainda nem foi armada. (O <code>SyntaxError</code> do <code>JSON.parse</code>, da seção 3, é diferente: ele acontece com o programa rodando, por isso o <code>try</code> pega.) <strong>Como consertar:</strong> não tem <code>try</code> que resolva; conserte o código: <code>console.log("oi");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>try</code> sem <code>catch</code> nem <code>finally</code></strong>
+<pre class="file" data-file="sotry.js">try {
+  console.log("oi");
+}
+console.log("fim");
+</pre>
+<pre class="term">$ node sotry.js
+/home/ana/sotry.js:3
+}
+^
+
+SyntaxError: Missing catch or finally after try
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Falta <code>catch</code> ou <code>finally</code> depois do <code>try</code>". Um <code>try</code> sozinho não faz sentido: ele precisa de pelo menos um dos dois.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o <code>erro</code> num <code>catch</code> sem parâmetro</strong>
+<pre class="file" data-file="catchnome.js">try {
+  null.nome;
+} catch {
+  console.log(erro.message);
+}
+</pre>
+<pre class="term">$ node catchnome.js
+/home/ana/catchnome.js:4
+  console.log(erro.message);
+              ^
+
+ReferenceError: erro is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/catchnome.js:4:15)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Sem o <code>(erro)</code> depois do <code>catch</code>, a variável <code>erro</code> não existe. E repare: um erro <strong>dentro do <code>catch</code></strong> não é pego por ninguém, e derruba o programa. <strong>Como consertar:</strong> <code>catch (erro) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O erro aconteceu "mais tarde", fora do <code>try</code></strong>
+<pre class="file" data-file="timer.js">try {
+  setTimeout(() =&gt; {
+    null.nome;
+  }, 100);
+} catch (erro) {
+  console.log("Peguei:", erro.message);
+}
+console.log("O try terminou");
+</pre>
+<pre class="term">$ node timer.js
+O try terminou
+/home/ana/timer.js:3
+    null.nome;
+         ^
+
+TypeError: Cannot read properties of null (reading 'nome')
+    at Timeout._onTimeout (/home/ana/timer.js:3:10)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>setTimeout</code> só <strong>agenda</strong> a função para daqui a 100 milissegundos e sai na hora (veja <a href="timers.html">setTimeout e setInterval</a>). Quando a função roda e dá erro, o <code>try</code> já terminou faz tempo: <code>O try terminou</code> apareceu antes do erro. A pilha conta a história: <code>Timeout._onTimeout</code>, o Node rodando o que estava agendado. <strong>Como consertar:</strong> o <code>try</code> tem de ficar <strong>dentro</strong> da função agendada; com Promises, use <code>await</code> dentro de <code>try</code> (aula <a href="async-await.html">async e await</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>catch</code> vazio que engole o erro</strong>
+<pre class="file" data-file="engolir.js">function media(notas) {
+  try {
+    let total = 0;
+    for (const nota of notas) total += nota;
+    return total / notas.lenght;
+  } catch {
+  }
+}
+console.log(media([8, 9, 10]));
+console.log(media());
+</pre>
+<pre class="term">$ node engolir.js
+NaN
+undefined
+</pre>
+<p>Dois problemas, nenhuma mensagem. O primeiro <code>NaN</code> vem do <code>lenght</code> escrito errado (não é erro, é <code>undefined</code>, e a divisão dá <code>NaN</code>). O <code>undefined</code> vem de <code>media()</code> sem as notas: o <code>for … of</code> deu <code>TypeError</code>, o <code>catch</code> vazio <strong>engoliu</strong> o erro, e a função terminou sem devolver nada. Sem o <code>try</code>, o Node teria mostrado o erro e a linha. <strong>Regra:</strong> nunca deixe um <code>catch</code> vazio. No mínimo, mostre o erro com <code>console.error(erro)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>try { … } catch (erro) { … }</code></td><td>Tenta o bloco; se der erro, pula para o <code>catch</code> com o erro em <code>erro</code>; depois segue</td></tr>
+<tr><td><code>try { … } catch { … }</code> <span class="versao">ES2019</span></td><td>O mesmo, sem a variável do erro</td></tr>
+<tr><td><code>try { … } finally { … }</code></td><td>O <code>finally</code> roda sempre; o erro, se houver, continua e para o programa</td></tr>
+<tr><td><code>try { … } catch (e) { … } finally { … }</code></td><td>Trata o erro e ainda roda o <code>finally</code></td></tr>
+<tr><td><code>erro.name</code> · <code>erro.message</code> · <code>erro.stack</code></td><td>O tipo · a mensagem · a pilha (texto)</td></tr>
+<tr><td><code>erro.code</code></td><td>O código dos erros do Node (<code>"ENOENT"</code>…)</td></tr>
+<tr><td><code>erro instanceof TypeError</code></td><td>Testa o tipo do erro</td></tr>
+<tr><td><code>throw erro</code></td><td>Joga o erro de novo para cima (aula <a href="throw.html">throw</a>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError</code> numa variável logo depois do <code>try</code></td><td>Ela foi criada com <code>const</code>/<code>let</code> dentro do <code>try</code>: crie antes</td></tr>
+<tr><td>O <code>catch</code> não pegou um <code>SyntaxError</code></td><td>Erro de sintaxe no próprio arquivo: o programa nem começou</td></tr>
+<tr><td><code>SyntaxError: Missing catch or finally after try</code></td><td><code>try</code> sozinho</td></tr>
+<tr><td><code>ReferenceError: erro is not defined</code> no <code>catch</code></td><td>Escreveu <code>catch {</code> sem o <code>(erro)</code></td></tr>
+<tr><td>O erro escapou do <code>try</code> e apareceu depois</td><td>Aconteceu dentro de um <code>setTimeout</code> (ou de uma Promise sem <code>await</code>)</td></tr>
+<tr><td>Resultado errado e nenhuma mensagem</td><td>Um <code>catch</code> vazio engoliu o erro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para tentar ler o JSON e, se der erro, mostrar a mensagem:</p>
+<div class="ex-code"><input data-answer="try" aria-label="palavra que abre o bloco tentado"> {<br>&nbsp;&nbsp;JSON.parse(texto);<br>} <input data-answer="catch" aria-label="palavra que pega o erro"> (erro) {<br>&nbsp;&nbsp;console.log(erro.<input data-answer="message" aria-label="propriedade com a mensagem">);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas linhas?</h3>
+<p>Quantas linhas este programa mostra? <code>try { console.log("A"); null.x; console.log("B"); } catch { console.log("C"); } finally { console.log("D"); }</code></p>
+<div class="ex-code"><input data-answer="3" aria-label="número de linhas"> linhas</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Quando o <code>catch</code> roda?</p>
+<label><input type="radio" name="q3"> Sempre, depois do <code>try</code></label>
+<label><input type="radio" name="q3"> Só quando acontece um erro dentro do <code>try</code></label>
+<label><input type="radio" name="q3"> Só quando não acontece erro</label>
+<label><input type="radio" name="q3"> Antes do <code>try</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Quando o <code>finally</code> roda?</p>
+<label><input type="radio" name="q4"> Só se der erro</label>
+<label><input type="radio" name="q4"> Só se não der erro</label>
+<label><input type="radio" name="q4"> Nunca depois de um <code>return</code></label>
+<label><input type="radio" name="q4"> Sempre: com erro, sem erro e até depois de um <code>return</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que um <code>catch { }</code> vazio é uma má ideia?</p>
+<label><input type="radio" name="q5"> Porque esconde o erro: o programa segue errado e sem nenhuma pista</label>
+<label><input type="radio" name="q5"> Porque dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q5"> Porque deixa o programa mais lento</label>
+<label><input type="radio" name="q5"> Não é: é a melhor forma de tratar erros</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Qual destes erros um <code>try … catch</code> em volta do código <strong>não</strong> consegue pegar?</p>
+<label><input type="radio" name="q6"> O <code>SyntaxError</code> de um <code>JSON.parse</code></label>
+<label><input type="radio" name="q6"> Um <code>TypeError</code> ao ler <code>.nome</code> de <code>null</code></label>
+<label><input type="radio" name="q6"> Um parêntese faltando no próprio arquivo</label>
+<label><input type="radio" name="q6"> O <code>ENOENT</code> de um arquivo que não existe</label>
+</div>
+
+<h3>Missão final: somar só o que é número</h3>
+
+<div class="tryjs" data-goal="out:Soma: 16.5;;semerro;;src:\btry\b">
+<p class="try-task"><strong>Missão:</strong> o programa soma os números digitados, mas cai quando encontra <code>"abc"</code> (rode para ver o <code>SyntaxError</code> do <code>JSON.parse</code>). Ponha um <code>try … catch</code> <strong>dentro</strong> do <code>for</code>, para pular o texto inválido (mostrando <code>Ignorando "abc"</code>) e continuar somando. A soma certa é <code>16.5</code>.</p>
+<pre class="script" data-file="main.js">const entradas = ["12", "abc", "7.5", "-3"];
+let soma = 0;
+for (const texto of entradas) {
+  const n = JSON.parse(texto);
+  soma += n;
+}
+console.log(`Soma: ${soma}`);
+</pre>
+<pre class="solucao" data-file="main.js">const entradas = ["12", "abc", "7.5", "-3"];
+let soma = 0;
+for (const texto of entradas) {
+  try {
+    const n = JSON.parse(texto);
+    soma += n;
+  } catch {
+    console.log(`Ignorando "${texto}"`);
+  }
+}
+console.log(`Soma: ${soma}`);
+</pre>
+</div>
+
+<p>No lab, o programa original parou com <code>SyntaxError: Unexpected token 'a', "abc" is not valid JSON</code>; a solução mostrou <code>Ignorando "abc"</code> e <code>Soma: 16.5</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>try { } catch (erro) { }</code>: tenta; se der erro, pula para o <code>catch</code>; depois o programa <strong>continua</strong>.</li>
+  <li>No <code>catch</code>, o <code>erro</code> é um objeto com <code>name</code>, <code>message</code> e <code>stack</code> (e <code>code</code> nos erros do Node).</li>
+  <li><code>finally</code> roda sempre, com ou sem erro, até depois de um <code>return</code>. Sem <code>catch</code>, o erro continua depois dele.</li>
+  <li><code>catch { }</code>, sem parâmetro, quando o motivo não importa.</li>
+  <li>Use <code>try</code> no que só dá para saber tentando (JSON, arquivos, internet); o resto, evite com <code>if</code> e <code>?.</code>.</li>
+  <li>Trate só o erro esperado e jogue os outros de novo (<code>throw erro</code>). Nunca deixe um <code>catch</code> vazio.</li>
+  <li>O <code>try</code> não pega erro de sintaxe do arquivo nem erros que acontecem depois, num <code>setTimeout</code>. Variáveis criadas dentro do <code>try</code> não existem fora dele.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
