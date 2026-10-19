@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Desestruturação — tirando valores de objetos e arrays | Guia JavaScript</title>
+<meta name="description" content="Desestruturação no JavaScript para quem está começando: const { nome, idade } = pessoa, renomear, valor padrão, desestruturar arrays, pular itens, trocar duas variáveis, objetos aninhados, parâmetros de função e Object.entries, com as saídas e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Desestruturação</span></h1>
+
+<p class="intro">Muitas vezes você tem um <a href="objetos.html">objeto</a> ou um <a href="arrays.html">array</a> e quer pôr alguns dos valores dele em variáveis. Dá para fazer uma linha por valor (<code>const nome = ana.nome;</code>), mas o JavaScript tem um atalho que faz várias de uma vez: a <strong>desestruturação</strong> (em inglês, <em>destructuring</em>, "desmontar a estrutura"). Você vai vê-la em todo código JavaScript moderno, principalmente nos parâmetros de funções.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A desestruturar um objeto: <code>const { nome, idade } = ana;</code>.</li>
+  <li>A dar outro nome à variável e um valor padrão para o que falta.</li>
+  <li>A desestruturar um array pela posição, pular itens e trocar duas variáveis numa linha.</li>
+  <li>A desestruturar objetos dentro de objetos, parâmetros de função e o <code>Object.entries</code> no <code>for … of</code>.</li>
+  <li>Os erros reais: <code>Cannot destructure property</code>, <code>is not iterable</code>, o <code>Unexpected token '='</code> e a armadilha do ponto e vírgula.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: desfazer a sacola de compras</h2>
+<p>A Ana chega do mercado com uma sacola. Ela não guarda a sacola inteira na geladeira: tira o leite e põe na porta, tira o queijo e põe na gaveta. A desestruturação é isso: você diz <strong>quais</strong> itens quer tirar da "sacola" (o objeto ou o array) e <strong>em que variável</strong> cada um vai. A sacola continua lá, intacta; você só ganhou variáveis com os valores.</p>
+
+<hr>
+
+<h2>1. Desestruturando um objeto</h2>
+<p>O jeito longo, que você já conhece:</p>
+
+<pre class="file" data-file="antes.js">const ana = { nome: "Ana", idade: 30, cidade: "Recife" };
+const nome = ana.nome;
+const idade = ana.idade;
+console.log(nome, idade);
+</pre>
+
+<pre class="term">$ node antes.js
+Ana 30
+</pre>
+
+<p>O mesmo com desestruturação:</p>
+
+<pre class="file" data-file="objeto.js">const ana = { nome: "Ana", idade: 30, cidade: "Recife" };
+const { nome, idade } = ana;
+console.log(nome);
+console.log(idade);
+</pre>
+
+<dl class="anatomy">
+  <dt>const</dt><dd>Cria as variáveis, como sempre. Também pode ser <code>let</code>.</dd>
+  <dt>{ nome, idade }</dt><dd>Do lado <strong>esquerdo</strong> do <code>=</code>, as chaves não criam um objeto: elas dizem "quero estas propriedades". Cada nome vira uma variável <strong>e</strong> diz qual propriedade buscar: a variável <code>nome</code> recebe <code>ana.nome</code>.</dd>
+  <dt>= ana</dt><dd>De onde tirar os valores. A <code>cidade</code> não foi pedida, então fica só no objeto.</dd>
+</dl>
+
+<pre class="term">$ node objeto.js
+Ana
+30
+</pre>
+
+<p>A ordem dentro das chaves não importa: <code>const { idade, nome } = ana;</code> dá o mesmo resultado, porque a busca é <strong>pelo nome</strong> da propriedade. E se o nome não existir no objeto, a variável recebe <code>undefined</code>, sem erro:</p>
+
+<pre class="file" data-file="faltando.js">const produto = { nome: "Pão", preco: 0.8 };
+const { nome, estoque } = produto;
+console.log(nome);
+console.log(estoque);
+</pre>
+
+<pre class="term">$ node faltando.js
+Pão
+undefined
+</pre>
+
+<hr>
+
+<h2>2. Outro nome e valor padrão</h2>
+
+<h3>Renomear: <code>propriedade: variavel</code></h3>
+<p>Às vezes o nome da propriedade não serve (já existe uma variável <code>nome</code>, ou ele não diz muita coisa). Escreva a propriedade, dois-pontos e o nome que você quer:</p>
+
+<pre class="file" data-file="renomear.js">const produto = { nome: "Pão francês", preco: 0.8 };
+const { nome: nomeProduto, preco: valor } = produto;
+console.log(nomeProduto);
+console.log(valor);
+</pre>
+
+<pre class="term">$ node renomear.js
+Pão francês
+0.8
+</pre>
+
+<p>Leia <code>nome: nomeProduto</code> como "pegue a propriedade <code>nome</code> e guarde em <code>nomeProduto</code>". Aqui <strong>não</strong> existe variável <code>nome</code> nem <code>preco</code>; só <code>nomeProduto</code> e <code>valor</code>.</p>
+
+<h3>Valor padrão: <code>variavel = valor</code></h3>
+<p>Para o caso de a propriedade não existir, ponha um <code>=</code> com o valor que deve ser usado no lugar do <code>undefined</code>:</p>
+
+<pre class="file" data-file="padrao.js">const produto = { nome: "Pão", preco: 0.8 };
+const { nome, estoque = 0, preco = 1 } = produto;
+console.log(nome, estoque, preco);
+</pre>
+
+<pre class="term">$ node padrao.js
+Pão 0 0.8
+</pre>
+
+<p>O <code>estoque</code> não existia, então ficou com o padrão <code>0</code>. Já o <code>preco</code> existia (<code>0.8</code>), e o padrão <code>1</code> foi ignorado: o padrão só entra quando o valor é <code>undefined</code>. Dá para combinar as duas coisas: <code>const { preco: valor = 1 } = produto;</code>.</p>
+
+<div class="tryjs" data-goal="out:Bolo de milho custa R$ 25;;src:const\s*\{">
+<p class="try-task"><strong>Missão:</strong> troque as três linhas que começam com <code>const</code> (depois da do objeto) por <strong>uma</strong> desestruturação que crie <code>nome</code> e <code>preco</code>, e <code>estoque</code> com o padrão <code>0</code>. O resultado tem de continuar o mesmo.</p>
+<pre class="script" data-file="main.js">const bolo = { nome: "Bolo de milho", preco: 25 };
+const nome = bolo.nome;
+const preco = bolo.preco;
+const estoque = bolo.estoque === undefined ? 0 : bolo.estoque;
+console.log(`${nome} custa R$ ${preco} (estoque: ${estoque})`);
+</pre>
+<pre class="solucao" data-file="main.js">const bolo = { nome: "Bolo de milho", preco: 25 };
+const { nome, preco, estoque = 0 } = bolo;
+console.log(`${nome} custa R$ ${preco} (estoque: ${estoque})`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Desestruturando um array</h2>
+<p>Com arrays, você usa <strong>colchetes</strong> do lado esquerdo e os valores são tirados pela <strong>posição</strong>, não pelo nome:</p>
+
+<pre class="file" data-file="array.js">const podio = ["Bia", "Ana", "Caio", "Davi"];
+const [primeiro, segundo, terceiro] = podio;
+console.log("Ouro:", primeiro);
+console.log("Prata:", segundo);
+console.log("Bronze:", terceiro);
+</pre>
+
+<pre class="term">$ node array.js
+Ouro: Bia
+Prata: Ana
+Bronze: Caio
+</pre>
+
+<p>A primeira variável recebe o item 0, a segunda o item 1, e assim por diante. Os itens que sobram (<code>"Davi"</code>) são ignorados. Aqui os nomes das variáveis são livres: não têm relação com nada no array.</p>
+
+<h3>Pular itens e valor padrão</h3>
+<p>Uma vírgula sem nome antes "pula" uma posição. O valor padrão funciona igual ao dos objetos:</p>
+
+<pre class="file" data-file="pular.js">const data = ["19", "10", "2026"];
+const [, mes, ano] = data;
+console.log(mes, ano);
+const [dia, , , extra = "nada"] = data;
+console.log(dia, extra);
+</pre>
+
+<pre class="term">$ node pular.js
+10 2026
+19 nada
+</pre>
+
+<p>Um uso muito comum: desmontar o resultado de um <a href="strings-split.html">split</a>, que sempre devolve um array.</p>
+
+<pre class="file" data-file="split.js">const linha = "Ana;30;Recife";
+const [nome, idade, cidade] = linha.split(";");
+console.log(`${nome} tem ${idade} anos e mora em ${cidade}.`);
+</pre>
+
+<pre class="term">$ node split.js
+Ana tem 30 anos e mora em Recife.
+</pre>
+
+<h3>Trocar o valor de duas variáveis</h3>
+<p>Na padaria, a Ana e a Bia trocaram de turno. Sem desestruturação, trocar dois valores exige uma terceira variável temporária. Com ela, uma linha:</p>
+
+<pre class="file" data-file="trocar.js">let manha = "Ana";
+let tarde = "Bia";
+[manha, tarde] = [tarde, manha];
+console.log("Manhã:", manha);
+console.log("Tarde:", tarde);
+</pre>
+
+<pre class="term">$ node trocar.js
+Manhã: Bia
+Tarde: Ana
+</pre>
+
+<p>O lado direito monta um array novo com os valores <strong>atuais</strong> (<code>["Bia", "Ana"]</code>); o lado esquerdo desmonta esse array nas duas variáveis. Repare: sem <code>let</code> nem <code>const</code>, porque as variáveis já existem (e precisam ser <code>let</code>, já que mudam). Atenção ao ponto e vírgula na linha anterior: veja <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>4. Objetos dentro de objetos</h2>
+<p>A desestruturação pode "descer" níveis. Escreva o mesmo formato do objeto, só que com as variáveis no lugar dos valores:</p>
+
+<pre class="file" data-file="aninhado.js">const cliente = {
+  nome: "Ana",
+  endereco: { rua: "Rua das Flores", cidade: "Recife" },
+  pedidos: ["pão", "leite"],
+};
+const { nome, endereco: { cidade }, pedidos: [primeiroPedido] } = cliente;
+console.log(nome, cidade, primeiroPedido);
+</pre>
+
+<pre class="term">$ node aninhado.js
+Ana Recife pão
+</pre>
+
+<p><code>endereco: { cidade }</code> quer dizer "entre em <code>endereco</code> e tire a <code>cidade</code>"; <code>pedidos: [primeiroPedido]</code>, "entre em <code>pedidos</code> e tire o primeiro item". Neste caso <strong>não</strong> é criada a variável <code>endereco</code> nem <code>pedidos</code>. Use com moderação: mais de dois níveis fica difícil de ler, e é melhor fazer em duas linhas.</p>
+
+<hr>
+
+<h2>5. Nos parâmetros de uma função</h2>
+<p>É aqui que a desestruturação mais aparece. Uma função que recebe um objeto pode desmontá-lo já nos <a href="parametros.html">parâmetros</a>:</p>
+
+<pre class="file" data-file="parametro.js">function etiqueta({ nome, preco }) {
+  console.log(`${nome}: R$ ${preco.toFixed(2)}`);
+}
+
+etiqueta({ nome: "Pão", preco: 0.8 });
+etiqueta({ nome: "Bolo", preco: 15 });
+</pre>
+
+<pre class="term">$ node parametro.js
+Pão: R$ 0.80
+Bolo: R$ 15.00
+</pre>
+
+<p>Quem chama passa <strong>um objeto</strong>; a função recebe direto as variáveis <code>nome</code> e <code>preco</code>. A vantagem: na chamada, cada valor vem com o nome dele (<code>{ nome: "Pão", preco: 0.8 }</code>), sem precisar decorar a ordem dos parâmetros. Valores padrão nos parâmetros têm aula própria: <a href="parametros-padrao.html">Parâmetros Padrão</a>.</p>
+
+<h3>No <code>for … of</code> com <code>Object.entries</code></h3>
+<p><code>Object.entries(obj)</code> devolve um array de pares <code>[chave, valor]</code> (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>). Desestruturando o par no próprio <code>for … of</code>, cada volta já tem as duas variáveis:</p>
+
+<pre class="file" data-file="entries.js">const estoque = { pao: 20, leite: 8, cafe: 3 };
+for (const [produto, quantidade] of Object.entries(estoque)) {
+  console.log(`${produto}: ${quantidade}`);
+}
+</pre>
+
+<pre class="term">$ node entries.js
+pao: 20
+leite: 8
+cafe: 3
+</pre>
+
+<div class="tryjs" data-goal="out:Ana: 9;;out:Caio: 6;;src:\[\s*\w+\s*,\s*\w+\s*\]\s+of">
+<p class="try-task"><strong>Missão:</strong> o laço usa <code>par[0]</code> e <code>par[1]</code>, que não dizem nada. Troque <code>const par</code> por <code>const [aluno, nota]</code> e use essas variáveis no <code>console.log</code>.</p>
+<pre class="script" data-file="main.js">const notas = { Ana: 9, Bia: 7.5, Caio: 6 };
+for (const par of Object.entries(notas)) {
+  console.log(par[0] + " " + par[1]);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const notas = { Ana: 9, Bia: 7.5, Caio: 6 };
+for (const [aluno, nota] of Object.entries(notas)) {
+  console.log(`${aluno}: ${nota}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Sem desestruturação</th><th>Com desestruturação</th></tr>
+<tr><td>Pegar 1 propriedade</td><td><code>const nome = ana.nome;</code></td><td><code>const { nome } = ana;</code></td></tr>
+<tr><td>Pegar várias propriedades</td><td>uma linha para cada</td><td><code>const { nome, idade, cidade } = ana;</code></td></tr>
+<tr><td>Itens de um array</td><td><code>const a = lista[0]; const b = lista[1];</code></td><td><code>const [a, b] = lista;</code></td></tr>
+<tr><td>Trocar duas variáveis</td><td><code>const temp = a; a = b; b = temp;</code></td><td><code>[a, b] = [b, a];</code></td></tr>
+<tr><td>Parâmetros com nome</td><td><code>function f(p) { p.nome … }</code></td><td><code>function f({ nome }) { … }</code></td></tr>
+</table>
+</div>
+<p><strong>Qual usar?</strong> Para uma propriedade só, as duas formas servem; muita gente prefere <code>ana.nome</code> direto no lugar onde usa. A desestruturação ganha quando você tira <strong>várias</strong> coisas do mesmo objeto, nos parâmetros de funções e no <code>Object.entries</code>. Para pegar "o resto" das propriedades num objeto separado (<code>const { nome, ...resto } = ana;</code>), veja a próxima aula, <a href="spread-rest.html">Spread e Rest</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Desestruturou algo que é <code>undefined</code></strong>
+<pre class="file" data-file="nulo.js">const clientes = { ana: { nome: "Ana", cidade: "Recife" } };
+const { cidade } = clientes.bia;
+console.log(cidade);
+</pre>
+<pre class="term">$ node nulo.js
+/home/ana/nulo.js:2
+const { cidade } = clientes.bia;
+        ^
+
+TypeError: Cannot destructure property 'cidade' of 'clientes.bia' as it is undefined.
+    at Object.&lt;anonymous&gt; (/home/ana/nulo.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/nulo.js:2</dt><dd>O arquivo e a linha do problema.</dd>
+  <dt>const { cidade } = … e o ^</dt><dd>A linha, com o <code>^</code> embaixo da propriedade que não deu para tirar.</dd>
+  <dt>TypeError: Cannot destructure property 'cidade' of 'clientes.bia' as it is undefined.</dt><dd>"Não é possível desestruturar a propriedade <code>cidade</code> de <code>clientes.bia</code>, porque ele é <code>undefined</code>." Não existe cliente <code>bia</code>, então <code>clientes.bia</code> vale <code>undefined</code>, e de <code>undefined</code> (ou <code>null</code>) não dá para tirar nada.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/nulo.js:2:9)</dt><dd>Linha 2, coluna 9 do seu arquivo. O resto são linhas internas do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira se o objeto existe antes, ou dê um objeto vazio como reserva: <code>const { cidade } = clientes.bia ?? {};</code> (o <code>??</code> é da aula <a href="optional-chaining.html">?. e ??</a>; aqui <code>cidade</code> fica <code>undefined</code>, sem erro).</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou sem argumento uma função que desestrutura</strong>
+<pre class="file" data-file="semarg.js">function etiqueta({ nome, preco }) {
+  console.log(`${nome}: R$ ${preco}`);
+}
+
+etiqueta();
+</pre>
+<pre class="term">$ node semarg.js
+/home/ana/semarg.js:1
+function etiqueta({ nome, preco }) {
+                    ^
+
+TypeError: Cannot destructure property 'nome' of 'undefined' as it is undefined.
+    at etiqueta (/home/ana/semarg.js:1:21)
+    at Object.&lt;anonymous&gt; (/home/ana/semarg.js:5:1)    « a chamada que causou o erro, na linha 5
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O erro aponta a linha 1 (onde a desestruturação está), mas a <strong>causa</strong> está na linha 5: <code>etiqueta()</code> sem nada, então o parâmetro é <code>undefined</code>. As linhas <code>at</code> contam a história de baixo para cima: a linha 5 chamou <code>etiqueta</code>, que quebrou na linha 1. <strong>Como consertar:</strong> passe o objeto, ou dê um padrão ao parâmetro inteiro, <code>= {}</code>:</p>
+<pre class="file" data-file="semarg2.js">function etiqueta({ nome = "Produto", preco = 0 } = {}) {
+  console.log(`${nome}: R$ ${preco}`);
+}
+
+etiqueta();
+etiqueta({ nome: "Pão" });
+</pre>
+<pre class="term">$ node semarg2.js
+Produto: R$ 0
+Pão: R$ 0
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Desestruturou um objeto em variáveis que já existiam</strong>
+<pre class="file" data-file="chaves.js">let nome;
+const ana = { nome: "Ana" };
+{ nome } = ana;
+console.log(nome);
+</pre>
+<pre class="term">$ node chaves.js
+/home/ana/chaves.js:3
+{ nome } = ana;
+         ^
+
+SyntaxError: Unexpected token '='
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: símbolo <code>=</code> inesperado." Uma linha que <strong>começa</strong> com <code>{</code> é lida como um <strong>bloco</strong> de código (como o de um <code>if</code>), e um bloco não pode receber <code>=</code>. É erro de sintaxe, então nada do programa roda. <strong>Como consertar:</strong> ponha a linha inteira entre parênteses, <code>({ nome } = ana);</code> (no lab, mostrou <code>Ana</code>), ou, melhor, desestruture já na criação: <code>const { nome } = ana;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou colchetes num objeto</strong>
+<pre class="file" data-file="naoiteravel.js">const ana = { nome: "Ana", idade: 30 };
+const [nome, idade] = ana;
+</pre>
+<pre class="term">$ node naoiteravel.js
+/home/ana/naoiteravel.js:2
+const [nome, idade] = ana;
+                      ^
+
+TypeError: ana is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/naoiteravel.js:2:23)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>ana</code> não é iterável": os colchetes tiram valores <strong>pela posição</strong>, e um objeto comum não tem posições (não dá para percorrê-lo com <code>for … of</code>). <strong>Como consertar:</strong> objeto com chaves, <code>const { nome, idade } = ana;</code>; array com colchetes.</p>
+</div>
+
+<div class="cenario">
+<strong>Trocou as variáveis sem ponto e vírgula na linha anterior</strong>
+<pre class="file" data-file="semponto.js">let a = 1
+let b = 2
+[a, b] = [b, a]
+console.log(a, b)
+</pre>
+<pre class="term">$ node semponto.js
+/home/ana/semponto.js:3
+[a, b] = [b, a]
+    ^
+
+ReferenceError: Cannot access 'b' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/semponto.js:3:5)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Uma mensagem estranha, porque o JavaScript leu as linhas 2 e 3 como <strong>uma só</strong>: <code>let b = 2[a, b] = [b, a]</code>. Sem o ponto e vírgula, o <code>[</code> no começo da linha 3 foi entendido como "pegue um item de <code>2</code>", e aí ele tentou usar o <code>b</code> enquanto ainda o estava criando ("não é possível acessar <code>b</code> antes da inicialização"). <strong>Como consertar:</strong> termine as instruções com <code>;</code>, como o guia recomenda desde <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const { a, b } = obj;</code></td><td>Cria <code>a</code> e <code>b</code> com <code>obj.a</code> e <code>obj.b</code></td></tr>
+<tr><td><code>const { a: x } = obj;</code></td><td>Cria <code>x</code> com <code>obj.a</code></td></tr>
+<tr><td><code>const { a = 0 } = obj;</code></td><td>Usa <code>0</code> se <code>obj.a</code> for <code>undefined</code></td></tr>
+<tr><td><code>const { a: { b } } = obj;</code></td><td>Cria <code>b</code> com <code>obj.a.b</code></td></tr>
+<tr><td><code>const [x, y] = lista;</code></td><td>Cria <code>x</code> e <code>y</code> com <code>lista[0]</code> e <code>lista[1]</code></td></tr>
+<tr><td><code>const [, y] = lista;</code></td><td>Pula a posição 0</td></tr>
+<tr><td><code>[a, b] = [b, a];</code></td><td>Troca os valores de duas variáveis <code>let</code></td></tr>
+<tr><td><code>function f({ a, b } = {}) { … }</code></td><td>Desestrutura o objeto recebido (com padrão se vier nada)</td></tr>
+<tr><td><code>for (const [k, v] of Object.entries(obj))</code></td><td>Percorre chave e valor</td></tr>
+<tr><td><code>({ a } = obj);</code></td><td>Desestrutura em variáveis que já existem (parênteses obrigatórios)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Crie as variáveis <code>titulo</code> e <code>ano</code> a partir do objeto <code>filme</code>:</p>
+<div class="ex-code">const <input data-answer="{" aria-label="símbolo de abertura"> titulo, ano <input data-answer="}" aria-label="símbolo de fechamento"> = filme;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual valor?</h3>
+<p>Depois de <code>const [a, , c] = [10, 20, 30];</code>, quanto vale <code>c</code>?</p>
+<div class="ex-code"><input data-answer="30" aria-label="valor de c"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Renomear</h3>
+<p>Complete para guardar <code>produto.preco</code> numa variável chamada <code>valor</code>:</p>
+<div class="ex-code">const { preco<input data-answer=": valor|:valor" aria-label="renomear"> } = produto;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>const { estoque = 5 } = { estoque: 0 };</code> Quanto vale <code>estoque</code>?</p>
+<label><input type="radio" name="q4"> 5</label>
+<label><input type="radio" name="q4"> 0</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que causa <code>TypeError: Cannot destructure property 'nome' of 'undefined'</code>?</p>
+<label><input type="radio" name="q5"> O objeto não tem a propriedade <code>nome</code></label>
+<label><input type="radio" name="q5"> Faltou o ponto e vírgula</label>
+<label><input type="radio" name="q5"> O valor do lado direito do <code>=</code> (ou o argumento da função) é <code>undefined</code></label>
+<label><input type="radio" name="q5"> Usou <code>const</code> no lugar de <code>let</code></label>
+</div>
+
+<h3>Missão final: a ficha do pedido</h3>
+
+<div class="tryjs" data-goal="out:Pedido 42 de Ana: 3x Pão de queijo (Recife);;src:function\s+ficha\s*\(\s*\{">
+<p class="try-task"><strong>Missão:</strong> escreva a função <code>ficha</code> desestruturando o objeto <strong>nos parâmetros</strong>: ela recebe <code>{ numero, cliente, item, quantidade }</code> e mostra <code>Pedido 42 de Ana: 3x Pão de queijo (Recife)</code>. A cidade está dentro de <code>cliente</code> (dica: <code>cliente: { nome, cidade }</code>).</p>
+<pre class="script" data-file="main.js">const pedido = {
+  numero: 42,
+  cliente: { nome: "Ana", cidade: "Recife" },
+  item: "Pão de queijo",
+  quantidade: 3,
+};
+
+// escreva a função ficha aqui
+
+ficha(pedido);
+</pre>
+<pre class="solucao" data-file="main.js">const pedido = {
+  numero: 42,
+  cliente: { nome: "Ana", cidade: "Recife" },
+  item: "Pão de queijo",
+  quantidade: 3,
+};
+
+function ficha({ numero, cliente: { nome, cidade }, item, quantidade }) {
+  console.log(`Pedido ${numero} de ${nome}: ${quantidade}x ${item} (${cidade})`);
+}
+
+ficha(pedido);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Desestruturar é criar variáveis a partir de partes de um objeto ou array, numa linha só. O original não muda.</li>
+  <li>Objeto: chaves e <strong>nomes</strong> (<code>const { nome } = ana;</code>). Array: colchetes e <strong>posições</strong> (<code>const [a, b] = lista;</code>).</li>
+  <li><code>{ nome: outroNome }</code> renomeia; <code>{ estoque = 0 }</code> dá um padrão, usado só quando o valor é <code>undefined</code>.</li>
+  <li><code>[a, b] = [b, a];</code> troca dois valores. Vírgula sem nome pula uma posição.</li>
+  <li>Nos parâmetros, <code>function f({ nome, preco } = {})</code> recebe um objeto já desmontado.</li>
+  <li>Não dá para desestruturar <code>undefined</code>/<code>null</code> (<code>Cannot destructure property</code>) nem usar colchetes num objeto comum (<code>is not iterable</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
