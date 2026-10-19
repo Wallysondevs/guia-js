@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript return — a função devolvendo um valor | Guia JavaScript</title>
+<meta name="description" content="O return do JavaScript para quem nunca programou: devolver um valor com return, a diferença entre mostrar (console.log) e devolver, usar o resultado em contas e no if, vários return (aprovada, recuperação), return que encerra a função e o laço, funções que devolvem true/false, o undefined de quem não devolve e as armadilhas reais do Node.js 24 (return sozinho na linha, NaN, Illegal return statement).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">return</span></h1>
+
+<p class="intro">Com <a href="parametros.html">parâmetros</a>, você manda informações <strong>para dentro</strong> da função. Com <code>return</code> (em inglês, "<strong>devolver</strong>"), a função manda um resultado <strong>de volta para fora</strong>, para quem a chamou. É isso que permite guardar o resultado numa variável, usar numa conta, comparar num <code>if</code> ou mandar para outra função.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como uma função devolve um valor com <code>return</code>, e como usar esse valor.</li>
+  <li>A diferença entre <strong>mostrar</strong> (<code>console.log</code>) e <strong>devolver</strong> (<code>return</code>).</li>
+  <li>Que o <code>return</code> <strong>encerra</strong> a função na hora, e como usar vários <code>return</code>.</li>
+  <li>Funções que devolvem <code>true</code> ou <code>false</code>.</li>
+  <li>Por que uma função sem <code>return</code> devolve <code>undefined</code>.</li>
+  <li>As armadilhas reais: o <code>return</code> sozinho na linha, o <code>NaN</code> e o <code>return</code> fora de função.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: perguntar o preço no caixa</h2>
+<p>A Ana pergunta à moça do caixa: "quanto dão 10 pães a R$ 0,50?". A moça faz a conta e <strong>responde</strong>: "5 reais". A Ana guarda a resposta na cabeça e decide o que fazer com ela: pagar, somar com o café, desistir.</p>
+<p>Agora imagine que a moça, em vez de responder, <strong>escrevesse</strong> "5 reais" num papel e o pendurasse na parede. A Ana pode ler, mas a resposta não chegou a ela: não dá para somar com o café de cabeça. É a diferença entre:</p>
+<ul>
+  <li><code>console.log</code>: <strong>mostra</strong> na tela, para uma pessoa ler;</li>
+  <li><code>return</code>: <strong>devolve</strong> o valor para o programa, que pode continuar usando.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro <code>return</code></h2>
+
+<pre class="file" data-file="total.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+}
+
+const total = calcularTotal(10, 0.5);
+console.log(`10 pães custam R$ ${total}`);
+</pre>
+
+<pre class="term">$ node total.js
+10 pães custam R$ 5
+</pre>
+
+<dl class="anatomy">
+  <dt>return quantidade * preco;</dt><dd>"Devolva o resultado de <code>quantidade * preco</code>". O JavaScript calcula a conta (10 × 0,5 = 5) e manda o 5 de volta para o lugar da chamada.</dd>
+  <dt>calcularTotal(10, 0.5)</dt><dd>A chamada. Depois que a função devolve, é como se a chamada inteira <strong>virasse</strong> o valor devolvido: aqui, <code>5</code>.</dd>
+  <dt>const total = …</dt><dd>Guarda o valor devolvido numa variável, para usar depois. A função não mostrou nada: quem mostra é o <code>console.log</code> da última linha.</dd>
+</dl>
+
+<h3>Mostrar × devolver</h3>
+<p>Compare duas funções que parecem fazer a mesma coisa:</p>
+
+<pre class="file" data-file="mostra.js">function mostrarDobro(numero) {
+  console.log(numero * 2);
+}
+
+function calcularDobro(numero) {
+  return numero * 2;
+}
+
+const a = mostrarDobro(5);
+const b = calcularDobro(5);
+console.log(`a vale ${a}`);
+console.log(`b vale ${b}`);
+console.log(`a + 1 = ${a + 1}`);
+console.log(`b + 1 = ${b + 1}`);
+</pre>
+
+<pre class="term">$ node mostra.js
+10
+a vale undefined
+b vale 10
+a + 1 = NaN
+b + 1 = 11
+</pre>
+
+<ul>
+  <li><code>mostrarDobro(5)</code> mostrou <code>10</code> na tela (a primeira linha da saída), mas não devolveu nada. Por isso <code>a</code> ficou <code>undefined</code>, e <code>undefined + 1</code> dá <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN e Infinity</a>).</li>
+  <li><code>calcularDobro(5)</code> não mostrou nada, mas devolveu 10: <code>b</code> vale 10, e <code>b + 1</code> dá 11.</li>
+</ul>
+
+<p>No modo interativo do Node (<a href="repl.html">O Modo Interativo</a>) dá para ver isso direto, porque o <code>&gt;</code> mostra o valor que cada linha produz:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; function dobro(n) {
+|   return n * 2;
+| }
+undefined
+&gt; dobro(21)
+42
+&gt; function mostrarDobro(n) {
+|   console.log(n * 2);
+| }
+undefined
+&gt; mostrarDobro(21)
+42
+undefined
+&gt; dobro(21) + 1
+43
+&gt; .exit
+</pre>
+
+<p>Em <code>dobro(21)</code>, o <code>42</code> é o valor devolvido. Em <code>mostrarDobro(21)</code>, o <code>42</code> é o que o <code>console.log</code> escreveu, e o <code>undefined</code> logo abaixo é o valor devolvido: nenhum. (É por isso que o <code>console.log("oi")</code> no <code>&gt;</code> também mostra um <code>undefined</code>: o próprio <code>console.log</code> não devolve nada.)</p>
+
+<div class="tip">
+<strong>Regra de bolso</strong>
+<p>Uma função que <strong>calcula</strong> algo deve <strong>devolver</strong> (<code>return</code>), e quem chamou decide se mostra, soma ou guarda. Deixe o <code>console.log</code> para as funções cujo trabalho é justamente mostrar.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Troco: R$ 7.5;;src:\breturn\b">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Troco: R$ undefined</code>, porque a função <strong>mostra</strong> o troco em vez de <strong>devolver</strong>. Troque o <code>console.log</code> de dentro da função por um <code>return</code>, para a última linha mostrar <code>Troco: R$ 7.5</code>.</p>
+<pre class="script" data-file="main.js">function calcularTroco(pago, total) {
+  console.log(pago - total);
+}
+
+const troco = calcularTroco(20, 12.5);
+console.log(`Troco: R$ ${troco}`);
+</pre>
+<pre class="solucao" data-file="main.js">function calcularTroco(pago, total) {
+  return pago - total;
+}
+
+const troco = calcularTroco(20, 12.5);
+console.log(`Troco: R$ ${troco}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O valor devolvido serve em qualquer lugar</h2>
+<p>Como a chamada "vira" o valor, ela pode ir onde um valor iria: dentro do <code>console.log</code>, numa conta, num template, num <code>if</code>:</p>
+
+<pre class="file" data-file="usos.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+}
+
+console.log(calcularTotal(2, 4.5));
+const compra = calcularTotal(10, 0.5) + calcularTotal(2, 4.5);
+console.log(`Compra toda: R$ ${compra}`);
+console.log(`Com desconto: R$ ${calcularTotal(10, 0.5) - 1}`);
+if (calcularTotal(3, 18) &gt; 50) {
+  console.log("Três bolos passam de R$ 50!");
+}
+</pre>
+
+<pre class="term">$ node usos.js
+9
+Compra toda: R$ 14
+Com desconto: R$ 4
+Três bolos passam de R$ 50!
+</pre>
+
+<p>Na linha do <code>compra</code>, a função foi chamada duas vezes: a primeira virou 5, a segunda virou 9, e 5 + 9 = 14.</p>
+
+<h3>Uma função recebendo o resultado de outra</h3>
+<p>O valor devolvido por uma função pode ser o argumento de outra. O JavaScript resolve de dentro para fora:</p>
+
+<pre class="file" data-file="encadeia.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+}
+
+function aplicarDesconto(valor) {
+  return valor * 0.9;
+}
+
+const final = aplicarDesconto(calcularTotal(10, 2));
+console.log(`Com 10% de desconto: R$ ${final}`);
+</pre>
+
+<pre class="term">$ node encadeia.js
+Com 10% de desconto: R$ 18
+</pre>
+
+<p>Primeiro <code>calcularTotal(10, 2)</code> virou 20; depois <code>aplicarDesconto(20)</code> virou 18.</p>
+
+<hr>
+
+<h2 id="encerra">3. O <code>return</code> encerra a função</h2>
+<p>Quando o JavaScript chega num <code>return</code>, ele sai da função <strong>na hora</strong>, levando o valor. O que estiver depois, dentro da função, não roda:</p>
+
+<pre class="file" data-file="depois.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+  console.log("Esta linha nunca aparece");
+}
+
+console.log(calcularTotal(4, 2));
+</pre>
+
+<pre class="term">$ node depois.js
+8
+</pre>
+
+<h3>Vários <code>return</code>: um para cada caso</h3>
+<p>Isso permite ter vários <code>return</code>, cada um dentro de um <code>if</code>. O primeiro que for alcançado decide a resposta:</p>
+
+<pre class="file" data-file="nota.js">function classificar(nota) {
+  if (nota &gt;= 7) {
+    return "Aprovada";
+  }
+  if (nota &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovada";
+}
+
+console.log(`Nota 8.5: ${classificar(8.5)}`);
+console.log(`Nota 6: ${classificar(6)}`);
+console.log(`Nota 3: ${classificar(3)}`);
+</pre>
+
+<pre class="term">$ node nota.js
+Nota 8.5: Aprovada
+Nota 6: Recuperação
+Nota 3: Reprovada
+</pre>
+
+<p>Com a nota 8.5, o primeiro <code>if</code> devolve <code>"Aprovada"</code> e a função acaba ali: o segundo <code>if</code> nem é olhado. Por isso não precisou de <code>else</code>: se o programa passou do primeiro <code>if</code>, é porque a nota é menor que 7. O último <code>return</code>, sem <code>if</code>, é o "em todos os outros casos".</p>
+
+<h3>O <code>return</code> também sai do laço</h3>
+<p>Um <code>return</code> dentro de um laço encerra o laço <strong>e</strong> a função. É o jeito mais comum de "procurar e parar quando achar" (lembra do <a href="lacos-aninhados.html">rótulo</a> para sair de dois laços? Dentro de uma função, um <code>return</code> resolve):</p>
+
+<pre class="file" data-file="procura.js">function posicaoDe(lista, procurado) {
+  for (let i = 0; i &lt; lista.length; i++) {
+    if (lista[i] === procurado) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+const compras = ["pão", "leite", "café"];
+console.log(posicaoDe(compras, "leite"));
+console.log(posicaoDe(compras, "ovos"));
+</pre>
+
+<pre class="term">$ node procura.js
+1
+-1
+</pre>
+
+<p>Achou o <code>"leite"</code> na posição 1: <code>return 1</code>, e o laço nem chega ao café. Os <code>"ovos"</code> não estão na lista: o laço termina sem achar, e o <code>return -1</code> do fim avisa "não achei" (−1 é uma posição que não existe; o próprio JavaScript usa essa convenção, como você vai ver em <a href="arrays-buscar.html">Procurando em Arrays</a>).</p>
+
+<div class="tryjs" data-goal="out:Nota 9: Excelente;;out:Nota 7: Aprovada;;src:\breturn\b">
+<p class="try-task"><strong>Missão:</strong> acrescente um caso novo na função: nota <strong>9 ou mais</strong> devolve <code>"Excelente"</code>. Cuidado com a ordem dos <code>if</code>: o primeiro <code>return</code> alcançado ganha.</p>
+<pre class="script" data-file="main.js">function classificar(nota) {
+  if (nota &gt;= 7) {
+    return "Aprovada";
+  }
+  if (nota &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovada";
+}
+
+console.log(`Nota 9: ${classificar(9)}`);
+console.log(`Nota 7: ${classificar(7)}`);
+console.log(`Nota 3: ${classificar(3)}`);
+</pre>
+<pre class="solucao" data-file="main.js">function classificar(nota) {
+  if (nota &gt;= 9) {
+    return "Excelente";
+  }
+  if (nota &gt;= 7) {
+    return "Aprovada";
+  }
+  if (nota &gt;= 5) {
+    return "Recuperação";
+  }
+  return "Reprovada";
+}
+
+console.log(`Nota 9: ${classificar(9)}`);
+console.log(`Nota 7: ${classificar(7)}`);
+console.log(`Nota 3: ${classificar(3)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Funções que respondem sim ou não</h2>
+<p>Uma comparação já produz <code>true</code> ou <code>false</code> (veja <a href="booleanos.html">Booleanos</a>), e uma função pode devolver esse resultado direto. Funções assim costumam ter nomes que soam como pergunta: <code>ehPar</code>, <code>estaVazio</code>, <code>podeEntrar</code>.</p>
+
+<pre class="file" data-file="par.js">function ehPar(numero) {
+  return numero % 2 === 0;
+}
+
+console.log(ehPar(4));
+console.log(ehPar(7));
+if (ehPar(10)) {
+  console.log("10 é par");
+}
+</pre>
+
+<pre class="term">$ node par.js
+true
+false
+10 é par
+</pre>
+
+<p>O <code>if (ehPar(10))</code> se lê quase em português: "se é par 10…". Não precisa escrever <code>if (ehPar(10) === true)</code>.</p>
+
+<hr>
+
+<h2>5. Sem <code>return</code>, a função devolve <code>undefined</code></h2>
+<p>Toda chamada de função produz um valor. Se a função termina sem passar por um <code>return</code>, ou passa por um <code>return;</code> sem nada, esse valor é <code>undefined</code>. O <code>return;</code> sozinho é útil para <strong>sair mais cedo</strong> de uma função que não precisa devolver nada:</p>
+
+<pre class="file" data-file="vazio.js">function avisar(estoque) {
+  if (estoque === 0) {
+    console.log("Sem estoque!");
+    return;
+  }
+  console.log(`Ainda temos ${estoque}.`);
+}
+
+avisar(0);
+avisar(12);
+console.log(avisar(5));
+</pre>
+
+<pre class="term">$ node vazio.js
+Sem estoque!
+Ainda temos 12.
+Ainda temos 5.
+undefined
+</pre>
+
+<p>Com estoque 0, o <code>return;</code> encerrou a função antes do segundo <code>console.log</code>. E a última linha mostra o que <code>avisar(5)</code> devolveu: <code>undefined</code>, porque ela não tem <code>return</code> com valor.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A classificação da nota pode ser escrita de outros jeitos. Com <code>if … else if … else</code> e uma variável, e um <code>return</code> só no fim:</p>
+
+<pre class="file" data-file="nota_variavel.js">function classificar(nota) {
+  let resultado;
+  if (nota &gt;= 7) {
+    resultado = "Aprovada";
+  } else if (nota &gt;= 5) {
+    resultado = "Recuperação";
+  } else {
+    resultado = "Reprovada";
+  }
+  return resultado;
+}
+</pre>
+
+<p>Com o operador ternário (<a href="ternario.html">? :</a>), quando os casos são poucos:</p>
+
+<pre class="file" data-file="nota_ternario.js">function classificar(nota) {
+  return nota &gt;= 7 ? "Aprovada" : "Recuperação";
+}
+</pre>
+
+<p>E com uma arrow function de uma linha, em que o <code>return</code> fica <strong>implícito</strong>: <code>const dobro = (n) =&gt; n * 2;</code> devolve <code>n * 2</code> sem escrever <code>return</code> (aula <a href="arrow-functions.html">Arrow Functions</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Vários casos, cada um com a sua resposta</td><td>Vários <code>return</code> com <code>if</code> (sai cedo, sem <code>else</code>)</td></tr>
+<tr><td>Muita coisa a fazer antes de responder</td><td>Uma variável e um <code>return</code> no fim</td></tr>
+<tr><td>Dois casos, resposta curta</td><td><code>return condição ? a : b;</code></td></tr>
+<tr><td>A função é só uma conta</td><td>Arrow de uma linha: <code>(n) =&gt; n * 2</code></td></tr>
+<tr><td>A função não precisa devolver nada, mas quer sair cedo</td><td><code>return;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>return</code> sozinho na linha</strong>
+<pre class="file" data-file="quebra.js">function calcularTotal(quantidade, preco) {
+  return
+    quantidade * preco;
+}
+
+console.log(calcularTotal(10, 0.5));
+</pre>
+<pre class="term">$ node quebra.js
+undefined
+</pre>
+<p>Esta é uma das pegadinhas mais famosas do JavaScript. Quando a linha acaba logo depois do <code>return</code>, o JavaScript entende que ela acabou ali e põe um ponto e vírgula sozinho: <code>return;</code>. A função devolve <code>undefined</code>, e a conta da linha seguinte nunca roda. Não aparece erro nenhum. <strong>Como consertar:</strong> o valor (ou pelo menos o começo dele) tem de estar <strong>na mesma linha</strong> do <code>return</code>: <code>return quantidade * preco;</code>. Se a conta for comprida, abra um parêntese na mesma linha: <code>return (</code> … <code>);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code>: <code>undefined</code> e <code>NaN</code></strong>
+<pre class="file" data-file="semreturn.js">function calcularTotal(quantidade, preco) {
+  quantidade * preco;
+}
+
+const total = calcularTotal(10, 0.5);
+console.log(`Total: ${total}`);
+console.log(`Total + taxa: ${total + 2}`);
+</pre>
+<pre class="term">$ node semreturn.js
+Total: undefined
+Total + taxa: NaN
+</pre>
+<p>A função faz a conta e joga o resultado fora. Sem <code>return</code>, a chamada vale <code>undefined</code>, e qualquer conta com <code>undefined</code> dá <code>NaN</code>. Se você vir <code>undefined</code> ou <code>NaN</code> onde esperava um resultado, a primeira suspeita é um <code>return</code> esquecido (ou um <code>console.log</code> no lugar dele). <strong>Como consertar:</strong> <code>return quantidade * preco;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Código depois do <code>return</code></strong>
+<p>É o <code>depois.js</code> da <a href="#encerra">seção 3</a>: a linha depois do <code>return</code> nunca roda, sem erro nenhum. Se você quer mostrar algo e devolver, mostre <strong>antes</strong> do <code>return</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses na chamada</strong>
+<pre class="file" data-file="semparen.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+}
+
+const total = calcularTotal;
+console.log(total);
+</pre>
+<pre class="term">$ node semparen.js
+[Function: calcularTotal]
+</pre>
+<p>Sem os parênteses, a função não foi chamada: <code>total</code> recebeu a própria função, e não o resultado dela. <strong>Como consertar:</strong> <code>calcularTotal(10, 0.5)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>return</code> fora de uma função</strong>
+<p>O <code>return</code> é para sair de uma função. Fora de uma, o resultado depende de como o arquivo é lido. Num <strong>módulo</strong> (arquivo <code>.mjs</code>, ou com <code>import</code>/<code>export</code>; veja <a href="modulos.html">Módulos</a>), e também no navegador, é erro de sintaxe:</p>
+<pre class="file" data-file="topo.mjs">console.log("Antes");
+return;
+console.log("Depois");
+</pre>
+<pre class="term">$ node topo.mjs
+file:///home/ana/topo.mjs:2
+return;
+^^^^^^
+
+SyntaxError: Illegal return statement
+    at compileSourceTextModule (node:internal/modules/esm/utils:319:16)   « mais 9 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Instrução <code>return</code> ilegal". Repare que, num módulo, o caminho aparece como endereço (<code>file:///home/ana/…</code>). Já num arquivo <code>.js</code> comum, o Node não reclama: ele embrulha o arquivo inteiro numa função por baixo dos panos, e o <code>return</code> simplesmente encerra o programa. A Ana salvou as mesmas três linhas como <code>topo.js</code>:</p>
+<pre class="term">$ node topo.js
+Antes
+</pre>
+<p><strong>Como consertar:</strong> não use <code>return</code> fora de função. Para encerrar o programa de propósito, existe o <code>process.exit()</code> (veja <a href="process-env.html">process.env e process.exit</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>return valor;</code></td><td>Encerra a função e devolve o valor para quem chamou</td></tr>
+<tr><td><code>const x = f();</code></td><td>Guarda o valor devolvido</td></tr>
+<tr><td><code>f() + g()</code>, <code>if (f())</code>, <code>h(f())</code></td><td>Usa o valor devolvido direto, como qualquer valor</td></tr>
+<tr><td><code>return;</code></td><td>Sai da função sem devolver nada (<code>undefined</code>)</td></tr>
+<tr><td>Função sem <code>return</code></td><td>A chamada vale <code>undefined</code></td></tr>
+<tr><td><code>return condição;</code></td><td>Devolve <code>true</code> ou <code>false</code></td></tr>
+<tr><td><code>return</code> dentro de laço</td><td>Encerra o laço e a função</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>undefined</code> onde devia vir o resultado</td><td>Faltou o <code>return</code>, ou o valor está na linha de baixo do <code>return</code></td></tr>
+<tr><td><code>NaN</code> numa conta com o resultado</td><td>A função devolveu <code>undefined</code></td></tr>
+<tr><td>Uma linha da função nunca roda</td><td>Ela está depois de um <code>return</code></td></tr>
+<tr><td><code>[Function: nome]</code></td><td>Faltaram os parênteses na chamada</td></tr>
+<tr><td><code>SyntaxError: Illegal return statement</code></td><td><code>return</code> fora de função, num módulo ou no navegador</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para a função devolver o triplo do número:</p>
+<div class="ex-code">function triplo(n) {<br>&nbsp;&nbsp;<input data-answer="return" aria-label="palavra-chave"> n * 3;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale?</h3>
+<pre class="file" data-file="ex2.js">function somar(a, b) {
+  return a + b;
+}
+
+const x = somar(2, 3) * somar(1, 1);
+</pre>
+<div class="ex-code"><code>x</code> vale <input data-answer="10" aria-label="valor de x">.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>console.log(f())</code> mostra, se <code>function f() { console.log("oi"); }</code>?</p>
+<label><input type="radio" name="q3"> Só <code>oi</code></label>
+<label><input type="radio" name="q3"> <code>oi</code> e, na linha de baixo, <code>undefined</code></label>
+<label><input type="radio" name="q3"> Só <code>undefined</code></label>
+<label><input type="radio" name="q3"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Quantas vezes o <code>console.log</code> roda em <code>function f() { for (let i = 0; i &lt; 10; i++) { console.log(i); return i; } }</code> quando se chama <code>f()</code>?</p>
+<label><input type="radio" name="q4"> 10</label>
+<label><input type="radio" name="q4"> 0</label>
+<label><input type="radio" name="q4"> 9</label>
+<label><input type="radio" name="q4"> 1: o <code>return</code> encerra o laço e a função na primeira volta</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que esta função devolve <code>undefined</code>? <code>function preco() {</code> / <code>return</code> / <code>  10;</code> / <code>}</code></p>
+<label><input type="radio" name="q5"> Porque o JavaScript encerra o <code>return</code> no fim da linha: o <code>10</code> ficou sozinho na linha de baixo</label>
+<label><input type="radio" name="q5"> Porque números não podem ser devolvidos</label>
+<label><input type="radio" name="q5"> Porque faltou um parâmetro</label>
+<label><input type="radio" name="q5"> Porque o <code>return</code> precisa de parênteses</label>
+</div>
+
+<h3>Missão final: a média da turma</h3>
+
+<div class="tryjs" data-goal="out:Média: 8;;out:Aprovada!;;src:\breturn\b">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>calcularMedia</code> para <strong>devolver</strong> a média das três notas (some as três e divida por 3; use parênteses na soma). O resto do programa já usa o resultado.</p>
+<pre class="script" data-file="main.js">function calcularMedia(n1, n2, n3) {
+  // devolva a média aqui
+}
+
+const media = calcularMedia(7, 8, 9);
+console.log(`Média: ${media}`);
+if (media &gt;= 7) {
+  console.log("Aprovada!");
+}
+</pre>
+<pre class="solucao" data-file="main.js">function calcularMedia(n1, n2, n3) {
+  return (n1 + n2 + n3) / 3;
+}
+
+const media = calcularMedia(7, 8, 9);
+console.log(`Média: ${media}`);
+if (media &gt;= 7) {
+  console.log("Aprovada!");
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Média: 8</code> e <code>Aprovada!</code>. Sem os parênteses, <code>n1 + n2 + n3 / 3</code> daria 18 (só o 9 seria dividido; veja <a href="precedencia.html">Precedência</a>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>return valor;</code> encerra a função e devolve o valor; a chamada "vira" esse valor.</li>
+  <li><code>console.log</code> <strong>mostra</strong> para a pessoa; <code>return</code> <strong>devolve</strong> para o programa. Funções que calculam devem devolver.</li>
+  <li>O valor devolvido pode ir para uma variável, uma conta, um <code>if</code> ou outra função.</li>
+  <li>O primeiro <code>return</code> alcançado encerra tudo, inclusive laços: dá para ter vários, um por caso.</li>
+  <li>Sem <code>return</code> (ou com <code>return;</code>), a função devolve <code>undefined</code>, e contas com ele dão <code>NaN</code>.</li>
+  <li>Nunca deixe o <code>return</code> sozinho na linha: o valor tem de começar na mesma linha.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
