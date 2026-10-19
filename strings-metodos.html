@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Métodos de String — maiúsculas, trim, padStart e repeat | Guia JavaScript</title>
+<meta name="description" content="Os primeiros métodos de string do JavaScript para quem nunca programou: o que é um método, toUpperCase e toLowerCase, trim (tirar espaços), padStart e padEnd (completar com zeros ou pontinhos), repeat, encadear métodos, por que o texto original não muda, e os erros reais do Node.js 24 (esqueceu os parênteses, toUppercase is not a function, método em número, Cannot read properties of undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Uma string não é só um texto parado: ela vem com uma caixa de ferramentas. Quer o nome todo em maiúsculas? <code>nome.toUpperCase()</code>. Quer tirar os espaços que a pessoa digitou sem querer? <code>email.trim()</code>. Cada ferramenta dessas se chama <strong>método</strong>. Nesta aula você aprende o que é um método e conhece os mais usados para <strong>arrumar</strong> um texto: maiúsculas e minúsculas, espaços, preenchimento e repetição.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <strong>método</strong> e como se chama um: <code>texto.metodo()</code>.</li>
+  <li><code>toUpperCase()</code> e <code>toLowerCase()</code>: tudo em maiúsculas ou minúsculas.</li>
+  <li><code>trim()</code>, <code>trimStart()</code> e <code>trimEnd()</code>: tirar espaços das pontas.</li>
+  <li><code>padStart()</code> e <code>padEnd()</code>: completar até um tamanho (o pedido <code>00042</code>, a lista de preços com pontinhos).</li>
+  <li><code>repeat()</code>: repetir um texto.</li>
+  <li>Como <strong>encadear</strong> métodos, e por que o texto original nunca muda.</li>
+  <li>Os erros reais: esquecer os parênteses, errar maiúscula no nome do método, chamar um método de texto num número ou em <code>undefined</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o canivete suíço</h2>
+<p>Um canivete suíço é um objeto só, mas guarda várias ferramentas: a faca, a tesoura, o abridor. Para usar uma, você pega o canivete <strong>e</strong> escolhe a ferramenta.</p>
+<p>Toda string do JavaScript é um canivete. As ferramentas são os métodos, e a escrita é sempre a mesma:</p>
+
+<pre class="file" data-file="anatomia.js">texto.toUpperCase()
+</pre>
+
+<dl class="anatomy">
+  <dt>texto</dt><dd>O canivete: a string (ou a variável que guarda a string) em que você vai usar a ferramenta.</dd>
+  <dt>.</dt><dd>O ponto quer dizer "dele": "o <code>toUpperCase</code> <strong>do</strong> <code>texto</code>".</dd>
+  <dt>toUpperCase</dt><dd>O nome do método, a ferramenta. Os nomes estão em inglês e em <code>camelCase</code>: <em>to upper case</em>, "para caixa alta" (maiúsculas). Cada maiúscula do nome importa.</dd>
+  <dt>( )</dt><dd>Os parênteses mandam <strong>usar</strong> a ferramenta. Alguns métodos precisam de informações aqui dentro (como <code>padStart(5, "0")</code>); outros não precisam de nada, mas os parênteses continuam obrigatórios.</dd>
+</dl>
+
+<p>Você já conhece uma "irmã" disso: o <code>.length</code> da aula <a href="strings.html">Strings</a>. Ele também vem depois do ponto, mas <strong>não tem parênteses</strong>, porque não é uma ferramenta que faz algo: é uma informação que a string já tem (uma <strong>propriedade</strong>). Regra prática: propriedade é um dado (<code>.length</code>); método é uma ação, e leva <code>()</code>.</p>
+
+<hr>
+
+<h2>1. Maiúsculas e minúsculas</h2>
+
+<pre class="file" data-file="caixa.js">const nome = "Ana Souza";
+
+console.log(nome.toUpperCase());
+console.log(nome.toLowerCase());
+console.log("pão de açúcar".toUpperCase());
+console.log(nome);
+</pre>
+
+<pre class="term">$ node caixa.js
+ANA SOUZA
+ana souza
+PÃO DE AÇÚCAR
+Ana Souza
+</pre>
+
+<dl class="anatomy">
+  <dt>toUpperCase()</dt><dd>Devolve uma cópia do texto com todas as letras em <strong>maiúsculas</strong>. Acentos e cedilha são respeitados (<code>ã</code> → <code>Ã</code>, <code>ç</code> → <code>Ç</code>).</dd>
+  <dt>toLowerCase()</dt><dd>Devolve uma cópia em <strong>minúsculas</strong> (<em>lower case</em>, "caixa baixa").</dd>
+  <dt>console.log(nome)</dt><dd>A última linha mostra que <code>nome</code> continua <code>Ana Souza</code>. Os métodos <strong>não mudam</strong> a string original (ela é imutável, como você viu em <a href="strings.html">Strings</a>): eles <strong>devolvem um texto novo</strong>.</dd>
+</dl>
+
+<h3>Para que serve: comparar sem ligar para maiúsculas</h3>
+<p>A Ana pergunta "Quer sacola? (sim/não)" e a pessoa pode digitar <code>Sim</code>, <code>SIM</code> ou <code>sim</code>. Com <code>===</code>, maiúscula e minúscula são diferentes. O truque é passar a resposta para minúsculas antes de comparar:</p>
+
+<pre class="file" data-file="resposta.js">const resposta = "SIM";
+
+console.log(resposta === "sim");
+console.log(resposta.toLowerCase() === "sim");
+</pre>
+
+<pre class="term">$ node resposta.js
+false
+true
+</pre>
+
+<hr>
+
+<h2>2. Tirando espaços das pontas: <code>trim()</code></h2>
+<p>Quem digita num formulário às vezes deixa um espaço antes ou depois sem perceber. Para o computador, <code>" ana@email.com"</code> e <code>"ana@email.com"</code> são textos diferentes. O <code>trim()</code> (em inglês, "aparar") corta os espaços das <strong>pontas</strong>:</p>
+
+<pre class="file" data-file="aparar.js">const digitado = "   ana@email.com  ";
+
+console.log(`[${digitado}]`);
+console.log(`[${digitado.trim()}]`);
+console.log(`[${digitado.trimStart()}]`);
+console.log(`[${digitado.trimEnd()}]`);
+console.log(digitado.length, digitado.trim().length);
+console.log(`[${"  pão   de   queijo  ".trim()}]`);
+</pre>
+
+<pre class="term">$ node aparar.js
+[   ana@email.com  ]
+[ana@email.com]
+[ana@email.com  ]
+[   ana@email.com]
+18 13
+[pão   de   queijo]
+</pre>
+
+<p>Os colchetes <code>[ ]</code> do exemplo estão ali só para você <strong>ver</strong> onde o texto começa e termina; espaço no fim de uma linha é invisível na tela.</p>
+<ul>
+  <li><code>trim()</code> corta das duas pontas; <code>trimStart()</code>, só do começo (<em>start</em>); <code>trimEnd()</code>, só do fim (<em>end</em>).</li>
+  <li>Os espaços do <strong>meio</strong> ficam: <code>pão   de   queijo</code> continuou com os espaços repetidos. Para mexer no meio, existe o <code>replaceAll</code> (aula <a href="strings-substituir.html">Substituindo</a>).</li>
+  <li>Além do espaço, o <code>trim()</code> também corta tabulações (<code>\t</code>) e quebras de linha (<code>\n</code>) das pontas (veja <a href="strings-escape.html">Caracteres Especiais</a>). Isso é útil com o que vem do teclado.</li>
+</ul>
+
+<div class="tryjs" data-goal="out:E-mail: ana.souza@email.com;;src:trim\(\)">
+<p class="try-task"><strong>Missão:</strong> a Ana digitou o e-mail com espaços e letras maiúsculas. Arrume o texto com <code>trim()</code> e <code>toLowerCase()</code> para aparecer <code>E-mail: ana.souza@email.com</code>.</p>
+<pre class="script" data-file="main.js">const digitado = "  Ana.Souza@Email.com ";
+const email = digitado;
+console.log(`E-mail: ${email}`);
+</pre>
+<pre class="solucao" data-file="main.js">const digitado = "  Ana.Souza@Email.com ";
+const email = digitado.trim().toLowerCase();
+console.log(`E-mail: ${email}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Completando até um tamanho: <code>padStart()</code> e <code>padEnd()</code></h2>
+<p>A padaria numera as encomendas com 5 dígitos: <code>00042</code>, <code>00117</code>. O <code>padStart</code> (em inglês, <em>pad</em> é "enchimento", e <em>start</em>, "começo") completa um texto <strong>pela esquerda</strong> até ele ter o tamanho pedido:</p>
+
+<pre class="file" data-file="preencher.js">const pedido = "42";
+
+console.log(pedido.padStart(5, "0"));
+console.log("117".padStart(5, "0"));
+console.log("123456".padStart(5, "0"));
+console.log("7".padStart(3));
+console.log(`[${"7".padStart(3)}]`);
+</pre>
+
+<pre class="term">$ node preencher.js
+00042
+00117
+123456
+  7
+[  7]
+</pre>
+
+<dl class="anatomy">
+  <dt>padStart(5, "0")</dt><dd>Dois valores entre os parênteses, separados por vírgula (os <strong>argumentos</strong>): o tamanho final (5) e o texto de enchimento (<code>"0"</code>). <code>"42"</code> tem 2 caracteres; faltam 3, então entram três zeros na frente.</dd>
+  <dt>"123456".padStart(5, "0")</dt><dd>Se o texto já tem o tamanho (ou mais), ele volta como está. O <code>padStart</code> nunca corta.</dd>
+  <dt>"7".padStart(3)</dt><dd>Sem o segundo argumento, o enchimento é o <strong>espaço</strong>. Bom para alinhar números à direita numa coluna.</dd>
+</dl>
+
+<p>O <code>padEnd</code> faz o mesmo <strong>pela direita</strong>. Com ele a Ana monta a tabela de preços da vitrine, com pontinhos entre o produto e o preço:</p>
+
+<pre class="file" data-file="vitrine.js">console.log("Pão francês".padEnd(20, ".") + "R$ 0.75");
+console.log("Bolo de fubá".padEnd(20, ".") + "R$ 25");
+console.log("Café".padEnd(20, ".") + "R$ 6");
+</pre>
+
+<pre class="term">$ node vitrine.js
+Pão francês.........R$ 0.75
+Bolo de fubá........R$ 25
+Café................R$ 6
+</pre>
+
+<p>Todos os nomes foram completados até 20 caracteres, então os preços começam na mesma coluna. É um jeito mais firme de alinhar do que o <code>\t</code> da aula <a href="strings-escape.html">Caracteres Especiais</a>, que desalinha com nomes compridos.</p>
+
+<hr>
+
+<h2>4. Repetindo: <code>repeat()</code></h2>
+
+<pre class="file" data-file="repetir.js">console.log("=".repeat(20));
+console.log("ha".repeat(3));
+console.log("[" + "#".repeat(7) + "-".repeat(3) + "] 70%");
+console.log(`[${"ab".repeat(0)}]`);
+</pre>
+
+<pre class="term">$ node repetir.js
+====================
+hahaha
+[#######---] 70%
+[]
+</pre>
+
+<p><code>texto.repeat(n)</code> devolve o texto emendado <code>n</code> vezes. A terceira linha monta uma barra de progresso com dois <code>repeat</code>. Com <code>0</code>, sai a string vazia.</p>
+
+<hr>
+
+<h2>5. Encadeando métodos</h2>
+<p>Como cada método devolve uma string nova, dá para chamar outro método <strong>em cima do resultado</strong>, tudo na mesma linha. Isso se chama <strong>encadear</strong>:</p>
+
+<pre class="file" data-file="encadear.js">const digitado = "   bia lima ";
+const etiqueta = digitado.trim().toUpperCase().padEnd(12, "*");
+console.log(`[${etiqueta}]`);
+</pre>
+
+<pre class="term">$ node encadear.js
+[BIA LIMA****]
+</pre>
+
+<p>O JavaScript lê da esquerda para a direita, e cada passo trabalha no resultado do anterior:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Resultado</th></tr>
+<tr><td><code>digitado</code></td><td><code>"   bia lima "</code></td></tr>
+<tr><td><code>.trim()</code></td><td><code>"bia lima"</code></td></tr>
+<tr><td><code>.toUpperCase()</code></td><td><code>"BIA LIMA"</code></td></tr>
+<tr><td><code>.padEnd(12, "*")</code></td><td><code>"BIA LIMA****"</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Guardando o resultado</strong>
+<p>Como os métodos não mudam o original, para "ficar" com o texto arrumado você precisa <strong>guardar</strong> o resultado: numa variável nova (<code>const email = digitado.trim();</code>) ou na mesma, se ela for <code>let</code> (<code>nome = nome.trim();</code>).</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O número do pedido com zeros na frente pode ser montado de três jeitos:</p>
+
+<pre class="file" data-file="formas.js">const numero = 42;
+
+const jeito1 = String(numero).padStart(5, "0");
+const jeito2 = `${numero}`.padStart(5, "0");
+const jeito3 = "0".repeat(5 - String(numero).length) + numero;
+
+console.log(jeito1, jeito2, jeito3);
+</pre>
+
+<pre class="term">$ node formas.js
+00042 00042 00042
+</pre>
+
+<p>O <code>padStart</code> é método de <strong>texto</strong>, e <code>numero</code> é um número: por isso os dois primeiros jeitos transformam o número em texto antes, com <code>String(numero)</code> (veja <a href="conversao.html">Conversão</a>) ou com um template string. O terceiro calcula quantos zeros faltam e usa o <code>repeat</code>: funciona, mas é mais difícil de ler, e quebra se o número tiver mais de 5 dígitos (o <code>repeat</code> de um número negativo é erro).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Comparar respostas sem ligar para maiúsculas</td><td><code>resposta.toLowerCase() === "sim"</code></td></tr>
+<tr><td>Limpar o que a pessoa digitou</td><td><code>texto.trim()</code></td></tr>
+<tr><td>Zeros à esquerda, alinhar à direita</td><td><code>String(n).padStart(tamanho, "0")</code></td></tr>
+<tr><td>Pontinhos ou espaços depois de um nome (colunas)</td><td><code>texto.padEnd(tamanho, ".")</code></td></tr>
+<tr><td>Linhas de enfeite, barras de progresso</td><td><code>"=".repeat(n)</code></td></tr>
+<tr><td>Várias arrumações seguidas</td><td>Encadear: <code>texto.trim().toLowerCase()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="semparenteses.js">const nome = "Ana";
+console.log(nome.toUpperCase);
+console.log(nome.toUpperCase());
+</pre>
+<pre class="term">$ node semparenteses.js
+[Function: toUpperCase]
+ANA
+</pre>
+<p>Sem os parênteses, você não <strong>usou</strong> a ferramenta: só apontou para ela. O Node mostrou <code>[Function: toUpperCase]</code>, "a função <code>toUpperCase</code>" (um método é uma função que pertence a um valor; funções têm aula própria: <a href="funcoes.html">Funções</a>). Nenhuma mensagem de erro. <strong>Como consertar:</strong> <code>nome.toUpperCase()</code>, sempre com os parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>Errou uma maiúscula no nome do método</strong>
+<pre class="file" data-file="nomeerrado.js">const nome = "Ana";
+console.log(nome.toUppercase());
+</pre>
+<pre class="term">$ node nomeerrado.js
+/home/ana/nomeerrado.js:2
+console.log(nome.toUppercase());
+                 ^
+
+TypeError: nome.toUppercase is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/nomeerrado.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/nomeerrado.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>^</dt><dd>A setinha aponta o começo de <code>toUppercase</code>.</dd>
+  <dt>TypeError: nome.toUppercase is not a function</dt><dd>"Erro de tipo: <code>nome.toUppercase</code> não é uma função." O nome certo é <code>toUpperCase</code>, com <strong>C</strong> maiúsculo. Como a string não tem nada chamado <code>toUppercase</code>, o JavaScript achou <code>undefined</code> ali, e <code>undefined</code> não pode ser "usado" com <code>()</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/nomeerrado.js:2:18)</dt><dd>Onde estava o programa: linha 2, coluna 18. As linhas <code>at</code> seguintes são de dentro do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira as maiúsculas: <code>toUpperCase</code>, <code>toLowerCase</code>, <code>trimStart</code>, <code>padStart</code>, <code>padEnd</code>. No <a href="repl.html">modo interativo</a>, digite <code>"Ana".to</code> e aperte <kbd>Tab</kbd> duas vezes para ver os nomes certos.</p>
+</div>
+
+<div class="cenario">
+<strong>Método de texto num número</strong>
+<pre class="file" data-file="numero.js">const pedido = 42;
+console.log(pedido.padStart(5, "0"));
+</pre>
+<pre class="term">$ node numero.js
+/home/ana/numero.js:2
+console.log(pedido.padStart(5, "0"));
+                   ^
+
+TypeError: pedido.padStart is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/numero.js:2:20)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A mesma mensagem do erro anterior, por outro motivo: o nome está certo, mas <code>pedido</code> é um <strong>número</strong>, e números não têm <code>padStart</code> (é ferramenta só de texto). <strong>Como consertar:</strong> transforme em texto antes: <code>String(pedido).padStart(5, "0")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável não tinha texto nenhum</strong>
+<pre class="file" data-file="indefinido.js">let apelido;
+console.log(apelido.trim());
+</pre>
+<pre class="term">$ node indefinido.js
+/home/ana/indefinido.js:2
+console.log(apelido.trim());
+                    ^
+
+TypeError: Cannot read properties of undefined (reading 'trim')
+    at Object.&lt;anonymous&gt; (/home/ana/indefinido.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: não dá para ler propriedades de <code>undefined</code> (lendo <code>trim</code>)". A variável <code>apelido</code> foi criada sem valor, então vale <code>undefined</code>, que não é um texto e não tem ferramenta nenhuma. É um erro muito comum com dados que podem faltar. <strong>Como consertar:</strong> garanta que há um texto antes (<code>let apelido = "";</code>), ou proteja a chamada com <code>apelido?.trim()</code> (aula <a href="optional-chaining.html">?. e ??</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou o método e não guardou o resultado</strong>
+<pre class="file" data-file="naoguardou.js">let nome = "  ana  ";
+nome.trim();
+nome.toUpperCase();
+console.log(`[${nome}]`);
+</pre>
+<pre class="term">$ node naoguardou.js
+[  ana  ]
+</pre>
+<p>As duas linhas do meio fizeram o trabalho, e o resultado foi jogado fora. <strong>Como consertar:</strong> guarde: <code>nome = nome.trim().toUpperCase();</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>toUpperCase()</code></td><td>Cópia em maiúsculas</td><td><code>"pão".toUpperCase()</code> → <code>PÃO</code></td></tr>
+<tr><td><code>toLowerCase()</code></td><td>Cópia em minúsculas</td><td><code>"SIM".toLowerCase()</code> → <code>sim</code></td></tr>
+<tr><td><code>trim()</code></td><td>Sem espaços (e <code>\t</code>, <code>\n</code>) nas duas pontas</td><td><code>"  oi  ".trim()</code> → <code>oi</code></td></tr>
+<tr><td><code>trimStart()</code> / <code>trimEnd()</code></td><td>Sem espaços só no começo / só no fim</td><td><code>"  oi".trimStart()</code> → <code>oi</code></td></tr>
+<tr><td><code>padStart(n, enchimento)</code></td><td>Completa pela esquerda até <code>n</code> caracteres</td><td><code>"42".padStart(5, "0")</code> → <code>00042</code></td></tr>
+<tr><td><code>padEnd(n, enchimento)</code></td><td>Completa pela direita</td><td><code>"Café".padEnd(8, ".")</code> → <code>Café....</code></td></tr>
+<tr><td><code>repeat(n)</code></td><td>O texto repetido <code>n</code> vezes</td><td><code>"ha".repeat(3)</code> → <code>hahaha</code></td></tr>
+</table>
+</div>
+<p>A lista completa dos métodos de string fica na <a href="ref-string.html">Referência de String</a>. Os de busca, de pedaços e de troca têm aulas próprias: <a href="strings-buscar.html">Procurando</a>, <a href="strings-fatiar.html">Pedaços</a>, <a href="strings-split.html">Dividindo e Juntando</a> e <a href="strings-substituir.html">Substituindo</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>[Function: toUpperCase]</code> na tela</td><td>Faltaram os parênteses</td></tr>
+<tr><td><code>TypeError: … is not a function</code></td><td>Nome do método escrito errado (maiúsculas!) ou o valor é um número</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading '…')</code></td><td>A variável não tinha texto (<code>undefined</code>)</td></tr>
+<tr><td>O texto continua igual</td><td>O resultado do método não foi guardado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<div class="ex-code">console.log("Bia".toUpperCase()); → <input data-answer="BIA" aria-label="saída 1"><br>console.log("  Bia ".trim().length); → <input data-answer="3" aria-label="saída 2"><br>console.log("5".padStart(3, "0")); → <input data-answer="005" aria-label="saída 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o método</h3>
+<p>Complete para mostrar <code>----------</code> (dez tracinhos):</p>
+<div class="ex-code">console.log("-".<input data-answer="repeat" aria-label="nome do método">(10));</div>
+</div>
+
+<div class="exercise">
+<h3>3. Comparando</h3>
+<p>Complete para a comparação dar <code>true</code> mesmo que a pessoa digite <code>NÃO</code>:</p>
+<div class="ex-code">resposta.<input data-answer="toLowerCase()" aria-label="método"> === "não"</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Depois de <code>let s = "oi"; s.toUpperCase();</code>, quanto vale <code>s</code>?</p>
+<label><input type="radio" name="q4"> <code>"OI"</code></label>
+<label><input type="radio" name="q4"> <code>"oi"</code>: o método devolve um texto novo, que não foi guardado</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>const n = 7; n.padStart(3, "0")</code> dá <code>TypeError</code>?</p>
+<label><input type="radio" name="q5"> Porque faltam os parênteses</label>
+<label><input type="radio" name="q5"> Porque o certo é <code>padstart</code></label>
+<label><input type="radio" name="q5"> Porque <code>n</code> é um número, e <code>padStart</code> é método de texto</label>
+<label><input type="radio" name="q5"> Porque 7 tem só um dígito</label>
+</div>
+
+<h3>Missão final: a etiqueta da encomenda</h3>
+
+<div class="tryjs" data-goal="out:Pedido 00042 - BIA LIMA;;src:padStart">
+<p class="try-task"><strong>Missão:</strong> monte a etiqueta <code>Pedido 00042 - BIA LIMA</code>. O número tem de ganhar os zeros com <code>padStart</code> (lembre que ele é um número), e o nome, que veio com espaços e em minúsculas, tem de ser arrumado com métodos.</p>
+<pre class="script" data-file="main.js">const numero = 42;
+const cliente = "  bia lima ";
+
+const etiqueta = `Pedido ${numero} - ${cliente}`;
+console.log(etiqueta);
+</pre>
+<pre class="solucao" data-file="main.js">const numero = 42;
+const cliente = "  bia lima ";
+
+const etiqueta = `Pedido ${String(numero).padStart(5, "0")} - ${cliente.trim().toUpperCase()}`;
+console.log(etiqueta);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>método</strong> é uma ferramenta que o valor carrega: <code>texto.metodo()</code>, sempre com parênteses. Propriedades, como <code>.length</code>, não têm parênteses.</li>
+  <li><code>toUpperCase()</code>/<code>toLowerCase()</code> mudam a caixa das letras (bom para comparar respostas).</li>
+  <li><code>trim()</code> tira espaços das pontas (<code>trimStart</code>/<code>trimEnd</code>, de uma ponta só); os do meio ficam.</li>
+  <li><code>padStart(n, "0")</code> e <code>padEnd(n, ".")</code> completam até <code>n</code> caracteres; <code>repeat(n)</code> repete.</li>
+  <li>Os métodos <strong>devolvem um texto novo</strong> e não mudam o original: guarde o resultado. Dá para encadear: <code>texto.trim().toLowerCase()</code>.</li>
+  <li>Erros comuns: sem parênteses (<code>[Function: …]</code>), maiúscula errada ou método de texto num número (<code>is not a function</code>), variável <code>undefined</code> (<code>Cannot read properties of undefined</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
