@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Jogo da Velha na Página — tabuleiro num array, vencedor, placar e computador passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo no navegador: um jogo da velha numa página web com JavaScript. O tabuleiro é um array de 9 casas desenhado em botões com CSS grid, as jogadas alternam entre X e O, as 8 linhas vencedoras ficam numa lista, o empate é detectado com every, há placar, Novo jogo, destaque do trio vencedor e um adversário de computador com regras simples. Quatro versões, erros reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Jogo da Velha</span> na Página</h1>
+
+<p class="intro">O último projeto do guia é um clássico: o jogo da velha, para a Ana jogar com o sobrinho no computador ou contra o próprio computador. Ele parece simples, e é por isso que é tão bom para treinar: o tabuleiro vira um array, cada jogada muda o array, e a página é redesenhada a partir dele. A parte mais interessante é ensinar o programa a <strong>reconhecer uma vitória</strong> e, no fim, a <strong>jogar</strong>.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Representar o tabuleiro num <a href="arrays.html">array</a> de 9 casas e desenhá-lo com botões e CSS grid.</li>
+  <li>Alternar a vez com o <a href="ternario.html">operador ternário</a>.</li>
+  <li>Guardar as 8 linhas vencedoras num <a href="arrays-matriz.html">array de arrays</a> e percorrê-lo com <a href="for-of.html">for … of</a> e <a href="desestruturacao.html">desestruturação</a>.</li>
+  <li>Detectar o empate com <code>every</code> e a casa livre com <code>find</code> e <code>indexOf</code> (veja <a href="arrays-outros.html">some, every…</a>).</li>
+  <li>Manter um placar num <a href="objetos.html">objeto</a> e recomeçar a partida.</li>
+  <li>Escrever as regras de um adversário de computador.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>A página mostra de quem é a vez ("Vez de X"), o tabuleiro de 3 × 3 botões, uma caixinha "Jogar contra o computador", o botão Novo jogo e o placar. Quando alguém completa uma linha, as três casas ficam douradas e aparece "X venceu!" (ou "O venceu!"); se o tabuleiro enche sem vencedor, "Deu velha! (empate)". No Chromium do computador da Ana, numa partida contra o computador em que ela jogou mal de propósito (casas 1, 2 e 4), o computador ganhou pela diagonal, e o Console mostrou:</p>
+
+<pre class="devtools">&gt; casas.join(",")
+'X,X,O,X,O,,O,,'
+&gt; [...document.querySelectorAll("#tabuleiro button")].map((b) =&gt; b.className).join(",")
+',,vitoria,,vitoria,,vitoria,,'</pre>
+
+<p>O status dizia <strong>O venceu!</strong> e o placar, <strong>X: 0 · O: 1 · Empates: 0</strong>. Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">O tabuleiro e as jogadas</a> (array, botões, a vez).</li>
+  <li><a href="#versao2">Quem venceu?</a> (as 8 linhas, o empate).</li>
+  <li><a href="#versao3">Placar, Novo jogo e destaque</a> (objeto, <code>fill</code>, <code>classList</code>).</li>
+  <li><a href="#versao4">Contra o computador</a> (ganhar, bloquear, centro, canto).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Crie a pasta <code>velha</code> com o <code>index.html</code>, o <code>style.css</code> e o <code>script.js</code>, e abra o <code>index.html</code> no navegador (veja <a href="script-na-pagina.html">JavaScript na Página</a>). Nas caixas <strong>Experimente</strong>, jogue clicando nas casas do quadro <strong>Resultado</strong>. As casas são numeradas assim, e a numeração do JavaScript (a posição no array) começa do zero:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>casa 1 → posição 0</th><th>casa 2 → posição 1</th><th>casa 3 → posição 2</th></tr>
+<tr><td>casa 4 → posição 3</td><td>casa 5 → posição 4</td><td>casa 6 → posição 5</td></tr>
+<tr><td>casa 7 → posição 6</td><td>casa 8 → posição 7</td><td>casa 9 → posição 8</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · O tabuleiro e as jogadas</h2>
+<p>O tabuleiro de verdade é um quadrado 3 × 3, mas para o programa basta uma fila de 9 casas: a primeira linha do tabuleiro são as posições 0, 1 e 2; a segunda, 3, 4 e 5; a terceira, 6, 7 e 8. Cada casa guarda <code>""</code> (vazia), <code>"X"</code> ou <code>"O"</code>. Quem arruma as 9 casas em 3 × 3 na tela é o CSS.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+</pre>
+
+<pre class="file" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+// As 9 casas, da esquerda para a direita e de cima para baixo: "", "X" ou "O"
+const casas = Array(9).fill("");
+let vez = "X";
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elStatus.textContent = `Vez de ${vez}`;
+}
+
+function jogar(i) {
+  if (casas[i] !== "") {
+    return;  // casa ocupada
+  }
+  casas[i] = vez;
+  vez = vez === "X" ? "O" : "X";
+  desenhar();
+}
+
+desenhar();
+</pre>
+
+<dl class="anatomy">
+  <dt>display: grid; grid-template-columns: repeat(3, 80px);</dt><dd>No CSS: os botões dentro de <code>#tabuleiro</code> formam uma grade de 3 colunas de 80 px. O quarto botão desce para a segunda linha sozinho.</dd>
+  <dt>Array(9).fill("")</dt><dd>Um array de 9 posições, todas com <code>""</code>: o tabuleiro vazio.</dd>
+  <dt>let vez = "X";</dt><dd>De quem é a vez. O X sempre começa.</dd>
+  <dt>casas.forEach((marca, i) =&gt; { … })</dt><dd>Um botão por casa, com a marca como texto. Cada botão lembra da sua posição <code>i</code> (como no <a href="projeto-quiz-web.html">quiz</a>).</dd>
+  <dt>if (casas[i] !== "") { return; }</dt><dd>Casa ocupada: o clique não vale.</dd>
+  <dt>casas[i] = vez;</dt><dd>Marca a casa no array.</dd>
+  <dt>vez = vez === "X" ? "O" : "X";</dt><dd>"Se era X, agora é O; senão, X." Troca a vez.</dd>
+  <dt>desenhar();</dt><dd>Redesenha o tabuleiro e o status a partir do array, como na <a href="projeto-compras-web.html">lista de compras</a>.</dd>
+</dl>
+
+<p>A Ana clicou na casa 5 (X), na casa 1 (O) e de novo na casa 5, que já estava ocupada: nada aconteceu, e o status continuou <strong>Vez de X</strong>. No Console:</p>
+
+<pre class="devtools">&gt; casas
+(9) ['O', '', '', '', 'X', '', '', '', '']
+&gt; Array(3).fill("")
+(3) ['', '', '']</pre>
+
+<div class="tryweb" data-goal="texto:#tabuleiro button:nth-child(2)~O;;semerro" data-acoes="clicar #tabuleiro button:nth-child(1);;clicar #tabuleiro button:nth-child(2)">
+<p class="try-task"><strong>Missão (versão 1):</strong> todas as jogadas saem X: a vez não passa. Onde está o comentário, troque <code>vez</code> de <code>"X"</code> para <code>"O"</code> e vice-versa. Rode e clique nas casas 1 e 2: a segunda deve ganhar um O.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+// As 9 casas, da esquerda para a direita e de cima para baixo: "", "X" ou "O"
+const casas = Array(9).fill("");
+let vez = "X";
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elStatus.textContent = `Vez de ${vez}`;
+}
+
+function jogar(i) {
+  if (casas[i] !== "") {
+    return;  // casa ocupada
+  }
+  casas[i] = vez;
+  // passe a vez para o outro jogador
+  desenhar();
+}
+
+desenhar();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+// As 9 casas, da esquerda para a direita e de cima para baixo: "", "X" ou "O"
+const casas = Array(9).fill("");
+let vez = "X";
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elStatus.textContent = `Vez de ${vez}`;
+}
+
+function jogar(i) {
+  if (casas[i] !== "") {
+    return;  // casa ocupada
+  }
+  casas[i] = vez;
+  vez = vez === "X" ? "O" : "X";
+  desenhar();
+}
+
+desenhar();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Quem venceu?</h2>
+<p>Como saber se alguém ganhou? Há só <strong>8</strong> maneiras de completar três em linha: 3 linhas, 3 colunas e 2 diagonais. Em vez de escrever oito <code>if</code>, o programa guarda as oito como uma lista de trios de posições e confere cada trio: se as três casas têm a mesma marca, e ela não é vazia, alguém venceu.</p>
+
+<pre class="file" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+
+// As 8 maneiras de ganhar: as posições de cada trio
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve "X" ou "O" se alguém completou um trio; senão, null
+function vencedor() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return casas[a];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;  // jogo acabado ou casa ocupada
+  }
+  casas[i] = vez;
+
+  const ganhou = vencedor();
+  if (ganhou !== null) {
+    fim = true;
+    elStatus.textContent = `${ganhou} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+elStatus.textContent = `Vez de ${vez}`;
+desenhar();
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>const LINHAS = [ [0, 1, 2], … ];</code></td><td>Um array de arrays: cada item é um trio de posições. Em MAIÚSCULAS porque é um dado fixo do jogo.</td></tr>
+<tr><td><code>for (const [a, b, c] of LINHAS)</code></td><td>Para cada trio, já desestruturado em três variáveis: na primeira volta, <code>a = 0</code>, <code>b = 1</code>, <code>c = 2</code>.</td></tr>
+<tr><td><code>casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]</code></td><td>A primeira casa do trio não está vazia, e as outras duas são iguais a ela.</td></tr>
+<tr><td><code>return casas[a];</code> / <code>return null;</code></td><td>Devolve a marca do vencedor, ou <code>null</code> se ninguém venceu ainda.</td></tr>
+<tr><td><code>let fim = false;</code></td><td>Acabou o jogo? Com <code>fim</code> verdadeiro, os cliques não valem mais.</td></tr>
+<tr><td><code>casas.every((marca) =&gt; marca !== "")</code></td><td>"Todas as casas estão preenchidas?" Se sim, e ninguém venceu, deu velha.</td></tr>
+<tr><td><code>else { vez = …; }</code></td><td>A vez só troca se o jogo continua: quem venceu fica como <code>vez</code>.</td></tr>
+</table>
+</div>
+
+<p>A Ana jogou X nas casas 1, 2 e 3 (e O nas casas 4 e 5): o status mostrou <strong>X venceu!</strong>. Ela ainda clicou na casa 9, e nada aconteceu:</p>
+
+<pre class="devtools">&gt; casas
+(9) ['X', 'X', 'X', 'O', 'O', '', '', '', '']</pre>
+
+<p>Numa segunda partida, ninguém completou três em linha, e o tabuleiro encheu: <strong>Deu velha! (empate)</strong>.</p>
+
+<pre class="devtools">&gt; casas.join("")
+'XOXXOOOXX'</pre>
+
+<div class="cenario">
+<strong>Esquecer o <code>casas[a] !== ""</code>: " venceu!" na primeira jogada</strong>
+<p>Sem a primeira parte do teste (só <code>casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]</code>), a Ana clicou na casa 5, e o status mostrou <strong>" venceu!"</strong>, com um espaço no começo e ninguém na frente. No Console:</p>
+<pre class="devtools">&gt; vencedor()
+''</pre>
+<p>A primeira linha do tabuleiro, <code>[0, 1, 2]</code>, ainda vazia, tem três casas iguais: <code>"" === ""</code>. Para o programa, o "jogador vazio" completou a linha, e <code>vencedor()</code> devolveu <code>""</code>. Como <code>"" !== null</code> é verdadeiro, o jogo acabou ali. Três casas vazias são iguais, mas não são uma vitória.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#status~X venceu!;;semerro" data-acoes="clicar #tabuleiro button:nth-child(1);;clicar #tabuleiro button:nth-child(4);;clicar #tabuleiro button:nth-child(2);;clicar #tabuleiro button:nth-child(5);;clicar #tabuleiro button:nth-child(3)">
+<p class="try-task"><strong>Missão (versão 2):</strong> a função <code>vencedor</code> sempre diz <code>null</code>, e o jogo nunca acaba. Percorra <code>LINHAS</code> e devolva a marca do trio que tiver três marcas iguais (e não vazias). Rode e jogue X nas casas 1, 2 e 3 (O nas casas 4 e 5): deve aparecer <code>X venceu!</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+
+// As 8 maneiras de ganhar: as posições de cada trio
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve "X" ou "O" se alguém completou um trio; senão, null
+function vencedor() {
+  // procure em LINHAS um trio com a mesma marca (que não seja "")
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;  // jogo acabado ou casa ocupada
+  }
+  casas[i] = vez;
+
+  const ganhou = vencedor();
+  if (ganhou !== null) {
+    fim = true;
+    elStatus.textContent = `${ganhou} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+elStatus.textContent = `Vez de ${vez}`;
+desenhar();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+
+// As 8 maneiras de ganhar: as posições de cada trio
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve "X" ou "O" se alguém completou um trio; senão, null
+function vencedor() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return casas[a];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;  // jogo acabado ou casa ocupada
+  }
+  casas[i] = vez;
+
+  const ganhou = vencedor();
+  if (ganhou !== null) {
+    fim = true;
+    elStatus.textContent = `${ganhou} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+elStatus.textContent = `Vez de ${vez}`;
+desenhar();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Placar, Novo jogo e destaque</h2>
+<p>Três melhorias de uma vez, todas pequenas: um botão para recomeçar sem recarregar a página, um placar que soma as partidas, e o trio vencedor pintado de dourado. Para pintar, o programa precisa saber <strong>quais</strong> casas venceram, então a função passa a devolver o trio (por exemplo, <code>[0, 1, 2]</code>) em vez da marca. No HTML, depois do tabuleiro:</p>
+
+<pre class="file" data-file="index.html">  &lt;p&gt;&lt;button id="novo"&gt;Novo jogo&lt;/button&gt;&lt;/p&gt;
+  &lt;p id="placar"&gt;&lt;/p&gt;
+</pre>
+
+<p>No CSS, a classe das casas vencedoras:</p>
+
+<pre class="file" data-file="style.css">#tabuleiro button.vitoria {
+  background: gold;
+}
+</pre>
+
+<p>E o <code>script.js</code> completo:</p>
+
+<pre class="file" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+
+<dl class="anatomy">
+  <dt>const placar = { X: 0, O: 0, empates: 0 };</dt><dd>Um objeto com uma contagem para cada resultado. As chaves <code>X</code> e <code>O</code> são as mesmas marcas do jogo, de propósito: veja a linha abaixo.</dd>
+  <dt>placar[vez]++;</dt><dd>Com <code>vez</code> valendo <code>"X"</code>, é o mesmo que <code>placar.X++</code>. Os colchetes usam o <strong>valor</strong> da variável como nome da chave (veja <a href="objetos-propriedades.html">Propriedades</a>).</dd>
+  <dt>trioVencedor.includes(i)</dt><dd>No <code>desenhar</code>: se a posição do botão está no trio, ele ganha a classe <code>vitoria</code>.</dd>
+  <dt>casas.fill("");</dt><dd>Esvazia as 9 casas do mesmo array (por isso <code>casas</code> pode ser <code>const</code>).</dd>
+  <dt>botaoNovo.addEventListener("click", novoJogo);</dt><dd>Entrega a função <code>novoJogo</code>, sem parênteses: ela roda no clique.</dd>
+  <dt>novoJogo();</dt><dd>No fim do arquivo: começar a primeira partida é o mesmo que um Novo jogo.</dd>
+</dl>
+
+<p>A Ana ganhou com X na primeira linha e conferiu as classes no Console:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#tabuleiro button")].map((b) =&gt; b.className).join(",")
+'vitoria,vitoria,vitoria,,,,,,'</pre>
+
+<p>O placar mostrava <strong>X: 1 · O: 0 · Empates: 0</strong>. Ela clicou em Novo jogo (o status voltou a <strong>Vez de X</strong>), jogou uma partida que deu velha, e o placar foi para <strong>X: 1 · O: 0 · Empates: 1</strong>:</p>
+
+<pre class="devtools">&gt; placar
+{X: 1, O: 0, empates: 1}
+&gt; placar["X"]
+1</pre>
+
+<div class="tryweb" data-goal="texto:#status~Vez de X;;texto:#placar~X: 1;;semerro" data-acoes="clicar #tabuleiro button:nth-child(1);;clicar #tabuleiro button:nth-child(4);;clicar #tabuleiro button:nth-child(2);;clicar #tabuleiro button:nth-child(5);;clicar #tabuleiro button:nth-child(3);;clicar #novo">
+<p class="try-task"><strong>Missão (versão 3):</strong> a função <code>novoJogo</code> está pronta, mas o botão Novo jogo não a chama. Onde está o comentário, ligue o clique do botão à função. Rode, ganhe com X (casas 1, 2 e 3) e clique em Novo jogo: o status deve voltar a <code>Vez de X</code>, com o placar <code>X: 1</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;p&gt;&lt;button id="novo"&gt;Novo jogo&lt;/button&gt;&lt;/p&gt;
+  &lt;p id="placar"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+// faça o botão Novo jogo recomeçar a partida
+
+novoJogo();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+
+#tabuleiro button.vitoria {
+  background: gold;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; jogar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Contra o computador</h2>
+<p>Para jogar sozinha, a Ana quer um adversário. Um computador que joga bem não precisa de nada mágico: basta seguir, em ordem, as regras que uma pessoa experiente segue. <strong>1.</strong> Se dá para ganhar agora, ganhe. <strong>2.</strong> Se o outro vai ganhar na próxima, bloqueie. <strong>3.</strong> Pegue o centro. <strong>4.</strong> Pegue um canto. <strong>5.</strong> Pegue o que sobrar. No HTML, a caixinha, antes do Novo jogo:</p>
+
+<pre class="file" data-file="index.html">  &lt;p&gt;&lt;label&gt;&lt;input type="checkbox" id="contra"&gt; Jogar contra o computador (ele é o O)&lt;/label&gt;&lt;/p&gt;
+</pre>
+
+<p>No <code>script.js</code>, uma constante nova (<code>const caixaContra = document.querySelector("#contra");</code>), os botões passam a chamar <code>clicar(i)</code> em vez de <code>jogar(i)</code>, e entram duas funções:</p>
+
+<pre class="file" data-file="script.js">// A jogada do computador: ganhar, senão bloquear, senão o centro, senão um canto, senão o que sobrar
+function escolherJogada() {
+  for (const marca of ["O", "X"]) {
+    for (const trio of LINHAS) {
+      const marcas = trio.filter((i) =&gt; casas[i] === marca);
+      const vazias = trio.filter((i) =&gt; casas[i] === "");
+      if (marcas.length === 2 &amp;&amp; vazias.length === 1) {
+        return vazias[0];
+      }
+    }
+  }
+  if (casas[4] === "") {
+    return 4;
+  }
+  const cantoLivre = [0, 2, 6, 8].find((i) =&gt; casas[i] === "");
+  if (cantoLivre !== undefined) {
+    return cantoLivre;
+  }
+  return casas.indexOf("");
+}
+
+// O clique da pessoa; contra o computador, ele responde na hora
+function clicar(i) {
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    return;  // é a vez do computador
+  }
+  jogar(i);
+  if (caixaContra.checked &amp;&amp; !fim &amp;&amp; vez === "O") {
+    jogar(escolherJogada());
+  }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>for (const marca of ["O", "X"])</code></td><td>Primeiro procura com <code>"O"</code> (as próprias marcas: regra 1, ganhar); depois com <code>"X"</code> (as do adversário: regra 2, bloquear). A ordem importa: ganhar vale mais que bloquear.</td></tr>
+<tr><td><code>trio.filter((i) =&gt; casas[i] === marca)</code></td><td>As posições do trio que já têm a marca.</td></tr>
+<tr><td><code>marcas.length === 2 &amp;&amp; vazias.length === 1</code></td><td>Duas marcas iguais e uma casa vazia: falta uma para fechar o trio. A casa vazia é a jogada.</td></tr>
+<tr><td><code>[0, 2, 6, 8].find(…)</code></td><td>O primeiro canto livre, ou <code>undefined</code> se não houver (veja <a href="arrays-buscar.html">find</a>).</td></tr>
+<tr><td><code>casas.indexOf("")</code></td><td>A primeira casa vazia que sobrou.</td></tr>
+<tr><td><code>caixaContra.checked</code></td><td><code>true</code> se a caixinha está marcada.</td></tr>
+<tr><td><code>jogar(escolherJogada());</code></td><td>Logo depois da jogada da pessoa, se o jogo continua e é a vez do O, o computador joga. É a <strong>mesma</strong> função <code>jogar</code>: as regras de vitória, empate e placar valem para os dois.</td></tr>
+</table>
+</div>
+
+<p>Com a caixinha marcada, a Ana jogou na casa 1, e o computador respondeu no centro. Ela jogou na casa 2, ameaçando fechar a primeira linha, e o computador bloqueou na casa 3:</p>
+
+<pre class="devtools">&gt; casas.join(",")
+'X,X,O,,O,,,,'</pre>
+
+<p>Aí ela jogou na casa 4, e o computador, que tinha O nas posições 2 e 4, fechou a diagonal na casa 7 (posição 6): é a partida do começo da página, com <strong>O venceu!</strong>.</p>
+
+<div class="note">
+<strong>Ele é imbatível?</strong>
+<p>Quase. Com essas cinco regras, o computador nunca perde uma jogada óbvia, mas uma pessoa esperta consegue armar uma "dupla ameaça" (duas linhas para fechar ao mesmo tempo), e ele só bloqueia uma. Um computador perfeito no jogo da velha existe e usa um algoritmo chamado <em>minimax</em>, que testa todas as continuações possíveis com <a href="recursao.html">recursão</a>: é um ótimo próximo passo para quem terminar o guia.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#tabuleiro button:nth-child(5)~O;;semerro" data-acoes="clicar #contra;;clicar #tabuleiro button:nth-child(1)">
+<p class="try-task"><strong>Missão (versão 4):</strong> a função <code>escolherJogada</code> está pronta, mas ninguém a chama: marcando a caixinha, o computador não joga. No <code>clicar</code>, depois do <code>jogar(i)</code>, faça o computador jogar quando a caixinha estiver marcada, o jogo não tiver acabado e a vez for do O. Rode, marque a caixinha e jogue na casa 1: o computador deve pegar o centro.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;p&gt;&lt;label&gt;&lt;input type="checkbox" id="contra"&gt; Jogar contra o computador (ele é o O)&lt;/label&gt;&lt;/p&gt;
+  &lt;p&gt;&lt;button id="novo"&gt;Novo jogo&lt;/button&gt;&lt;/p&gt;
+  &lt;p id="placar"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+const caixaContra = document.querySelector("#contra");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; clicar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+// A jogada do computador: ganhar, senão bloquear, senão o centro, senão um canto, senão o que sobrar
+function escolherJogada() {
+  for (const marca of ["O", "X"]) {
+    for (const trio of LINHAS) {
+      const marcas = trio.filter((i) =&gt; casas[i] === marca);
+      const vazias = trio.filter((i) =&gt; casas[i] === "");
+      if (marcas.length === 2 &amp;&amp; vazias.length === 1) {
+        return vazias[0];
+      }
+    }
+  }
+  if (casas[4] === "") {
+    return 4;
+  }
+  const cantoLivre = [0, 2, 6, 8].find((i) =&gt; casas[i] === "");
+  if (cantoLivre !== undefined) {
+    return cantoLivre;
+  }
+  return casas.indexOf("");
+}
+
+// O clique da pessoa; contra o computador, ele responde na hora
+function clicar(i) {
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    return;  // é a vez do computador
+  }
+  jogar(i);
+  // contra o computador, se o jogo não acabou e a vez é do O, faça o computador jogar
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+
+#tabuleiro button.vitoria {
+  background: gold;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+const caixaContra = document.querySelector("#contra");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; clicar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+// A jogada do computador: ganhar, senão bloquear, senão o centro, senão um canto, senão o que sobrar
+function escolherJogada() {
+  for (const marca of ["O", "X"]) {
+    for (const trio of LINHAS) {
+      const marcas = trio.filter((i) =&gt; casas[i] === marca);
+      const vazias = trio.filter((i) =&gt; casas[i] === "");
+      if (marcas.length === 2 &amp;&amp; vazias.length === 1) {
+        return vazias[0];
+      }
+    }
+  }
+  if (casas[4] === "") {
+    return 4;
+  }
+  const cantoLivre = [0, 2, 6, 8].find((i) =&gt; casas[i] === "");
+  if (cantoLivre !== undefined) {
+    return cantoLivre;
+  }
+  return casas.indexOf("");
+}
+
+// O clique da pessoa; contra o computador, ele responde na hora
+function clicar(i) {
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    return;  // é a vez do computador
+  }
+  jogar(i);
+  if (caixaContra.checked &amp;&amp; !fim &amp;&amp; vez === "O") {
+    jogar(escolherJogada());
+  }
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escolha</th><th>Opções</th><th>Qual usar</th></tr>
+<tr><td>O tabuleiro</td><td>um array de 9 × uma matriz 3 × 3 (<code>[[…], […], […]]</code>, veja <a href="arrays-matriz.html">Matrizes</a>)</td><td>A matriz parece mais com o desenho, mas obriga a usar dois índices (<code>casas[linha][coluna]</code>) em tudo. Com 9 casas numa fila, cada casa tem um número só, e as linhas vencedoras viram trios simples.</td></tr>
+<tr><td>Achar o vencedor</td><td>a lista de 8 trios × oito <code>if</code> escritos à mão</td><td>A lista: menos código, nenhuma linha esquecida, e o mesmo <code>LINHAS</code> serve para o computador escolher a jogada.</td></tr>
+<tr><td>Os botões</td><td>criados pelo JavaScript a cada jogada × 9 botões fixos no HTML, só trocando o texto</td><td>Os dois funcionam. Redesenhar tudo é o mesmo padrão dos outros projetos; botões fixos evitam recriar os ouvintes de clique.</td></tr>
+<tr><td>A vez</td><td><code>vez === "X" ? "O" : "X"</code> × um contador de jogadas (<code>jogadas % 2 === 0 ? "X" : "O"</code>)</td><td>O ternário é o mais direto. O contador também serve para saber quantas jogadas foram feitas.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Desafio extra: alternar quem começa</h2>
+<p>Com o X sempre começando, ele leva vantagem. A Ana quer que cada Novo jogo troque quem começa: X na primeira partida, O na segunda, X na terceira… A dica: um contador <code>let partidas = 0;</code>; no <code>novoJogo</code>, <code>vez = partidas % 2 === 0 ? "X" : "O";</code> e <code>partidas++;</code>. Contra o computador, se a partida nova começar com o O, ele precisa jogar logo depois do <code>desenhar()</code>. Com o desafio pronto, a Ana leu o status ao abrir, depois de uma vitória e um Novo jogo, e depois de mais um Novo jogo: <strong>Vez de X</strong>, <strong>Vez de O</strong>, <strong>Vez de X</strong>. Marcando a caixinha e clicando em Novo jogo outra vez (a vez do O), o computador abriu pelo centro:</p>
+
+<pre class="devtools">&gt; casas.join(",")
+',,,,O,,,,'</pre>
+
+<div class="tryweb" data-goal="texto:#status~Vez de O;;semerro" data-acoes="clicar #tabuleiro button:nth-child(1);;clicar #tabuleiro button:nth-child(4);;clicar #tabuleiro button:nth-child(2);;clicar #tabuleiro button:nth-child(5);;clicar #tabuleiro button:nth-child(3);;clicar #novo">
+<p class="try-task"><strong>Desafio no editor:</strong> faça o Novo jogo alternar quem começa. Rode, ganhe com X (casas 1, 2 e 3) e clique em Novo jogo: o status deve mostrar <code>Vez de O</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Jogo da Velha&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Jogo da Velha&lt;/h1&gt;
+  &lt;p id="status"&gt;&lt;/p&gt;
+  &lt;div id="tabuleiro"&gt;&lt;/div&gt;
+  &lt;p&gt;&lt;label&gt;&lt;input type="checkbox" id="contra"&gt; Jogar contra o computador (ele é o O)&lt;/label&gt;&lt;/p&gt;
+  &lt;p&gt;&lt;button id="novo"&gt;Novo jogo&lt;/button&gt;&lt;/p&gt;
+  &lt;p id="placar"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+const caixaContra = document.querySelector("#contra");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; clicar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+// A jogada do computador: ganhar, senão bloquear, senão o centro, senão um canto, senão o que sobrar
+function escolherJogada() {
+  for (const marca of ["O", "X"]) {
+    for (const trio of LINHAS) {
+      const marcas = trio.filter((i) =&gt; casas[i] === marca);
+      const vazias = trio.filter((i) =&gt; casas[i] === "");
+      if (marcas.length === 2 &amp;&amp; vazias.length === 1) {
+        return vazias[0];
+      }
+    }
+  }
+  if (casas[4] === "") {
+    return 4;
+  }
+  const cantoLivre = [0, 2, 6, 8].find((i) =&gt; casas[i] === "");
+  if (cantoLivre !== undefined) {
+    return cantoLivre;
+  }
+  return casas.indexOf("");
+}
+
+// O clique da pessoa; contra o computador, ele responde na hora
+function clicar(i) {
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    return;  // é a vez do computador
+  }
+  jogar(i);
+  if (caixaContra.checked &amp;&amp; !fim &amp;&amp; vez === "O") {
+    jogar(escolherJogada());
+  }
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = "X";
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#tabuleiro {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  justify-content: center;
+}
+
+#tabuleiro button {
+  height: 80px;
+  font-size: 2.5em;
+}
+
+#tabuleiro button.vitoria {
+  background: gold;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const tabuleiro = document.querySelector("#tabuleiro");
+const elStatus = document.querySelector("#status");
+const elPlacar = document.querySelector("#placar");
+const botaoNovo = document.querySelector("#novo");
+const caixaContra = document.querySelector("#contra");
+
+const casas = Array(9).fill("");
+let vez = "X";
+let fim = false;
+let trioVencedor = null;  // as 3 posições que ganharam, para pintar
+const placar = { X: 0, O: 0, empates: 0 };
+let partidas = 0;         // quantas partidas já começaram
+
+const LINHAS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],  // linhas
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],  // colunas
+  [0, 4, 8], [2, 4, 6],             // diagonais
+];
+
+// Devolve o trio que alguém completou (ex.: [0, 1, 2]); senão, null
+function procurarTrio() {
+  for (const [a, b, c] of LINHAS) {
+    if (casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]) {
+      return [a, b, c];
+    }
+  }
+  return null;
+}
+
+function desenhar() {
+  tabuleiro.replaceChildren();
+  casas.forEach((marca, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = marca;
+    if (trioVencedor !== null &amp;&amp; trioVencedor.includes(i)) {
+      botao.classList.add("vitoria");
+    }
+    botao.addEventListener("click", () =&gt; clicar(i));
+    tabuleiro.append(botao);
+  });
+  elPlacar.textContent = `X: ${placar.X} · O: ${placar.O} · Empates: ${placar.empates}`;
+}
+
+function jogar(i) {
+  if (fim || casas[i] !== "") {
+    return;
+  }
+  casas[i] = vez;
+
+  trioVencedor = procurarTrio();
+  if (trioVencedor !== null) {
+    fim = true;
+    placar[vez]++;
+    elStatus.textContent = `${vez} venceu!`;
+  } else if (casas.every((marca) =&gt; marca !== "")) {
+    fim = true;
+    placar.empates++;
+    elStatus.textContent = "Deu velha! (empate)";
+  } else {
+    vez = vez === "X" ? "O" : "X";
+    elStatus.textContent = `Vez de ${vez}`;
+  }
+  desenhar();
+}
+
+// A jogada do computador: ganhar, senão bloquear, senão o centro, senão um canto, senão o que sobrar
+function escolherJogada() {
+  for (const marca of ["O", "X"]) {
+    for (const trio of LINHAS) {
+      const marcas = trio.filter((i) =&gt; casas[i] === marca);
+      const vazias = trio.filter((i) =&gt; casas[i] === "");
+      if (marcas.length === 2 &amp;&amp; vazias.length === 1) {
+        return vazias[0];
+      }
+    }
+  }
+  if (casas[4] === "") {
+    return 4;
+  }
+  const cantoLivre = [0, 2, 6, 8].find((i) =&gt; casas[i] === "");
+  if (cantoLivre !== undefined) {
+    return cantoLivre;
+  }
+  return casas.indexOf("");
+}
+
+// O clique da pessoa; contra o computador, ele responde na hora
+function clicar(i) {
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    return;  // é a vez do computador
+  }
+  jogar(i);
+  if (caixaContra.checked &amp;&amp; !fim &amp;&amp; vez === "O") {
+    jogar(escolherJogada());
+  }
+}
+
+function novoJogo() {
+  casas.fill("");
+  vez = partidas % 2 === 0 ? "X" : "O";  // alterna quem começa
+  partidas++;
+  fim = false;
+  trioVencedor = null;
+  elStatus.textContent = `Vez de ${vez}`;
+  desenhar();
+  if (caixaContra.checked &amp;&amp; vez === "O") {
+    jogar(escolherJogada());
+  }
+}
+
+botaoNovo.addEventListener("click", novoJogo);
+
+novoJogo();
+</pre>
+</div>
+
+<p>Outras ideias: guardar o placar no <a href="localstorage.html">localStorage</a>; deixar o computador "pensar" meio segundo antes de jogar, com <a href="timers.html">setTimeout</a>; jogar com o teclado (as teclas 1 a 9).</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>Array(9).fill("")</code></td><td>O tabuleiro vazio</td></tr>
+<tr><td><code>display: grid; grid-template-columns: repeat(3, 80px);</code></td><td>Arrumar 9 botões em 3 × 3</td></tr>
+<tr><td><code>vez = vez === "X" ? "O" : "X";</code></td><td>Passar a vez</td></tr>
+<tr><td><code>const LINHAS = [[0, 1, 2], …];</code></td><td>As 8 maneiras de ganhar</td></tr>
+<tr><td><code>for (const [a, b, c] of LINHAS)</code></td><td>Conferir cada trio</td></tr>
+<tr><td><code>casas[a] !== "" &amp;&amp; casas[a] === casas[b] &amp;&amp; casas[a] === casas[c]</code></td><td>Trio completo (e não vazio)</td></tr>
+<tr><td><code>casas.every((m) =&gt; m !== "")</code></td><td>Tabuleiro cheio: empate, se ninguém venceu</td></tr>
+<tr><td><code>placar[vez]++</code></td><td>Somar no placar de quem venceu</td></tr>
+<tr><td><code>casas.fill("")</code></td><td>Esvaziar o tabuleiro no Novo jogo</td></tr>
+<tr><td><code>[0, 2, 6, 8].find(…)</code>, <code>casas.indexOf("")</code></td><td>Um canto livre; a primeira casa livre</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Todas as jogadas saem X</td><td>Faltou trocar a <code>vez</code></td></tr>
+<tr><td>" venceu!" logo na primeira jogada</td><td>O teste do trio não exclui as casas vazias</td></tr>
+<tr><td>Dá para jogar depois de alguém vencer</td><td>Faltou o <code>fim</code> (ou ele não é conferido no começo do <code>jogar</code>)</td></tr>
+<tr><td>A vez troca depois da vitória ("O venceu!" quando foi o X)</td><td>A troca da vez acontece antes de conferir o vencedor</td></tr>
+<tr><td>O computador joga numa casa ocupada</td><td>A escolha não confere <code>casas[i] === ""</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tabuleiro vazio</h3>
+<p>Complete para criar 9 casas vazias:</p>
+<div class="ex-code">const casas = Array(9).<input data-answer="fill" aria-label="método">("");</div>
+</div>
+
+<div class="exercise">
+<h3>2. A diagonal</h3>
+<p>Complete o trio da diagonal que começa no canto de cima, à esquerda:</p>
+<div class="ex-code">[0, 4, <input data-answer="8" aria-label="posição">]</div>
+</div>
+
+<div class="exercise">
+<h3>3. Tabuleiro cheio</h3>
+<p>Complete o método que confere se <strong>todas</strong> as casas estão preenchidas:</p>
+<div class="ex-code">casas.<input data-answer="every" aria-label="método">((marca) =&gt; marca !== "")</div>
+</div>
+
+<div class="exercise">
+<h3>4. O placar</h3>
+<p>Sem rodar: com <code>const placar = { X: 2, O: 1, empates: 0 };</code> e <code>const vez = "O";</code>, quanto vale <code>placar[vez]</code>?</p>
+<div class="ex-code"><input data-answer="1" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que o tabuleiro é um array de 9 casas, e não 9 variáveis?</p>
+<label><input type="radio" name="q5"> Porque o JavaScript não aceita 9 variáveis</label>
+<label><input type="radio" name="q5"> Porque arrays são mais rápidos que variáveis</label>
+<label><input type="radio" name="q5"> Porque assim cada casa tem um número, e dá para percorrer as casas e os trios com laços e métodos de array</label>
+<label><input type="radio" name="q5"> Porque o CSS grid exige um array</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Sem o <code>casas[a] !== ""</code>, por que o jogo acabava na primeira jogada?</p>
+<label><input type="radio" name="q6"> Um trio ainda vazio tem três casas iguais (<code>""</code>), e a função devolvia <code>""</code> como vencedor</label>
+<label><input type="radio" name="q6"> O <code>for … of</code> parava no primeiro trio</label>
+<label><input type="radio" name="q6"> O <code>every</code> dava verdadeiro</label>
+<label><input type="radio" name="q6"> A vez não trocava</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">7. Na <code>escolherJogada</code>, por que procurar primeiro com <code>"O"</code> e depois com <code>"X"</code>?</p>
+<label><input type="radio" name="q7"> Por ordem alfabética</label>
+<label><input type="radio" name="q7"> Porque ganhar (fechar o próprio trio) vale mais que bloquear o trio do adversário</label>
+<label><input type="radio" name="q7"> Porque o X sempre começa</label>
+<label><input type="radio" name="q7"> Tanto faz a ordem</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O tabuleiro é um array de 9 casas; o CSS grid o mostra em 3 × 3. A tela é redesenhada a partir do array a cada jogada.</li>
+  <li>As 8 vitórias possíveis ficam numa lista de trios; um laço com desestruturação confere todas. Três casas vazias também são "iguais": exclua o <code>""</code>.</li>
+  <li><code>every</code> detecta o tabuleiro cheio; <code>fim</code> impede jogadas depois do resultado.</li>
+  <li>O placar é um objeto; <code>placar[vez]++</code> usa o valor da variável como chave. <code>fill("")</code> recomeça a partida.</li>
+  <li>Um adversário de computador pode ser só uma lista de regras em ordem: ganhar, bloquear, centro, canto, o que sobrar.</li>
+</ul>
+
+<p>Você chegou ao fim dos projetos! Para consultar o que viu, os próximos são as páginas de <strong>Referência</strong>, a começar pelas <a href="ref-palavras-reservadas.html">Palavras Reservadas</a>.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
