@@ -259,6 +259,7 @@ form.addEventListener("submit", (evento) =&gt; {
 &lt;/ul&gt;
 &lt;button id="botao"&gt;Comprar&lt;/button&gt;
 &lt;p id="saida"&gt;&lt;/p&gt;
+&lt;link rel="stylesheet" href="style.css"&gt;
 &lt;script src="script.js"&gt;&lt;/script&gt;
 </pre>
 <pre class="script" data-file="style.css">.ok {
@@ -306,7 +307,7 @@ botao.addEventListener("click", () =&gt; {
 </div>
 
 <div class="tryweb">
-<p class="try-task"><strong>Livre:</strong> abra o Console da caixa e mexa na página: troque textos, acrescente itens, mude classes. Cada clique no botão acrescenta um item novo na lista.</p>
+<p class="try-task"><strong>Livre:</strong> cada clique no botão acrescenta um item novo na lista, e o Console da caixa mostra quantos itens há. O Console da caixa só mostra o que o programa escreveu (não dá para digitar nele): para experimentar os comandos das tabelas, escreva-os no <code>script.js</code>, com <code>console.log(…)</code> para ver o resultado (ex.: <code>console.log(document.querySelector(".item").textContent)</code>), e rode de novo.</p>
 <pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Lojinha da Ana&lt;/h1&gt;
 &lt;ul id="lista"&gt;
   &lt;li class="item"&gt;Pão&lt;/li&gt;
