@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Sintaxe — instruções, ponto e vírgula e blocos | Guia JavaScript</title>
+<meta name="description" content="As regras de escrita do JavaScript para quem nunca programou: o que é uma instrução, o ponto e vírgula, o que acontece quando ele falta (a inserção automática e suas armadilhas), espaços e quebras de linha, maiúsculas e minúsculas, blocos com chaves e indentação de 2 espaços, e os erros reais do Node.js 24 explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Instruções, Ponto e Vírgula e Blocos</span></h1>
+
+<p class="intro">Toda língua tem regras de escrita: em português, a frase termina com ponto, os parágrafos agrupam frases, e a letra maiúscula muda o sentido de algumas palavras. O JavaScript também tem as suas, e elas formam a <strong>sintaxe</strong> da linguagem. Esta aula mostra as três primeiras: a <strong>instrução</strong> (a "frase" do programa), o <strong>ponto e vírgula</strong> que a termina e o <strong>bloco</strong> com chaves <code>{ }</code> que agrupa instruções. E mostra, com as mensagens reais, o que acontece quando elas são quebradas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma <strong>instrução</strong> e que o programa as executa uma de cada vez, de cima para baixo.</li>
+  <li>Para que serve o <strong>ponto e vírgula</strong> e por que este guia sempre o escreve.</li>
+  <li>O que o JavaScript faz quando o <code>;</code> falta, e as duas armadilhas disso (linhas que começam com <code>(</code> ou <code>[</code>).</li>
+  <li>Que espaços e quebras de linha, na maior parte dos lugares, não importam; e que maiúsculas importam sempre.</li>
+  <li>O que é um <strong>bloco</strong> <code>{ }</code>, a <strong>indentação</strong> de 2 espaços, e que o que nasce dentro de um bloco fica nele.</li>
+  <li>Os erros reais: <code>Unexpected identifier</code>, <code>Unexpected end of input</code>, <code>Unexpected token '}'</code>, <code>is not a function</code>.</li>
+</ul>
+</div>
+
+<p>Os programas foram rodados com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana, na pasta <code>/home/ana/js</code>.</p>
+
+<hr>
+
+<h2>A ideia: frases, pontos e parágrafos</h2>
+<p>Pense numa receita escrita no caderno. Cada <strong>frase</strong> é uma ordem: "ligue o forno." O <strong>ponto final</strong> mostra onde uma ordem termina e a próxima começa. E um <strong>parágrafo</strong> agrupa as frases que andam juntas: "Para a cobertura: derreta o chocolate. Junte o creme."</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No caderno</th><th>No JavaScript</th><th>Exemplo</th></tr>
+<tr><td>A frase (uma ordem)</td><td>A <strong>instrução</strong></td><td><code>console.log("Bom dia!")</code></td></tr>
+<tr><td>O ponto final</td><td>O <strong>ponto e vírgula</strong></td><td><code>;</code></td></tr>
+<tr><td>O parágrafo</td><td>O <strong>bloco</strong></td><td><code>{ … }</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Instruções</h2>
+<p>Uma <strong>instrução</strong> (em inglês, <em>statement</em>) é uma ordem completa para o computador: "mostre isto", "guarde aquilo", "se tal coisa, faça aquilo outro". Um programa é uma sequência de instruções, executadas <strong>uma de cada vez, de cima para baixo</strong>:</p>
+
+<pre class="file" data-file="instrucoes.js">console.log("Bom dia!");
+console.log("A padaria abriu.");
+console.log("Pão saindo às 7h.");
+</pre>
+
+<pre class="term">$ node instrucoes.js
+Bom dia!
+A padaria abriu.
+Pão saindo às 7h.
+</pre>
+
+<p>Três instruções, três linhas na saída, na ordem do arquivo. O normal, e o que este guia faz, é escrever <strong>uma instrução por linha</strong>: fica fácil de ler, e a mensagem de erro aponta a linha exata do problema.</p>
+
+<hr>
+
+<h2>2. O ponto e vírgula</h2>
+<p>O <code>;</code> marca o <strong>fim</strong> de uma instrução. Com ele, o JavaScript sabe onde uma termina e a outra começa, mesmo que estejam na mesma linha:</p>
+
+<pre class="file" data-file="mesma-linha.js">console.log("Um"); console.log("Dois"); console.log("Três");
+</pre>
+
+<pre class="term">$ node mesma-linha.js
+Um
+Dois
+Três
+</pre>
+
+<p>Funciona, mas é mais difícil de ler; use só em casos raros. Agora, o que acontece se o <code>;</code> falta?</p>
+
+<h3>Sem ponto e vírgula, em linhas separadas: funciona</h3>
+
+<pre class="file" data-file="sem-ponto.js">console.log("Bom dia!")
+console.log("A padaria abriu.")
+</pre>
+
+<pre class="term">$ node sem-ponto.js
+Bom dia!
+A padaria abriu.
+</pre>
+
+<p>Rodou normalmente. O JavaScript tem uma regra chamada <strong>inserção automática de ponto e vírgula</strong> (em inglês, <em>ASI</em>, de <em>Automatic Semicolon Insertion</em>): quando uma linha termina e a próxima <strong>não faz sentido como continuação</strong>, ele age como se houvesse um <code>;</code> ali. Por isso você vai encontrar muito código JavaScript sem <code>;</code> nenhum.</p>
+
+<h3>Sem ponto e vírgula, na mesma linha: erro</h3>
+
+<pre class="file" data-file="sem-ponto-mesma.js">console.log("Um") console.log("Dois")
+</pre>
+
+<pre class="term">$ node sem-ponto-mesma.js
+/home/ana/js/sem-ponto-mesma.js:1
+console.log("Um") console.log("Dois")
+                  ^^^^^^^
+
+SyntaxError: Unexpected identifier 'console'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Aqui não há quebra de linha para o JavaScript "adivinhar". Depois de <code>console.log("Um")</code> ele esperava o fim da instrução e encontrou outra palavra: "identificador inesperado <code>console</code>" (um <strong>identificador</strong> é um nome, como <code>console</code>, <code>nome</code> ou <code>preco</code>). Os <code>^^^^^^^</code> marcam o segundo <code>console</code>. É um <code>SyntaxError</code>, então nem o "Um" apareceu.</p>
+
+<div class="tryjs" data-goal="out:Dois;;semerro">
+<p class="try-task"><strong>Missão:</strong> conserte a linha para mostrar <code>Um</code> e <code>Dois</code>. Dá para resolver de dois jeitos: com um <code>;</code> entre as instruções, ou passando a segunda para a linha de baixo (melhor ainda: os dois).</p>
+<pre class="script" data-file="main.js">console.log("Um") console.log("Dois")
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Um");
+console.log("Dois");
+</pre>
+</div>
+
+<h3 id="armadilhas">As duas armadilhas do ponto e vírgula esquecido</h3>
+<p>A inserção automática só põe o <code>;</code> quando a linha de baixo <strong>não</strong> pode continuar a de cima. E algumas linhas podem. As duas armadilhas clássicas são linhas que começam com <code>(</code> ou com <code>[</code>.</p>
+
+<p><strong>Uma linha que começa com <code>(</code>:</strong></p>
+
+<pre class="file" data-file="parenteses.js">console.log("Olá")
+(2 + 3)
+</pre>
+
+<pre class="term">$ node parenteses.js
+Olá
+/home/ana/js/parenteses.js:2
+(2 + 3)
+^
+
+TypeError: console.log(...) is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/js/parenteses.js:2:1)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Para o JavaScript, um <code>(</code> logo depois de alguma coisa quer dizer "chame isso como função". Então ele juntou as duas linhas numa só: <code>console.log("Olá")(2 + 3)</code>. Ele rodou o <code>console.log("Olá")</code> (o "Olá" apareceu) e tentou <strong>chamar o resultado</strong> com <code>(2 + 3)</code>. Mas o <code>console.log</code> não devolve uma função, e veio o <code>TypeError</code> ("erro de tipo"): "<code>console.log(...)</code> não é uma função".</p>
+
+<p><strong>Uma linha que começa com <code>[</code>:</strong></p>
+
+<pre class="file" data-file="colchetes.js">const nome = "Ana"
+[1, 2, 3].forEach(n =&gt; console.log(n))
+</pre>
+
+<pre class="term">$ node colchetes.js
+/home/ana/js/colchetes.js:2
+[1, 2, 3].forEach(n =&gt; console.log(n))
+          ^
+
+TypeError: Cannot read properties of undefined (reading 'forEach')
+    at Object.&lt;anonymous&gt; (/home/ana/js/colchetes.js:2:11)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Não precisa entender a linha 2 agora (ela mostra os números de uma lista; aula <a href="foreach.html">forEach</a>). O que importa: o <code>[</code> no começo da linha também pode continuar a anterior (é o jeito de pegar uma posição: <code>"Ana"[1]</code> é a letra <code>n</code>). O JavaScript leu <code>"Ana"[1, 2, 3].forEach(...)</code>, uma bagunça que deu <code>undefined</code> ("indefinido"), e quebrou: "não dá para ler propriedades de <code>undefined</code> (lendo <code>forEach</code>)". O erro aponta a linha 2, mas a causa é o <code>;</code> que faltou na linha 1.</p>
+
+<div class="warning">
+<strong>A regra deste guia: sempre <code>;</code> no fim das instruções</strong>
+<p>Com o <code>;</code>, essas armadilhas não existem: o JavaScript não tenta juntar linhas que você separou. Há programadores (e projetos inteiros) que preferem não usar <code>;</code>, e também funciona, desde que conheçam essas regras. Para quem está começando, colocar sempre é mais seguro. Exceção: depois de um bloco <code>}</code> de <code>if</code>, <code>for</code> e <code>function</code>, não vai <code>;</code> (você vai ver abaixo).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Olá;;out:5;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa deveria mostrar <code>Olá</code> e o resultado de <code>2 + 3</code>, mas cai na armadilha do <code>(</code>. Conserte: termine a linha 1 com <code>;</code> e transforme a linha 2 numa instrução que mostre o resultado.</p>
+<pre class="script" data-file="main.js">console.log("Olá")
+(2 + 3)
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Olá");
+console.log(2 + 3);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Espaços, quebras de linha e maiúsculas</h2>
+<p>Entre as partes de uma instrução, o JavaScript ignora espaços e quebras de linha a mais. Estas três instruções são iguais para ele:</p>
+
+<pre class="file" data-file="espacos.js">console.log("Pães:",12);
+console.log( "Pães:" , 12 ) ;
+console.log(
+  "Pães:",
+  12
+);
+</pre>
+
+<pre class="term">$ node espacos.js
+Pães: 12
+Pães: 12
+Pães: 12
+</pre>
+
+<p>A terceira forma, quebrada em várias linhas, é útil quando a instrução fica comprida demais. Mas os espaços <strong>dentro das aspas</strong> contam: <code>"Pães:"</code> e <code>" Pães: "</code> são textos diferentes. E não dá para quebrar um nome ao meio (<code>con sole.log</code>) nem continuar um texto de aspas duplas ou simples na linha de baixo.</p>
+
+<p>Já as <strong>maiúsculas e minúsculas importam sempre</strong>: <code>console</code>, <code>Console</code> e <code>CONSOLE</code> são três nomes diferentes, e só o primeiro existe (você viu o <code>Console is not defined</code> na <a href="introducao.html#errado">Introdução</a>). Em inglês se diz que o JavaScript é <em>case-sensitive</em>, "sensível à caixa" (caixa alta = maiúscula, caixa baixa = minúscula).</p>
+
+<div class="tip">
+<strong>O estilo deste guia</strong>
+<p>Um espaço depois da vírgula (<code>"Pães:", 12</code>), espaço em volta das contas (<code>2 + 3</code>), nenhum espaço logo depois do <code>(</code> nem antes do <code>)</code>, e uma instrução por linha. Não é obrigatório, mas deixa o código fácil de ler, e é o estilo mais comum no JavaScript.</p>
+</div>
+
+<hr>
+
+<h2>4. Blocos <code>{ }</code></h2>
+<p>Um <strong>bloco</strong> é um grupo de instruções entre chaves <code>{ }</code>, tratado como uma coisa só. Ele quase sempre aparece junto com uma palavra que diz <strong>quando</strong> ou <strong>quantas vezes</strong> o grupo roda. Aqui, com o <code>if</code> ("se"), que você vai estudar em <a href="if.html">if</a>:</p>
+
+<pre class="file" data-file="bloco.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+  console.log("Pode vender à vontade.");
+}
+
+console.log("Fim do dia.");
+</pre>
+
+<pre class="term">$ node bloco.js
+Muitos pães hoje!
+Pode vender à vontade.
+Fim do dia.
+</pre>
+
+<dl class="anatomy">
+  <dt>const paes = 12;</dt><dd>Uma instrução que guarda o número 12 com o nome <code>paes</code> (aula <a href="const.html">Constantes</a>).</dd>
+  <dt>if (paes &gt; 10)</dt><dd>"Se <code>paes</code> for maior que 10". O que vem a seguir só roda se isso for verdade.</dd>
+  <dt>{</dt><dd>Abre o bloco: daqui até o <code>}</code>, tudo faz parte do "então".</dd>
+  <dt>As duas linhas de dentro</dt><dd>As instruções do bloco, cada uma com o seu <code>;</code>. Elas rodam juntas, uma depois da outra.</dd>
+  <dt>}</dt><dd>Fecha o bloco. Depois dele <strong>não</strong> vai <code>;</code>: o <code>}</code> já marca o fim.</dd>
+  <dt>console.log("Fim do dia.");</dt><dd>Fora do bloco: roda sempre, seja qual for o número de pães.</dd>
+</dl>
+
+<p>Você vai usar blocos com o <code>if</code>, o <code>else</code>, o <code>for</code>, o <code>while</code>, as funções… Eles são os "parágrafos" do JavaScript.</p>
+
+<h3>A indentação: 2 espaços</h3>
+<p>Repare que as linhas de dentro do bloco começam com <strong>2 espaços</strong>. Esse recuo se chama <strong>indentação</strong>. Para o JavaScript ela não muda nada (o que vale são as chaves), mas para quem lê ela muda tudo: dá para ver, de longe, o que está dentro e o que está fora. Este guia usa 2 espaços por nível, o padrão mais comum no JavaScript. Os editores de código (como o VS Code) fazem isso sozinhos quando você aperta <kbd>Enter</kbd> depois de um <code>{</code>.</p>
+
+<h3>O que nasce no bloco fica no bloco</h3>
+<p>Um nome criado com <code>const</code> (ou <code>let</code>) <strong>dentro</strong> de um bloco só existe ali dentro. Aqui o bloco está sozinho, sem <code>if</code>, só para mostrar isso:</p>
+
+<pre class="file" data-file="bloco-let.js">{
+  const recado = "Pão quentinho!";
+  console.log("Dentro:", recado);
+}
+console.log("Fora:", recado);
+</pre>
+
+<pre class="term">$ node bloco-let.js
+Dentro: Pão quentinho!
+/home/ana/js/bloco-let.js:5
+console.log("Fora:", recado);
+                     ^
+
+ReferenceError: recado is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/js/bloco-let.js:5:22)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Dentro do bloco, <code>recado</code> funcionou. Fora, "<code>recado</code> não está definido": ao fechar o <code>}</code>, o nome deixou de existir. É como um recado preso dentro de uma gaveta: quem está fora não vê. Essa regra se chama <strong>escopo de bloco</strong> e tem aula própria: <a href="escopo.html">Escopo</a>.</p>
+
+<hr>
+
+<h2>Formas diferentes de escrever as mesmas instruções</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Funciona?</th><th>Use?</th></tr>
+<tr><td>Uma instrução por linha, com <code>;</code></td><td>Sim</td><td><strong>Sim:</strong> é o padrão deste guia</td></tr>
+<tr><td>Uma instrução por linha, sem <code>;</code></td><td>Sim, menos nas <a href="#armadilhas">armadilhas</a> do <code>(</code> e do <code>[</code></td><td>Só se conhecer bem as regras</td></tr>
+<tr><td>Várias na mesma linha, com <code>;</code></td><td>Sim</td><td>Raramente: fica difícil de ler</td></tr>
+<tr><td>Várias na mesma linha, sem <code>;</code></td><td>Não: <code>SyntaxError</code></td><td>Nunca</td></tr>
+<tr><td>Uma instrução quebrada em várias linhas</td><td>Sim (fora de nomes e de textos entre aspas)</td><td>Quando a linha fica comprida</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chave que abre e não fecha</strong>
+<pre class="file" data-file="bloco-aberto.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+
+console.log("Fim do dia.");
+</pre>
+<pre class="term">$ node bloco-aberto.js
+/home/ana/js/bloco-aberto.js:7
+
+
+
+SyntaxError: Unexpected end of input
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Fim inesperado da entrada": o arquivo <strong>acabou</strong> e o JavaScript ainda esperava o <code>}</code> que fecha o bloco. Repare que a mensagem aponta a linha <strong>7</strong>, que nem tem nada (o arquivo tem 6 linhas; a 7 é o "depois do fim"), e a linha do código e a do <code>^</code> vieram vazias. Isso é típico: a mensagem diz <strong>onde ele percebeu</strong> o problema, não onde ele está. <strong>Como consertar:</strong> procure a chave que abriu e não fechou. A indentação ajuda muito: o <code>console.log("Fim do dia.")</code> está encostado na margem, então o bloco deveria ter fechado antes dele.</p>
+</div>
+
+<div class="cenario">
+<strong>Chave sobrando</strong>
+<pre class="file" data-file="bloco-sobra.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+}
+}
+console.log("Fim do dia.");
+</pre>
+<pre class="term">$ node bloco-sobra.js
+/home/ana/js/bloco-sobra.js:6
+}
+^
+
+SyntaxError: Unexpected token '}'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado <code>}</code>": na linha 6 há uma chave fechando um bloco que não existe. <strong>Como consertar:</strong> apague a chave a mais. Cada <code>{</code> tem o seu <code>}</code>; os editores de código destacam o par quando você põe o cursor numa chave.</p>
+</div>
+
+<div class="cenario">
+<strong>Instruções coladas na mesma linha</strong>
+<p>Já visto acima: <code>console.log("Um") console.log("Dois")</code> dá <code>SyntaxError: Unexpected identifier 'console'</code>. <strong>Como consertar:</strong> <code>;</code> entre elas, ou uma por linha.</p>
+</div>
+
+<div class="cenario">
+<strong><code>is not a function</code> ou <code>Cannot read properties of undefined</code> numa linha que parece certa</strong>
+<p>Se a linha com erro começa com <code>(</code> ou <code>[</code>, olhe a linha <strong>de cima</strong>: provavelmente faltou o <code>;</code> no fim dela, e o JavaScript juntou as duas (as <a href="#armadilhas">armadilhas</a>). <strong>Como consertar:</strong> ponha o <code>;</code> no fim da linha de cima.</p>
+</div>
+
+<div class="cenario">
+<strong>Usar fora do bloco o que foi criado dentro</strong>
+<p>O <code>ReferenceError: recado is not defined</code> da seção 4. <strong>Como consertar:</strong> se o valor é preciso fora, crie o nome <strong>antes</strong> do bloco, do lado de fora (você vai ver como em <a href="escopo.html">Escopo</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Muitos pães hoje!;;out:Fim do dia.;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não roda: falta fechar o bloco. Coloque o <code>}</code> no lugar certo (depois da linha de dentro do <code>if</code>) e rode.</p>
+<pre class="script" data-file="main.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+
+console.log("Fim do dia.");
+</pre>
+<pre class="solucao" data-file="main.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+}
+
+console.log("Fim do dia.");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Exemplo</th></tr>
+<tr><td>Uma instrução por linha, terminada com <code>;</code></td><td><code>console.log("Oi");</code></td></tr>
+<tr><td>Várias numa linha só com <code>;</code> entre elas</td><td><code>console.log("a"); console.log("b");</code></td></tr>
+<tr><td>Bloco: instruções entre <code>{ }</code>, sem <code>;</code> depois do <code>}</code></td><td><code>if (x &gt; 1) { … }</code></td></tr>
+<tr><td>Indentação de 2 espaços dentro do bloco</td><td><code>␣␣console.log("dentro");</code></td></tr>
+<tr><td>Espaços e quebras de linha extras são ignorados</td><td><code>console.log( 12 )</code> = <code>console.log(12)</code></td></tr>
+<tr><td>Maiúsculas importam</td><td><code>console</code> ≠ <code>Console</code></td></tr>
+<tr><td>Nome criado num bloco só vale dentro dele</td><td><code>{ const a = 1; }</code> → fora, <code>a</code> não existe</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected identifier 'x'</code></td><td>Duas instruções coladas sem <code>;</code>, ou palavra no lugar errado</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>Faltou fechar uma chave (ou um parêntese) antes do fim do arquivo</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '}'</code></td><td>Chave fechando sem ter aberto</td></tr>
+<tr><td><code>TypeError: … is not a function</code> numa linha que começa com <code>(</code></td><td>Faltou <code>;</code> na linha de cima</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined</code> numa linha que começa com <code>[</code></td><td>Faltou <code>;</code> na linha de cima</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code> logo depois de um bloco</td><td><code>x</code> foi criado dentro do bloco</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O fim da instrução</h3>
+<p>Qual sinal este guia usa no fim de cada instrução?</p>
+<div class="ex-code">console.log("Oi")<input data-answer=";" aria-label="sinal"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A indentação</h3>
+<p>Quantos espaços de indentação este guia usa dentro de um bloco?</p>
+<div class="ex-code"><input data-answer="2|dois" aria-label="número de espaços"> espaços</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que acontece com <code>console.log("a") console.log("b")</code>, numa linha só?</p>
+<label><input type="radio" name="q3"> Mostra <code>a</code> e <code>b</code></label>
+<label><input type="radio" name="q3"> Mostra só <code>a</code></label>
+<label><input type="radio" name="q3"> Dá <code>SyntaxError</code> e nada roda</label>
+<label><input type="radio" name="q3"> Mostra <code>ab</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A mensagem <code>SyntaxError: Unexpected end of input</code> quase sempre quer dizer:</p>
+<label><input type="radio" name="q4"> Que o arquivo está vazio</label>
+<label><input type="radio" name="q4"> Que faltou fechar uma chave ou um parêntese</label>
+<label><input type="radio" name="q4"> Que faltou um <code>;</code> na última linha</label>
+<label><input type="radio" name="q4"> Que o programa terminou bem</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Uma linha começa com <code>(</code> e o Node.js reclama de <code>is not a function</code>. Onde está o problema mais provável?</p>
+<label><input type="radio" name="q5"> No parêntese que abre a linha</label>
+<label><input type="radio" name="q5"> Na indentação</label>
+<label><input type="radio" name="q5"> Na versão do Node.js</label>
+<label><input type="radio" name="q5"> No <code>;</code> que faltou no fim da linha de cima</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Para o JavaScript, o que muda se você tirar a indentação de dentro de um bloco?</p>
+<label><input type="radio" name="q6"> Nada: quem manda são as chaves; a indentação é para as pessoas lerem</label>
+<label><input type="radio" name="q6"> As linhas saem do bloco</label>
+<label><input type="radio" name="q6"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q6"> O bloco roda duas vezes</label>
+</div>
+
+<h3>Missão final: mais uma linha no bloco</h3>
+<div class="tryjs" data-goal="outre:^Muitos pães hoje!\nCapriche no café!\nFim do dia\.\n$;;src:^  console\.log\(&quot;Capriche no café!&quot;\)[;];;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente <strong>dentro do bloco</strong>, logo depois da primeira, a instrução <code>console.log("Capriche no café!");</code>, com a indentação de 2 espaços e o <code>;</code> no fim.</p>
+<pre class="script" data-file="main.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+}
+
+console.log("Fim do dia.");
+</pre>
+<pre class="solucao" data-file="main.js">const paes = 12;
+
+if (paes &gt; 10) {
+  console.log("Muitos pães hoje!");
+  console.log("Capriche no café!");
+}
+
+console.log("Fim do dia.");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um programa é uma sequência de <strong>instruções</strong>, executadas uma de cada vez, de cima para baixo. Escreva uma por linha.</li>
+  <li>O <code>;</code> termina a instrução. Sem ele, o JavaScript tenta adivinhar (inserção automática), e erra quando a linha seguinte começa com <code>(</code> ou <code>[</code>. Neste guia: sempre <code>;</code>, menos depois do <code>}</code> de um bloco.</li>
+  <li>Espaços e quebras de linha extras não importam (fora das aspas); maiúsculas e minúsculas importam sempre.</li>
+  <li>Um <strong>bloco</strong> <code>{ }</code> agrupa instruções; dentro dele, 2 espaços de indentação. O que é criado com <code>const</code>/<code>let</code> dentro do bloco só existe ali.</li>
+  <li>Erros: <code>Unexpected identifier</code> (instruções coladas), <code>Unexpected end of input</code> (chave sem fechar), <code>Unexpected token '}'</code> (chave sobrando).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
