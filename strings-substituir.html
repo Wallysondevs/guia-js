@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript replace e replaceAll — substituindo pedaços de texto | Guia JavaScript</title>
+<meta name="description" content="Substituir texto em JavaScript para quem nunca programou: replace troca a primeira ocorrência, replaceAll troca todas, a string original não muda, maiúsculas importam, apagar com texto vazio, encadear trocas, o preço com vírgula, o $ especial no texto novo e os erros reais do Node.js 24 (replaceAll com regex sem g, replace em número e em undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">replace e replaceAll</span></h1>
+
+<p class="intro">Todo editor de texto tem a função <strong>Localizar e substituir</strong>: você diz o que procurar, diz o que pôr no lugar, e ele troca. Em JavaScript, toda string tem dois métodos que fazem isso: o <code>replace</code> (em inglês, "substituir"), que troca <strong>a primeira</strong> vez que o pedaço aparece, e o <code>replaceAll</code> ("substituir todos"), que troca <strong>todas</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como trocar um pedaço de texto com <code>replace(procurado, novo)</code>, e por que ele troca só a primeira vez.</li>
+  <li>Como trocar todas as vezes com <code>replaceAll</code>.</li>
+  <li>Que a string original <strong>não muda</strong>: o resultado é uma string nova, que você precisa guardar.</li>
+  <li>Que maiúsculas e minúsculas fazem diferença na busca.</li>
+  <li>Como apagar um pedaço (trocando por <code>""</code>) e como fazer várias trocas seguidas.</li>
+  <li>Um uso do dia a dia: transformar o preço <code>"12,50"</code> num número.</li>
+  <li>Os erros reais: <code>replaceAll</code> com uma regex sem o <code>g</code>, <code>replace</code> num número e numa variável <code>undefined</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o corretivo no bilhete</h2>
+<p>A Ana escreveu um bilhete para a vizinha: <em>"Bolo de cenoura no sábado"</em>. Mudou de ideia: vai ser de chocolate. Ela não rasga o bilhete; ela pega o papel, encontra a palavra <em>cenoura</em> e escreve <em>chocolate</em> no lugar.</p>
+<p>O JavaScript faz quase isso, com uma diferença importante: ele <strong>não rabisca o bilhete original</strong>. Ele copia o bilhete inteiro para um papel novo, já com a troca feita, e te entrega esse papel novo. O original continua igualzinho. Guarde essa diferença: ela é a causa do erro mais comum desta aula.</p>
+
+<hr>
+
+<h2>1. <code>replace</code>: trocar um pedaço</h2>
+
+<pre class="file" data-file="bilhete.js">const bilhete = "Bolo de cenoura no sábado";
+const novoBilhete = bilhete.replace("cenoura", "chocolate");
+console.log(novoBilhete);
+</pre>
+
+<dl class="anatomy">
+  <dt>bilhete</dt><dd>A string onde você quer procurar (veja <a href="strings.html">Strings</a>).</dd>
+  <dt>.replace(…)</dt><dd>O método "substituir". Como todo método de string, ele vem depois de um ponto (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+  <dt>"cenoura"</dt><dd>O <strong>primeiro argumento</strong>: o pedaço procurado.</dd>
+  <dt>"chocolate"</dt><dd>O <strong>segundo argumento</strong>: o que vai no lugar.</dd>
+  <dt>const novoBilhete = …</dt><dd>O <code>replace</code> <strong>devolve</strong> uma string nova, com a troca feita. Aqui ela fica guardada em <code>novoBilhete</code>.</dd>
+</dl>
+
+<pre class="term">$ node bilhete.js
+Bolo de chocolate no sábado
+</pre>
+
+<p>O pedaço procurado pode ter qualquer tamanho: uma letra, uma palavra, uma frase inteira. E o pedaço novo não precisa ter o mesmo tamanho do antigo: <code>"cenoura"</code> tem 7 letras e <code>"chocolate"</code> tem 9.</p>
+
+<h3>E se o pedaço não existir?</h3>
+<p>Nada acontece, e nenhum erro aparece: o <code>replace</code> devolve uma cópia igual à original.</p>
+
+<pre class="file" data-file="nao-achou.js">const bilhete = "Bolo de cenoura no sábado";
+console.log(bilhete.replace("morango", "chocolate"));
+</pre>
+
+<pre class="term">$ node nao-achou.js
+Bolo de cenoura no sábado
+</pre>
+
+<p>Se você precisa <strong>saber</strong> se o pedaço existe antes de trocar, use o <code>includes</code> da aula <a href="strings-buscar.html">Procurando em Strings</a>.</p>
+
+<hr>
+
+<h2>2. A string original não muda</h2>
+<p>Este é o ponto mais importante da aula. Veja o que acontece quando a Ana chama o <code>replace</code> e <strong>não guarda</strong> o resultado:</p>
+
+<pre class="file" data-file="esqueceu.js">const bilhete = "Bolo de cenoura no sábado";
+bilhete.replace("cenoura", "chocolate");
+console.log(bilhete);
+</pre>
+
+<pre class="term">$ node esqueceu.js
+Bolo de cenoura no sábado
+</pre>
+
+<p>Continua <em>cenoura</em>. A linha 2 até fez a troca, mas a string nova não foi guardada em lugar nenhum e se perdeu. Em JavaScript, as strings são <strong>imutáveis</strong> (não podem ser mudadas por dentro): todo método de string devolve uma string nova e deixa a original como estava.</p>
+
+<p>Você tem duas saídas:</p>
+<ul>
+  <li>guardar o resultado numa variável nova, como na seção 1 (<code>const novoBilhete = bilhete.replace(…)</code>);</li>
+  <li>ou, se a variável foi criada com <code>let</code>, guardar o resultado <strong>nela mesma</strong>:</li>
+</ul>
+
+<pre class="file" data-file="mesma.js">let bilhete = "Bolo de cenoura no sábado";
+bilhete = bilhete.replace("cenoura", "chocolate");
+console.log(bilhete);
+</pre>
+
+<pre class="term">$ node mesma.js
+Bolo de chocolate no sábado
+</pre>
+
+<p>Repare que, aqui, a string antiga continua não tendo mudado: a variável <code>bilhete</code> é que passou a guardar <strong>outra</strong> string (veja <a href="variaveis.html">Variáveis</a>). Com <code>const</code> isso não daria certo, porque uma constante não pode receber outro valor (veja <a href="const.html">Constantes</a>).</p>
+
+<div class="tryjs" data-goal="out:Bolo de chocolate no sábado">
+<p class="try-task"><strong>Missão:</strong> este programa mostra "cenoura" porque esqueceu de guardar a troca. Conserte: guarde o resultado do <code>replace</code> (numa variável nova ou na própria <code>bilhete</code>, trocando o <code>const</code> por <code>let</code>) e mostre o bilhete corrigido.</p>
+<pre class="script" data-file="main.js">const bilhete = "Bolo de cenoura no sábado";
+bilhete.replace("cenoura", "chocolate");
+console.log(bilhete);
+</pre>
+<pre class="solucao" data-file="main.js">const bilhete = "Bolo de cenoura no sábado";
+const novoBilhete = bilhete.replace("cenoura", "chocolate");
+console.log(novoBilhete);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>replace</code> troca só a primeira vez</h2>
+<p>A Ana fez a lista de compras e escreveu "pao" sem til duas vezes. Ela tenta consertar com <code>replace</code>:</p>
+
+<pre class="file" data-file="primeira.js">const lista = "pao, leite, pao de queijo, café";
+console.log(lista.replace("pao", "pão"));
+</pre>
+
+<pre class="term">$ node primeira.js
+pão, leite, pao de queijo, café
+</pre>
+
+<p>Só o primeiro "pao" foi corrigido. É assim de propósito: quando o primeiro argumento é um texto, o <code>replace</code> procura da esquerda para a direita, troca <strong>a primeira</strong> ocorrência que encontrar e para.</p>
+
+<hr>
+
+<h2>4. <code>replaceAll</code>: trocar todas as vezes</h2>
+<p>Para trocar todas, use o <code>replaceAll</code>. Ele recebe os mesmos dois argumentos:</p>
+
+<pre class="file" data-file="todas.js">const lista = "pao, leite, pao de queijo, café";
+console.log(lista.replaceAll("pao", "pão"));
+</pre>
+
+<pre class="term">$ node todas.js
+pão, leite, pão de queijo, café
+</pre>
+
+<p>Os dois "pao" viraram "pão". O <code>replaceAll</code> chegou ao JavaScript no <span class="versao">ES2021</span>; antes dele, as pessoas usavam outros truques, que você vai reconhecer em código antigo (veja <a href="#formas">Formas diferentes</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que troca</th><th><code>"a-b-c"</code> trocando <code>"-"</code> por <code>"/"</code></th></tr>
+<tr><td><code>replace</code></td><td>Só a <strong>primeira</strong> ocorrência</td><td><code>a/b-c</code></td></tr>
+<tr><td><code>replaceAll</code></td><td><strong>Todas</strong> as ocorrências</td><td><code>a/b/c</code></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:01/02/2026">
+<p class="try-task"><strong>Missão:</strong> a data veio escrita com hífens. Faça o programa mostrar <code>01/02/2026</code>, trocando <strong>todos</strong> os hífens por barras.</p>
+<pre class="script" data-file="main.js">const data = "01-02-2026";
+console.log(data.replace("-", "/"));
+</pre>
+<pre class="solucao" data-file="main.js">const data = "01-02-2026";
+console.log(data.replaceAll("-", "/"));
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Maiúsculas e minúsculas fazem diferença</h2>
+<p>Para o JavaScript, <code>"P"</code> e <code>"p"</code> são letras diferentes. A busca só acha o pedaço escrito <strong>exatamente</strong> igual:</p>
+
+<pre class="file" data-file="maiusculas.js">const frase = "Pão quentinho. Pão de queijo.";
+console.log(frase.replaceAll("pão", "bolo"));
+console.log(frase.replaceAll("Pão", "Bolo"));
+</pre>
+
+<pre class="term">$ node maiusculas.js
+Pão quentinho. Pão de queijo.
+Bolo quentinho. Bolo de queijo.
+</pre>
+
+<p>Na primeira linha, nada mudou: no texto não existe "pão" com p minúsculo. Se você não sabe como o texto vai chegar (a pessoa pode ter digitado "PÃO", "pão" ou "Pão"), um caminho simples é passar tudo para minúsculas antes de trocar, com o <code>toLowerCase()</code> da aula <a href="strings-metodos.html">Métodos de String</a>. O outro caminho, a busca que ignora maiúsculas, usa uma expressão regular com a flag <code>i</code>, assunto de <a href="regex-metodos.html">Regex na Prática</a>.</p>
+
+<hr>
+
+<h2>6. Apagar um pedaço: trocar por <code>""</code></h2>
+<p>Para <strong>apagar</strong>, troque o pedaço por uma string vazia, <code>""</code> (duas aspas sem nada no meio). O telefone que a Ana anotou tem traços e espaços, e o sistema da loja quer só os números:</p>
+
+<pre class="file" data-file="telefone.js">const telefone = "11 98765-4321";
+const soNumeros = telefone.replaceAll(" ", "").replaceAll("-", "");
+console.log(soNumeros);
+console.log(soNumeros.length);
+</pre>
+
+<pre class="term">$ node telefone.js
+11987654321
+11
+</pre>
+
+<dl class="anatomy">
+  <dt>telefone.replaceAll(" ", "")</dt><dd>Troca todo espaço por nada, ou seja, apaga os espaços. O resultado é <code>"1198765-4321"</code>.</dd>
+  <dt>.replaceAll("-", "")</dt><dd>Este segundo método é chamado <strong>no resultado do primeiro</strong>. Como o <code>replaceAll</code> devolve uma string, dá para pendurar outro método logo em seguida. Isso se chama <strong>encadear</strong>.</dd>
+  <dt>soNumeros.length</dt><dd>O tamanho do resultado: 11 caracteres (veja <a href="strings.html">Strings</a>).</dd>
+</dl>
+
+<p>Pode encadear quantos quiser. Para não ficar uma linha comprida demais, cada método pode ir numa linha própria, começando pelo ponto:</p>
+
+<pre class="file" data-file="encadear.js">const recado = "Oi, Bia! Amanha tem bolo. Nao esqueca.";
+const corrigido = recado
+  .replace("Amanha", "Amanhã")
+  .replace("Nao", "Não")
+  .replace("esqueca", "esqueça");
+console.log(corrigido);
+</pre>
+
+<pre class="term">$ node encadear.js
+Oi, Bia! Amanhã tem bolo. Não esqueça.
+</pre>
+
+<hr>
+
+<h2>7. Uso do dia a dia: o preço com vírgula</h2>
+<p>No Brasil a gente escreve <code>12,50</code>, com vírgula. O JavaScript escreve números com <strong>ponto</strong>: <code>12.5</code>. Se o preço chega como o texto <code>"12,50"</code> (digitado no teclado, lido de uma planilha), o <code>Number</code> não entende a vírgula (veja <a href="conversao.html">Conversão</a>):</p>
+
+<pre class="file" data-file="preco.js">const precoTexto = "12,50";
+console.log(Number(precoTexto));
+
+const preco = Number(precoTexto.replace(",", "."));
+console.log(preco);
+console.log(preco * 3);
+</pre>
+
+<pre class="term">$ node preco.js
+NaN
+12.5
+37.5
+</pre>
+
+<p>Sem a troca, o resultado é <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Trocando a vírgula por ponto <strong>antes</strong> de converter, vira o número <code>12.5</code>, e as contas funcionam. Aqui o <code>replace</code> basta, porque um preço tem uma vírgula só.</p>
+
+<div class="tryjs" data-goal="out:Total: 37.5">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 3 potes de doce de leite a <code>"12,50"</code> cada. O programa mostra <code>Total: NaN</code>. Use o <code>replace</code> para trocar a vírgula por ponto antes do <code>Number</code>, até aparecer <code>Total: 37.5</code>.</p>
+<pre class="script" data-file="main.js">const precoTexto = "12,50";
+const preco = Number(precoTexto);
+console.log(`Total: ${preco * 3}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precoTexto = "12,50";
+const preco = Number(precoTexto.replace(",", "."));
+console.log(`Total: ${preco * 3}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>8. Um cuidado: o <code>$</code> no texto novo</h2>
+<p>No <strong>segundo</strong> argumento, algumas combinações com o cifrão têm significado especial. A mais comum de aparecer sem querer é o <code>$$</code>, que vira <strong>um</strong> cifrão só. E o <code>$&amp;</code> quer dizer "o pedaço que foi encontrado":</p>
+
+<pre class="file" data-file="cifrao.js">console.log("Preço: X".replace("X", "R$ 10"));
+console.log("Preço: X".replace("X", "R$$ 10"));
+console.log("bolo".replace("bolo", "[$&amp;]"));
+</pre>
+
+<pre class="term">$ node cifrao.js
+Preço: R$ 10
+Preço: R$ 10
+[bolo]
+</pre>
+
+<p><code>R$ 10</code> funciona normalmente: um cifrão seguido de espaço não é especial. Mas <code>R$$ 10</code> também virou <code>R$ 10</code>, com um cifrão a menos. No dia a dia isso quase nunca atrapalha; só lembre dele se um cifrão "sumir" depois de uma troca. Os outros códigos com <code>$</code> são usados com expressões regulares (aula <a href="regex-metodos.html">Regex na Prática</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Trocar todos os hífens de <code>"01-02-2026"</code> por barras dá para fazer de três jeitos:</p>
+
+<pre class="file" data-file="formas.js">const data = "01-02-2026";
+console.log(data.replaceAll("-", "/"));
+console.log(data.split("-").join("/"));
+console.log(data.replace(/-/g, "/"));
+</pre>
+
+<pre class="term">$ node formas.js
+01/02/2026
+01/02/2026
+01/02/2026
+</pre>
+
+<dl class="anatomy">
+  <dt>data.replaceAll("-", "/")</dt><dd>O jeito moderno e mais fácil de ler.</dd>
+  <dt>data.split("-").join("/")</dt><dd>Corta a string em todo hífen, formando a lista <code>[ '01', '02', '2026' ]</code>, e junta de novo com barras (veja <a href="strings-split.html">split e join</a>). Era o truque comum antes do <code>replaceAll</code>.</dd>
+  <dt>data.replace(/-/g, "/")</dt><dd>O que está entre as barras, <code>/-/</code>, é uma <strong>expressão regular</strong> (um padrão de busca); o <code>g</code> no fim quer dizer "global", ou seja, todas as ocorrências. É o outro jeito antigo, e o mais poderoso. Aula própria: <a href="regex.html">Expressões Regulares</a>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Trocar só a primeira ocorrência (ou você sabe que só existe uma)</td><td><code>texto.replace("a", "b")</code></td></tr>
+<tr><td>Trocar todas as ocorrências de um texto fixo</td><td><code>texto.replaceAll("a", "b")</code></td></tr>
+<tr><td>Trocar um <strong>padrão</strong> (qualquer número, qualquer espaço, ignorando maiúsculas)</td><td><code>replace</code>/<code>replaceAll</code> com expressão regular (aula <a href="regex-metodos.html">Regex na Prática</a>)</td></tr>
+<tr><td>Código antigo, de antes de 2021</td><td>Você vai ver <code>split(…).join(…)</code> e <code>replace(/…/g, …)</code> fazendo o papel do <code>replaceAll</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu de guardar o resultado</strong>
+<p>O erro mais comum não mostra mensagem nenhuma: é o <code>bilhete.replace(…)</code> sozinho na linha, da seção 2. O programa roda, mas o texto continua o mesmo. <strong>Como consertar:</strong> guarde o que o <code>replace</code> devolve: <code>const novo = bilhete.replace(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>replaceAll</code> com uma expressão regular sem o <code>g</code></strong>
+<pre class="file" data-file="semg.js">const data = "01-02-2026";
+const nova = data.replaceAll(/-/, "/");
+console.log(nova);
+</pre>
+<pre class="term">$ node semg.js
+/home/ana/semg.js:2
+const nova = data.replaceAll(/-/, "/");
+                  ^
+
+TypeError: String.prototype.replaceAll called with a non-global RegExp argument
+    at String.replaceAll (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/semg.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semg.js:2</dt><dd>O arquivo e a <strong>linha</strong> onde o erro aconteceu: a linha 2.</dd>
+  <dt>const nova = data.replaceAll(/-/, "/");</dt><dd>A própria linha 2, copiada.</dd>
+  <dt>^</dt><dd>A setinha embaixo aponta o lugar exato: o <code>replaceAll</code>.</dd>
+  <dt>TypeError: String.prototype.replaceAll called with a non-global RegExp argument</dt><dd>"Erro de tipo: o <code>replaceAll</code> foi chamado com uma RegExp que não é global". Uma expressão regular sem o <code>g</code> diz "só a primeira", e o <code>replaceAll</code> diz "todas": o JavaScript não aceita a contradição e para o programa. (O <code>String.prototype.</code> na frente é o nome completo do método: "o <code>replaceAll</code> que toda string tem".)</dd>
+  <dt>at String.replaceAll (&lt;anonymous&gt;) e at Object.&lt;anonymous&gt; (/home/ana/semg.js:2:19)</dt><dd>O caminho que o programa percorreu até o erro, do mais recente para o mais antigo: o erro nasceu dentro do <code>replaceAll</code>, que foi chamado na linha 2, coluna 19, do seu arquivo. A linha <code>node:internal/…</code> (e as que cortamos) são o próprio Node carregando o programa: não precisa lê-las.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p><strong>Como consertar:</strong> ponha o <code>g</code> (<code>/-/g</code>) ou, se o que você procura é um texto fixo, use texto entre aspas: <code>data.replaceAll("-", "/")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>replace</code> num número</strong>
+<pre class="file" data-file="numero.js">const preco = 12.5;
+console.log(preco.replace(".", ","));
+</pre>
+<pre class="term">$ node numero.js
+/home/ana/numero.js:2
+console.log(preco.replace(".", ","));
+                  ^
+
+TypeError: preco.replace is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/numero.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"<code>preco.replace</code> não é uma função". O <code>replace</code> é um método de <strong>string</strong>, e <code>12.5</code> é um <strong>número</strong>: números não têm <code>replace</code>. <strong>Como consertar:</strong> transforme o número em texto antes: <code>String(preco).replace(".", ",")</code> dá <code>"12,5"</code>. (Para mostrar dinheiro do jeito brasileiro, com <code>12,50</code>, existe um jeito melhor, na aula <a href="numeros-formatar.html">Formatando Números</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>replace</code> numa variável que não tem valor</strong>
+<pre class="file" data-file="indefinido.js">let apelido;
+console.log(apelido.replace("a", "o"));
+</pre>
+<pre class="term">$ node indefinido.js
+/home/ana/indefinido.js:2
+console.log(apelido.replace("a", "o"));
+                    ^
+
+TypeError: Cannot read properties of undefined (reading 'replace')
+    at Object.&lt;anonymous&gt; (/home/ana/indefinido.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível ler propriedades de <code>undefined</code> (lendo <code>'replace'</code>)". A variável <code>apelido</code> foi criada sem valor, então ela vale <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>), e <code>undefined</code> não tem métodos. <strong>Como consertar:</strong> confira se a variável recebeu um texto antes de chamar o método. Na aula <a href="optional-chaining.html">?. e ??</a> você vai ver um atalho para isso: <code>apelido?.replace("a", "o")</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:pão, leite, pão de queijo;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa para com um erro. Leia a mensagem e conserte, até aparecer <code>pão, leite, pão de queijo</code>.</p>
+<pre class="script" data-file="main.js">const lista = "pao, leite, pao de queijo";
+const corrigida = lista.replaceAll(/pao/, "pão");
+console.log(corrigida);
+</pre>
+<pre class="solucao" data-file="main.js">const lista = "pao, leite, pao de queijo";
+const corrigida = lista.replaceAll("pao", "pão");
+console.log(corrigida);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que faz</th></tr>
+<tr><td><code>"a-b-c".replace("-", "/")</code></td><td><code>"a/b-c"</code></td><td>Troca a primeira ocorrência</td></tr>
+<tr><td><code>"a-b-c".replaceAll("-", "/")</code></td><td><code>"a/b/c"</code></td><td>Troca todas as ocorrências</td></tr>
+<tr><td><code>"a-b-c".replaceAll("-", "")</code></td><td><code>"abc"</code></td><td>Apaga (troca por texto vazio)</td></tr>
+<tr><td><code>"abc".replace("x", "y")</code></td><td><code>"abc"</code></td><td>Não achou: devolve igual, sem erro</td></tr>
+<tr><td><code>texto = texto.replace(…)</code></td><td></td><td>Guarda a troca (com <code>let</code>)</td></tr>
+<tr><td><code>t.replace(…).replace(…)</code></td><td></td><td>Encadeia várias trocas</td></tr>
+<tr><td><code>Number("12,50".replace(",", "."))</code></td><td><code>12.5</code></td><td>Preço brasileiro para número</td></tr>
+<tr><td><code>"$$"</code> no texto novo</td><td><code>"$"</code></td><td>Vira um cifrão só</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O texto não mudou</td><td>Não guardou o resultado, ou o pedaço não existe (cuidado com maiúsculas)</td></tr>
+<tr><td>Só a primeira ocorrência mudou</td><td>Usou <code>replace</code> no lugar de <code>replaceAll</code></td></tr>
+<tr><td><code>TypeError: String.prototype.replaceAll called with a non-global RegExp argument</code></td><td>Regex sem o <code>g</code> no <code>replaceAll</code></td></tr>
+<tr><td><code>TypeError: x.replace is not a function</code></td><td><code>x</code> não é string (um número, por exemplo)</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'replace')</code></td><td>A variável não tem valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a troca</h3>
+<p>Complete para trocar <strong>todas</strong> as vírgulas por ponto e vírgula:</p>
+<div class="ex-code">const linha = "Ana,Bia,Caio";<br>const nova = linha.<input data-answer="replaceAll" aria-label="método">(",", ";");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>O que este programa mostra?</p>
+<pre class="file" data-file="ex2.js">const s = "banana";
+console.log(s.replace("a", "o"));
+</pre>
+<div class="ex-code">Mostra <input data-answer="bonana" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Depois de <code>const nome = "ana"; nome.replace("a", "A");</code>, quanto vale <code>nome</code>?</p>
+<label><input type="radio" name="q3"> <code>"Ana"</code></label>
+<label><input type="radio" name="q3"> <code>"ana"</code>, porque o resultado não foi guardado</label>
+<label><input type="radio" name="q3"> <code>"AnA"</code></label>
+<label><input type="radio" name="q3"> Dá erro, porque <code>nome</code> é <code>const</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>"Pão e pão".replaceAll("pão", "bolo")</code> dá:</p>
+<label><input type="radio" name="q4"> <code>"bolo e bolo"</code></label>
+<label><input type="radio" name="q4"> <code>"Bolo e bolo"</code></label>
+<label><input type="radio" name="q4"> <code>"Pão e bolo"</code></label>
+<label><input type="radio" name="q4"> <code>"Pão e pão"</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual linha apaga todos os espaços de <code>texto</code>?</p>
+<label><input type="radio" name="q5"> <code>texto.replaceAll(" ", "")</code></label>
+<label><input type="radio" name="q5"> <code>texto.replace(" ", "")</code></label>
+<label><input type="radio" name="q5"> <code>texto.replaceAll("", " ")</code></label>
+<label><input type="radio" name="q5"> <code>texto.delete(" ")</code></label>
+</div>
+
+<h3>Missão final: o CPF só com números</h3>
+
+<div class="tryjs" data-goal="out:12345678909;;src:replace">
+<p class="try-task"><strong>Missão:</strong> o cadastro da lojinha recebe o CPF escrito como <code>"123.456.789-09"</code>, mas o sistema quer só os 11 números. Apague todos os pontos e o hífen com <code>replace</code>/<code>replaceAll</code> e mostre o resultado: <code>12345678909</code>.</p>
+<pre class="script" data-file="main.js">const cpf = "123.456.789-09";
+const soNumeros = cpf;
+console.log(soNumeros);
+</pre>
+<pre class="solucao" data-file="main.js">const cpf = "123.456.789-09";
+const soNumeros = cpf.replaceAll(".", "").replace("-", "");
+console.log(soNumeros);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>texto.replace(procurado, novo)</code> troca a <strong>primeira</strong> ocorrência; <code>texto.replaceAll(procurado, novo)</code> <span class="versao">ES2021</span> troca <strong>todas</strong>.</li>
+  <li>As strings são imutáveis: os dois métodos <strong>devolvem uma string nova</strong>. Guarde o resultado numa variável, ou ele se perde.</li>
+  <li>A busca diferencia maiúsculas de minúsculas; se o pedaço não existir, nada muda e não há erro.</li>
+  <li>Para apagar, troque por <code>""</code>. Para várias trocas, encadeie: <code>t.replace(…).replace(…)</code>.</li>
+  <li><code>Number(preco.replace(",", "."))</code> transforma o preço brasileiro <code>"12,50"</code> no número <code>12.5</code>.</li>
+  <li>No texto novo, <code>$$</code> vira um cifrão só e <code>$&amp;</code> é o pedaço encontrado.</li>
+  <li>Erros comuns: <code>replaceAll</code> com regex sem <code>g</code>, <code>replace</code> num número (<code>is not a function</code>) ou em <code>undefined</code> (<code>Cannot read properties of undefined</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
