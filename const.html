@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Constantes (const) — o valor que não muda | Guia JavaScript</title>
+<meta name="description" content="Constantes com const para quem nunca programou: const nome = valor, por que usar const por padrão, o valor obrigatório, Assignment to constant variable, Missing initializer in const declaration, constantes com listas e objetos (o conteúdo pode mudar), Object.freeze, nomes em MAIÚSCULAS e quando usar let, com saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Constantes (const)</span></h1>
+
+<p class="intro">Na aula <a href="variaveis.html">Variáveis (let)</a>, você guardou valores em caixas com etiqueta e trocou o conteúdo delas várias vezes. Mas muitos valores de um programa <strong>não deveriam</strong> mudar nunca: o preço do pão na tabela do dia, a taxa de entrega, o nome da padaria. Para esses existe a <strong>constante</strong>, criada com a palavra <code>const</code> (de <em>constant</em>, "constante", que não muda). Ela é a forma <strong>preferida</strong> de criar variáveis no JavaScript moderno.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar uma constante com <code>const nome = valor;</code> e o que acontece se você tentar mudar o valor dela.</li>
+  <li>Por que o valor é <strong>obrigatório</strong> na hora de criar.</li>
+  <li>Por que a regra dos programadores é "<strong><code>const</code> por padrão, <code>let</code> quando muda</strong>".</li>
+  <li>A pegadinha: uma lista ou um objeto guardado num <code>const</code> <strong>pode</strong> ter o conteúdo alterado.</li>
+  <li>O costume dos nomes em MAIÚSCULAS para valores fixos de configuração.</li>
+  <li>Os erros reais: <code>Assignment to constant variable</code> e <code>Missing initializer in const declaration</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: a placa gravada na parede</h2>
+<p>Na padaria há duas formas de mostrar informação. O quadro-negro do "pão do dia" é apagado e reescrito toda manhã: é uma variável <code>let</code>. Já a placa de metal na porta, com "Padaria Bom Grão — desde 1987", foi <strong>gravada</strong>: ninguém apaga, ninguém reescreve. Se alguém tentar, vai perceber na hora que não dá.</p>
+<p>A constante é a placa gravada: uma caixa com etiqueta, como a variável, mas que recebe o valor <strong>uma vez</strong>, na hora em que é criada, e fica com ele até o fim.</p>
+
+<hr>
+
+<h2>1. Criando uma constante</h2>
+
+<pre class="file" data-file="preco.js">const precoPao = 0.75;
+const quantidade = 6;
+const total = precoPao * quantidade;
+console.log("Total:", total);
+</pre>
+
+<dl class="anatomy">
+  <dt>const</dt><dd>A palavra que cria a constante. Fica no mesmo lugar do <code>let</code>.</dd>
+  <dt>precoPao</dt><dd>O nome (a etiqueta). Duas palavras juntas, a segunda com maiúscula: é o <strong>camelCase</strong>, o costume do JavaScript (veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>).</dd>
+  <dt>= 0.75</dt><dd>O valor, que aqui é <strong>obrigatório</strong>. Uma constante sem valor não teria como recebê-lo depois.</dd>
+  <dt>const total = precoPao * quantidade;</dt><dd>Uma constante pode guardar o resultado de uma conta com outras constantes. O resultado (4.5) é calculado uma vez e fica guardado.</dd>
+</dl>
+
+<pre class="term">$ node preco.js
+Total: 4.5
+</pre>
+
+<p>Para <strong>usar</strong> uma constante, nada muda: você escreve o nome e o JavaScript põe o valor no lugar. A diferença só aparece quando alguém tenta <strong>trocar</strong> o valor.</p>
+
+<hr>
+
+<h2>2. Tentando mudar: o JavaScript não deixa</h2>
+
+<pre class="file" data-file="mudar.js">const precoPao = 0.75;
+console.log("Preço:", precoPao);
+precoPao = 0.8;
+console.log("Preço novo:", precoPao);
+</pre>
+
+<pre class="term">$ node mudar.js
+Preço: 0.75
+/home/ana/mudar.js:3
+precoPao = 0.8;
+         ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/mudar.js:3:10)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Preço: 0.75</dt><dd>A linha 2 rodou normalmente: o programa começou e só parou quando chegou ao problema.</dd>
+  <dt>/home/ana/mudar.js:3</dt><dd>O erro está na linha 3 do arquivo <code>mudar.js</code>.</dd>
+  <dt>precoPao = 0.8; e o ^</dt><dd>A linha copiada, com a setinha embaixo do <code>=</code>: o problema é a atribuição.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Erro de tipo: atribuição a uma variável constante". Traduzindo: "você tentou pôr um valor novo numa constante".</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/mudar.js:3:10)</dt><dd>Linha 3, coluna 10 (a posição do <code>=</code>).</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>O <code>Preço novo</code> nunca apareceu: o erro parou o programa na linha 3.</p>
+
+<h3>Esse erro é uma ajuda, não um castigo</h3>
+<p>Parece estranho querer uma caixa que não pode mudar. Mas pense no programa do caixa da padaria, com 500 linhas. Se o preço do pão estiver num <code>const</code>, você tem uma <strong>garantia</strong>: em nenhuma das 500 linhas alguém trocou esse valor sem querer. Se alguém tentar, o programa avisa na hora, com o número da linha. Com <code>let</code>, o valor poderia ter mudado em qualquer lugar, e você teria de ler tudo para descobrir.</p>
+
+<h3>No modo interativo</h3>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const taxa = 5
+undefined
+&gt; taxa
+5
+&gt; taxa = 6
+Uncaught TypeError: Assignment to constant variable.
+&gt; taxa
+5
+&gt; taxa + 1
+6
+&gt; .exit
+</pre>
+
+<p>Depois do erro, a constante continua com o valor antigo (5). E <code>taxa + 1</code> funciona: <strong>usar</strong> o valor numa conta não muda a constante, só <strong>guardar</strong> outro valor nela é proibido.</p>
+
+<div class="tryjs" data-goal="out:Total: 7.5;;semerro;;src:\bconst\s+quantidade\s*=\s*10\b">
+<p class="try-task"><strong>Missão:</strong> rode o programa e veja o erro. Ele tenta mudar a quantidade de 6 para 10, mas ela é uma constante. Conserte do jeito certo: se a quantidade é 10, crie a constante <strong>já com 10</strong> (e apague a linha que tenta mudar).</p>
+<pre class="script" data-file="main.js">const precoPao = 0.75;
+const quantidade = 6;
+quantidade = 10;
+const total = precoPao * quantidade;
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const precoPao = 0.75;
+const quantidade = 10;
+const total = precoPao * quantidade;
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O valor é obrigatório</h2>
+<p>Com <code>let</code>, dá para criar a caixa vazia e encher depois. Com <code>const</code>, não:</p>
+
+<pre class="file" data-file="semvalor.js">const troco;
+troco = 2.5;
+</pre>
+
+<pre class="term">$ node semvalor.js
+/home/ana/semvalor.js:1
+const troco;
+      ^^^^^
+
+SyntaxError: Missing initializer in const declaration
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Erro de sintaxe: falta o inicializador na declaração <code>const</code>". <em>Inicializador</em> é o <code>= valor</code>. Faz sentido: se a constante nascesse vazia, ela ficaria vazia para sempre. É um erro de <strong>sintaxe</strong>, então o Node o encontra antes de rodar qualquer linha. <strong>Como consertar:</strong> dê o valor na mesma linha (<code>const troco = 2.5;</code>), ou use <code>let</code> se o valor só vai ser conhecido depois.</p>
+
+<hr>
+
+<h2>4. <code>const</code> por padrão, <code>let</code> quando muda</h2>
+<p>Esta é a regra que os programadores de JavaScript seguem, e que este guia segue em todos os exemplos:</p>
+<ol class="passo">
+  <li>Comece criando tudo com <code>const</code>.</li>
+  <li>Se o valor <strong>precisar</strong> mudar (um contador, um total que vai somando, o saldo), troque aquela variável para <code>let</code>.</li>
+  <li>Nunca use <code>var</code> (o motivo está na próxima aula, <a href="var.html">var: o Jeito Antigo</a>).</li>
+</ol>
+
+<p>Na prática, a maior parte das variáveis de um programa acaba sendo <code>const</code>. Veja um programa com as duas: o preço não muda, a quantidade vai somando, e o total é calculado uma vez, no fim:</p>
+
+<pre class="file" data-file="mistura.js">const preco = 0.75;
+let quantidade = 0;
+quantidade = quantidade + 6;
+quantidade = quantidade + 4;
+const total = preco * quantidade;
+console.log(quantidade, "pães custam", total);
+</pre>
+
+<pre class="term">$ node mistura.js
+10 pães custam 7.5
+</pre>
+
+<p>Quem lê esse código entende muito só de olhar as palavras: <code>let quantidade</code> avisa "atenção, esta muda mais adiante"; <code>const</code> avisa "esta fica como está".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>const</code></th><th><code>let</code></th></tr>
+<tr><td>Pode receber outro valor depois?</td><td>Não (<code>TypeError: Assignment to constant variable.</code>)</td><td>Sim</td></tr>
+<tr><td>Precisa de valor na criação?</td><td>Sim (<code>SyntaxError: Missing initializer…</code>)</td><td>Não (fica <code>undefined</code>)</td></tr>
+<tr><td>Pode ser criada duas vezes com o mesmo nome?</td><td>Não</td><td>Não</td></tr>
+<tr><td>Vale só dentro do bloco <code>{ }</code>?</td><td>Sim</td><td>Sim</td></tr>
+<tr><td>Quando usar</td><td><strong>Por padrão</strong></td><td>Quando o valor muda</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. A pegadinha: listas e objetos num <code>const</code></h2>
+<p>Até aqui, as constantes guardaram números. Com uma <strong>lista</strong> (um array, entre <code>[ ]</code>, assunto de <a href="arrays.html">Arrays</a>) acontece uma coisa que surpreende:</p>
+
+<pre class="file" data-file="lista.js">const compras = ["pão", "leite"];
+compras.push("café");
+console.log(compras);
+compras[0] = "pão integral";
+console.log(compras);
+</pre>
+
+<pre class="term">$ node lista.js
+[ 'pão', 'leite', 'café' ]
+[ 'pão integral', 'leite', 'café' ]
+</pre>
+
+<p>A lista era <code>const</code> e, mesmo assim, ganhou um item (o <code>push</code> acrescenta no fim) e teve o primeiro item trocado. Nenhum erro. Por quê?</p>
+<p>Porque o <code>const</code> proíbe trocar <strong>o que está na caixa</strong>, e o que está na caixa <code>compras</code> é <strong>a lista</strong>, a mesma lista do começo ao fim. Escrever <strong>dentro</strong> da lista não troca a lista por outra. É como uma prancheta presa à parede com parafuso: você não consegue trocar a prancheta (o <code>const</code>), mas pode escrever e apagar na folha dela à vontade.</p>
+
+<p>Trocar a prancheta inteira, isso o <code>const</code> não deixa:</p>
+
+<pre class="file" data-file="lista2.js">const compras = ["pão", "leite"];
+compras = ["banana"];
+</pre>
+
+<pre class="term">$ node lista2.js
+/home/ana/lista2.js:2
+compras = ["banana"];
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/lista2.js:2:9)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>Com um <strong>objeto</strong> (pares "nome: valor" entre <code>{ }</code>, assunto de <a href="objetos.html">Objetos</a>) é igual: os campos podem mudar.</p>
+
+<pre class="file" data-file="cliente.js">const cliente = { nome: "Ana", pontos: 10 };
+cliente.pontos = cliente.pontos + 5;
+console.log(cliente);
+</pre>
+
+<pre class="term">$ node cliente.js
+{ nome: 'Ana', pontos: 15 }
+</pre>
+
+<div class="tip">
+<strong>E se eu quiser travar o conteúdo também?</strong>
+<p>Existe o <code>Object.freeze</code> ("congelar"). Um objeto congelado não aceita mudanças nos campos:</p>
+<pre class="file" data-file="congelado.js">const cliente = Object.freeze({ nome: "Ana", pontos: 10 });
+cliente.pontos = 99;
+console.log(cliente);
+</pre>
+<pre class="term">$ node congelado.js
+{ nome: 'Ana', pontos: 10 }
+</pre>
+<p>Os pontos continuaram 10. Repare que <strong>não apareceu erro</strong>: a mudança foi ignorada em silêncio. (No modo estrito, com <code>"use strict";</code> no começo do arquivo, ela vira erro: no lab saiu <code>TypeError: Cannot assign to read only property 'pontos' of object '#&lt;Object&gt;'</code>, "não é possível atribuir à propriedade somente-leitura <code>pontos</code>".) O assunto completo está em <a href="imutabilidade.html">Imutabilidade</a>.</p>
+</div>
+
+<hr>
+
+<h2>6. Nomes em MAIÚSCULAS para valores fixos</h2>
+<p>Muitos programadores escrevem em <strong>MAIÚSCULAS</strong>, com as palavras separadas por <code>_</code>, as constantes que são <strong>configurações fixas</strong> do programa, conhecidas antes de ele rodar: a taxa de entrega, o pedido mínimo, o número máximo de tentativas.</p>
+
+<pre class="file" data-file="taxa.js">const TAXA_ENTREGA = 5;
+const PEDIDO_MINIMO = 20;
+const valorPedido = 32.5;
+const totalComEntrega = valorPedido + TAXA_ENTREGA;
+console.log("Pedido mínimo:", PEDIDO_MINIMO);
+console.log("Total com entrega:", totalComEntrega);
+</pre>
+
+<pre class="term">$ node taxa.js
+Pedido mínimo: 20
+Total com entrega: 37.5
+</pre>
+
+<p>Repare: <code>valorPedido</code> e <code>totalComEntrega</code> também são <code>const</code>, mas ficam em camelCase, porque são <strong>dados</strong> do programa (num programa de verdade, viriam do pedido do cliente). As MAIÚSCULAS ficam para os números "da tabela" que a padaria decidiu. Isso é só um costume; o JavaScript trata os dois do mesmo jeito.</p>
+
+<hr>
+
+<h2>7. Cada bloco, as suas constantes</h2>
+<p>Como o <code>let</code>, uma <code>const</code> criada dentro de um bloco <code>{ }</code> só existe ali dentro. Por isso, uma constante de mesmo nome dentro de um bloco é <strong>outra caixa</strong>, que não mexe na de fora:</p>
+
+<pre class="file" data-file="bloco.js">const cor = "azul";
+{
+  const cor = "verde";
+  console.log("Dentro:", cor);
+}
+console.log("Fora:", cor);
+</pre>
+
+<pre class="term">$ node bloco.js
+Dentro: verde
+Fora: azul
+</pre>
+
+<p>Isso vai ser importante nos laços: em <a href="for-of.html">for…of</a>, por exemplo, cada volta cria a sua própria <code>const</code> com o item da vez. Mas evite repetir nomes assim de propósito: fica confuso de ler.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O mesmo programa da compra, de dois jeitos. Os dois mostram <code>Total: 4.5</code>:</p>
+
+<pre class="file" data-file="com-let.js">let preco = 0.75;          // funciona, mas promete que vai mudar
+let quantidade = 6;
+let total = preco * quantidade;
+console.log("Total:", total);
+</pre>
+
+<pre class="file" data-file="com-const.js">const preco = 0.75;        // melhor: nada aqui muda
+const quantidade = 6;
+const total = preco * quantidade;
+console.log("Total:", total);
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O valor…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>é fixo e conhecido antes de o programa rodar</td><td><code>const</code> em MAIÚSCULAS</td><td><code>const TAXA_ENTREGA = 5;</code></td></tr>
+<tr><td>é calculado uma vez e não muda mais</td><td><code>const</code></td><td><code>const total = preco * quantidade;</code></td></tr>
+<tr><td>é uma lista ou objeto que vai ganhar itens</td><td><code>const</code> (o conteúdo pode mudar)</td><td><code>const compras = [];</code></td></tr>
+<tr><td>vai receber outro valor (contador, acumulador, saldo)</td><td><code>let</code></td><td><code>let pontos = 0;</code></td></tr>
+<tr><td>—</td><td>nunca <code>var</code></td><td>(aula <a href="var.html">var</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou mudar uma constante (com <code>=</code> ou com <code>++</code>)</strong>
+<pre class="file" data-file="mais.js">const contador = 0;
+contador++;
+</pre>
+<pre class="term">$ node mais.js
+/home/ana/mais.js:2
+contador++;
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/mais.js:2:9)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>++</code> (some 1; veja <a href="incremento.html">Incremento e Decremento</a>) também é uma atribuição disfarçada: <code>contador++</code> quer dizer <code>contador = contador + 1</code>. A mensagem é a mesma do <code>=</code>. <strong>Como consertar:</strong> um contador muda, então ele é <code>let</code>: <code>let contador = 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou a constante sem valor</strong>
+<p>É o <code>SyntaxError: Missing initializer in const declaration</code> da seção 3. <strong>Como consertar:</strong> <code>const nome = valor;</code> na mesma linha, ou <code>let</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou duas constantes com o mesmo nome</strong>
+<pre class="file" data-file="duas.js">const nome = "Ana";
+const nome = "Bia";
+</pre>
+<pre class="term">$ node duas.js
+/home/ana/duas.js:2
+const nome = "Bia";
+      ^
+
+SyntaxError: Identifier 'nome' has already been declared
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>O mesmo erro do <code>let</code> repetido: "o identificador <code>nome</code> já foi declarado". <strong>Como consertar:</strong> use outro nome (<code>nomeCliente</code>, <code>nomeAtendente</code>), ou, se o valor precisa mudar mesmo, um <code>let</code> só, e depois <code>nome = "Bia";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>const</code> protege o conteúdo da lista</strong>
+<p>Não protege: <code>compras.push("café")</code> e <code>cliente.pontos = 15</code> funcionam numa constante, sem erro nenhum (seção 5). O <code>const</code> só impede <code>compras = outraCoisa</code>. Para travar o conteúdo, use <code>Object.freeze</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Pontos: 30;;semerro;;src:\blet\s+pontos\b">
+<p class="try-task"><strong>Missão:</strong> o programa do cartão fidelidade da padaria não roda. Descubra qual das duas variáveis precisa mudar de valor, troque o <code>const</code> dela por <code>let</code> (só dela!) e rode até aparecer <code>Pontos: 30</code>.</p>
+<pre class="script" data-file="main.js">const PONTOS_POR_COMPRA = 10;
+const pontos = 0;
+pontos = pontos + PONTOS_POR_COMPRA;
+pontos = pontos + PONTOS_POR_COMPRA;
+pontos = pontos + PONTOS_POR_COMPRA;
+console.log("Pontos:", pontos);
+</pre>
+<pre class="solucao" data-file="main.js">const PONTOS_POR_COMPRA = 10;
+let pontos = 0;
+pontos = pontos + PONTOS_POR_COMPRA;
+pontos = pontos + PONTOS_POR_COMPRA;
+pontos = pontos + PONTOS_POR_COMPRA;
+console.log("Pontos:", pontos);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const nome = valor;</code></td><td>Cria uma constante: o valor fica para sempre</td></tr>
+<tr><td><code>const TAXA_ENTREGA = 5;</code></td><td>Costume: MAIÚSCULAS para valores fixos de configuração</td></tr>
+<tr><td><code>nome = outro;</code> (numa <code>const</code>)</td><td><code>TypeError: Assignment to constant variable.</code></td></tr>
+<tr><td><code>const nome;</code></td><td><code>SyntaxError: Missing initializer in const declaration</code></td></tr>
+<tr><td><code>const lista = []; lista.push(1);</code></td><td>Funciona: muda o conteúdo, não a lista</td></tr>
+<tr><td><code>Object.freeze(objeto)</code></td><td>Trava os campos do objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>A taxa de entrega nunca muda; o total do carrinho vai somando. Complete com <code>const</code> ou <code>let</code>:</p>
+<div class="ex-code"><input data-answer="const" aria-label="palavra para a taxa"> TAXA_ENTREGA = 5;<br><input data-answer="let" aria-label="palavra para o total"> totalCarrinho = 0;<br>totalCarrinho = totalCarrinho + 12;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Funciona ou dá erro?</h3>
+<p><code>const compras = ["pão"];</code> / <code>compras.push("leite");</code> / <code>console.log(compras.length);</code> (o <code>length</code> é a quantidade de itens). O que aparece?</p>
+<div class="ex-code">Aparece <input data-answer="2" aria-label="o que aparece"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual destas linhas dá <code>TypeError: Assignment to constant variable.</code>, se <code>const n = 1;</code>?</p>
+<label><input type="radio" name="q3"> <code>console.log(n + 1);</code></label>
+<label><input type="radio" name="q3"> <code>const m = n + 1;</code></label>
+<label><input type="radio" name="q3"> <code>console.log(n);</code></label>
+<label><input type="radio" name="q3"> <code>n = n + 1;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Por que se usa <code>const</code> por padrão?</p>
+<label><input type="radio" name="q4"> Porque garante que o valor não foi trocado em nenhum outro ponto do programa, e o erro aparece na hora se alguém tentar</label>
+<label><input type="radio" name="q4"> Porque <code>const</code> deixa o programa mais rápido</label>
+<label><input type="radio" name="q4"> Porque <code>let</code> não funciona no Node</label>
+<label><input type="radio" name="q4"> Porque <code>const</code> aceita ser criada sem valor</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que mostra <code>const c = { pontos: 1 };</code> / <code>c.pontos = 2;</code> / <code>console.log(c.pontos);</code>?</p>
+<label><input type="radio" name="q5"> <code>1</code></label>
+<label><input type="radio" name="q5"> <code>TypeError: Assignment to constant variable.</code></label>
+<label><input type="radio" name="q5"> <code>2</code></label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+</div>
+
+<h3>Missão final: o pedido com entrega</h3>
+
+<div class="tryjs" data-goal="out:Total do pedido: 37.5;;src:\bconst\s+TAXA_ENTREGA\s*=\s*5\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> crie a constante <code>TAXA_ENTREGA</code> valendo 5 e a constante <code>total</code>, que é <code>valorPedido</code> mais a taxa. O programa tem de mostrar <code>Total do pedido: 37.5</code>. Nada aqui muda de valor: use só <code>const</code>.</p>
+<pre class="script" data-file="main.js">const valorPedido = 32.5;
+// crie TAXA_ENTREGA e total aqui
+
+console.log("Total do pedido:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const valorPedido = 32.5;
+// crie TAXA_ENTREGA e total aqui
+const TAXA_ENTREGA = 5;
+const total = valorPedido + TAXA_ENTREGA;
+console.log("Total do pedido:", total);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Total do pedido: 37.5</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>const nome = valor;</code> cria uma <strong>constante</strong>: ela recebe o valor uma vez e não aceita outro (<code>TypeError: Assignment to constant variable.</code>).</li>
+  <li>O valor é obrigatório na criação (<code>SyntaxError: Missing initializer in const declaration</code>).</li>
+  <li>A regra: <strong><code>const</code> por padrão, <code>let</code> quando o valor muda, <code>var</code> nunca</strong>. A constante dá uma garantia a quem lê o código.</li>
+  <li>Uma lista ou objeto num <code>const</code> pode ter o <strong>conteúdo</strong> alterado (<code>push</code>, trocar um campo); o que não pode é pôr outra lista no lugar. <code>Object.freeze</code> trava o conteúdo.</li>
+  <li>Valores fixos de configuração costumam ter nome em MAIÚSCULAS: <code>TAXA_ENTREGA</code>.</li>
+  <li>Como o <code>let</code>, a <code>const</code> só existe dentro do seu bloco <code>{ }</code> e não pode ser criada duas vezes com o mesmo nome.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
