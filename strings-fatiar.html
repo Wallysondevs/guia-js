@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Pedaços de String — slice e at | Guia JavaScript</title>
+<meta name="description" content="Como pegar pedaços de um texto no JavaScript, para quem nunca programou: slice(início, fim) com o fim que não entra, slice(início) até o final, posições negativas (os últimos caracteres), at(-1) para o último caractere, o nome antes do @ com slice e indexOf, primeira letra maiúscula, cortar textos longos com …, substring e charAt em código antigo, e os erros reais do Node.js 24 (nome[-1], slice com colchetes, o -1 do indexOf que corta a última letra).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Pedaços de String</span></h1>
+
+<p class="intro">Na aula anterior, você descobriu <strong>onde</strong> um pedaço está dentro de um texto. Agora vem o passo seguinte: <strong>recortar</strong> esse pedaço. Pegar os 3 primeiros caracteres do código do produto, o nome do usuário antes do <code>@</code>, a extensão do arquivo, a última letra de uma palavra. Para isso, as strings têm o <code>slice</code> ("fatia") e o <code>at</code> ("na posição").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>slice(início, fim)</code>: a fatia entre duas posições, e por que o <strong>fim não entra</strong>.</li>
+  <li><code>slice(início)</code>: do início até o final do texto.</li>
+  <li>Posições <strong>negativas</strong>: contar a partir do fim (<code>slice(-3)</code>, os 3 últimos).</li>
+  <li><code>at(posição)</code>: um caractere só, com <code>at(-1)</code> para o último.</li>
+  <li>Receitas do dia a dia: o nome antes do <code>@</code>, a primeira letra maiúscula, cortar um texto comprido com <code>…</code>.</li>
+  <li>O que são <code>substring</code> e <code>charAt</code>, que aparecem em código antigo.</li>
+  <li>Os erros reais: <code>nome[-1]</code>, <code>slice</code> com colchetes, e o <code>-1</code> do <code>indexOf</code> que corta uma letra sem você perceber.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: cortar a fita métrica</h2>
+<p>Imagine o texto escrito numa fita, uma letra em cada quadradinho, e uma régua por cima marcando as <strong>divisas</strong> entre os quadradinhos: a divisa 0 antes da primeira letra, a 1 depois dela, e assim por diante.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Divisa (posição)</th><td>0</td><td></td><td>1</td><td></td><td>2</td><td></td><td>3</td><td></td><td>4</td><td></td><td>5</td><td></td><td>6</td></tr>
+<tr><th>Letra de <code>"padoca"</code></th><td></td><td>p</td><td></td><td>a</td><td></td><td>d</td><td></td><td>o</td><td></td><td>c</td><td></td><td>a</td><td></td></tr>
+</table>
+</div>
+
+<p>Para recortar, você diz em <strong>qual divisa</strong> a tesoura entra e em qual ela sai. Cortando na divisa 0 e na 3, sai <code>pad</code>. É por isso que, no <code>slice(0, 3)</code>, a letra da posição 3 (o <code>o</code>) <strong>não entra</strong>: a tesoura passa antes dela. Um bônus dessa ideia: o tamanho da fatia é sempre <strong>fim − início</strong> (3 − 0 = 3 letras).</p>
+
+<hr>
+
+<h2>1. <code>slice(início, fim)</code></h2>
+
+<pre class="file" data-file="fatiar.js">const palavra = "padoca";
+
+console.log(palavra.slice(0, 3));
+console.log(palavra.slice(3, 6));
+console.log(palavra.slice(1, 2));
+console.log(palavra.slice(2));
+console.log(palavra.slice(0));
+console.log(palavra);
+</pre>
+
+<pre class="term">$ node fatiar.js
+pad
+oca
+a
+doca
+padoca
+padoca
+</pre>
+
+<dl class="anatomy">
+  <dt>slice(0, 3)</dt><dd>Da posição 0 até <strong>antes</strong> da 3: <code>p</code>, <code>a</code>, <code>d</code>.</dd>
+  <dt>slice(3, 6)</dt><dd>Da 3 até antes da 6 (o tamanho do texto): <code>oca</code>.</dd>
+  <dt>slice(1, 2)</dt><dd>Uma letra só: a da posição 1.</dd>
+  <dt>slice(2)</dt><dd>Sem o segundo número, vai <strong>até o fim</strong> do texto.</dd>
+  <dt>slice(0)</dt><dd>Do começo ao fim: uma cópia do texto inteiro.</dd>
+  <dt>console.log(palavra)</dt><dd>O original continua <code>padoca</code>: o <code>slice</code> devolve um texto <strong>novo</strong>, como todos os métodos de string (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+</dl>
+
+<h3>Exemplo real: o código do produto</h3>
+<p>Na padaria, cada produto tem um código como <code>PAO-2026-0042</code>: 3 letras do tipo, o ano e o número. Como o formato é fixo, as posições também são:</p>
+
+<pre class="file" data-file="codigo.js">const codigo = "PAO-2026-0042";
+
+const tipo = codigo.slice(0, 3);
+const ano = codigo.slice(4, 8);
+const numero = codigo.slice(9);
+
+console.log("Tipo:", tipo);
+console.log("Ano:", ano);
+console.log("Número:", numero);
+</pre>
+
+<pre class="term">$ node codigo.js
+Tipo: PAO
+Ano: 2026
+Número: 0042
+</pre>
+
+<p>O ano é <code>slice(4, 8)</code>: começa depois do primeiro hífen (que está na posição 3) e tem 4 dígitos (8 − 4 = 4). Repare que o <code>numero</code> continua texto (<code>"0042"</code>, com os zeros); para fazer conta com ele, converta com <code>Number()</code> (veja <a href="conversao.html">Conversão</a>).</p>
+
+<div class="tryjs" data-goal="out:Sabor: CHOC;;out:Tamanho: G;;src:slice">
+<p class="try-task"><strong>Missão:</strong> os bolos têm código no formato <code>BOLO-CHOC-G</code>: tipo, sabor (4 letras) e tamanho (1 letra). Use <code>slice</code> para separar o sabor e o tamanho. Deve aparecer <code>Sabor: CHOC</code> e <code>Tamanho: G</code>.</p>
+<pre class="script" data-file="main.js">const codigo = "BOLO-CHOC-G";
+const sabor = codigo;
+const tamanho = codigo;
+console.log("Sabor:", sabor);
+console.log("Tamanho:", tamanho);
+</pre>
+<pre class="solucao" data-file="main.js">const codigo = "BOLO-CHOC-G";
+const sabor = codigo.slice(5, 9);
+const tamanho = codigo.slice(10);
+console.log("Sabor:", sabor);
+console.log("Tamanho:", tamanho);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Posições negativas: contando do fim</h2>
+<p>No <code>slice</code>, um número <strong>negativo</strong> conta a partir do <strong>fim</strong> do texto: <code>-1</code> é a última divisa antes do fim, <code>-3</code> é três letras antes do fim. É o jeito fácil de pegar "os últimos" sem saber o tamanho do texto:</p>
+
+<pre class="file" data-file="negativo.js">const arquivo = "cardapio.pdf";
+const telefone = "81999990042";
+
+console.log(arquivo.slice(-3));
+console.log(arquivo.slice(0, -4));
+console.log(telefone.slice(-4));
+console.log("final: " + telefone.slice(-4).padStart(telefone.length, "*"));
+</pre>
+
+<pre class="term">$ node negativo.js
+pdf
+cardapio
+0042
+final: *******0042
+</pre>
+
+<dl class="anatomy">
+  <dt>slice(-3)</dt><dd>As 3 últimas letras: a extensão do arquivo.</dd>
+  <dt>slice(0, -4)</dt><dd>Do começo até 4 antes do fim: o nome do arquivo sem o <code>.pdf</code>.</dd>
+  <dt>slice(-4).padStart(…, "*")</dt><dd>Os 4 últimos dígitos do telefone, completados com <code>*</code> à esquerda até o tamanho original (o <code>padStart</code> é da aula <a href="strings-metodos.html">Métodos de String</a>). É assim que os sites mostram "cartão final 0042".</dd>
+</dl>
+
+<hr>
+
+<h2>3. Um caractere só: <code>at()</code></h2>
+<p>Para pegar <strong>um</strong> caractere, você já conhece os colchetes: <code>nome[0]</code>. O <code>at</code> faz o mesmo, com uma vantagem: ele aceita posições negativas.</p>
+
+<pre class="file" data-file="at.js">const nome = "Caio";
+
+console.log(nome.at(0));
+console.log(nome.at(1));
+console.log(nome.at(-1));
+console.log(nome.at(-2));
+console.log(nome[nome.length - 1]);
+console.log(nome.at(10));
+</pre>
+
+<pre class="term">$ node at.js
+C
+a
+o
+i
+o
+undefined
+</pre>
+
+<p><code>at(-1)</code> é o último caractere, <code>at(-2)</code> o penúltimo. Antes do <code>at</code>, o jeito era <code>nome[nome.length - 1]</code>, que dá o mesmo resultado com mais esforço. Posição que não existe dá <code>undefined</code>, sem erro. O <code>at</code> é do <span class="versao">ES2022</span> e funciona em qualquer Node atual.</p>
+
+<hr>
+
+<h2>4. Receitas do dia a dia</h2>
+
+<h3>O nome antes do <code>@</code></h3>
+<p>Juntando o <code>indexOf</code> da aula <a href="strings-buscar.html">Procurando em Strings</a> com o <code>slice</code>: primeiro você <strong>acha</strong> a posição, depois <strong>corta</strong> nela.</p>
+
+<pre class="file" data-file="email.js">const email = "bia.lima@padaria.com.br";
+const arroba = email.indexOf("@");
+
+const usuario = email.slice(0, arroba);
+const dominio = email.slice(arroba + 1);
+
+console.log("Posição do @:", arroba);
+console.log("Usuário:", usuario);
+console.log("Domínio:", dominio);
+</pre>
+
+<pre class="term">$ node email.js
+Posição do @: 8
+Usuário: bia.lima
+Domínio: padaria.com.br
+</pre>
+
+<p>O <code>slice(0, arroba)</code> pega tudo <strong>antes</strong> do <code>@</code> (o fim não entra, e aqui isso é ótimo: o <code>@</code> fica de fora). O <code>slice(arroba + 1)</code> começa <strong>um depois</strong> do <code>@</code> e vai até o fim.</p>
+
+<h3>A primeira letra maiúscula</h3>
+
+<pre class="file" data-file="capitalizar.js">const nome = "bia";
+const bonito = nome.at(0).toUpperCase() + nome.slice(1);
+console.log(bonito);
+</pre>
+
+<pre class="term">$ node capitalizar.js
+Bia
+</pre>
+
+<p>A primeira letra em maiúscula (<code>"B"</code>) emendada com o resto a partir da posição 1 (<code>"ia"</code>). O JavaScript não tem um método pronto para isso: essa combinação é o jeito de sempre.</p>
+
+<h3>Cortar um texto comprido</h3>
+
+<pre class="file" data-file="resumo.js">const recado = "Encomenda de 3 bolos de cenoura com cobertura de chocolate para sábado";
+const curto = recado.slice(0, 30) + "…";
+console.log(curto);
+console.log("Oi".slice(0, 30));
+</pre>
+
+<pre class="term">$ node resumo.js
+Encomenda de 3 bolos de cenour…
+Oi
+</pre>
+
+<p>Se o texto for menor que o corte, o <code>slice</code> simplesmente devolve o que tem, sem erro: <code>"Oi".slice(0, 30)</code> é <code>"Oi"</code>. (Para pôr o <code>…</code> só quando o texto foi cortado de verdade, você vai precisar de um <a href="if.html">if</a>.)</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque o texto e os números do <code>slice</code>. Teste números negativos, um início maior que o fim, e números maiores que o tamanho do texto.</p>
+<pre class="script" data-file="main.js">const texto = "pão de queijo";
+console.log(texto.slice(0, 3));
+console.log(texto.slice(7));
+console.log(texto.slice(-6));
+console.log(texto.at(-1));
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Em código antigo você vai encontrar outros métodos que fazem quase o mesmo:</p>
+
+<pre class="file" data-file="formas.js">const nome = "padoca";
+
+console.log(nome.slice(0, 3), nome.substring(0, 3));
+console.log(nome.slice(-3), nome.substring(-3));
+console.log(nome.at(0), nome.charAt(0), nome[0]);
+console.log(nome.at(-1), nome.charAt(-1), nome[-1]);
+</pre>
+
+<pre class="term">$ node formas.js
+pad pad
+oca padoca
+p p p
+a  undefined
+</pre>
+
+<ul>
+  <li><code>substring(início, fim)</code> é igual ao <code>slice</code> com números positivos. Mas ele <strong>não entende negativos</strong>: trata <code>-3</code> como <code>0</code> e devolveu o texto inteiro.</li>
+  <li><code>charAt(posição)</code> ("caractere na") é o <code>at</code> antigo: com <code>-1</code>, devolve a string vazia (o espaço em branco depois do <code>a</code> na última linha).</li>
+  <li><code>nome[-1]</code> dá <code>undefined</code>: os colchetes também não entendem negativos (veja <a href="#errado">Quando dá errado</a>).</li>
+  <li>Existe ainda o <code>substr(início, quantidade)</code>, marcado como <strong>obsoleto</strong> na documentação: não use em código novo.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um pedaço entre duas posições</td><td><code>texto.slice(início, fim)</code></td></tr>
+<tr><td>Do início até o fim</td><td><code>texto.slice(início)</code></td></tr>
+<tr><td>Os últimos N caracteres</td><td><code>texto.slice(-N)</code></td></tr>
+<tr><td>Tudo menos os últimos N</td><td><code>texto.slice(0, -N)</code></td></tr>
+<tr><td>Um caractere, contando do começo</td><td><code>texto[i]</code> ou <code>texto.at(i)</code></td></tr>
+<tr><td>Um caractere, contando do fim</td><td><code>texto.at(-1)</code>, <code>texto.at(-2)</code>…</td></tr>
+<tr><td>Antes / depois de um separador</td><td><code>slice(0, pos)</code> / <code>slice(pos + 1)</code> com <code>pos = texto.indexOf(…)</code> (ou o <code>split</code>, na <a href="strings-split.html">próxima aula</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>nome[-1]</code>: os colchetes não contam do fim</strong>
+<pre class="file" data-file="negativo-colchete.js">const nome = "Caio";
+console.log(nome[-1]);
+console.log(nome.at(-1));
+</pre>
+<pre class="term">$ node negativo-colchete.js
+undefined
+o
+</pre>
+<p>Quem vem do Python espera que <code>nome[-1]</code> seja a última letra. No JavaScript, os colchetes procuram uma posição chamada literalmente <code>-1</code>, que não existe: <code>undefined</code>, sem erro. <strong>Como consertar:</strong> <code>nome.at(-1)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Não achou o separador, e o <code>-1</code> cortou uma letra</strong>
+<pre class="file" data-file="semarroba.js">const email = "biapadaria.com";
+const arroba = email.indexOf("@");
+console.log("Posição:", arroba);
+console.log("Usuário:", email.slice(0, arroba));
+</pre>
+<pre class="term">$ node semarroba.js
+Posição: -1
+Usuário: biapadaria.co
+</pre>
+<p>O e-mail veio sem <code>@</code>. O <code>indexOf</code> devolveu <code>-1</code> ("não achei"), e o <code>slice(0, -1)</code> entendeu isso como "até 1 antes do fim": cortou o <code>m</code> e devolveu um "usuário" sem sentido. Nenhum erro na tela. <strong>Como consertar:</strong> antes de cortar, confira se achou (<code>email.includes("@")</code>, ou <code>arroba !== -1</code>) e trate o caso com um <a href="if.html">if</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Colchetes no lugar dos parênteses</strong>
+<pre class="file" data-file="colchetes.js">const nome = "padoca";
+console.log(nome.slice[0, 3]);
+console.log(nome.slice(0, 3));
+</pre>
+<pre class="term">$ node colchetes.js
+undefined
+pad
+</pre>
+<p>Com colchetes, você não chamou o método: pediu "a posição 3 do <code>slice</code>" (o <code>0, 3</code> entre colchetes vale só o último número). O método não tem isso, e veio <code>undefined</code>. <strong>Como consertar:</strong> métodos usam parênteses: <code>slice(0, 3)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Início maior que o fim</strong>
+<pre class="file" data-file="invertido.js">const palavra = "padoca";
+console.log(`[${palavra.slice(4, 1)}]`);
+console.log(`[${palavra.slice(1, 4)}]`);
+</pre>
+<pre class="term">$ node invertido.js
+[]
+[ado]
+</pre>
+<p>Com o início depois do fim, o <code>slice</code> não "vira" o pedaço: devolve a <strong>string vazia</strong> (por isso os colchetes vazios). <strong>Como consertar:</strong> o primeiro número é sempre o da esquerda: <code>slice(1, 4)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Fatiou algo que não era texto</strong>
+<pre class="file" data-file="semtexto.js">let apelido;
+console.log(apelido.slice(0, 3));
+</pre>
+<pre class="term">$ node semtexto.js
+/home/ana/semtexto.js:2
+console.log(apelido.slice(0, 3));
+                    ^
+
+TypeError: Cannot read properties of undefined (reading 'slice')
+    at Object.&lt;anonymous&gt; (/home/ana/semtexto.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semtexto.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>^</dt><dd>A setinha embaixo do ponto antes de <code>slice</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'slice')</dt><dd>"Erro de tipo: não dá para ler propriedades de <code>undefined</code> (lendo <code>slice</code>)." A variável <code>apelido</code> foi criada sem valor; <code>undefined</code> não é texto e não tem <code>slice</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/semtexto.js:2:21)</dt><dd>Linha 2, coluna 21. As linhas <code>at</code> seguintes são de dentro do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> garanta que a variável tem um texto antes de fatiar (<code>let apelido = "";</code>), ou proteja com <code>apelido?.slice(0, 3)</code> (aula <a href="optional-chaining.html">?. e ??</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Usuário: caio;;semerro;;src:indexOf">
+<p class="try-task"><strong>Missão:</strong> o programa devia mostrar o nome de usuário do e-mail, mas usou a posição errada e mostra <code>Usuário: caio@</code>. Use o <code>indexOf</code> para achar a posição do <code>@</code> e corte certo, até aparecer <code>Usuário: caio</code>. Depois, teste com outros e-mails: a sua solução tem de funcionar para qualquer um.</p>
+<pre class="script" data-file="main.js">const email = "caio@email.com";
+const usuario = email.slice(0, 5);
+console.log(`Usuário: ${usuario}`);
+</pre>
+<pre class="solucao" data-file="main.js">const email = "caio@email.com";
+const usuario = email.slice(0, email.indexOf("@"));
+console.log(`Usuário: ${usuario}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que devolve</th><th>Exemplo com <code>"padoca"</code></th></tr>
+<tr><td><code>slice(i, f)</code></td><td>Da posição <code>i</code> até antes da <code>f</code></td><td><code>slice(0, 3)</code> → <code>pad</code></td></tr>
+<tr><td><code>slice(i)</code></td><td>De <code>i</code> até o fim</td><td><code>slice(2)</code> → <code>doca</code></td></tr>
+<tr><td><code>slice(-n)</code></td><td>Os <code>n</code> últimos</td><td><code>slice(-3)</code> → <code>oca</code></td></tr>
+<tr><td><code>slice(0, -n)</code></td><td>Tudo menos os <code>n</code> últimos</td><td><code>slice(0, -1)</code> → <code>padoc</code></td></tr>
+<tr><td><code>at(i)</code></td><td>Um caractere (aceita negativo)</td><td><code>at(-1)</code> → <code>a</code></td></tr>
+<tr><td><code>texto[i]</code></td><td>Um caractere (só positivo)</td><td><code>[0]</code> → <code>p</code></td></tr>
+<tr><td><code>substring(i, f)</code></td><td>Como <code>slice</code>, sem negativos (antigo)</td><td><code>substring(0, 3)</code> → <code>pad</code></td></tr>
+<tr><td><code>charAt(i)</code></td><td>Como <code>at</code>, sem negativos (antigo)</td><td><code>charAt(0)</code> → <code>p</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Faltou a última letra do pedaço</td><td>O fim do <code>slice</code> não entra: some 1 ao fim</td></tr>
+<tr><td><code>undefined</code> ao pedir a última letra</td><td><code>texto[-1]</code>: use <code>texto.at(-1)</code></td></tr>
+<tr><td>Pedaço errado quando o separador não existe</td><td><code>indexOf</code> devolveu <code>-1</code> e o <code>slice</code> contou do fim</td></tr>
+<tr><td>Saiu a string vazia</td><td>Início maior que o fim</td></tr>
+<tr><td><code>undefined</code> no lugar do pedaço</td><td><code>slice[…]</code> com colchetes</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'slice')</code></td><td>A variável não tinha texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual é o pedaço?</h3>
+<p>Com <code>const s = "bolacha";</code>:</p>
+<div class="ex-code">s.slice(0, 4) → <input data-answer="bola" aria-label="resultado 1"><br>s.slice(4) → <input data-answer="cha" aria-label="resultado 2"><br>s.slice(-2) → <input data-answer="ha" aria-label="resultado 3"><br>s.at(-1) → <input data-answer="a" aria-label="resultado 4"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para pegar o ano de <code>const data = "19/10/2026";</code>:</p>
+<div class="ex-code">const ano = data.slice(<input data-answer="6|-4" aria-label="posição">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantas letras?</h3>
+<p>Quantos caracteres tem o resultado de <code>"abcdefgh".slice(2, 7)</code>?</p>
+<div class="ex-code"><input data-answer="5" aria-label="tamanho"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que mostra <code>console.log("Caio"[-1])</code>?</p>
+<label><input type="radio" name="q4"> <code>o</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> <code>C</code></label>
+<label><input type="radio" name="q4"> Dá <code>SyntaxError</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Para pegar tudo <strong>depois</strong> do <code>@</code> de um e-mail, sendo <code>p</code> a posição do <code>@</code>, qual usar?</p>
+<label><input type="radio" name="q5"> <code>email.slice(0, p)</code></label>
+<label><input type="radio" name="q5"> <code>email.slice(p)</code></label>
+<label><input type="radio" name="q5"> <code>email.at(p + 1)</code></label>
+<label><input type="radio" name="q5"> <code>email.slice(p + 1)</code></label>
+</div>
+
+<h3>Missão final: o nome e a extensão</h3>
+
+<div class="tryjs" data-goal="out:Arquivo: Cardapio;;out:Tipo: pdf;;src:slice">
+<p class="try-task"><strong>Missão:</strong> o arquivo se chama <code>cardapio.pdf</code>. Mostre o nome <strong>sem a extensão e com a primeira letra maiúscula</strong> (<code>Arquivo: Cardapio</code>) e a extensão sem o ponto (<code>Tipo: pdf</code>). Use <code>slice</code>, <code>at</code> e <code>toUpperCase</code>. Para um desafio extra, faça funcionar também com <code>foto.jpeg</code> usando o <code>lastIndexOf(".")</code>.</p>
+<pre class="script" data-file="main.js">const arquivo = "cardapio.pdf";
+const nome = arquivo;
+const tipo = arquivo;
+console.log(`Arquivo: ${nome}`);
+console.log(`Tipo: ${tipo}`);
+</pre>
+<pre class="solucao" data-file="main.js">const arquivo = "cardapio.pdf";
+const ponto = arquivo.lastIndexOf(".");
+const semExtensao = arquivo.slice(0, ponto);
+const nome = semExtensao.at(0).toUpperCase() + semExtensao.slice(1);
+const tipo = arquivo.slice(ponto + 1);
+console.log(`Arquivo: ${nome}`);
+console.log(`Tipo: ${tipo}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>texto.slice(início, fim)</code> recorta da posição <code>início</code> até <strong>antes</strong> do <code>fim</code>; o tamanho do pedaço é <code>fim − início</code>. Sem o fim, vai até o final.</li>
+  <li>Números negativos contam do fim: <code>slice(-3)</code> são os 3 últimos; <code>slice(0, -4)</code> tira os 4 últimos.</li>
+  <li><code>texto.at(i)</code> pega um caractere e aceita negativos: <code>at(-1)</code> é o último. Os colchetes (<code>texto[i]</code>) não aceitam.</li>
+  <li>Com <code>indexOf</code> + <code>slice</code>: <code>slice(0, pos)</code> é o que vem antes do separador; <code>slice(pos + 1)</code>, o que vem depois. Confira o <code>-1</code> antes de cortar.</li>
+  <li>Primeira maiúscula: <code>texto.at(0).toUpperCase() + texto.slice(1)</code>.</li>
+  <li><code>substring</code> e <code>charAt</code> são versões antigas, sem negativos; <code>substr</code> é obsoleto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
