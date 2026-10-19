@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript do … while — repetir, testando no fim | Guia JavaScript</title>
+<meta name="description" content="O laço do … while do JavaScript para quem nunca programou: do { … } while (condição);, o bloco que roda pelo menos uma vez, a diferença para o while quando a condição já começa falsa, contar os dígitos de um número (inclusive o 0), jogar o dado até sair 6, o equivalente com while (true) e break, e os erros reais do Node.js 24 (variável criada dentro do bloco usada na condição, while esquecido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">do … while</span></h1>
+
+<p class="intro">O <a href="while.html">while</a> pergunta <strong>antes</strong> de cada volta; se a resposta já for "não" de cara, o bloco não roda nenhuma vez. Às vezes você precisa do contrário: <strong>fazer primeiro</strong> e só depois perguntar se repete. Para isso existe o <code>do … while</code>: "<strong>faça</strong> isto, <strong>enquanto</strong> a condição for verdadeira". O bloco roda <strong>pelo menos uma vez</strong>, sempre.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve <code>do { … } while (condição);</code>, com o ponto e vírgula no fim.</li>
+  <li>Por que o bloco roda pelo menos uma vez, e a diferença para o <code>while</code> quando a condição já começa falsa.</li>
+  <li>Um caso em que o <code>do … while</code> acerta e o <code>while</code> erra: contar os dígitos do número 0.</li>
+  <li>Repetir até acontecer algo: jogar o dado até sair 6.</li>
+  <li>O mesmo laço escrito com <code>while (true)</code> e <code>break</code>.</li>
+  <li>Os erros reais: a variável criada dentro do bloco e usada na condição, e o <code>while</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: provar o tempero</h2>
+<p>A Ana está fazendo o feijão. Ela não pergunta "está bom de sal?" antes de provar: isso não faria sentido. Ela faz assim:</p>
+<ol class="passo">
+  <li><strong>Prova</strong> uma colherada.</li>
+  <li>Pergunta: <strong>falta sal?</strong> Se sim, põe uma pitada e volta ao passo 1. Se não, desliga o fogo.</li>
+</ol>
+<p>A prova acontece <strong>pelo menos uma vez</strong>, e a pergunta vem <strong>depois</strong>. É exatamente a ordem do <code>do … while</code>. No <code>while</code> comum, a pergunta vem antes, como no cesto de pães da aula anterior.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>do … while</code></h2>
+
+<pre class="file" data-file="contador.js">let contador = 1;
+
+do {
+  console.log(`Volta ${contador}`);
+  contador++;
+} while (contador &lt;= 5);
+
+console.log(`Fim! contador agora vale ${contador}`);
+</pre>
+
+<dl class="anatomy">
+  <dt>do</dt><dd>"Faça". Abre o laço. Repare: <strong>não</strong> tem condição aqui.</dd>
+  <dt>{ … }</dt><dd>O bloco que se repete. Ele vem <strong>antes</strong> da condição, então roda antes de qualquer pergunta.</dd>
+  <dt>while (contador &lt;= 5)</dt><dd>"Enquanto…": a condição, entre parênteses, testada <strong>no fim</strong> de cada volta. Se der <code>true</code>, o Node volta para o <code>do</code>; se der <code>false</code>, segue em frente.</dd>
+  <dt>;</dt><dd>O <code>do … while</code> termina com <strong>ponto e vírgula</strong>, como uma instrução comum. (Aqui é o contrário do <code>while</code>, onde o <code>;</code> depois do <code>)</code> trava o programa.)</dd>
+</dl>
+
+<pre class="term">$ node contador.js
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim! contador agora vale 6
+</pre>
+
+<p>A mesma saída do <code>while</code> da aula anterior. Quando a condição começa verdadeira, os dois laços fazem o mesmo número de voltas. A diferença aparece quando ela começa <strong>falsa</strong>.</p>
+
+<hr>
+
+<h2>2. A diferença: pelo menos uma volta</h2>
+<p>Os dois laços abaixo começam com o contador em <strong>10</strong>, então a condição <code>contador &lt;= 5</code> já é falsa desde o início:</p>
+
+<pre class="file" data-file="diferenca.js">let a = 10;
+while (a &lt;= 5) {
+  console.log(`while: volta com ${a}`);
+  a++;
+}
+
+let b = 10;
+do {
+  console.log(`do … while: volta com ${b}`);
+  b++;
+} while (b &lt;= 5);
+
+console.log(`Depois: a = ${a}, b = ${b}`);
+</pre>
+
+<pre class="term">$ node diferenca.js
+do … while: volta com 10
+Depois: a = 10, b = 11
+</pre>
+
+<p>O <code>while</code> perguntou primeiro, ouviu "não" e nem entrou: <code>a</code> continuou 10. O <code>do … while</code> rodou o bloco uma vez (mostrou a linha e mudou <code>b</code> para 11) e só então perguntou <code>11 &lt;= 5</code>, ouviu "não" e parou.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>while (c) { … }</code></th><th><code>do { … } while (c);</code></th></tr>
+<tr><td>Quando testa</td><td>Antes de cada volta</td><td>Depois de cada volta</td></tr>
+<tr><td>Mínimo de voltas</td><td>0</td><td>1</td></tr>
+<tr><td>Condição falsa desde o começo</td><td>O bloco não roda</td><td>O bloco roda uma vez</td></tr>
+<tr><td>Termina com <code>;</code>?</td><td>Não (e um <code>;</code> depois do <code>)</code> trava)</td><td>Sim</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Volta 10;;src:\bdo\s*\{">
+<p class="try-task"><strong>Missão:</strong> este <code>while</code> começa com o contador em 10 e não mostra nada. Transforme-o num <code>do … while</code> (mesma condição), para ele mostrar <code>Volta 10</code> uma vez.</p>
+<pre class="script" data-file="main.js">let contador = 10;
+
+while (contador &lt;= 5) {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+</pre>
+<pre class="solucao" data-file="main.js">let contador = 10;
+
+do {
+  console.log(`Volta ${contador}`);
+  contador++;
+} while (contador &lt;= 5);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Onde o <code>do … while</code> acerta: contar dígitos</h2>
+<p>Quantos dígitos tem um número? Um jeito é dividir por 10 (descartando a parte quebrada) até não sobrar nada, contando as divisões: 2026 → 202 → 20 → 2 → 0, foram 4. O <code>Math.trunc</code> corta a parte depois da vírgula (veja <a href="math.html">Math</a>). Com <code>while</code>:</p>
+
+<pre class="file" data-file="digitos-while.js">let numero = 2026;
+let digitos = 0;
+
+while (numero &gt; 0) {
+  numero = Math.trunc(numero / 10);
+  digitos++;
+}
+
+console.log(`Dígitos: ${digitos}`);
+</pre>
+
+<pre class="term">$ node digitos-while.js
+Dígitos: 4
+</pre>
+
+<p>Certo. Mas troque 2026 por <strong>0</strong>:</p>
+
+<pre class="file" data-file="digitos-zero.js">let numero = 0;
+let digitos = 0;
+
+while (numero &gt; 0) {
+  numero = Math.trunc(numero / 10);
+  digitos++;
+}
+
+console.log(`Dígitos: ${digitos}`);
+</pre>
+
+<pre class="term">$ node digitos-zero.js
+Dígitos: 0
+</pre>
+
+<p>O número 0 tem <strong>um</strong> dígito, o próprio 0! O <code>while</code> testou <code>0 &gt; 0</code>, deu falso, e não contou nada. Todo número tem pelo menos um dígito, então a contagem tem de acontecer pelo menos uma vez: é o trabalho do <code>do … while</code>.</p>
+
+<pre class="file" data-file="digitos-do.js">let numero = 0;
+let digitos = 0;
+
+do {
+  numero = Math.trunc(numero / 10);
+  digitos++;
+} while (numero &gt; 0);
+
+console.log(`Dígitos: ${digitos}`);
+</pre>
+
+<pre class="term">$ node digitos-do.js
+Dígitos: 1
+</pre>
+
+<p>Com o 0, o bloco rodou uma vez (contou 1 dígito), e a condição <code>0 &gt; 0</code> encerrou o laço. Com 2026, continua dando 4: as voltas seguintes acontecem normalmente.</p>
+
+<div class="tryjs" data-goal="out:Dígitos: 6;;src:\bdo\s*\{">
+<p class="try-task"><strong>Missão:</strong> rode a versão com <code>do … while</code> para o número <code>123456</code>. Deve aparecer <code>Dígitos: 6</code>. Depois teste com 7, com 10 e com 0.</p>
+<pre class="script" data-file="main.js">let numero = 0;
+let digitos = 0;
+
+do {
+  numero = Math.trunc(numero / 10);
+  digitos++;
+} while (numero &gt; 0);
+
+console.log(`Dígitos: ${digitos}`);
+</pre>
+<pre class="solucao" data-file="main.js">let numero = 123456;
+let digitos = 0;
+
+do {
+  numero = Math.trunc(numero / 10);
+  digitos++;
+} while (numero &gt; 0);
+
+console.log(`Dígitos: ${digitos}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Repetir até acontecer: jogar o dado até sair 6</h2>
+<p>No jogo de tabuleiro da família da Ana, para sair da casa inicial é preciso tirar 6 no dado. Quantas jogadas vai levar? Ninguém sabe, mas é certo que a primeira jogada acontece. O <code>Math.random()</code> sorteia um número, e a conta abaixo o transforma num dado de 1 a 6 (aula <a href="math-random.html">Números Aleatórios</a>):</p>
+
+<pre class="file" data-file="dado.js">let dado;
+let jogadas = 0;
+
+do {
+  dado = Math.floor(Math.random() * 6) + 1;
+  jogadas++;
+  console.log(`Jogada ${jogadas}: saiu ${dado}`);
+} while (dado !== 6);
+
+console.log(`Saiu da casa inicial na jogada ${jogadas}!`);
+</pre>
+
+<p>Duas execuções no notebook da Ana (as suas vão dar números diferentes, porque o dado é sorteado):</p>
+
+<pre class="term">$ node dado.js
+Jogada 1: saiu 4
+Jogada 2: saiu 5
+Jogada 3: saiu 2
+Jogada 4: saiu 1
+Jogada 5: saiu 1
+Jogada 6: saiu 6
+Saiu da casa inicial na jogada 6!
+$ node dado.js
+Jogada 1: saiu 4
+Jogada 2: saiu 6
+Saiu da casa inicial na jogada 2!
+</pre>
+
+<dl class="anatomy">
+  <dt>let dado;</dt><dd>A variável é criada <strong>antes</strong> do <code>do</code>, sem valor. Ela precisa existir fora do bloco porque a condição, lá no <code>while</code>, usa o <code>dado</code> (veja o primeiro cenário de <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>dado = …</dt><dd>Dentro do bloco, a variável só <strong>recebe</strong> o sorteio da vez.</dd>
+  <dt>while (dado !== 6)</dt><dd>"Enquanto não sair 6, jogue de novo". O <code>!==</code> é o "diferente" (veja <a href="operadores-comparacao.html">Comparação</a>).</dd>
+</dl>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode várias vezes e veja o número de jogadas mudar. Depois troque o <code>6</code> da condição por <code>1</code>: "sair da casa inicial tirando 1".</p>
+<pre class="script" data-file="main.js">let dado;
+let jogadas = 0;
+
+do {
+  dado = Math.floor(Math.random() * 6) + 1;
+  jogadas++;
+  console.log(`Jogada ${jogadas}: saiu ${dado}`);
+} while (dado !== 6);
+
+console.log(`Saiu da casa inicial na jogada ${jogadas}!`);
+</pre>
+</div>
+
+<p>Este é o mesmo formato de "perguntar de novo até a resposta ser válida": a pergunta acontece pelo menos uma vez, e repete enquanto a resposta não presta. Você vai usar isso quando aprender a ler o teclado, em <a href="entrada-teclado.html">Lendo o Teclado no Node</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Todo <code>do … while</code> pode ser escrito com <code>while (true)</code> e um <code>break</code> no fim do bloco (veja <a href="break-continue.html">break e continue</a>). Os dois programas abaixo contam os dígitos de 0 do mesmo jeito:</p>
+
+<pre class="file" data-file="formas.js">let n1 = 0;
+let d1 = 0;
+do {
+  n1 = Math.trunc(n1 / 10);
+  d1++;
+} while (n1 &gt; 0);
+
+let n2 = 0;
+let d2 = 0;
+while (true) {
+  n2 = Math.trunc(n2 / 10);
+  d2++;
+  if (!(n2 &gt; 0)) {
+    break;
+  }
+}
+
+console.log(d1, d2);
+</pre>
+
+<pre class="term">$ node formas.js
+1 1
+</pre>
+
+<p>O <code>do … while</code> é mais curto e diz logo no começo o tipo de laço. O <code>while (true)</code> com <code>break</code> é mais flexível: a saída pode ficar em qualquer ponto do bloco, não só no fim. Na prática, o <code>do … while</code> é o laço <strong>menos usado</strong> do JavaScript; mas quando a situação é "pelo menos uma vez", ele é o mais claro.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Pode ser que não precise de nenhuma volta</td><td><code>while</code> (aula <a href="while.html">while</a>)</td></tr>
+<tr><td>Pelo menos uma volta, e a pergunta é no fim</td><td><code>do { … } while (c);</code></td></tr>
+<tr><td>A saída fica no meio do bloco</td><td><code>while (true)</code> com <code>break</code></td></tr>
+<tr><td>Número conhecido de voltas</td><td><code>for</code> (aula <a href="for.html">for</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A variável criada dentro do bloco, usada na condição</strong>
+<pre class="file" data-file="escopo.js">let jogadas = 0;
+
+do {
+  const dado = Math.floor(Math.random() * 6) + 1;
+  jogadas++;
+} while (dado !== 6);
+
+console.log(`Total de jogadas: ${jogadas}`);
+</pre>
+<pre class="term">$ node escopo.js
+/home/ana/escopo.js:6
+} while (dado !== 6);
+              ^
+
+ReferenceError: dado is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/escopo.js:6:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/escopo.js:6</dt><dd>O erro aconteceu na linha 6, a do <code>while</code>.</dd>
+  <dt>} while (dado !== 6);</dt><dd>A linha 6, com a setinha embaixo do <code>dado</code>.</dd>
+  <dt>ReferenceError: dado is not defined</dt><dd>"<code>dado</code> não está definido". A <code>const dado</code> nasceu <strong>dentro</strong> das chaves do <code>do</code> e deixou de existir na <code>}</code>. A condição fica <strong>depois</strong> da <code>}</code>, do lado de fora, e lá ela não existe (veja <a href="escopo.html">Escopo</a>).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/escopo.js:6:15)</dt><dd>Linha 6, coluna 15 do seu arquivo.</dd>
+</dl>
+<p>Este é o erro mais comum com <code>do … while</code>, porque a condição <strong>parece</strong> estar junto do bloco. <strong>Como consertar:</strong> crie a variável antes do <code>do</code>, com <code>let dado;</code>, e dentro do bloco só dê o valor: <code>dado = …</code>, como na seção 4.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>while</code> no fim</strong>
+<pre class="file" data-file="semwhile.js">let contador = 1;
+
+do {
+  console.log(`Volta ${contador}`);
+  contador++;
+}
+
+console.log("Fim!");
+</pre>
+<pre class="term">$ node semwhile.js
+/home/ana/semwhile.js:8
+console.log("Fim!");
+^^^^^^^
+
+SyntaxError: Unexpected identifier 'console'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Nome inesperado: <code>'console'</code>", na linha 8. Depois da <code>}</code> do <code>do</code>, o Node <strong>exige</strong> a palavra <code>while</code>, e o que veio a seguir (pulando a linha em branco) foi o <code>console</code>. Um <code>do</code> sem <code>while</code> não existe. <strong>Como consertar:</strong> acrescente a condição logo depois da <code>}</code>: <code>} while (contador &lt;= 5);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>E se faltar o ponto e vírgula do fim?</strong>
+<pre class="file" data-file="sempv.js">let contador = 1;
+do {
+  contador++;
+} while (contador &lt;= 3)
+console.log(`contador = ${contador}`);
+</pre>
+<pre class="term">$ node sempv.js
+contador = 4
+</pre>
+<p>Funciona: depois do <code>)</code> de um <code>do … while</code>, o JavaScript põe o ponto e vírgula sozinho. Mesmo assim, escreva o <code>;</code>: é o estilo do guia, e deixa claro onde a instrução termina.</p>
+</div>
+
+<div class="cenario">
+<strong>A condição nunca fica falsa</strong>
+<p>O <code>do … while</code> também pode virar um laço infinito, pelos mesmos motivos do <code>while</code>: o passo que falta, que fica fora do bloco ou que anda para o lado errado. Para parar, <kbd>Ctrl</kbd>+<kbd>C</kbd> no terminal ou o botão <strong>■ Parar</strong> no editor (veja <a href="while.html">while</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total de jogadas:;;semerro;;src:\bdo\s*\{">
+<p class="try-task"><strong>Missão:</strong> conserte o programa do primeiro cenário para ele rodar sem erro e terminar mostrando quantas jogadas foram necessárias.</p>
+<pre class="script" data-file="main.js">let jogadas = 0;
+
+do {
+  const dado = Math.floor(Math.random() * 6) + 1;
+  jogadas++;
+} while (dado !== 6);
+
+console.log(`Total de jogadas: ${jogadas}`);
+</pre>
+<pre class="solucao" data-file="main.js">let jogadas = 0;
+let dado;
+
+do {
+  dado = Math.floor(Math.random() * 6) + 1;
+  jogadas++;
+} while (dado !== 6);
+
+console.log(`Total de jogadas: ${jogadas}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>do { … } while (condição);</code></td><td>Roda o bloco, depois testa; repete enquanto a condição for verdadeira</td></tr>
+<tr><td>Mínimo de voltas</td><td>1 (o <code>while</code> pode dar 0)</td></tr>
+<tr><td><code>let x;</code> antes do <code>do</code> e <code>x = …</code> dentro</td><td>Para usar <code>x</code> na condição</td></tr>
+<tr><td><code>while (true) { …; if (!c) { break; } }</code></td><td>O mesmo que <code>do { … } while (c);</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: x is not defined</code> na linha do <code>while</code></td><td><code>x</code> foi criada dentro do bloco do <code>do</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected identifier …</code> logo depois da <code>}</code></td><td>Faltou o <code>while (…)</code> do fim</td></tr>
+<tr><td>Rodou uma vez quando não devia rodar nenhuma</td><td>Era caso de <code>while</code>, não de <code>do … while</code></td></tr>
+<tr><td>Não termina</td><td>Laço infinito: a condição nunca fica falsa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code">let i = 1;<br><input data-answer="do" aria-label="palavra-chave do começo"> {<br>&nbsp;&nbsp;console.log(i);<br>&nbsp;&nbsp;i++;<br>} <input data-answer="while" aria-label="palavra-chave do fim"> (i &lt;= 3);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes?</h3>
+<p>Quantas vezes este programa mostra <code>Oi</code>?</p>
+<pre class="file" data-file="ex2.js">let x = 100;
+do {
+  console.log("Oi");
+  x++;
+} while (x &lt; 50);
+</pre>
+<div class="ex-code">Mostra <input data-answer="1" aria-label="número de vezes"> vez(es).</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é a principal diferença entre <code>while</code> e <code>do … while</code>?</p>
+<label><input type="radio" name="q3"> O <code>do … while</code> é mais rápido</label>
+<label><input type="radio" name="q3"> O <code>do … while</code> testa a condição depois de cada volta, então roda pelo menos uma vez</label>
+<label><input type="radio" name="q3"> O <code>do … while</code> não aceita <code>break</code></label>
+<label><input type="radio" name="q3"> O <code>while</code> sempre roda pelo menos uma vez</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Por que <code>do { const n = 5; } while (n &lt; 3);</code> dá <code>ReferenceError: n is not defined</code>?</p>
+<label><input type="radio" name="q4"> Porque falta o ponto e vírgula</label>
+<label><input type="radio" name="q4"> Porque <code>const</code> não pode ser usada em laços</label>
+<label><input type="radio" name="q4"> Porque 5 não é menor que 3</label>
+<label><input type="radio" name="q4"> Porque <code>n</code> só existe dentro das chaves, e a condição fica fora delas</label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 30 em 3 itens;;src:\bdo\s*\{">
+<p class="try-task"><strong>Missão:</strong> o caixa da padaria registra os itens de um pedido, um por volta. Os preços vão do mais caro para o mais barato: R$ 15, R$ 10, R$ 5. A cada volta: some o <code>preco</code> ao <code>total</code>, some 1 em <code>itens</code> e diminua o <code>preco</code> em 5. Escreva um <code>do … while</code> que repita enquanto o <code>preco</code> for maior que 0. Deve aparecer <code>Total: R$ 30 em 3 itens</code>.</p>
+<pre class="script" data-file="main.js">let preco = 15;
+let total = 0;
+let itens = 0;
+
+// escreva o do … while aqui
+
+console.log(`Total: R$ ${total} em ${itens} itens`);
+</pre>
+<pre class="solucao" data-file="main.js">let preco = 15;
+let total = 0;
+let itens = 0;
+
+do {
+  total += preco;
+  itens++;
+  preco -= 5;
+} while (preco &gt; 0);
+
+console.log(`Total: R$ ${total} em ${itens} itens`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>do { … } while (condição);</code> ("faça … enquanto") roda o bloco e <strong>depois</strong> testa a condição; repete enquanto ela for verdadeira.</li>
+  <li>O bloco roda <strong>pelo menos uma vez</strong>, mesmo que a condição seja falsa desde o começo. O <code>while</code> comum pode rodar zero vezes.</li>
+  <li>Use quando a primeira volta tem de acontecer de qualquer jeito: contar os dígitos (o 0 tem um), jogar o dado, perguntar até a resposta ser válida.</li>
+  <li>Termina com <code>;</code>. Variáveis usadas na condição precisam ser criadas <strong>antes</strong> do <code>do</code>, não dentro do bloco.</li>
+  <li>O mesmo laço pode ser escrito com <code>while (true)</code> e um <code>break</code> no fim do bloco.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
