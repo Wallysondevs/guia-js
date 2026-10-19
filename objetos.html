@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript objetos — guardando várias informações com nome | Guia JavaScript</title>
+<meta name="description" content="Objetos do JavaScript para quem nunca programou: a ficha com chave e valor, como criar com { }, ler com o ponto, que valores cabem dentro (arrays e outros objetos), chaves com espaço, o objeto vazio, o atalho { nome, idade }, arrays de objetos, como o Node mostra objetos e os erros reais do Node.js 24 (Unexpected identifier, Invalid shorthand property initializer, [object Object]).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Objetos</span></h1>
+
+<p class="intro">Um <a href="arrays.html">array</a> é ótimo para uma <strong>lista</strong> de coisas do mesmo tipo: os nomes da turma, os preços do carrinho. Mas, para descrever <strong>uma</strong> coisa com várias informações diferentes, como uma pessoa (nome, idade, cidade) ou um produto (nome, preço, estoque), você precisa de outra estrutura: o <strong>objeto</strong>. Um objeto guarda vários valores, cada um com um <strong>nome</strong>. É, de longe, a estrutura mais usada do JavaScript: quase tudo na linguagem é objeto ou se parece com um.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A ideia da ficha: cada informação tem um <strong>nome</strong> (a chave) e um <strong>valor</strong>.</li>
+  <li>Como criar um objeto com <code>{ }</code> e ler um valor com o <strong>ponto</strong>: <code>ana.nome</code>.</li>
+  <li>O que cabe num objeto: textos, números, booleanos, <code>null</code>, arrays e até outros objetos.</li>
+  <li>Quando a chave precisa de aspas, o objeto vazio <code>{}</code> e o atalho <code>{ nome, idade }</code>.</li>
+  <li>Arrays de objetos: a forma mais comum de guardar dados de verdade.</li>
+  <li>Quando usar objeto e quando usar array.</li>
+  <li>Os erros reais: a vírgula esquecida, o <code>=</code> no lugar dos dois-pontos, o <code>[object Object]</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a ficha de cadastro</h2>
+<p>Quando a Ana se matriculou na academia, preencheu uma ficha:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Campo</th><th>Valor</th></tr>
+<tr><td>Nome</td><td>Ana</td></tr>
+<tr><td>Idade</td><td>30</td></tr>
+<tr><td>Cidade</td><td>Recife</td></tr>
+<tr><td>Tem animal de estimação?</td><td>Sim</td></tr>
+</table>
+</div>
+
+<p>Cada linha da ficha tem duas partes: o <strong>nome do campo</strong> ("Idade") e o <strong>valor</strong> ("30"). Ninguém pergunta "qual é o 2º dado da Ana?"; pergunta "qual é a <strong>idade</strong> da Ana?". Um objeto do JavaScript é exatamente essa ficha: um conjunto de pares <strong>chave → valor</strong>. Cada par se chama <strong>propriedade</strong>.</p>
+
+<hr>
+
+<h2>1. O primeiro objeto</h2>
+
+<pre class="file" data-file="ficha.js">const ana = {
+  nome: "Ana",
+  idade: 30,
+  cidade: "Recife",
+  temPet: true,
+};
+console.log(ana);
+console.log(ana.nome);
+console.log(`${ana.nome} tem ${ana.idade} anos e mora em ${ana.cidade}.`);
+console.log(typeof ana);
+</pre>
+
+<pre class="term">$ node ficha.js
+{ nome: 'Ana', idade: 30, cidade: 'Recife', temPet: true }
+Ana
+Ana tem 30 anos e mora em Recife.
+object
+</pre>
+
+<dl class="anatomy">
+  <dt>const ana = { … };</dt><dd>As <strong>chaves</strong> <code>{ }</code> criam um objeto. Escrever o objeto direto no código assim se chama <strong>literal de objeto</strong>. A variável <code>ana</code> guarda o objeto inteiro.</dd>
+  <dt>nome: "Ana"</dt><dd>Uma <strong>propriedade</strong>: a <strong>chave</strong> <code>nome</code>, os <strong>dois-pontos</strong> e o <strong>valor</strong> <code>"Ana"</code>. A chave é escrita sem aspas quando é um nome simples (letras, números, <code>_</code> e <code>$</code>, sem começar com número), como os nomes de variáveis.</dd>
+  <dt>, (vírgula)</dt><dd>Separa uma propriedade da outra. A vírgula depois da última (<code>temPet: true,</code>) é opcional; o guia usa, porque facilita acrescentar outra linha depois.</dd>
+  <dt>uma propriedade por linha</dt><dd>Não é obrigatório (<code>{ nome: "Ana", idade: 30 }</code> numa linha também vale), mas com muitas propriedades fica mais fácil de ler. Os 2 espaços na frente mostram que elas estão dentro do objeto.</dd>
+  <dt>ana.nome</dt><dd>O <strong>ponto</strong> lê uma propriedade: "o <code>nome</code> da <code>ana</code>". Leia em voz alta como "ana ponto nome".</dd>
+  <dt>typeof ana → object</dt><dd>O tipo de um objeto é <code>"object"</code> (aula <a href="typeof.html">typeof</a>).</dd>
+</dl>
+
+<p>Repare como o Node mostra o objeto: entre chaves, com <code>chave: valor</code>, e os textos com aspas simples. É só o jeito de exibir; no código, o guia usa aspas duplas.</p>
+
+<h3>Por que não variáveis soltas?</h3>
+<p>Sem objetos, a ficha da Ana e a do Caio virariam seis variáveis:</p>
+
+<pre class="file" data-file="separado.js">const nomeDaAna = "Ana";
+const idadeDaAna = 30;
+const cidadeDaAna = "Recife";
+const nomeDoCaio = "Caio";
+const idadeDoCaio = 25;
+const cidadeDoCaio = "Natal";
+console.log(nomeDaAna, idadeDaAna, cidadeDaAna);
+console.log(nomeDoCaio, idadeDoCaio, cidadeDoCaio);
+</pre>
+
+<pre class="term">$ node separado.js
+Ana 30 Recife
+Caio 25 Natal
+</pre>
+
+<p>Funciona, mas nada "amarra" a idade da Ana à Ana. Com 100 pessoas, seriam 300 variáveis. Com objetos, cada pessoa é <strong>um</strong> valor, que dá para guardar numa lista, passar para uma função ou salvar num arquivo de uma vez.</p>
+
+<div class="tryjs" data-goal="out:256 páginas;;src:paginas\s*:">
+<p class="try-task"><strong>Missão:</strong> o objeto <code>livro</code> está sem o número de páginas, e a frase mostra <code>undefined páginas</code>. Acrescente a propriedade <code>paginas</code> com o valor <code>256</code> dentro do objeto (não esqueça a vírgula).</p>
+<pre class="script" data-file="main.js">const livro = {
+  titulo: "Dom Casmurro",
+  autor: "Machado de Assis",
+};
+console.log(`${livro.titulo}, de ${livro.autor}: ${livro.paginas} páginas`);
+</pre>
+<pre class="solucao" data-file="main.js">const livro = {
+  titulo: "Dom Casmurro",
+  autor: "Machado de Assis",
+  paginas: 256,
+};
+console.log(`${livro.titulo}, de ${livro.autor}: ${livro.paginas} páginas`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Dom Casmurro, de Machado de Assis: 256 páginas</code>. Antes de você consertar, a propriedade não existia, e ler uma propriedade que não existe dá <code>undefined</code>, sem erro.</p>
+
+<hr>
+
+<h2>2. Objeto × array</h2>
+<p>Os mesmos dados da Ana, guardados das duas formas:</p>
+
+<pre class="file" data-file="array-vs-obj.js">const comoArray = ["Ana", 30, "Recife"];
+const comoObjeto = { nome: "Ana", idade: 30, cidade: "Recife" };
+console.log(comoArray[1]);
+console.log(comoObjeto.idade);
+</pre>
+
+<pre class="term">$ node array-vs-obj.js
+30
+30
+</pre>
+
+<p>Os dois mostram 30, mas qual linha diz o que é esse 30? <code>comoArray[1]</code> obriga você a lembrar que "a posição 1 é a idade"; <code>comoObjeto.idade</code> se explica sozinho.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Array <code>[ ]</code></th><th>Objeto <code>{ }</code></th></tr>
+<tr><td>Serve para</td><td>Uma <strong>lista</strong> de coisas parecidas</td><td><strong>Uma</strong> coisa com várias características</td></tr>
+<tr><td>Cada valor é achado pela</td><td><strong>Posição</strong> (0, 1, 2…)</td><td><strong>Chave</strong> (<code>nome</code>, <code>idade</code>…)</td></tr>
+<tr><td>A ordem importa?</td><td>Sim</td><td>Não deveria importar</td></tr>
+<tr><td>Exemplo</td><td>Os nomes da turma</td><td>A ficha de um aluno</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. O que cabe dentro de um objeto</h2>
+<p><strong>Qualquer valor</strong> do JavaScript pode ser o valor de uma propriedade, inclusive um array ou outro objeto:</p>
+
+<pre class="file" data-file="valores.js">const produto = {
+  nome: "Caderno universitário",
+  preco: 18.9,
+  emEstoque: true,
+  cores: ["azul", "verde", "rosa"],
+  fornecedor: { nome: "Papelaria Sol", cidade: "Olinda" },
+  desconto: null,
+};
+console.log(produto);
+console.log(produto.cores[0]);
+console.log(produto.fornecedor.cidade);
+</pre>
+
+<pre class="term">$ node valores.js
+{
+  nome: 'Caderno universitário',
+  preco: 18.9,
+  emEstoque: true,
+  cores: [ 'azul', 'verde', 'rosa' ],
+  fornecedor: { nome: 'Papelaria Sol', cidade: 'Olinda' },
+  desconto: null
+}
+azul
+Olinda
+</pre>
+
+<dl class="anatomy">
+  <dt>nome, preco, emEstoque</dt><dd>Um texto, um número e um booleano.</dd>
+  <dt>cores: [ … ]</dt><dd>Um <strong>array</strong> dentro do objeto. Para ler a primeira cor: <code>produto.cores</code> (o array) e depois <code>[0]</code>.</dd>
+  <dt>fornecedor: { … }</dt><dd>Um <strong>objeto dentro do objeto</strong>. Para ler a cidade do fornecedor, use dois pontos seguidos: <code>produto.fornecedor.cidade</code>, da esquerda para a direita.</dd>
+  <dt>desconto: null</dt><dd><code>null</code> diz "este campo existe, mas está vazio de propósito" (aula <a href="null-undefined.html">null e undefined</a>).</dd>
+</dl>
+
+<p>Com o objeto maior, o Node passou a mostrar uma propriedade por linha. É só a exibição: o objeto é o mesmo.</p>
+
+<h3>Objetos muito fundos: o <code>[Object]</code></h3>
+<p>Quando há objetos dentro de objetos dentro de objetos, o <code>console.log</code> do Node para de abrir depois de alguns níveis:</p>
+
+<pre class="file" data-file="fundo.js">const escola = {
+  nome: "Escola do Bairro",
+  turma: {
+    sala: "3B",
+    professora: { nome: "Rita", materia: { nome: "Matemática", horas: 4 } },
+  },
+};
+console.log(escola);
+console.log(JSON.stringify(escola, null, 2));
+</pre>
+
+<pre class="term">$ node fundo.js
+{
+  nome: 'Escola do Bairro',
+  turma: { sala: '3B', professora: { nome: 'Rita', materia: [Object] } }
+}
+{
+  "nome": "Escola do Bairro",
+  "turma": {
+    "sala": "3B",
+    "professora": {
+      "nome": "Rita",
+      "materia": {
+        "nome": "Matemática",
+        "horas": 4
+      }
+    }
+  }
+}
+</pre>
+
+<p>O <code>[Object]</code> não quer dizer que a matéria sumiu: o Node só <strong>resumiu</strong> a exibição (ele abre 2 níveis de objetos dentro do primeiro). Para ver tudo, o <code>JSON.stringify(objeto, null, 2)</code> transforma o objeto num texto completo, com 2 espaços de recuo (aula <a href="json.html">JSON</a>).</p>
+
+<hr>
+
+<h2>4. Chaves com espaço, hífen ou número</h2>
+<p>Se a chave não for um nome simples (tem espaço, hífen, acento no começo…), ela precisa de <strong>aspas</strong>. E, para ler, o ponto não funciona: use <strong>colchetes</strong> com o texto da chave:</p>
+
+<pre class="file" data-file="chaves.js">const contato = {
+  nome: "Bia",
+  "data-nascimento": "12/03/1998",
+  "telefone celular": "(81) 90000-0000",
+  2025: "ano da formatura",
+};
+console.log(contato);
+console.log(contato["telefone celular"]);
+</pre>
+
+<pre class="term">$ node chaves.js
+{
+  '2025': 'ano da formatura',
+  nome: 'Bia',
+  'data-nascimento': '12/03/1998',
+  'telefone celular': '(81) 90000-0000'
+}
+(81) 90000-0000
+</pre>
+
+<ul>
+  <li>As chaves com hífen e espaço aparecem entre aspas também na saída do Node.</li>
+  <li>A chave <code>2025</code> foi para o <strong>começo</strong>! Toda chave de objeto é, no fundo, um <strong>texto</strong> (por isso <code>'2025'</code> com aspas), e chaves que parecem números inteiros vêm sempre primeiro, em ordem crescente. A aula <a href="objetos-percorrer.html">Percorrendo Objetos</a> explica essa regra.</li>
+  <li>Os colchetes <code>contato["telefone celular"]</code> são o outro jeito de ler propriedades; a próxima aula, <a href="objetos-propriedades.html">Propriedades</a>, mostra os dois jeitos em detalhe.</li>
+</ul>
+
+<p><strong>Dica:</strong> sempre que puder, prefira chaves simples em <code>camelCase</code> (<code>dataNascimento</code>, <code>telefoneCelular</code>): sem aspas, e o ponto funciona.</p>
+
+<hr>
+
+<h2>5. O objeto vazio e o atalho</h2>
+<p>Um objeto pode começar <strong>vazio</strong> e ganhar propriedades depois, atribuindo com o ponto:</p>
+
+<pre class="file" data-file="vazio.js">const carrinho = {};
+console.log(carrinho);
+carrinho.pao = 2;
+carrinho.leite = 1;
+console.log(carrinho);
+</pre>
+
+<pre class="term">$ node vazio.js
+{}
+{ pao: 2, leite: 1 }
+</pre>
+
+<p>Mesmo com <code>const</code>, dá para acrescentar propriedades: o <code>const</code> só impede de trocar o objeto inteiro por outro (aula <a href="const.html">Constantes</a>). Mudar e apagar propriedades é assunto da próxima aula.</p>
+
+<p>Quando você já tem variáveis com os nomes certos, existe um atalho: escrever só o nome, sem os dois-pontos.</p>
+
+<pre class="file" data-file="atalho.js">const nome = "Caio";
+const idade = 25;
+const pessoa = { nome, idade };
+console.log(pessoa);
+</pre>
+
+<pre class="term">$ node atalho.js
+{ nome: 'Caio', idade: 25 }
+</pre>
+
+<p><code>{ nome, idade }</code> é o mesmo que <code>{ nome: nome, idade: idade }</code>: "uma propriedade <code>nome</code> com o valor da variável <code>nome</code>". Você vai ver esse atalho em muito código moderno.</p>
+
+<hr>
+
+<h2>6. Arrays de objetos</h2>
+<p>Juntando as duas estruturas, você tem o formato de quase todo dado do mundo real: uma <strong>lista</strong> (array) de <strong>fichas</strong> (objetos). Uma turma, um estoque, uma lista de contatos:</p>
+
+<pre class="file" data-file="lista.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 9 },
+  { nome: "Caio", nota: 6 },
+];
+console.log(turma.length);
+console.log(turma[1]);
+console.log(turma[1].nome);
+for (const aluno of turma) {
+  console.log(`${aluno.nome}: ${aluno.nota}`);
+}
+</pre>
+
+<pre class="term">$ node lista.js
+3
+{ nome: 'Bia', nota: 9 }
+Bia
+Ana: 7
+Bia: 9
+Caio: 6
+</pre>
+
+<dl class="anatomy">
+  <dt>turma[1]</dt><dd>O item 1 do array: o objeto inteiro da Bia.</dd>
+  <dt>turma[1].nome</dt><dd>Primeiro a posição no array, depois a chave no objeto.</dd>
+  <dt>for (const aluno of turma)</dt><dd>O <a href="for-of.html">for … of</a> entrega um objeto por volta; <code>aluno.nome</code> e <code>aluno.nota</code> leem as propriedades dele.</dd>
+</dl>
+
+<p>Com arrays de objetos, todos os métodos que você aprendeu funcionam: <a href="filter.html">filter</a> para os aprovados, <a href="map.html">map</a> para pegar só os nomes, <a href="reduce.html">reduce</a> para a soma das notas, <a href="sort.html">toSorted</a> para o ranking.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Como escrever</th></tr>
+<tr><td>Você já sabe todas as propriedades</td><td>O literal completo: <code>{ nome: "Ana", idade: 30 }</code></td></tr>
+<tr><td>As propriedades vão chegando aos poucos</td><td>Comece com <code>{}</code> e atribua: <code>obj.nome = "Ana"</code></td></tr>
+<tr><td>Já tem variáveis com os mesmos nomes</td><td>O atalho: <code>{ nome, idade }</code></td></tr>
+<tr><td>Muitos objetos com as mesmas propriedades</td><td>Um array de objetos (e, mais tarde, uma <a href="classes.html">classe</a> ou uma função que cria o objeto)</td></tr>
+<tr><td>Chaves que você só conhece durante a execução (um placar, um dicionário)</td><td>Objeto com colchetes (<code>placar[voto]</code>) ou um <a href="colecao-map.html">Map</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu a vírgula entre as propriedades</strong>
+<pre class="file" data-file="semvirgula.js">const ana = {
+  nome: "Ana"
+  idade: 30,
+};
+console.log(ana);
+</pre>
+<pre class="term">$ node semvirgula.js
+/home/ana/semvirgula.js:3
+  idade: 30,
+  ^^^^^
+
+SyntaxError: Unexpected identifier 'idade'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at … node:internal/…", cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semvirgula.js:3</dt><dd>O Node percebeu o problema na linha <strong>3</strong>. Mas a vírgula faltou no fim da linha <strong>2</strong>: o erro só fica visível quando aparece a palavra seguinte.</dd>
+  <dt>idade: 30, e o <code>^^^^^</code></dt><dd>Os acentos circunflexos sublinham a palavra que o Node não esperava: <code>idade</code>.</dd>
+  <dt>SyntaxError: Unexpected identifier 'idade'</dt><dd>"Erro de sintaxe: identificador (nome) inesperado: <code>idade</code>". Depois de <code>"Ana"</code>, o Node esperava uma vírgula ou o <code>}</code>, e veio um nome.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Num erro de sintaxe, todas as linhas <code>at</code> são do Node: o programa nem começou a rodar. Por isso também não aparece nenhuma saída do <code>console.log</code>.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> vírgula no fim de cada propriedade: <code>nome: "Ana",</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar dos dois-pontos</strong>
+<pre class="file" data-file="igual.js">const ana = {
+  nome = "Ana",
+  idade = 30,
+};
+console.log(ana);
+</pre>
+<pre class="term">$ node igual.js
+/home/ana/igual.js:2
+  nome = "Ana",
+  ^^^^^^^^^^^^
+
+SyntaxError: Invalid shorthand property initializer
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at … node:internal/…", cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Inicializador de propriedade abreviada inválido". Fora de objetos, você usa <code>=</code> para dar valor; <strong>dentro</strong> de <code>{ }</code>, o valor vem depois de <strong>dois-pontos</strong>. O Node achou que você tentava usar o atalho <code>{ nome }</code> com um <code>=</code>, que ali não é permitido. <strong>Como consertar:</strong> <code>nome: "Ana",</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto e vírgula no lugar da vírgula</strong>
+<pre class="file" data-file="pontovirgula.js">const ana = {
+  nome: "Ana";
+  idade: 30;
+};
+console.log(ana);
+</pre>
+<pre class="term">$ node pontovirgula.js
+/home/ana/pontovirgula.js:2
+  nome: "Ana";
+             ^
+
+SyntaxError: Unexpected token ';'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at … node:internal/…", cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado: <code>;</code>". O ponto e vírgula termina <strong>instruções</strong>; dentro de um objeto, as propriedades se separam por <strong>vírgula</strong>. O <code>;</code> vai só depois do <code>}</code> que fecha o objeto. <strong>Como consertar:</strong> troque os <code>;</code> de dentro por <code>,</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chave com hífen sem aspas</strong>
+<pre class="file" data-file="hifen.js">const contato = {
+  nome: "Bia",
+  data-nascimento: "12/03/1998",
+};
+console.log(contato);
+</pre>
+<pre class="term">$ node hifen.js
+/home/ana/hifen.js:3
+  data-nascimento: "12/03/1998",
+      ^
+
+SyntaxError: Unexpected token '-'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at … node:internal/…", cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Sem aspas, o JavaScript lê <code>data-nascimento</code> como "data <strong>menos</strong> nascimento", e uma conta não pode ser uma chave. <strong>Como consertar:</strong> <code>"data-nascimento": …</code> com aspas, ou, melhor, <code>dataNascimento: …</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O objeto virou <code>[object Object]</code></strong>
+<pre class="file" data-file="texto.js">const ana = { nome: "Ana", idade: 30 };
+console.log(`Dados: ${ana}`);
+console.log("Dados: " + ana);
+console.log("Dados:", ana);
+</pre>
+<pre class="term">$ node texto.js
+Dados: [object Object]
+Dados: [object Object]
+Dados: { nome: 'Ana', idade: 30 }
+</pre>
+<p>Dentro de uma template string ou com <code>+</code>, o objeto é transformado em <strong>texto</strong>, e o texto padrão de um objeto é <code>[object Object]</code> ("objeto do tipo Object"), que não diz nada. <strong>Como consertar:</strong> mostre as propriedades que interessam (<code>${ana.nome}</code>), passe o objeto separado por vírgula no <code>console.log</code> (terceira linha) ou use <code>JSON.stringify(ana)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome da propriedade errado: <code>undefined</code></strong>
+<pre class="file" data-file="naoexiste.js">const ana = { nome: "Ana", idade: 30 };
+console.log(ana.nmoe);
+console.log(ana.Nome);
+</pre>
+<pre class="term">$ node naoexiste.js
+undefined
+undefined
+</pre>
+<p>Ler uma propriedade que não existe <strong>não dá erro</strong>: dá <code>undefined</code>. Um erro de digitação (<code>nmoe</code>) ou uma maiúscula (<code>Nome</code>; o JavaScript diferencia maiúsculas de minúsculas) passa em silêncio. <strong>Como consertar:</strong> quando aparecer <code>undefined</code> onde devia ter um valor, compare letra por letra o nome da propriedade com o do objeto.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>{ chave: valor, outra: valor }</code></td><td>Cria um objeto (literal de objeto)</td></tr>
+<tr><td><code>{}</code></td><td>Objeto vazio</td></tr>
+<tr><td><code>obj.chave</code></td><td>Lê uma propriedade (<code>undefined</code> se não existe)</td></tr>
+<tr><td><code>obj["chave com espaço"]</code></td><td>Lê uma propriedade cuja chave não é um nome simples</td></tr>
+<tr><td><code>obj.chave = valor</code></td><td>Cria ou muda uma propriedade (próxima aula)</td></tr>
+<tr><td><code>{ "data-nasc": … }</code></td><td>Chave com caracteres especiais: entre aspas</td></tr>
+<tr><td><code>{ nome, idade }</code></td><td>Atalho para <code>{ nome: nome, idade: idade }</code></td></tr>
+<tr><td><code>obj.interno.chave</code> / <code>obj.lista[0]</code></td><td>Lê dentro de um objeto / de um array guardado no objeto</td></tr>
+<tr><td><code>[ { … }, { … } ]</code></td><td>Array de objetos</td></tr>
+<tr><td><code>typeof obj</code></td><td><code>"object"</code></td></tr>
+<tr><td><code>JSON.stringify(obj, null, 2)</code></td><td>O objeto inteiro como texto, com recuo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected identifier '…'</code> na linha de uma propriedade</td><td>Faltou a vírgula no fim da linha <strong>anterior</strong></td></tr>
+<tr><td><code>SyntaxError: Invalid shorthand property initializer</code></td><td>Usou <code>=</code> no lugar de <code>:</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token ';'</code></td><td>Usou <code>;</code> no lugar de <code>,</code> entre propriedades</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '-'</code></td><td>Chave com hífen sem aspas</td></tr>
+<tr><td><code>[object Object]</code></td><td>Objeto dentro de template string ou com <code>+</code></td></tr>
+<tr><td><code>undefined</code> inesperado</td><td>Nome da propriedade digitado errado (ou com maiúscula)</td></tr>
+<tr><td><code>[Object]</code> na saída do Node</td><td>Não é erro: objeto fundo demais; use <code>JSON.stringify(obj, null, 2)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o objeto</h3>
+<p>Complete para criar o objeto do gato da Ana e mostrar o nome dele:</p>
+<div class="ex-code">const gato = <input data-answer="{" aria-label="abre o objeto"><br>&nbsp;&nbsp;nome<input data-answer=":" aria-label="separador entre chave e valor"> "Mingau"<input data-answer="," aria-label="separador entre propriedades"><br>&nbsp;&nbsp;idade: 3,<br><input data-answer="}" aria-label="fecha o objeto">;<br>console.log(gato<input data-answer=".nome" aria-label="lê o nome">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">2. Com <code>const p = { nome: "Bia", pets: ["Rex", "Lua"] };</code>, como se lê <code>"Lua"</code>?</p>
+<label><input type="radio" name="q2"> <code>p.pets.Lua</code></label>
+<label><input type="radio" name="q2"> <code>p[1]</code></label>
+<label><input type="radio" name="q2"> <code>p.pets[1]</code></label>
+<label><input type="radio" name="q2"> <code>p.pets(1)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>console.log({ nome: "Ana" }.idade)</code> mostra?</p>
+<label><input type="radio" name="q3"> Um <code>TypeError</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+<label><input type="radio" name="q3"> <code>0</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Para guardar <strong>os dados de um filme</strong> (título, ano, diretor, duração), o melhor é…</p>
+<label><input type="radio" name="q4"> Um objeto: <code>{ titulo: …, ano: …, diretor: …, duracao: … }</code></label>
+<label><input type="radio" name="q4"> Um array: <code>[titulo, ano, diretor, duracao]</code></label>
+<label><input type="radio" name="q4"> Quatro variáveis soltas</label>
+<label><input type="radio" name="q4"> Um texto com tudo junto</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>console.log(`Aluno: ${aluno}`)</code> mostrou <code>Aluno: [object Object]</code>. Qual o melhor conserto?</p>
+<label><input type="radio" name="q5"> Trocar a crase por aspas duplas</label>
+<label><input type="radio" name="q5"> Trocar <code>const</code> por <code>let</code></label>
+<label><input type="radio" name="q5"> Pôr o objeto entre colchetes</label>
+<label><input type="radio" name="q5"> Mostrar a propriedade que interessa: <code>${aluno.nome}</code></label>
+</div>
+
+<h3>Missão final: a etiqueta de preços</h3>
+
+<div class="tryjs" data-goal="out:caderno: R$ 18;;out:caneta: R$ 3;;out:mochila: R$ 129;;src:\bfor\b|forEach">
+<p class="try-task"><strong>Missão:</strong> a papelaria da Ana guarda o estoque como um array de objetos. Escreva um laço (<code>for … of</code> ou <code>forEach</code>) que mostre uma linha por produto, no formato <code>caderno: R$ 18</code>.</p>
+<pre class="script" data-file="main.js">const estoque = [
+  { nome: "caderno", preco: 18 },
+  { nome: "caneta", preco: 3 },
+  { nome: "mochila", preco: 129 },
+];
+// escreva o laço aqui
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = [
+  { nome: "caderno", preco: 18 },
+  { nome: "caneta", preco: 3 },
+  { nome: "mochila", preco: 129 },
+];
+for (const produto of estoque) {
+  console.log(`${produto.nome}: R$ ${produto.preco}`);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>caderno: R$ 18</code>, <code>caneta: R$ 3</code> e <code>mochila: R$ 129</code>, uma por linha.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um objeto guarda várias informações sobre <strong>uma</strong> coisa, cada uma com um nome: <code>{ chave: valor, … }</code>. Cada par é uma <strong>propriedade</strong>.</li>
+  <li>Dentro de <code>{ }</code>: dois-pontos entre chave e valor, vírgula entre propriedades.</li>
+  <li><code>obj.chave</code> lê uma propriedade; se ela não existe, o resultado é <code>undefined</code>, sem erro.</li>
+  <li>Os valores podem ser qualquer coisa: textos, números, booleanos, <code>null</code>, arrays e outros objetos (<code>obj.interno.chave</code>, <code>obj.lista[0]</code>).</li>
+  <li>Chave com espaço ou hífen vai entre aspas e se lê com colchetes; prefira chaves em <code>camelCase</code>.</li>
+  <li>Array = lista de coisas, pela posição; objeto = uma coisa, pelas chaves. Array de objetos = o formato da maioria dos dados reais.</li>
+  <li>Para mostrar um objeto, passe-o separado no <code>console.log</code>; dentro de uma template string ele vira <code>[object Object]</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
