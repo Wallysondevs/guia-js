@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript JSON — JSON.stringify e JSON.parse | Guia JavaScript</title>
+<meta name="description" content="JSON no JavaScript para quem está começando: o que é o formato JSON e suas regras, transformar objeto em texto com JSON.stringify (e deixá-lo bonito com null, 2), transformar texto em objeto com JSON.parse, o que se perde no caminho, salvar e ler um .json no Node e os erros reais do Node.js 24 (aspas simples, vírgula sobrando, texto vazio, estrutura circular).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">JSON</span> (stringify e parse)</h1>
+
+<p class="intro">Um objeto do JavaScript vive na memória do programa: quando o programa termina, ele some. Para <strong>guardar</strong> dados num arquivo, ou <strong>mandar</strong> para outro computador pela internet, é preciso transformá-los em <strong>texto</strong>. O formato de texto mais usado no mundo para isso é o <strong>JSON</strong> (lê-se "jêison", de <em>JavaScript Object Notation</em>, "notação de objetos do JavaScript"). O JavaScript já vem com as duas ferramentas: <code>JSON.stringify</code> (objeto → texto) e <code>JSON.parse</code> (texto → objeto).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é JSON e as regras dele (aspas duplas, nada de vírgula sobrando, sem funções).</li>
+  <li><code>JSON.stringify</code>: transformar um objeto em texto, e deixá-lo legível com <code>JSON.stringify(obj, null, 2)</code>.</li>
+  <li><code>JSON.parse</code>: transformar o texto de volta num objeto.</li>
+  <li>O que se perde no caminho: funções, <code>undefined</code>, <code>NaN</code>, datas.</li>
+  <li>Como salvar e ler um arquivo <code>.json</code> no Node.</li>
+  <li>Os erros reais: <code>Expected property name</code>, <code>Unexpected end of JSON input</code>, <code>is not valid JSON</code> e <code>Converting circular structure to JSON</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. <code>JSON.stringify</code> e <code>JSON.parse</code> existem igualzinhos no navegador; só a parte de arquivos (seção 5) é do Node.</p>
+
+<hr>
+
+<h2>A ideia: a receita escrita no papel</h2>
+<p>A avó da Ana sabe a receita do bolo de cabeça. Para a Ana fazer o bolo em outra cidade, a avó <strong>escreve a receita num papel</strong>, num formato que qualquer um entende, e manda pelo correio. A Ana lê o papel e <strong>monta o bolo</strong> de novo na cozinha dela.</p>
+<ul>
+  <li>Escrever no papel = <code>JSON.stringify</code>: o objeto vira texto.</li>
+  <li>O papel = o texto JSON: dá para salvar num arquivo, mandar pela internet, ler de outro programa (até em outra linguagem: Python, Java, PHP… todas leem JSON).</li>
+  <li>Ler o papel e montar o bolo = <code>JSON.parse</code>: o texto vira objeto de novo.</li>
+</ul>
+
+<hr>
+
+<h2>1. <code>JSON.stringify</code>: de objeto para texto</h2>
+
+<pre class="file" data-file="stringify.js">const produto = { nome: "Pão de queijo", preco: 1.5, estoque: 40, vegano: false };
+const texto = JSON.stringify(produto);
+console.log(texto);
+console.log(typeof texto);
+console.log(produto);
+</pre>
+
+<dl class="anatomy">
+  <dt>JSON</dt><dd>Um objeto pronto do JavaScript, com as ferramentas de JSON.</dd>
+  <dt>.stringify(produto)</dt><dd>"Transformar em string" (texto). Recebe o objeto e devolve um <strong>texto novo</strong>; o objeto original não muda.</dd>
+  <dt>typeof texto</dt><dd>Só para provar: o resultado é uma <code>string</code> (veja <a href="typeof.html">typeof</a>).</dd>
+</dl>
+
+<pre class="term">$ node stringify.js
+{"nome":"Pão de queijo","preco":1.5,"estoque":40,"vegano":false}    « o texto JSON
+string
+{ nome: 'Pão de queijo', preco: 1.5, estoque: 40, vegano: false }  « o objeto, como o console.log mostra
+</pre>
+
+<p>Compare as duas linhas parecidas. A primeira é <strong>texto</strong> no formato JSON: nomes das propriedades entre aspas duplas, sem espaços. A última é o <code>console.log</code> mostrando um <strong>objeto</strong>, com o jeito próprio do Node (aspas simples, espaços). Parecem, mas não são a mesma coisa.</p>
+
+<h3>Deixando legível: <code>JSON.stringify(obj, null, 2)</code></h3>
+<p>Para um texto que gente vai ler (um arquivo de configuração, por exemplo), passe mais dois argumentos: <code>null</code> (o segundo, que você vai ver na seção 4) e o número de espaços de recuo:</p>
+
+<pre class="file" data-file="bonito.js">const pedido = {
+  numero: 42,
+  cliente: "Ana",
+  itens: ["pão", "leite"],
+  entrega: { rua: "Rua das Flores", numero: 10 },
+};
+console.log(JSON.stringify(pedido, null, 2));
+</pre>
+
+<pre class="term">$ node bonito.js
+{
+  "numero": 42,
+  "cliente": "Ana",
+  "itens": [
+    "pão",
+    "leite"
+  ],
+  "entrega": {
+    "rua": "Rua das Flores",
+    "numero": 10
+  }
+}
+</pre>
+
+<p>Os dados são os mesmos; só ganharam quebras de linha e recuo de 2 espaços.</p>
+
+<h3>As regras do JSON</h3>
+<p>JSON parece objeto do JavaScript, mas é mais rígido:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No JSON…</th><th>Certo</th><th>Errado</th></tr>
+<tr><td>Nomes das propriedades: sempre entre aspas <strong>duplas</strong></td><td><code>{"nome": "Ana"}</code></td><td><code>{nome: "Ana"}</code>, <code>{'nome': 'Ana'}</code></td></tr>
+<tr><td>Textos: só aspas duplas</td><td><code>"Ana"</code></td><td><code>'Ana'</code>, <code>`Ana`</code></td></tr>
+<tr><td>Sem vírgula depois do último item</td><td><code>[1, 2]</code></td><td><code>[1, 2,]</code></td></tr>
+<tr><td>Sem comentários</td><td>—</td><td><code>// isto não pode</code></td></tr>
+<tr><td>Valores possíveis</td><td>texto, número, <code>true</code>, <code>false</code>, <code>null</code>, array, objeto</td><td>função, <code>undefined</code>, <code>NaN</code>, <code>Infinity</code>, datas</td></tr>
+</table>
+</div>
+
+<p>Não só objetos viram JSON: qualquer um dos valores possíveis vira.</p>
+
+<pre class="file" data-file="tipos.js">console.log(JSON.stringify("Ana"));
+console.log(JSON.stringify(42));
+console.log(JSON.stringify(true));
+console.log(JSON.stringify(null));
+console.log(JSON.stringify([1, "dois", { tres: 3 }]));
+</pre>
+
+<pre class="term">$ node tipos.js
+"Ana"      « o texto ganhou as aspas duplas
+42
+true
+null
+[1,"dois",{"tres":3}]
+</pre>
+
+<hr>
+
+<h2>2. <code>JSON.parse</code>: de texto para objeto</h2>
+
+<pre class="file" data-file="parse.js">const texto = '{"nome":"Pão de queijo","preco":1.5,"estoque":40}';
+const produto = JSON.parse(texto);
+console.log(produto);
+console.log(produto.preco * 2);
+console.log(typeof produto);
+</pre>
+
+<dl class="anatomy">
+  <dt>'{"nome": … }'</dt><dd>Um texto (repare nas aspas <strong>simples</strong> por fora, do JavaScript, e nas duplas por dentro, do JSON). É assim que um JSON chega de um arquivo ou da internet: como texto.</dd>
+  <dt>JSON.parse(texto)</dt><dd>"Analisar" o texto: lê o JSON e <strong>monta</strong> um objeto novo com aqueles dados.</dd>
+  <dt>produto.preco * 2</dt><dd>Agora é objeto de verdade: dá para ler propriedades e fazer contas.</dd>
+</dl>
+
+<pre class="term">$ node parse.js
+{ nome: 'Pão de queijo', preco: 1.5, estoque: 40 }
+3
+object
+</pre>
+
+<p>O <code>parse</code> devolve o tipo que o texto descrever, e ignora espaços entre as partes:</p>
+
+<pre class="file" data-file="parsetipos.js">console.log(JSON.parse("42") + 1);
+console.log(JSON.parse("true"));
+console.log(JSON.parse('"Ana"'));
+console.log(JSON.parse("[1, 2, 3]"));
+console.log(JSON.parse(" { \"a\" : 1 } "));
+</pre>
+
+<pre class="term">$ node parsetipos.js
+43         « "42" virou o número 42
+true
+Ana
+[ 1, 2, 3 ]
+{ a: 1 }
+</pre>
+
+<div class="tryjs" data-goal="out:Total: R$ 7.5;;src:JSON\.parse">
+<p class="try-task"><strong>Missão:</strong> o pedido chegou como texto JSON. Transforme-o em objeto com <code>JSON.parse</code> e mostre <code>Total: R$ 7.5</code> (o preço vezes a quantidade).</p>
+<pre class="script" data-file="main.js">const recebido = '{"item":"Pão de queijo","preco":1.5,"quantidade":5}';
+const pedido = recebido;
+console.log(`Total: R$ ${pedido.preco * pedido.quantidade}`);
+</pre>
+<pre class="solucao" data-file="main.js">const recebido = '{"item":"Pão de queijo","preco":1.5,"quantidade":5}';
+const pedido = JSON.parse(recebido);
+console.log(`Total: R$ ${pedido.preco * pedido.quantidade}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O que se perde no caminho</h2>
+<p>Como o JSON só conhece aqueles valores, o <code>stringify</code> <strong>adapta ou joga fora</strong> o resto, sem avisar:</p>
+
+<pre class="file" data-file="perde.js">const loja = {
+  nome: "Lojinha",
+  aberta: undefined,
+  saudar() {
+    return "Oi";
+  },
+  nota: NaN,
+  infinito: Infinity,
+  abertura: new Date(Date.UTC(2026, 9, 19, 9, 0)),
+};
+console.log(JSON.stringify(loja));
+console.log(JSON.stringify([undefined, () =&gt; 1]));
+</pre>
+
+<pre class="term">$ node perde.js
+{"nome":"Lojinha","nota":null,"infinito":null,"abertura":"2026-10-19T09:00:00.000Z"}
+[null,null]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th>Num objeto</th><th>Num array</th></tr>
+<tr><td><code>undefined</code>, funções (métodos)</td><td>A propriedade <strong>some</strong> (<code>aberta</code> e <code>saudar</code> não aparecem)</td><td>Vira <code>null</code></td></tr>
+<tr><td><code>NaN</code>, <code>Infinity</code></td><td>Vira <code>null</code></td><td>Vira <code>null</code></td></tr>
+<tr><td>Datas (<a href="date.html">Date</a>)</td><td>Viram <strong>texto</strong> (<code>"2026-10-19T09:00:00.000Z"</code>)</td><td>Viram texto</td></tr>
+</table>
+</div>
+
+<p>E na volta, o <code>JSON.parse</code> não sabe que aquele texto era uma data: ele devolve um texto. Se precisar de uma data, recrie: <code>new Date(obj.abertura)</code>.</p>
+
+<div class="note">
+<strong>Cópia profunda com JSON</strong>
+<p>Em código antigo você vai ver <code>JSON.parse(JSON.stringify(obj))</code> para copiar um objeto inteiro: vira texto e volta como um objeto novo, sem nada compartilhado (no lab, mudar a cidade na cópia deixou o original com <code>Recife</code>). Funciona para dados simples, mas perde tudo o que a tabela acima mostra. Hoje, prefira <code>structuredClone(obj)</code> (veja <a href="objetos-referencia.html">Objetos são Referências</a>).</p>
+</div>
+
+<hr>
+
+<h2>4. Escolhendo o que vai para o texto</h2>
+<p>O segundo argumento do <code>stringify</code> (o <code>null</code> da seção 1) pode ser uma <strong>lista de propriedades</strong>: só elas entram no texto. Útil para não mandar o que é secreto:</p>
+
+<pre class="file" data-file="escolher.js">const usuario = { nome: "Ana", email: "ana@exemplo.com", senha: "1234" };
+console.log(JSON.stringify(usuario, ["nome", "email"]));
+</pre>
+
+<pre class="term">$ node escolher.js
+{"nome":"Ana","email":"ana@exemplo.com"}
+</pre>
+
+<p>(Outro jeito é tirar a senha antes, com rest: <code>const { senha, ...publico } = usuario;</code>, da aula <a href="spread-rest.html">Spread e Rest</a>.)</p>
+
+<hr>
+
+<h2>5. Salvando e lendo um arquivo <code>.json</code> (Node)</h2>
+<p>É aqui que o JSON brilha: o programa da Ana pode guardar o estoque num arquivo e, na próxima vez que rodar, continuar de onde parou. O módulo <code>fs</code> ("file system", sistema de arquivos) é só do Node; ele tem aulas próprias em <a href="fs-escrever.html">Escrevendo Arquivos</a> e <a href="fs-ler.html">Lendo Arquivos</a>. Aqui, só o básico:</p>
+
+<pre class="file" data-file="salvar.js">const fs = require("node:fs");
+
+const estoque = { pao: 20, leite: 8, cafe: 3 };
+fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2));
+console.log("Estoque salvo.");
+</pre>
+
+<pre class="term">$ node salvar.js
+Estoque salvo.
+$ cat estoque.json
+{
+  "pao": 20,
+  "leite": 8,
+  "cafe": 3
+}
+</pre>
+
+<p>O <code>cat</code> mostra o conteúdo do arquivo: é o texto JSON que o <code>stringify</code> produziu. Agora o caminho de volta, num segundo programa: ler o arquivo, transformar em objeto, vender 5 pães e salvar de novo.</p>
+
+<pre class="file" data-file="ler.js">const fs = require("node:fs");
+
+const texto = fs.readFileSync("estoque.json", "utf8");
+const estoque = JSON.parse(texto);
+estoque.pao = estoque.pao - 5;
+console.log(estoque);
+fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2));
+</pre>
+
+<pre class="term">$ node ler.js
+{ pao: 15, leite: 8, cafe: 3 }
+$ cat estoque.json
+{
+  "pao": 15,
+  "leite": 8,
+  "cafe": 3
+}
+</pre>
+
+<p>O arquivo agora diz 15 pães. Rodando <code>ler.js</code> de novo, seriam 10: os dados sobrevivem entre uma execução e outra. (No navegador não há <code>fs</code>; lá, o JSON costuma ir para o <code>localStorage</code> ou chegar da internet com <a href="fetch.html">fetch</a>.)</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode: o programa salva o estoque, lê o arquivo de volta e mostra o conteúdo dele. Depois troque o <code>2</code> do <code>stringify</code> por <code>4</code>, ou apague os dois últimos argumentos, e rode de novo para ver o formato mudar.</p>
+<pre class="script" data-file="main.js">const fs = require("node:fs");
+
+const estoque = { pao: 20, leite: 8, cafe: 3 };
+fs.writeFileSync("estoque.json", JSON.stringify(estoque, null, 2));
+const lido = JSON.parse(fs.readFileSync("estoque.json", "utf8"));
+console.log(fs.readFileSync("estoque.json", "utf8"));
+console.log(lido.pao);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Mandar/guardar dados (máquina vai ler)</td><td><code>JSON.stringify(obj)</code>, compacto</td></tr>
+<tr><td>Um arquivo que gente também vai ler</td><td><code>JSON.stringify(obj, null, 2)</code></td></tr>
+<tr><td>Só algumas propriedades</td><td><code>JSON.stringify(obj, ["a", "b"])</code></td></tr>
+<tr><td>Ver um objeto enquanto programa</td><td><code>console.log(obj)</code> (não precisa de JSON)</td></tr>
+<tr><td>Ler um texto JSON</td><td><code>JSON.parse(texto)</code>, de preferência dentro de <code>try … catch</code></td></tr>
+<tr><td>Copiar um objeto inteiro</td><td><code>structuredClone(obj)</code> (o antigo <code>JSON.parse(JSON.stringify(obj))</code> perde datas e funções)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Quase todo erro de JSON é um <code>SyntaxError</code> do <code>JSON.parse</code>: o texto não segue as regras. Repare que, nesses erros, a primeira linha não é o seu arquivo, e sim <code>&lt;anonymous_script&gt;:1</code>: o Node está mostrando o <strong>texto JSON</strong> que ele tentou ler, com o <code>^</code> no ponto onde desistiu. O seu arquivo aparece mais abaixo, numa linha <code>at</code>.</p>
+
+<div class="cenario">
+<strong>Aspas simples (ou nomes sem aspas)</strong>
+<pre class="file" data-file="aspas.js">const texto = "{'nome': 'Ana'}";
+const pessoa = JSON.parse(texto);
+</pre>
+<pre class="term">$ node aspas.js
+&lt;anonymous_script&gt;:1
+{'nome': 'Ana'}
+ ^
+
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/aspas.js:2:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>&lt;anonymous_script&gt;:1</dt><dd>"Script anônimo, linha 1": é o texto JSON, não o seu programa.</dd>
+  <dt>{'nome': 'Ana'} e o ^</dt><dd>O texto, com o <code>^</code> embaixo da aspa simples: foi ali que o leitor de JSON parou.</dd>
+  <dt>SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)</dt><dd>"Erro de sintaxe: era esperado um nome de propriedade ou <code>}</code> no JSON, na posição 1 (linha 1, coluna 2)". Depois do <code>{</code>, o JSON só aceita <code>"</code> (o começo de um nome) ou <code>}</code>. As posições contam do zero: a posição 1 é o segundo caractere.</dd>
+  <dt>at JSON.parse (&lt;anonymous&gt;)</dt><dd>O erro nasceu dentro do <code>JSON.parse</code>…</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/aspas.js:2:21)</dt><dd>…chamado na linha 2 do seu arquivo. É essa linha que você procura.</dd>
+</dl>
+<p><strong>Como consertar:</strong> no JSON, aspas duplas sempre: <code>'{"nome": "Ana"}'</code>. Se o texto foi você quem montou, monte com <code>JSON.stringify</code> em vez de escrever à mão.</p>
+</div>
+
+<div class="cenario">
+<strong>Vírgula depois do último item</strong>
+<pre class="file" data-file="virgula.js">const texto = '{"nome": "Ana", "idade": 30,}';
+const pessoa = JSON.parse(texto);
+</pre>
+<pre class="term">$ node virgula.js
+&lt;anonymous_script&gt;:1
+{"nome": "Ana", "idade": 30,}
+                            ^
+
+SyntaxError: Expected double-quoted property name in JSON at position 28 (line 1 column 29)
+    at JSON.parse (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/virgula.js:2:21)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Era esperado um nome de propriedade entre aspas duplas". Depois de uma vírgula, o JSON espera mais uma propriedade, e encontrou o <code>}</code>. No JavaScript a vírgula sobrando é permitida (e este guia até a usa nos objetos de várias linhas); no JSON, <strong>não</strong>. <strong>Como consertar:</strong> apague a última vírgula.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto vazio, ou <code>undefined</code></strong>
+<pre class="file" data-file="vazio.js">const texto = "";
+const dados = JSON.parse(texto);
+</pre>
+<pre class="term">$ node vazio.js
+&lt;anonymous_script&gt;:1
+
+
+SyntaxError: Unexpected end of JSON input
+    at JSON.parse (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/vazio.js:2:20)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Fim inesperado da entrada JSON": o texto acabou antes de começar (as duas linhas em branco são o texto vazio, sem nada para o <code>^</code> apontar). Acontece com um arquivo <code>.json</code> vazio. Com uma variável que ficou sem valor, <code>JSON.parse(salvo)</code> deu no lab <code>SyntaxError: "undefined" is not valid JSON</code>; e passando um objeto no lugar do texto, <code>JSON.parse(produto)</code> deu <code>SyntaxError: "[object Object]" is not valid JSON</code> (o objeto foi convertido no texto <code>"[object Object]"</code>, que não é JSON; ele já era objeto, não precisava de <code>parse</code>). <strong>Como consertar:</strong> confira o que está chegando com <code>console.log(texto)</code> antes do <code>parse</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Estrutura circular</strong>
+<pre class="file" data-file="circular.js">const ana = { nome: "Ana" };
+const bia = { nome: "Bia", amiga: ana };
+ana.amiga = bia;
+console.log(JSON.stringify(ana));
+</pre>
+<pre class="term">$ node circular.js
+/home/ana/circular.js:4
+console.log(JSON.stringify(ana));
+                 ^
+
+TypeError: Converting circular structure to JSON
+    --&gt; starting at object with constructor 'Object'
+    |     property 'amiga' -&gt; object with constructor 'Object'
+    --- property 'amiga' closes the circle
+    at JSON.stringify (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/circular.js:4:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Convertendo uma estrutura circular para JSON". A Ana aponta para a Bia, que aponta de volta para a Ana: escrever isso em texto não teria fim. As três linhas com <code>--&gt;</code>, <code>|</code> e <code>---</code> desenham o círculo: começa no objeto da Ana, segue a propriedade <code>amiga</code> até a Bia, e a <code>amiga</code> da Bia fecha o círculo. <strong>Como consertar:</strong> guarde algo que identifique, e não o objeto inteiro (<code>amiga: "Bia"</code>).</p>
+</div>
+
+<h3>Protegendo o <code>parse</code> com <code>try … catch</code></h3>
+<p>Quando o texto vem de fora (arquivo, internet, o que a pessoa digitou), ele pode estar errado, e você não quer que o programa inteiro caia por isso. O <code>try … catch</code> (aula <a href="try-catch.html">try … catch … finally</a>) captura o erro:</p>
+
+<pre class="file" data-file="trycatch.js">const texto = "{'nome': 'Ana'}";
+try {
+  const pessoa = JSON.parse(texto);
+  console.log(pessoa.nome);
+} catch (erro) {
+  console.log("Texto inválido:", erro.message);
+}
+</pre>
+
+<pre class="term">$ node trycatch.js
+Texto inválido: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+</pre>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>JSON.stringify(valor)</code></td><td>Valor → texto JSON compacto</td></tr>
+<tr><td><code>JSON.stringify(valor, null, 2)</code></td><td>Texto JSON com recuo de 2 espaços</td></tr>
+<tr><td><code>JSON.stringify(obj, ["a", "b"])</code></td><td>Só as propriedades <code>a</code> e <code>b</code></td></tr>
+<tr><td><code>JSON.parse(texto)</code></td><td>Texto JSON → valor (objeto, array, número…)</td></tr>
+<tr><td><code>fs.writeFileSync("x.json", JSON.stringify(obj))</code></td><td>Salva num arquivo (Node)</td></tr>
+<tr><td><code>JSON.parse(fs.readFileSync("x.json", "utf8"))</code></td><td>Lê de um arquivo (Node)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Expected property name or '}' in JSON</code></td><td>Aspas simples ou nome sem aspas</td></tr>
+<tr><td><code>Expected double-quoted property name in JSON</code></td><td>Vírgula depois do último item</td></tr>
+<tr><td><code>Unexpected end of JSON input</code></td><td>Texto vazio ou cortado no meio</td></tr>
+<tr><td><code>"undefined" is not valid JSON</code></td><td>A variável passada ao <code>parse</code> não tinha valor</td></tr>
+<tr><td><code>"[object Object]" is not valid JSON</code></td><td>Passou um objeto (que já era objeto) ao <code>parse</code></td></tr>
+<tr><td><code>Converting circular structure to JSON</code></td><td>Objetos que apontam um para o outro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual função?</h3>
+<p>Para transformar um texto JSON num objeto, use <code>JSON.<input data-answer="parse" aria-label="nome do método">(texto)</code>.</p>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que mostra <code>console.log(JSON.stringify({ a: 1, b: undefined }));</code>?</p>
+<div class="ex-code"><input data-answer="{&quot;a&quot;:1}" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Recuo</h3>
+<p>Complete para gerar um JSON com recuo de 2 espaços:</p>
+<div class="ex-code">JSON.stringify(obj, <input data-answer="null" aria-label="segundo argumento">, <input data-answer="2" aria-label="recuo">)</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destes textos é JSON válido?</p>
+<label><input type="radio" name="q4"> <code>{nome: "Ana"}</code></label>
+<label><input type="radio" name="q4"> <code>{'nome': 'Ana'}</code></label>
+<label><input type="radio" name="q4"> <code>{"nome": "Ana", "notas": [9, 7]}</code></label>
+<label><input type="radio" name="q4"> <code>{"nome": "Ana",}</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Depois de <code>const copia = JSON.parse(JSON.stringify({ quando: new Date() }));</code>, o que é <code>copia.quando</code>?</p>
+<label><input type="radio" name="q5"> Um objeto <code>Date</code></label>
+<label><input type="radio" name="q5"> Um texto (string)</label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+</div>
+
+<h3>Missão final: a nota que chegou errada</h3>
+
+<div class="tryjs" data-goal="out:Ana: 9;;out:Bia: 7;;out:&quot;aprovados&quot;:2;;semerro">
+<p class="try-task"><strong>Missão:</strong> as notas chegaram num texto JSON com dois problemas (o programa nem passa do <code>parse</code>). Conserte o texto, rode, e depois complete o fim: monte o objeto <code>resumo</code> com <code>aprovados</code> (quantos tiraram 7 ou mais) e mostre-o com <code>JSON.stringify</code>, para sair <code>{"aprovados":2}</code>.</p>
+<pre class="script" data-file="main.js">const recebido = '{turma: "6A", "notas": {"Ana": 9, "Bia": 7, "Caio": 5,}}';
+const dados = JSON.parse(recebido);
+let aprovados = 0;
+for (const [aluno, nota] of Object.entries(dados.notas)) {
+  console.log(`${aluno}: ${nota}`);
+  if (nota &gt;= 7) {
+    aprovados++;
+  }
+}
+// monte o resumo e mostre com JSON.stringify
+</pre>
+<pre class="solucao" data-file="main.js">const recebido = '{"turma": "6A", "notas": {"Ana": 9, "Bia": 7, "Caio": 5}}';
+const dados = JSON.parse(recebido);
+let aprovados = 0;
+for (const [aluno, nota] of Object.entries(dados.notas)) {
+  console.log(`${aluno}: ${nota}`);
+  if (nota &gt;= 7) {
+    aprovados++;
+  }
+}
+const resumo = { aprovados };
+console.log(JSON.stringify(resumo));
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>JSON é um formato de <strong>texto</strong> para guardar e trocar dados; quase todas as linguagens o leem.</li>
+  <li><code>JSON.stringify(obj)</code> transforma em texto; com <code>null, 2</code>, fica legível.</li>
+  <li><code>JSON.parse(texto)</code> transforma o texto em objeto (ou array, número…) de novo.</li>
+  <li>Regras: aspas duplas, sem vírgula sobrando, sem comentários. Funções e <code>undefined</code> somem; <code>NaN</code> vira <code>null</code>; datas viram texto.</li>
+  <li>No Node, <code>fs.writeFileSync</code> + <code>stringify</code> salva; <code>fs.readFileSync</code> + <code>parse</code> lê.</li>
+  <li>Texto que vem de fora pode estar errado: proteja o <code>parse</code> com <code>try … catch</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
