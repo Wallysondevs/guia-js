@@ -27,6 +27,7 @@
   <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana, que está no horário de Brasília (3 horas atrás do UTC, o horário de referência mundial).</li>
   <li>O modo interativo mostra uma data no formato do <strong>UTC</strong>, com um <code>Z</code> no fim: <code>d</code> aparece como <code>2026-03-10T17:30:00.000Z</code>, que é 14h30 em Brasília. Não é erro: é a mesma hora, escrita no relógio de referência.</li>
   <li>Os resultados que dependem do relógio (<code>new Date()</code> sem nada, <code>Date.now()</code>) mudam a cada vez; por isso as tabelas usam datas fixas.</li>
+  <li>Nas caixas "Experimente", o fuso é o do <strong>seu</strong> computador (o idioma continua pt-BR). Se você não estiver no horário de Brasília, os resultados em UTC (<code>toISOString</code>, o <code>Z</code>, <code>timeZone: "UTC"</code>) e o nome do fuso saem diferentes dos daqui; as missões desta página dão o mesmo resultado em qualquer fuso.</li>
 </ul>
 </div>
 
