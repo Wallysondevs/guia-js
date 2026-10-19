@@ -560,6 +560,36 @@ var NIVEIS = [
     if (cmds.join("").trim()) botaoCopiar(janela, cmds.filter(function (c) { return c.trim(); }).join("\n"));
   });
 
+  /* ---------- Console do navegador (pre.devtools) ----------
+     "> x" = o que a pessoa digitou (o ">" em destaque); a última linha antes da próxima
+     entrada é o valor devolvido (em cinza, com "←", como o Chrome); Uncaught/…Error em
+     vermelho; ⚠/Warning em amarelo; o resto = o que o console.log escreveu. */
+  document.querySelectorAll("pre.devtools").forEach(function (pre) {
+    if (pre.getAttribute("data-pronto")) return;
+    pre.setAttribute("data-pronto", "1");
+    var linhas = pre.textContent.replace(/^\n+|\s+$/g, "").split("\n"), html = [], i, blocoIni = -1;
+    var tipos = linhas.map(function (l) { return /^> ?/.test(l) ? "in" : "out"; });
+    // o valor devolvido: a última linha de saída depois de uma entrada (e antes da próxima)
+    for (i = 0; i < linhas.length; i++) {
+      if (tipos[i] === "in") { blocoIni = i; continue; }
+      var prox = i + 1 >= linhas.length || tipos[i + 1] === "in";
+      if (blocoIni >= 0 && prox && !/^\s+at /.test(linhas[i])) tipos[i] = "ret";
+    }
+    linhas.forEach(function (l, k) {
+      var t = tipos[k], cls = "dt-log";
+      if (t === "in") { html.push('<span class="dt-l dt-in"><span class="dt-p">&gt;</span>' + esc(l.replace(/^> ?/, "")) + "</span>"); return; }
+      if (/^Uncaught\b|^\s+at |^(\w*Error|DOMException)\b/.test(l)) cls = "dt-err";
+      else if (/^⚠|^Warning\b|^\[Violation\]/.test(l)) cls = "dt-warn";
+      else if (t === "ret") cls = "dt-ret";
+      html.push('<span class="dt-l ' + cls + '">' + (cls === "dt-ret" ? '<span class="dt-p">←</span>' : "") + esc(l) + "</span>");
+    });
+    var janela = el("div", { "class": "devtools-win" });
+    janela.innerHTML = '<div class="devtools-bar"><span class="devtools-aba">Console</span><span class="devtools-dica">F12 no navegador</span></div>';
+    pre.parentNode.insertBefore(janela, pre);
+    pre.innerHTML = html.join("");
+    janela.appendChild(pre);
+  });
+
   /* ---------- Anatomia do comando ----------
      <dl class="anatomy">
        <dt>pgrep</dt><dd>o programa que procura processos</dd>
