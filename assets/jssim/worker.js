@@ -90,6 +90,10 @@
     jsNodeRequire: CJS_REQUIRE,
     jsNodeTimer: ["listOnTimeout (node:internal/timers:685:17)", "process.processTimers (node:internal/timers:618:7)"],
     jsNodeImmediate: ["process.processImmediate (node:internal/timers:574:21)"],
+    jsNodeFsAbriu: ["FSReqCallback.readFileAfterOpen [as oncomplete] (node:fs:300:13)"],
+    jsNodeFsLido: ["FSReqCallback.readFileAfterClose [as oncomplete] (node:internal/fs/read/context:96:3)"],
+    jsNodeFsStat: ["FSReqCallback.oncomplete (node:fs:199:5)"],
+    jsNodeFsOk: ["FSReqCallback.oncomplete (node:fs:187:23)"],
     jsNodeTick: ["process.processTicksAndRejections (node:internal/process/task_queues:85:11)"],
   };
   function ehInterno(arq) { return !arq || arq.indexOf(BASE) === 0 && !arquivosInfo[arq]; }
@@ -222,7 +226,7 @@
     var m = e && typeof e === "object" ? marcas.get(e) : null;
     var ehErro = e instanceof Error || (e && typeof e === "object" && typeof e.stack === "string" && "message" in e);
     if (ehErro) { try { void e.stack; } catch (x) {} }
-    if (m && m.cab) cab = m.cab;
+    if (m && m.cab) cab = naoTratadoModulo && /^node:/.test(m.cab) ? "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\n" : m.cab;
     else if (ehErro) {
       var p = posicaoErro(e);
       if (p) {
@@ -782,7 +786,11 @@
       try { r = sinc.apply(null, a); } catch (e) { err = e; marcas.set(e, { semUsuario: true }); }
       nSetTimeout(function () {
         if (encerrado) return;
-        try { if (err) cb(err); else cb(null, r); } catch (e) { naoTratado(e, false); }
+        try {
+          if (k === "readFile") { if (err) jsNodeFsAbriu(cb, err); else jsNodeFsLido(cb, r); }
+          else if (k === "stat" || k === "lstat") jsNodeFsStat(cb, err, r);
+          else jsNodeFsOk(cb, err, r);
+        } catch (e) { if (e !== SAIR) naoTratado(e, false); }
         soltar();
       }, 0);
     };
@@ -803,6 +811,12 @@
       });
     };
   });
+  // os callbacks do fs são chamados como no Node (os nomes aparecem na pilha do erro)
+  function ReadFileContext(cb) { this.callback = cb; }
+  function jsNodeFsAbriu(cb, err) { new ReadFileContext(cb).callback(err); }
+  function jsNodeFsLido(cb, r) { cb(null, r); }
+  function jsNodeFsStat(cb, err, r) { if (err) cb(err); else cb(null, r); }
+  function jsNodeFsOk(cb, err, r) { if (err) cb(err); else if (r === undefined) cb(null); else cb(null, r); }
   fsMod.exists = function (p, cb) { var r = fsSync.existsSync(p); segurar(); nSetTimeout(function () { cb(r); soltar(); }, 0); };
   fsMod.promises = fsPromises;
   fsMod.constants = { F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1 };
@@ -1440,7 +1454,13 @@
   assert.match = function match(s, re, msg) { if (!re.test(s)) falhaAssert(msg, "The input did not match the regular expression " + String(re) + ". Input:\n\n" + insp(s) + "\n", s, re, "match", match); };
   assert.doesNotMatch = function doesNotMatch(s, re, msg) { if (re.test(s)) falhaAssert(msg, "The input was expected to not match the regular expression " + String(re) + ". Input:\n\n" + insp(s) + "\n", s, re, "doesNotMatch", doesNotMatch); };
   assert.AssertionError = AssertionError;
-  assert.strict = assert;
+  // o modo estrito: equal = strictEqual, deepEqual = deepStrictEqual…
+  function assertStrict(v, msg) { if (!v) falhaAssert(msg, arguments.length === 0 ? "No value argument passed to `assert.ok()`" : "The expression evaluated to a falsy value:\n\n  " + (msg === undefined ? textoChamada(assertStrict) || "assert(" + insp(v) + ")" : "") + "\n", v, true, "==", assertStrict, true); }
+  Object.keys(assert).forEach(function (k) { assertStrict[k] = assert[k]; });
+  assertStrict.equal = assert.strictEqual; assertStrict.notEqual = assert.notStrictEqual;
+  assertStrict.deepEqual = assert.deepStrictEqual; assertStrict.notDeepEqual = assert.notDeepStrictEqual;
+  assertStrict.strict = assertStrict;
+  assert.strict = assertStrict;
 
   /* ------------------------------------------------------------ módulos */
   var EMBUTIDOS = {};
@@ -1454,7 +1474,8 @@
       case "events": return EventEmitter;
       case "util": return utilMod;
       case "os": return osMod;
-      case "assert": case "assert/strict": return assert;
+      case "assert": return assert;
+      case "assert/strict": return assertStrict;
       case "process": return process;
       case "buffer": return { Buffer: Buffer, constants: { MAX_LENGTH: 4294967296 } };
       case "timers": return { setTimeout: setTimeout_, setInterval: setInterval_, setImmediate: setImmediate_, clearTimeout: limpar, clearInterval: limpar, clearImmediate: clearImmediate_ };
@@ -1648,12 +1669,22 @@
   }
   function marcarCJS(u) { origemBlob[u] = { esp: null, cjs: true }; return u; }
   // "The requested module 'blob:…' does not provide an export named 'x'" → a mensagem do Node, com a linha do import
+  function nomesDoImport(esp, nome) {
+    var achado = null;
+    Object.keys(urlsESM).some(function (arq) {
+      var re = /\bimport\s*(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s*(["'])([^"']+)\2/g, m;
+      while ((m = re.exec(fontes[arq] || ""))) if (m[3] === esp) { achado = m[1]; return true; }
+      return false;
+    });
+    if (!achado) return nome;
+    return achado.split(",").map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { var p = x.split(/\s+as\s+/); return p.length > 1 ? p[0] + ": " + p[1] : p[0]; }).join(", ");
+  }
   function erroLigacao(e) {
     var m = /^The requested module '([^']+)' does not provide an export named '([^']+)'$/.exec(String(e && e.message || ""));
     if (!m) return null;
     var o = origemBlob[m[1]] || {}, esp = o.esp || m[1], nome = m[2];
     var msg = o.cjs && nome !== "default"
-      ? "Named export '" + nome + "' not found. The requested module '" + esp + "' is a CommonJS module, which may not support all module.exports as named exports.\nCommonJS modules can always be imported via the default export, for example using:\n\nimport pkg from '" + esp + "';\nconst { " + nome + " } = pkg;\n"
+      ? "Named export '" + nome + "' not found. The requested module '" + esp + "' is a CommonJS module, which may not support all module.exports as named exports.\nCommonJS modules can always be imported via the default export, for example using:\n\nimport pkg from '" + esp + "';\nconst { " + nomesDoImport(esp, nome) + " } = pkg;\n"
       : "The requested module '" + esp + "' does not provide an export named '" + nome + "'";
     var cab = "";
     Object.keys(urlsESM).some(function (arq) {

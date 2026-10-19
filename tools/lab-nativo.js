@@ -69,6 +69,8 @@ const CONHECIDAS = [
 function classificar(dif, fonte) {
   const r = new Set();
   for (const l of dif) for (const [re, t] of CONHECIDAS) if (re.test(l)) r.add(t);
+  // o lab não tem internet: um fetch falha lá
+  if (fonte && /\bfetch\s*\(/.test(fonte) && dif.some((l) => /fetch failed|EAI_AGAIN|ENOTFOUND/.test(l))) r.add("rede (o lab roda sem internet; o editor usa o fetch do navegador)");
   // diferença numa mensagem de erro/aviso nunca é "esperada" por causa do código-fonte: é um achado
   if (dif.some((l) => /Error|Warning|^[-+]\s+at |Node\.js v|^[-+]\s*\^|\[código de saída|código de saída/.test(l))) return Array.from(r);
   if (fonte && /Math\.random\b/.test(fonte)) r.add("números sorteados (Math.random)");
