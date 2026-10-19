@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Arrow Functions (=&gt;) — o jeito curto de escrever funções | Guia JavaScript</title>
+<meta name="description" content="Arrow functions do JavaScript para quem nunca programou: transformar uma function em (n) =&gt; n * 2 passo a passo, zero, um e vários parâmetros, o return implícito, o corpo com chaves, a pegadinha das chaves e do objeto, onde as arrows brilham (map) e os erros reais do Node.js 24 (Unexpected token '=&gt;', Missing initializer, Cannot access before initialization).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Arrow Functions (=&gt;)</span></h1>
+
+<p class="intro">Uma <strong>arrow function</strong> ("função flecha", por causa do <code>=&gt;</code>, que parece uma setinha) é um jeito <strong>mais curto</strong> de escrever uma função. Ela chegou ao JavaScript em 2015 (no ES6, veja <a href="versoes.html">Versões</a>) e hoje está em todo lugar: quando você ler código JavaScript moderno, vai ver <code>=&gt;</code> o tempo todo. Nesta aula, você vai aprender a ler e a escrever arrows, partindo das funções que já conhece.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como transformar uma <code>function</code> numa arrow, passo a passo.</li>
+  <li>Como escrever arrows com zero, um ou vários parâmetros.</li>
+  <li>O <strong><code>return</code> implícito</strong>: a arrow de uma linha devolve o valor sozinha.</li>
+  <li>Quando usar chaves <code>{ }</code> no corpo, e a pegadinha que elas trazem.</li>
+  <li>Onde as arrows brilham: funções curtas passadas para outras funções.</li>
+  <li>Os erros reais mais comuns ao escrever uma arrow.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia. Antes, convém conhecer <a href="funcoes.html">Funções</a>, <a href="parametros.html">Parâmetros</a> e <a href="return.html">return</a>.</p>
+
+<hr>
+
+<h2>A ideia: a abreviação</h2>
+<p>Na lista de compras, a Ana escreve "1 kg" em vez de "um quilograma", e "pão fr." em vez de "pão francês". Quem lê entende igual; só ocupa menos espaço. A arrow function é a abreviação da função: faz a mesma coisa (recebe parâmetros, roda um corpo, devolve um valor) com menos palavras. Como toda abreviação, é preciso aprender a ler, e existem algumas regras do que pode e do que não pode abreviar.</p>
+
+<hr>
+
+<h2>1. De <code>function</code> para arrow, passo a passo</h2>
+<p>As cinco funções abaixo fazem <strong>exatamente</strong> a mesma coisa: devolvem o dobro do número. Cada uma tira um pedaço da anterior.</p>
+
+<pre class="file" data-file="passos.js">function dobro1(n) {
+  return n * 2;
+}
+
+const dobro2 = function (n) {
+  return n * 2;
+};
+
+const dobro3 = (n) =&gt; {
+  return n * 2;
+};
+
+const dobro4 = (n) =&gt; n * 2;
+
+const dobro5 = n =&gt; n * 2;
+
+console.log(dobro1(21), dobro2(21), dobro3(21), dobro4(21), dobro5(21));
+</pre>
+
+<pre class="term">$ node passos.js
+42 42 42 42 42
+</pre>
+
+<ol class="passo">
+  <li><strong><code>dobro1</code></strong>: a declaração que você já conhece.</li>
+  <li><strong><code>dobro2</code></strong>: a mesma função, sem nome, guardada numa constante (a "expressão de função" da aula <a href="funcoes.html">Funções</a>).</li>
+  <li><strong><code>dobro3</code></strong>: tira a palavra <code>function</code> e põe a seta <code>=&gt;</code> <strong>depois</strong> dos parênteses. Já é uma arrow.</li>
+  <li><strong><code>dobro4</code></strong>: o corpo é só um <code>return</code>? Então tira as chaves e o <code>return</code>: o que vem depois da seta é devolvido sozinho.</li>
+  <li><strong><code>dobro5</code></strong>: com <strong>um</strong> parâmetro só, até os parênteses podem sair.</li>
+</ol>
+
+<p>A forma mais usada é a 4: <code>(n) =&gt; n * 2</code>. Lê-se "<code>n</code> vai para <code>n * 2</code>", ou "recebe <code>n</code> e devolve <code>n * 2</code>".</p>
+
+<dl class="anatomy">
+  <dt>const dobro4 =</dt><dd>A arrow não tem nome próprio: ela é guardada numa constante, e o nome da constante vira o nome da função. Use <code>const</code>, para ninguém trocar a função sem querer.</dd>
+  <dt>(n)</dt><dd>Os parâmetros, entre parênteses, como sempre.</dd>
+  <dt>=&gt;</dt><dd>A seta: um sinal de igual e um sinal de maior, <strong>grudados</strong>. Separa os parâmetros do corpo.</dd>
+  <dt>n * 2</dt><dd>O corpo. Sem chaves, ele é uma única expressão, e o valor dela é devolvido: é o <strong><code>return</code> implícito</strong> (implícito = "que fica subentendido").</dd>
+  <dt>;</dt><dd>O ponto e vírgula fecha a instrução <code>const</code>.</dd>
+</dl>
+
+<p>A chamada é igual à de qualquer função: <code>dobro4(21)</code>. No modo interativo do Node:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const dobro = (n) =&gt; n * 2
+undefined
+&gt; dobro(21)
+42
+&gt; dobro
+[Function: dobro]
+&gt; typeof dobro
+'function'
+&gt; .exit
+</pre>
+
+<p>Para o JavaScript, uma arrow é uma função como as outras (<code>typeof</code> responde <code>'function'</code>), e ela até ganha o nome da constante: <code>[Function: dobro]</code>.</p>
+
+<div class="tryjs" data-goal="out:Total: R$ 9;;src:const\s+calcularTotal\s*=\s*\(.*\)\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> reescreva a função <code>calcularTotal</code> como uma arrow de uma linha, guardada em <code>const calcularTotal</code>. A saída deve continuar <code>Total: R$ 9</code>.</p>
+<pre class="script" data-file="main.js">function calcularTotal(quantidade, preco) {
+  return quantidade * preco;
+}
+
+console.log(`Total: R$ ${calcularTotal(2, 4.5)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const calcularTotal = (quantidade, preco) =&gt; quantidade * preco;
+
+console.log(`Total: R$ ${calcularTotal(2, 4.5)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Zero, um ou vários parâmetros</h2>
+
+<pre class="file" data-file="params.js">const saudar = () =&gt; "Olá!";
+const dobro = (n) =&gt; n * 2;
+const somar = (a, b) =&gt; a + b;
+const calcularTotal = (quantidade, preco) =&gt; quantidade * preco;
+
+console.log(saudar());
+console.log(dobro(8));
+console.log(somar(2, 3));
+console.log(`Total: R$ ${calcularTotal(10, 0.5)}`);
+</pre>
+
+<pre class="term">$ node params.js
+Olá!
+16
+5
+Total: R$ 5
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parâmetros</th><th>Como se escreve</th><th>Observação</th></tr>
+<tr><td>Nenhum</td><td><code>() =&gt; "Olá!"</code></td><td>Os parênteses vazios são <strong>obrigatórios</strong></td></tr>
+<tr><td>Um</td><td><code>(n) =&gt; n * 2</code> ou <code>n =&gt; n * 2</code></td><td>Os parênteses são opcionais</td></tr>
+<tr><td>Dois ou mais</td><td><code>(a, b) =&gt; a + b</code></td><td>Os parênteses são <strong>obrigatórios</strong></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Use sempre os parênteses</strong>
+<p>Com um parâmetro, <code>n =&gt; n * 2</code> funciona, mas neste guia escrevemos <code>(n) =&gt; n * 2</code>: fica igual aos outros casos e, se um dia a função ganhar um segundo parâmetro, é só acrescentar. O Prettier, a ferramenta de formatação mais usada no JavaScript, faz o mesmo (veja <a href="estilo.html">Estilo de Código</a>).</p>
+</div>
+
+<hr>
+
+<h2>3. Corpo com chaves: quando a função tem mais de uma linha</h2>
+<p>Se a função precisa de mais de uma instrução (criar uma variável, um <code>if</code>, um <code>console.log</code>), o corpo vai entre <strong>chaves</strong>, como numa função comum. E aí o <code>return</code> volta a ser obrigatório, se a função tiver de devolver algo:</p>
+
+<pre class="file" data-file="corpo.js">const mostrarPedido = (produto, quantidade) =&gt; {
+  const linha = `${quantidade} x ${produto}`;
+  console.log(`Pedido: ${linha}`);
+};
+
+const calcularTroco = (pago, total) =&gt; {
+  const troco = pago - total;
+  return troco;
+};
+
+mostrarPedido("pão francês", 10);
+console.log(`Troco: R$ ${calcularTroco(20, 12.5)}`);
+</pre>
+
+<pre class="term">$ node corpo.js
+Pedido: 10 x pão francês
+Troco: R$ 7.5
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Corpo</th><th>Exemplo</th><th>Devolve</th></tr>
+<tr><td>Sem chaves (uma expressão)</td><td><code>(n) =&gt; n * 2</code></td><td>O valor da expressão, sozinho</td></tr>
+<tr><td>Com chaves (bloco)</td><td><code>(n) =&gt; { return n * 2; }</code></td><td>Só o que tiver <code>return</code>; sem ele, <code>undefined</code></td></tr>
+</table>
+</div>
+
+<h3 id="chaves">A pegadinha das chaves</h3>
+<p>Misturar as duas formas é o erro mais comum com arrows: pôr chaves <strong>e</strong> esquecer o <code>return</code>.</p>
+
+<pre class="file" data-file="chaves.js">const triplo = (n) =&gt; { n * 3 };
+console.log(triplo(10));
+</pre>
+
+<pre class="term">$ node chaves.js
+undefined
+</pre>
+
+<p>Com chaves, o corpo é um bloco comum, e um bloco sem <code>return</code> devolve <code>undefined</code>. A conta <code>n * 3</code> é feita e jogada fora. Sem erro nenhum.</p>
+
+<div class="tryjs" data-goal="out:30;;semerro;;src:=&gt;">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>undefined</code>. Conserte a arrow para mostrar <code>30</code>. Há dois jeitos: tirar as chaves, ou pôr um <code>return</code> dentro delas.</p>
+<pre class="script" data-file="main.js">const triplo = (n) =&gt; { n * 3 };
+console.log(triplo(10));
+</pre>
+<pre class="solucao" data-file="main.js">const triplo = (n) =&gt; n * 3;
+console.log(triplo(10));
+</pre>
+</div>
+
+<h3>A mesma pegadinha com objetos</h3>
+<p>Mais adiante, em <a href="objetos.html">Objetos</a>, você vai escrever valores entre chaves, como <code>{ nome: "café" }</code>. Uma arrow que devolve um objeto direto confunde o JavaScript, que acha que as chaves são o bloco da função:</p>
+
+<pre class="file" data-file="objeto.js">const criarItem1 = (nome) =&gt; { nome: nome };
+const criarItem2 = (nome) =&gt; ({ nome: nome });
+
+console.log(criarItem1("café"));
+console.log(criarItem2("café"));
+</pre>
+
+<pre class="term">$ node objeto.js
+undefined
+{ nome: 'café' }
+</pre>
+
+<p>A solução é envolver o objeto em <strong>parênteses</strong>: <code>({ … })</code>. Guarde só isto por enquanto; você vai voltar aqui quando estudar objetos.</p>
+
+<hr>
+
+<h2>4. Onde as arrows brilham</h2>
+<p>As arrows foram feitas para funções <strong>curtas</strong>, principalmente as que se passam como argumento para outra função. Um exemplo do que vem no Nível 2: o <code>map</code> passa por uma lista e aplica uma função a cada item (aula <a href="map.html">map</a>):</p>
+
+<pre class="file" data-file="map.js">const precos = [0.8, 4.5, 18];
+const dobrados = precos.map((preco) =&gt; preco * 2);
+console.log(dobrados);
+</pre>
+
+<pre class="term">$ node map.js
+[ 1.6, 9, 36 ]
+</pre>
+
+<p>A arrow <code>(preco) =&gt; preco * 2</code> foi escrita direto dentro dos parênteses do <code>map</code>, sem nem ganhar nome. Com <code>function</code>, a mesma linha seria <code>precos.map(function (preco) { return preco * 2; })</code>: funciona, mas é bem mais comprida. Funções passadas para outras funções têm aula própria: <a href="funcoes-valores.html">Funções como Valores (Callbacks)</a>.</p>
+
+<div class="note">
+<strong>Outras diferenças, para mais tarde</strong>
+<p>Além de ser mais curta, a arrow tem diferenças técnicas em relação à <code>function</code>: ela não tem o seu próprio <code>this</code> (aula <a href="this.html">this</a>), não pode ser usada com <code>new</code> (aula <a href="classes.html">Classes</a>) e não pode ser chamada antes da linha que a cria (veja em <a href="#errado">Quando dá errado</a>). Para as funções desta parte do guia, nada disso faz diferença.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Você já conhece as três formas de criar uma função. Elas convivem no mesmo programa, e cada equipe tem as suas preferências. Uma divisão comum:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Declaração</td><td><code>function calcularTotal(q, p) { … }</code></td><td>As funções principais do programa, com várias linhas</td></tr>
+<tr><td>Arrow de uma linha</td><td><code>const dobro = (n) =&gt; n * 2;</code></td><td>Contas e respostas curtas</td></tr>
+<tr><td>Arrow com chaves</td><td><code>const f = (n) =&gt; { …; return …; };</code></td><td>Quem prefere arrow para tudo; funções passadas para outras com várias linhas</td></tr>
+<tr><td>Arrow sem nome, direto no argumento</td><td><code>lista.map((x) =&gt; x * 2)</code></td><td>Callbacks: o lugar onde as arrows mais aparecem</td></tr>
+<tr><td>Expressão <code>function</code></td><td><code>const f = function (n) { … };</code></td><td>Código antigo; hoje, quase sempre uma arrow faz o papel</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chaves sem <code>return</code></strong>
+<p>É o <code>undefined</code> do <code>triplo</code> (<a href="#chaves">seção 3</a>), sem erro nenhum. <strong>Como consertar:</strong> tire as chaves (<code>(n) =&gt; n * 3</code>) ou ponha o <code>return</code> (<code>(n) =&gt; { return n * 3; }</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>A seta na linha de baixo</strong>
+<pre class="file" data-file="quebra.js">const dobro = (n)
+  =&gt; n * 2;
+console.log(dobro(5));
+</pre>
+<pre class="term">$ node quebra.js
+/home/ana/quebra.js:2
+  =&gt; n * 2;
+  ^^
+
+SyntaxError: Unexpected token '=&gt;'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o erro está na linha 2; o <code>^^</code> marca a seta; e <code>SyntaxError: Unexpected token '=&gt;'</code> quer dizer "erro de sintaxe: símbolo <code>=&gt;</code> inesperado". A seta tem de ficar <strong>na mesma linha</strong> dos parênteses dos parâmetros; depois dela, pode quebrar a linha à vontade. <strong>Como consertar:</strong> <code>const dobro = (n) =&gt; n * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Espaço no meio da seta</strong>
+<pre class="file" data-file="espaco.js">const dobro = (n) = &gt; n * 2;
+console.log(dobro(5));
+</pre>
+<pre class="term">$ node espaco.js
+/home/ana/espaco.js:1
+const dobro = (n) = &gt; n * 2;
+                    ^
+
+SyntaxError: Unexpected token '&gt;'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo <code>&gt;</code> inesperado". Com o espaço, <code>=</code> e <code>&gt;</code> viram dois sinais separados, e o JavaScript não sabe o que fazer com o <code>&gt;</code>. <strong>Como consertar:</strong> a seta é <code>=&gt;</code>, grudada.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois parâmetros sem parênteses</strong>
+<pre class="file" data-file="semparen.js">const somar = a, b =&gt; a + b;
+console.log(somar(2, 3));
+</pre>
+<pre class="term">$ node semparen.js
+/home/ana/semparen.js:1
+const somar = a, b =&gt; a + b;
+                 ^
+
+SyntaxError: Missing initializer in const declaration
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Falta o valor inicial numa declaração <code>const</code>". A mensagem engana: o JavaScript leu a vírgula como "agora vem outra constante", <code>const somar = a, b</code>, e uma constante <code>b</code> sem <code>=</code> não pode. <strong>Como consertar:</strong> com dois ou mais parâmetros, os parênteses são obrigatórios: <code>const somar = (a, b) =&gt; a + b;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamar antes de criar</strong>
+<pre class="file" data-file="antes.js">console.log(dobro(5));
+
+const dobro = (n) =&gt; n * 2;
+</pre>
+<pre class="term">$ node antes.js
+/home/ana/antes.js:1
+console.log(dobro(5));
+            ^
+
+ReferenceError: Cannot access 'dobro' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/antes.js:1:13)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível acessar <code>dobro</code> antes da inicialização". A arrow fica numa <code>const</code>, e uma <code>const</code> só existe a partir da linha que a cria (com <code>function dobro(n)</code>, funcionaria; veja <a href="hoisting.html">Hoisting</a>). <strong>Como consertar:</strong> crie as arrows no alto do arquivo, antes de usar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const f = () =&gt; valor;</code></td><td>Arrow sem parâmetros, devolve <code>valor</code></td></tr>
+<tr><td><code>const f = (n) =&gt; n * 2;</code></td><td>Um parâmetro, <code>return</code> implícito</td></tr>
+<tr><td><code>const f = (a, b) =&gt; a + b;</code></td><td>Dois parâmetros (parênteses obrigatórios)</td></tr>
+<tr><td><code>const f = (n) =&gt; { …; return x; };</code></td><td>Corpo com várias linhas; <code>return</code> obrigatório para devolver</td></tr>
+<tr><td><code>const f = () =&gt; ({ nome: "Ana" });</code></td><td>Devolve um objeto (parênteses em volta)</td></tr>
+<tr><td><code>lista.map((x) =&gt; x * 2)</code></td><td>Arrow sem nome passada direto como argumento</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>undefined</code> em vez do resultado</td><td>Chaves sem <code>return</code> (ou objeto sem parênteses)</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '=&gt;'</code></td><td>A seta ficou na linha de baixo</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '&gt;'</code></td><td>Espaço no meio da seta: <code>= &gt;</code></td></tr>
+<tr><td><code>SyntaxError: Missing initializer in const declaration</code></td><td>Vários parâmetros sem parênteses</td></tr>
+<tr><td><code>ReferenceError: Cannot access '…' before initialization</code></td><td>A arrow foi chamada antes da linha que a cria</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a arrow</h3>
+<p>Complete para <code>metade</code> devolver a metade do número:</p>
+<div class="ex-code">const metade = (n) <input data-answer="=&gt;" aria-label="seta"> n / 2;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto devolve?</h3>
+<pre class="file" data-file="ex2.js">const f = (a, b) =&gt; a * b + 1;
+console.log(f(3, 4));
+</pre>
+<div class="ex-code">Mostra <input data-answer="13" aria-label="resultado">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>const f = (n) =&gt; { n + 1 };</code> devolve em <code>f(5)</code>?</p>
+<label><input type="radio" name="q3"> 6</label>
+<label><input type="radio" name="q3"> 5</label>
+<label><input type="radio" name="q3"> <code>undefined</code>, porque com chaves é preciso <code>return</code></label>
+<label><input type="radio" name="q3"> Um erro de sintaxe</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas é a arrow equivalente a <code>function saudar() { return "Oi"; }</code>?</p>
+<label><input type="radio" name="q4"> <code>const saudar = =&gt; "Oi";</code></label>
+<label><input type="radio" name="q4"> <code>const saudar = () =&gt; "Oi";</code></label>
+<label><input type="radio" name="q4"> <code>const saudar() =&gt; "Oi";</code></label>
+<label><input type="radio" name="q4"> <code>const saudar = () -&gt; "Oi";</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Quando os parênteses dos parâmetros são <strong>opcionais</strong> numa arrow?</p>
+<label><input type="radio" name="q5"> Só quando há exatamente um parâmetro</label>
+<label><input type="radio" name="q5"> Quando não há parâmetros</label>
+<label><input type="radio" name="q5"> Sempre</label>
+<label><input type="radio" name="q5"> Nunca</label>
+</div>
+
+<h3>Missão final: pode dirigir?</h3>
+
+<div class="tryjs" data-goal="outre:^true\nfalse\n?$;;src:=&gt;">
+<p class="try-task"><strong>Missão:</strong> escreva uma arrow de uma linha chamada <code>podeDirigir</code>: ela recebe a <code>idade</code> e devolve <code>true</code> se a idade for 18 ou mais, e <code>false</code> se não for (dica: a comparação <code>idade &gt;= 18</code> já é <code>true</code> ou <code>false</code>).</p>
+<pre class="script" data-file="main.js">// escreva aqui a arrow podeDirigir
+
+console.log(podeDirigir(20));
+console.log(podeDirigir(15));
+</pre>
+<pre class="solucao" data-file="main.js">const podeDirigir = (idade) =&gt; idade &gt;= 18;
+
+console.log(podeDirigir(20));
+console.log(podeDirigir(15));
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>true</code> e <code>false</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Arrow function é o jeito curto de escrever uma função: <code>const dobro = (n) =&gt; n * 2;</code>.</li>
+  <li>Sem chaves, o valor depois da seta é devolvido sozinho (<code>return</code> implícito).</li>
+  <li>Com chaves, o corpo é um bloco comum, e só devolve o que tiver <code>return</code>.</li>
+  <li>Parênteses: obrigatórios com zero ou vários parâmetros; opcionais com um (neste guia, sempre usamos).</li>
+  <li>A seta <code>=&gt;</code> é grudada e fica na mesma linha dos parâmetros.</li>
+  <li>A arrow fica numa <code>const</code>: crie antes de chamar. Ela brilha em funções curtas passadas para outras, como no <a href="map.html">map</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
