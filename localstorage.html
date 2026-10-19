@@ -147,7 +147,7 @@ document.querySelector("#mostrar").addEventListener("click", () =&gt; {
 
 <div class="note">
 <strong>No editor do guia</strong>
-<p>As caixas "Experimente" usam a gaveta <strong>do próprio site do guia</strong>, no seu navegador. Por isso o que você salvar numa caixa continua lá no próximo Rodar (e até em outro dia): o <code>Nome salvo: null</code> só aparece se a etiqueta <code>"nome"</code> ainda não existir. A gaveta também tem etiquetas do guia, como <code>tema</code> (o tema claro ou escuro que você escolheu); evite o <code>localStorage.clear()</code> nas caixas, que apaga essas também. Para começar do zero, use <code>localStorage.removeItem("nome")</code>.</p>
+<p>As caixas "Experimente" têm uma gaveta <strong>só delas</strong>, guardada no seu navegador e separada das preferências do guia (o tema claro ou escuro que você escolheu fica de fora). Ela é a mesma para todas as caixas do guia e continua lá no próximo Rodar (e até em outro dia), como num site de verdade: o <code>Nome salvo: null</code> só aparece se a etiqueta <code>"nome"</code> ainda não existir. Para começar do zero, use <code>localStorage.removeItem("nome")</code> ou <code>localStorage.clear()</code> (aqui ele esvazia só a gaveta das caixas).</p>
 </div>
 
 <hr>
