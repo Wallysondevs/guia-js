@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript typeof — descobrindo o tipo de um valor | Guia JavaScript</title>
+<meta name="description" content="O operador typeof do JavaScript para quem nunca programou: typeof valor, a tabela completa de respostas (string, number, boolean, undefined, bigint, symbol, object, function), as pegadinhas typeof null e typeof [], Array.isArray, typeof que devolve texto, typeof 1 + 2 e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">typeof</span></h1>
+
+<p class="intro">Na aula <a href="tipos-de-dados.html">Os Tipos de Dados</a> você viu que <code>"6"</code> e <code>6</code> parecem iguais, mas um é texto e o outro é número, e que isso muda o resultado das contas. Como saber, com certeza, o tipo de um valor? Perguntando ao próprio JavaScript, com o <code>typeof</code> (de <em>type of</em>, "tipo de"). Você escreve <code>typeof</code> antes de um valor, e o JavaScript responde com o nome do tipo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se usa o <code>typeof</code> e o que ele responde para cada tipo.</li>
+  <li>Que a resposta do <code>typeof</code> é um <strong>texto</strong> (<code>"number"</code>), e como comparar com ela.</li>
+  <li>As duas pegadinhas famosas: <code>typeof null</code> e <code>typeof []</code> dão <code>"object"</code>, e o <code>Array.isArray</code>.</li>
+  <li>Por que <code>typeof 1 + 2</code> dá <code>number2</code>.</li>
+  <li>Os erros reais: <code>typeOf</code> com O maiúsculo, o tipo sem aspas e o tipo com maiúscula.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: perguntar "isto é o quê?"</h2>
+<p>A Ana recebe uma caixa sem etiqueta na padaria. Antes de usar, ela abre e olha: é farinha? É açúcar? É sal? Errar aqui estraga o bolo. O <code>typeof</code> faz isso com um valor: olha o que tem dentro e responde "é um número", "é um texto", "é um sim/não". Ele <strong>não muda</strong> nada; só responde.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>typeof</code></h2>
+
+<pre class="file" data-file="ficha.js">const nome = "Ana";
+const idade = 30;
+const temCadastro = true;
+let apelido;
+console.log(typeof nome);
+console.log(typeof idade);
+console.log(typeof temCadastro);
+console.log(typeof apelido);
+</pre>
+
+<pre class="term">$ node ficha.js
+string
+number
+boolean
+undefined
+</pre>
+
+<dl class="anatomy">
+  <dt>typeof</dt><dd>A palavra que pergunta o tipo. Ela é um <strong>operador</strong> (como o <code>+</code>), e não uma função: por isso não precisa de parênteses.</dd>
+  <dt>nome</dt><dd>O valor perguntado. Pode ser uma variável (como aqui), um valor escrito direto (<code>typeof 30</code>) ou uma conta (<code>typeof (2 + 3)</code>).</dd>
+  <dt>string, number, boolean, undefined</dt><dd>As respostas: o nome do tipo, em inglês e em minúsculas, como na tabela da aula anterior. O <code>apelido</code> foi criado sem valor, então vale <code>undefined</code>, e o tipo dele também se chama <code>undefined</code>.</dd>
+</dl>
+
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>) dá para perguntar direto:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; typeof "Ana"
+'string'
+&gt; typeof 30
+'number'
+&gt; typeof null
+'object'
+&gt; typeof []
+'object'
+&gt; typeof typeof 30
+'string'
+&gt; .exit
+</pre>
+
+<p>Repare nas aspas em <code>'string'</code> e <code>'number'</code>: o modo interativo mostra assim porque a resposta do <code>typeof</code> é um <strong>texto</strong> (seção 3). E <code>typeof null</code> deu <code>'object'</code>, que não é o que você esperava: é a pegadinha da seção 4.</p>
+
+<hr>
+
+<h2>2. A tabela completa</h2>
+<p>Uma pergunta para cada tipo de valor:</p>
+
+<pre class="file" data-file="todos.js">console.log(typeof "pão");
+console.log(typeof 0.75);
+console.log(typeof true);
+console.log(typeof undefined);
+console.log(typeof 10n);
+console.log(typeof Symbol("id"));
+console.log(typeof { nome: "Ana" });
+console.log(typeof ["pão", "leite"]);
+console.log(typeof null);
+console.log(typeof console.log);
+</pre>
+
+<pre class="term">$ node todos.js
+string
+number
+boolean
+undefined
+bigint
+symbol
+object
+object
+object
+function
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th><code>typeof</code> responde</th><th>Observação</th></tr>
+<tr><td><code>"pão"</code>, <code>""</code>, <code>"6"</code></td><td><code>"string"</code></td><td>Qualquer texto, mesmo que pareça número</td></tr>
+<tr><td><code>0.75</code>, <code>30</code>, <code>-5</code></td><td><code>"number"</code></td><td>Inteiros e decimais</td></tr>
+<tr><td><code>true</code>, <code>false</code></td><td><code>"boolean"</code></td><td></td></tr>
+<tr><td><code>undefined</code></td><td><code>"undefined"</code></td><td></td></tr>
+<tr><td><code>10n</code></td><td><code>"bigint"</code></td><td></td></tr>
+<tr><td><code>Symbol("id")</code></td><td><code>"symbol"</code></td><td></td></tr>
+<tr><td><code>{ nome: "Ana" }</code></td><td><code>"object"</code></td><td></td></tr>
+<tr><td><code>["pão", "leite"]</code></td><td><code>"object"</code></td><td><strong>Pegadinha</strong>: um array é um objeto (seção 4)</td></tr>
+<tr><td><code>null</code></td><td><code>"object"</code></td><td><strong>Pegadinha</strong>: um erro antigo da linguagem (seção 4)</td></tr>
+<tr><td><code>console.log</code> (uma função)</td><td><code>"function"</code></td><td>Funções são objetos, mas o <code>typeof</code> as separa</td></tr>
+</table>
+</div>
+
+<p>Repare: o <code>typeof</code> nunca responde <code>"null"</code> nem <code>"array"</code>. São só oito respostas possíveis: as sete da tabela sem repetição, mais <code>"function"</code>.</p>
+
+<hr>
+
+<h2>3. A resposta é um texto</h2>
+<p>O <code>typeof</code> devolve o nome do tipo como uma <strong>string</strong>. Dá para guardar numa variável, mostrar e comparar:</p>
+
+<pre class="file" data-file="texto.js">const tipo = typeof 42;
+console.log(tipo);
+console.log(typeof tipo);
+console.log([tipo]);
+</pre>
+
+<pre class="term">$ node texto.js
+number
+string
+[ 'number' ]
+</pre>
+
+<p>A variável <code>tipo</code> guardou o texto <code>"number"</code>. O tipo <strong>desse texto</strong> é, claro, <code>string</code>. E, dentro da lista, ele aparece com aspas, como todo texto.</p>
+
+<h3>Comparando com <code>===</code></h3>
+<p>O uso mais comum do <code>typeof</code> é <strong>conferir</strong> se um valor é do tipo esperado. Para isso, compare a resposta com o nome do tipo, <strong>entre aspas</strong>, usando o <code>===</code> ("é exatamente igual a?", assunto de <a href="operadores-comparacao.html">Comparação</a>). A resposta é <code>true</code> ou <code>false</code>:</p>
+
+<pre class="file" data-file="conferir.js">const preco = "4.50";
+console.log(typeof preco === "number");
+console.log(typeof preco === "string");
+</pre>
+
+<pre class="term">$ node conferir.js
+false
+true
+</pre>
+
+<p>"O tipo de <code>preco</code> é <code>number</code>?" Não (<code>false</code>): o preço veio como texto. Com o <a href="if.html">if</a>, você vai poder usar essa resposta para decidir o que fazer: avisar o usuário, converter o valor… Esse é o jeito de se proteger do <code>"6" + 1 = "61"</code> da aula anterior.</p>
+
+<div class="tryjs" data-goal="out:quantidade: number;;out:preco: number;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode e veja os tipos. Um dos valores foi digitado como texto. Conserte a variável (tirando as aspas) para as duas linhas mostrarem <code>number</code>.</p>
+<pre class="script" data-file="main.js">const quantidade = 6;
+const preco = "0.75";
+console.log("quantidade:", typeof quantidade);
+console.log("preco:", typeof preco);
+</pre>
+<pre class="solucao" data-file="main.js">const quantidade = 6;
+const preco = 0.75;
+console.log("quantidade:", typeof quantidade);
+console.log("preco:", typeof preco);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. As duas pegadinhas: <code>null</code> e arrays</h2>
+
+<h3><code>typeof null</code> é <code>"object"</code></h3>
+
+<pre class="file" data-file="nulo.js">const telefone = null;
+console.log(typeof telefone);
+console.log(telefone === null);
+</pre>
+
+<pre class="term">$ node nulo.js
+object
+true
+</pre>
+
+<p>O <code>null</code> <strong>não</strong> é um objeto: é o vazio. Essa resposta é um <strong>erro</strong> que existe desde a primeira versão do JavaScript, em 1995. Ele nunca foi consertado porque muitos programas antigos dependem dele, e consertar os quebraria. Moral: para saber se um valor é <code>null</code>, não use <code>typeof</code>; compare direto: <code>telefone === null</code> (deu <code>true</code>).</p>
+
+<h3><code>typeof []</code> também é <code>"object"</code></h3>
+
+<pre class="file" data-file="lista.js">const compras = ["pão", "leite"];
+const cliente = { nome: "Ana" };
+console.log(typeof compras, typeof cliente);
+console.log(Array.isArray(compras), Array.isArray(cliente));
+</pre>
+
+<pre class="term">$ node lista.js
+object object
+true false
+</pre>
+
+<p>Aqui não é erro: um array <strong>é</strong> um objeto (um objeto especial, com os itens numerados). Mas isso quer dizer que o <code>typeof</code> não distingue uma lista de um objeto comum. Para perguntar "isto é uma lista?", existe o <code>Array.isArray(valor)</code> ("é um array?"), que respondeu <code>true</code> para as compras e <code>false</code> para o cliente. Mais em <a href="arrays.html">Arrays</a>.</p>
+
+<div class="note">
+<strong>E o <code>NaN</code>?</strong>
+<p>Uma conta impossível, como <code>"abc" * 2</code>, dá <code>NaN</code> ("não é um número", em inglês). E o <code>typeof</code> dele é… <code>number</code>:</p>
+<pre class="file" data-file="nan.js">const resultado = "abc" * 2;
+console.log(resultado);
+console.log(typeof resultado);
+</pre>
+<pre class="term">$ node nan.js
+NaN
+number
+</pre>
+<p>Parece piada, mas faz sentido: <code>NaN</code> é o valor especial que o tipo <code>number</code> usa para "resultado inválido". Ele é explicado em <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>.</p>
+</div>
+
+<hr>
+
+<h2>5. Parênteses e precedência: <code>typeof 1 + 2</code></h2>
+<p>Você pode escrever <code>typeof(preco)</code>, com parênteses, como se fosse uma função. Dá no mesmo:</p>
+
+<pre class="file" data-file="parenteses.js">const preco = 0.75;
+console.log(typeof preco);
+console.log(typeof(preco));
+console.log(typeof (preco));
+</pre>
+
+<pre class="term">$ node parenteses.js
+number
+number
+number
+</pre>
+
+<p>Mas atenção: o <code>typeof</code> pega <strong>só o valor logo depois dele</strong>. Numa conta, ele age antes do <code>+</code>:</p>
+
+<pre class="file" data-file="soma.js">console.log(typeof 1 + 2);
+console.log(typeof (1 + 2));
+</pre>
+
+<pre class="term">$ node soma.js
+number2
+number
+</pre>
+
+<dl class="anatomy">
+  <dt>typeof 1 + 2 → number2</dt><dd>O JavaScript fez primeiro <code>typeof 1</code>, que dá o texto <code>"number"</code>, e depois <code>"number" + 2</code>: texto mais número junta, e saiu <code>"number2"</code>.</dd>
+  <dt>typeof (1 + 2) → number</dt><dd>Com parênteses em volta da conta, ela é feita primeiro (3), e o <code>typeof</code> pergunta o tipo do resultado.</dd>
+</dl>
+<p>Quem age primeiro numa expressão é o assunto de <a href="precedencia.html">Precedência dos Operadores</a>. Por enquanto: <strong>se for perguntar o tipo de uma conta, ponha a conta entre parênteses</strong>.</p>
+
+<hr>
+
+<h2>6. <code>typeof</code> de uma variável que não existe</h2>
+<p>Usar uma variável que não existe dá erro. Mas o <code>typeof</code> é uma exceção, e responde <code>"undefined"</code>:</p>
+
+<pre class="file" data-file="inexistente.js">console.log(typeof naoExiste);
+console.log(naoExiste);
+</pre>
+
+<pre class="term">$ node inexistente.js
+undefined
+/home/ana/inexistente.js:2
+console.log(naoExiste);
+            ^
+
+ReferenceError: naoExiste is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/inexistente.js:2:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>A linha 1 respondeu <code>undefined</code> sem reclamar; a linha 2 deu o erro de sempre. Isso é usado para descobrir se algo existe no ambiente: <code>typeof window</code> dá <code>"undefined"</code> no Node e <code>"object"</code> no navegador (o <code>window</code> só existe lá; veja <a href="onde-roda.html">Onde o JavaScript Roda</a>). A exceção <strong>não vale</strong> para uma variável <code>let</code>/<code>const</code> usada antes da linha onde é criada:</p>
+
+<pre class="file" data-file="antes.js">console.log(typeof paes);
+let paes = 6;
+</pre>
+
+<pre class="term">$ node antes.js
+/home/ana/antes.js:1
+console.log(typeof paes);
+        ^
+
+ReferenceError: Cannot access 'paes' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/antes.js:1:9)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de descobrir o tipo</h2>
+<p>Há três jeitos de "olhar" o tipo de um valor, cada um para uma situação:</p>
+
+<pre class="file" data-file="disfarce.js">const digitado = "6";
+const quantidade = 6;
+console.log("digitado:", typeof digitado);
+console.log("quantidade:", typeof quantidade);
+</pre>
+
+<pre class="term">$ node disfarce.js
+digitado: string
+quantidade: number
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero saber…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Qual é o tipo de um valor (texto, número, booleano…)</td><td><code>typeof valor</code></td><td><code>typeof preco === "number"</code></td></tr>
+<tr><td>Se um valor é uma lista</td><td><code>Array.isArray(valor)</code></td><td><code>Array.isArray(compras)</code></td></tr>
+<tr><td>Se um valor é <code>null</code></td><td><code>valor === null</code></td><td><code>telefone === null</code></td></tr>
+<tr><td>Só dar uma olhada rápida, sem programar nada</td><td><code>console.log([valor])</code> (texto aparece com aspas)</td><td><code>[ '6' ]</code> × <code>[ 6 ]</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>typeOf</code>, com O maiúsculo</strong>
+<pre class="file" data-file="maiusc.js">const preco = 0.75;
+console.log(typeOf preco);
+</pre>
+<pre class="term">$ node maiusc.js
+/home/ana/maiusc.js:2
+console.log(typeOf preco);
+            ^^^^^^
+
+SyntaxError: missing ) after argument list
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o erro está na linha 2; as setinhas marcam <code>typeOf</code>; e a mensagem diz "falta o <code>)</code> depois da lista de argumentos". A mensagem parece não ter nada a ver, mas veja o que o JavaScript entendeu: como <code>typeOf</code> (com O maiúsculo) não é a palavra <code>typeof</code>, ele achou que era o nome de uma variável. Depois de um nome, dentro do <code>console.log(</code>, ele esperava uma vírgula ou o <code>)</code>, e encontrou outra palavra, <code>preco</code>. <strong>Como consertar:</strong> <code>typeof</code>, tudo minúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparou com o tipo sem aspas</strong>
+<pre class="file" data-file="semaspas.js">const preco = 0.75;
+console.log(typeof preco === number);
+</pre>
+<pre class="term">$ node semaspas.js
+/home/ana/semaspas.js:2
+console.log(typeof preco === number);
+                             ^
+
+ReferenceError: number is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/semaspas.js:2:30)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>number</code> não está definido". Sem aspas, <code>number</code> é um nome de variável, e ela não existe. A resposta do <code>typeof</code> é um <strong>texto</strong>, então compare com um texto. <strong>Como consertar:</strong> <code>typeof preco === "number"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparou com o tipo em maiúscula</strong>
+<pre class="file" data-file="maiusc2.js">const preco = 0.75;
+console.log(typeof preco);
+console.log(typeof preco === "Number");
+</pre>
+<pre class="term">$ node maiusc2.js
+number
+false
+</pre>
+<p>Sem erro nenhum, e por isso é traiçoeiro: o <code>typeof</code> responde em <strong>minúsculas</strong> (<code>"number"</code>), e <code>"number"</code> não é igual a <code>"Number"</code>. A comparação dá sempre <code>false</code>. <strong>Como consertar:</strong> escreva o tipo exatamente como na tabela da seção 2, em minúsculas.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>typeof</code> para achar <code>null</code> ou uma lista</strong>
+<p>Sintoma: o programa trata um <code>null</code> ou uma lista como se fosse um objeto comum. Causa: <code>typeof null</code> e <code>typeof []</code> dão <code>"object"</code> (seção 4). <strong>Como consertar:</strong> <code>valor === null</code> e <code>Array.isArray(valor)</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:true;;semerro;;src:typeof\s*\(?\s*idade\s*\)?\s*===\s*&quot;number&quot;">
+<p class="try-task"><strong>Missão:</strong> o programa deveria mostrar <code>true</code> (a idade é um número), mas não roda. São dois enganos na mesma linha. Conserte.</p>
+<pre class="script" data-file="main.js">const idade = 30;
+console.log(typeOf idade === Number);
+</pre>
+<pre class="solucao" data-file="main.js">const idade = 30;
+console.log(typeof idade === "number");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th></tr>
+<tr><td><code>typeof "Ana"</code></td><td><code>"string"</code></td></tr>
+<tr><td><code>typeof 30</code>, <code>typeof NaN</code></td><td><code>"number"</code></td></tr>
+<tr><td><code>typeof true</code></td><td><code>"boolean"</code></td></tr>
+<tr><td><code>typeof undefined</code>, <code>typeof naoExiste</code></td><td><code>"undefined"</code></td></tr>
+<tr><td><code>typeof 10n</code></td><td><code>"bigint"</code></td></tr>
+<tr><td><code>typeof Symbol()</code></td><td><code>"symbol"</code></td></tr>
+<tr><td><code>typeof {}</code>, <code>typeof []</code>, <code>typeof null</code></td><td><code>"object"</code></td></tr>
+<tr><td><code>typeof console.log</code></td><td><code>"function"</code></td></tr>
+<tr><td><code>typeof x === "number"</code></td><td><code>true</code> ou <code>false</code></td></tr>
+<tr><td><code>Array.isArray(x)</code></td><td><code>true</code> se for lista</td></tr>
+<tr><td><code>typeof 1 + 2</code> / <code>typeof (1 + 2)</code></td><td><code>"number2"</code> / <code>"number"</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code> com <code>typeOf</code></td><td>O maiúsculo: é <code>typeof</code></td></tr>
+<tr><td><code>ReferenceError: number is not defined</code></td><td>Comparou com o tipo sem aspas</td></tr>
+<tr><td>A comparação dá sempre <code>false</code></td><td>Tipo com maiúscula (<code>"Number"</code>) ou escrito errado</td></tr>
+<tr><td><code>typeof</code> de uma lista ou de <code>null</code> deu <code>"object"</code></td><td>É assim mesmo: use <code>Array.isArray</code> e <code>=== null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que o <code>typeof</code> responde?</h3>
+<div class="ex-code"><code>typeof "30"</code> → <input data-answer="string" aria-label="resposta 1"><br><code>typeof 30</code> → <input data-answer="number" aria-label="resposta 2"><br><code>typeof false</code> → <input data-answer="boolean" aria-label="resposta 3"><br><code>typeof null</code> → <input data-answer="object" aria-label="resposta 4"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a comparação</h3>
+<p>Complete para perguntar se <code>nome</code> é um texto:</p>
+<div class="ex-code"><input data-answer="typeof" aria-label="operador"> nome === "<input data-answer="string" aria-label="tipo">"</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que mostra <code>console.log(typeof typeof 5);</code>?</p>
+<label><input type="radio" name="q3"> <code>number</code></label>
+<label><input type="radio" name="q3"> <code>string</code></label>
+<label><input type="radio" name="q3"> <code>typeof</code></label>
+<label><input type="radio" name="q3"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual é o melhor jeito de saber se <code>compras</code> é uma lista?</p>
+<label><input type="radio" name="q4"> <code>typeof compras === "array"</code></label>
+<label><input type="radio" name="q4"> <code>typeof compras === "object"</code></label>
+<label><input type="radio" name="q4"> <code>typeof compras === "list"</code></label>
+<label><input type="radio" name="q4"> <code>Array.isArray(compras)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que mostra <code>console.log(typeof 2 + 3);</code>?</p>
+<label><input type="radio" name="q5"> <code>number3</code></label>
+<label><input type="radio" name="q5"> <code>number</code></label>
+<label><input type="radio" name="q5"> <code>5</code></label>
+<label><input type="radio" name="q5"> <code>string</code></label>
+</div>
+
+<h3>Missão final: o detetive de tipos</h3>
+
+<div class="tryjs" data-goal="out:string;;out:boolean;;out:undefined;;out:bigint;;semerro;;src:typeof\s+cidade[\s\S]*typeof\s+temDesconto[\s\S]*typeof\s+apelido[\s\S]*typeof\s+populacao">
+<p class="try-task"><strong>Missão:</strong> o programa já mostra o tipo do <code>preco</code>. Acrescente uma linha igual para cada uma das outras variáveis, <strong>nesta ordem</strong>: <code>cidade</code>, <code>temDesconto</code>, <code>apelido</code> e <code>populacao</code>. Antes de rodar, tente adivinhar cada resposta.</p>
+<pre class="script" data-file="main.js">const preco = 4.5;
+const cidade = "Recife";
+const temDesconto = false;
+let apelido;
+const populacao = 1500000n;
+console.log("preco:", typeof preco);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = 4.5;
+const cidade = "Recife";
+const temDesconto = false;
+let apelido;
+const populacao = 1500000n;
+console.log("preco:", typeof preco);
+console.log("cidade:", typeof cidade);
+console.log("temDesconto:", typeof temDesconto);
+console.log("apelido:", typeof apelido);
+console.log("populacao:", typeof populacao);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ node detetive.js
+preco: number
+cidade: string
+temDesconto: boolean
+apelido: undefined
+populacao: bigint
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>typeof valor</code> responde o tipo do valor, como texto e em minúsculas: <code>"string"</code>, <code>"number"</code>, <code>"boolean"</code>, <code>"undefined"</code>, <code>"bigint"</code>, <code>"symbol"</code>, <code>"object"</code> ou <code>"function"</code>.</li>
+  <li>Para conferir um tipo, compare com o nome entre aspas: <code>typeof preco === "number"</code>.</li>
+  <li>Pegadinhas: <code>typeof null</code> e <code>typeof []</code> dão <code>"object"</code>. Use <code>valor === null</code> e <code>Array.isArray(valor)</code>. E <code>typeof NaN</code> é <code>"number"</code>.</li>
+  <li>O <code>typeof</code> pega só o valor logo depois dele: <code>typeof 1 + 2</code> dá <code>"number2"</code>; para uma conta, use parênteses.</li>
+  <li><code>typeof</code> de uma variável que não existe dá <code>"undefined"</code>, sem erro (mas não antes do <code>let</code>/<code>const</code> dela).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
