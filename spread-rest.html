@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Spread e Rest (…) — espalhar e juntar o resto | Guia JavaScript</title>
+<meta name="description" content="Os três pontinhos do JavaScript para quem está começando: spread para juntar e copiar arrays e objetos, Math.max(...notas), sobrescrever propriedades; rest para funções com quantos argumentos quiser e para pegar o resto na desestruturação. Com as saídas e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Spread e Rest (…)</span></h1>
+
+<p class="intro">Três pontinhos, <code>...</code>, e dois trabalhos opostos. Como <strong>spread</strong> ("espalhar"), eles abrem um array ou objeto e despejam os itens num lugar novo. Como <strong>rest</strong> ("resto"), eles fazem o contrário: juntam vários valores soltos num array (ou objeto). Os dois aparecem em todo código JavaScript moderno, e você já viu o spread na aula <a href="objetos-referencia.html">Objetos são Referências</a>, copiando um objeto com <code>{ ...ana }</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Spread em arrays: juntar, copiar e acrescentar itens; <code>Math.max(...notas)</code>; separar as letras de um texto.</li>
+  <li>Spread em objetos: juntar, copiar e trocar uma propriedade (quem vem por último vence).</li>
+  <li>Rest nos parâmetros: uma função que aceita quantos argumentos vierem.</li>
+  <li>Rest na desestruturação: "o primeiro, e o resto"; "tudo menos a senha".</li>
+  <li>Como saber qual dos dois é, só olhando onde os pontinhos estão.</li>
+  <li>Os erros reais: <code>is not iterable</code> e <code>Rest parameter must be last formal parameter</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: despejar a sacola × juntar o que sobrou</h2>
+<ul>
+  <li><strong>Spread</strong>: a Ana vira a sacola de frutas <strong>dentro</strong> da cesta da feira. A cesta não ganha uma sacola; ganha cada fruta, solta.</li>
+  <li><strong>Rest</strong>: no fim da feira, ela põe tudo o que <strong>sobrou</strong> em cima da mesa numa sacola só, para levar.</li>
+</ul>
+<p>O símbolo é o mesmo; o que muda é <strong>onde</strong> ele está:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde os <code>...</code> aparecem</th><th>Nome</th><th>O que fazem</th></tr>
+<tr><td>Num <strong>valor</strong>: dentro de <code>[ ]</code> ou <code>{ }</code> do lado direito, ou numa chamada <code>f(...lista)</code></td><td>spread</td><td>Espalham os itens</td></tr>
+<tr><td>Num <strong>lugar que recebe</strong>: nos parâmetros de uma função ou do lado esquerdo de uma desestruturação</td><td>rest</td><td>Juntam o resto num array/objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Spread em arrays</h2>
+
+<h3>Juntar arrays e acrescentar itens</h3>
+
+<pre class="file" data-file="juntar.js">const frutas = ["maçã", "banana"];
+const verduras = ["alface", "couve"];
+const feira = [...frutas, ...verduras];
+console.log(feira);
+const maisUma = ["pão", ...frutas, "leite"];
+console.log(maisUma);
+</pre>
+
+<dl class="anatomy">
+  <dt>[ … ]</dt><dd>Os colchetes criam um array <strong>novo</strong>.</dd>
+  <dt>...frutas</dt><dd>"Ponha aqui cada item de <code>frutas</code>, um por um". Sem os pontinhos, o array inteiro entraria como <strong>um</strong> item só: <code>[frutas, verduras]</code> seria um array de dois arrays.</dd>
+  <dt>"pão", ...frutas, "leite"</dt><dd>Dá para misturar itens soltos e spreads, na ordem que quiser.</dd>
+</dl>
+
+<pre class="term">$ node juntar.js
+[ 'maçã', 'banana', 'alface', 'couve' ]
+[ 'pão', 'maçã', 'banana', 'leite' ]
+</pre>
+
+<h3>Copiar um array</h3>
+<pre class="file" data-file="copiar.js">const compras = ["arroz", "feijão"];
+const copia = [...compras];
+copia.push("café");
+console.log(compras);
+console.log(copia);
+</pre>
+
+<pre class="term">$ node copiar.js
+[ 'arroz', 'feijão' ]
+[ 'arroz', 'feijão', 'café' ]
+</pre>
+
+<p><code>[...compras]</code> é um array novo, então o <code>push</code> na cópia não mexe no original. Outras formas de copiar estão em <a href="arrays-copiar.html">Copiando Arrays</a>.</p>
+
+<h3>Passar os itens como argumentos: <code>Math.max(...notas)</code></h3>
+<p><code>Math.max</code> devolve o maior dos números que recebe, mas espera números <strong>soltos</strong> (<code>Math.max(7, 9.5, 6)</code>), não um array. O spread resolve:</p>
+
+<pre class="file" data-file="maximo.js">const notas = [7, 9.5, 6, 8];
+console.log(Math.max(notas));
+console.log(Math.max(...notas));
+console.log(Math.min(...notas));
+</pre>
+
+<pre class="term">$ node maximo.js
+NaN      « sem spread: recebeu um array, que não é número
+9.5
+6
+</pre>
+
+<p><code>Math.max(...notas)</code> vira, na hora da chamada, <code>Math.max(7, 9.5, 6, 8)</code>. <code>NaN</code> quer dizer "não é um número" (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>).</p>
+
+<h3>As letras de um texto</h3>
+<p>O spread funciona com qualquer coisa que dá para percorrer com <a href="for-of.html">for … of</a>, inclusive textos:</p>
+
+<pre class="file" data-file="letras.js">const letras = [..."Ana"];
+console.log(letras);
+</pre>
+
+<pre class="term">$ node letras.js
+[ 'A', 'n', 'a' ]
+</pre>
+
+<div class="tryjs" data-goal="out:[ 'pão', 'leite', 'café', 'açúcar', 'manteiga' ];;src:\.\.\.">
+<p class="try-task"><strong>Missão:</strong> a Ana quer a lista completa com <code>"manteiga"</code> no fim. Monte <code>completa</code> com spread, juntando <code>manha</code>, <code>tarde</code> e o item <code>"manteiga"</code>.</p>
+<pre class="script" data-file="main.js">const manha = ["pão", "leite"];
+const tarde = ["café", "açúcar"];
+const completa = [manha, tarde];
+console.log(completa);
+</pre>
+<pre class="solucao" data-file="main.js">const manha = ["pão", "leite"];
+const tarde = ["café", "açúcar"];
+const completa = [...manha, ...tarde, "manteiga"];
+console.log(completa);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Spread em objetos</h2>
+
+<h3>Juntar objetos</h3>
+<pre class="file" data-file="objetos.js">const produto = { nome: "Pão", preco: 0.8 };
+const detalhes = { estoque: 20, padaria: "Doce Pão" };
+const completo = { ...produto, ...detalhes };
+console.log(completo);
+</pre>
+
+<pre class="term">$ node objetos.js
+{ nome: 'Pão', preco: 0.8, estoque: 20, padaria: 'Doce Pão' }
+</pre>
+
+<h3>Copiar trocando uma propriedade: quem vem por último vence</h3>
+<p>Se a mesma propriedade aparece duas vezes, fica o valor da que vem <strong>depois</strong>. É o jeito mais comum de fazer "uma cópia, só que com o preço novo":</p>
+
+<pre class="file" data-file="sobrescrever.js">const produto = { nome: "Pão", preco: 0.8, estoque: 20 };
+const reajustado = { ...produto, preco: 0.9 };
+console.log(produto);
+console.log(reajustado);
+const errado = { preco: 0.9, ...produto };
+console.log(errado);
+</pre>
+
+<pre class="term">$ node sobrescrever.js
+{ nome: 'Pão', preco: 0.8, estoque: 20 }      « o original não mudou
+{ nome: 'Pão', preco: 0.9, estoque: 20 }
+{ preco: 0.8, nome: 'Pão', estoque: 20 }      « o spread veio depois e trouxe o preço velho
+</pre>
+
+<p>No <code>errado</code>, o <code>preco: 0.9</code> foi escrito primeiro, e o <code>...produto</code>, que vem depois, pôs <code>preco: 0.8</code> por cima. A ordem importa.</p>
+
+<p>O mesmo truque serve para <strong>configurações</strong>: os valores padrão primeiro, as escolhas da pessoa depois.</p>
+
+<pre class="file" data-file="config.js">const padrao = { tema: "claro", fonte: 16, som: true };
+const escolhaDaAna = { tema: "escuro" };
+const config = { ...padrao, ...escolhaDaAna };
+console.log(config);
+</pre>
+
+<pre class="term">$ node config.js
+{ tema: 'escuro', fonte: 16, som: true }
+</pre>
+
+<div class="warning">
+<strong>Cópia rasa</strong>
+<p>Tanto <code>[...lista]</code> quanto <code>{ ...obj }</code> copiam só o primeiro nível. Se o array tem objetos dentro, a cópia aponta para <strong>os mesmos</strong> objetos. No lab, <code>const copia = [...turma]; copia[0].nota = 0;</code> deixou o original como <code>[ { nome: 'Ana', nota: 0 } ]</code>. Para copiar tudo, <code>structuredClone</code> (veja <a href="objetos-referencia.html">Objetos são Referências</a>).</p>
+</div>
+
+<hr>
+
+<h2>3. Rest nos parâmetros: quantos argumentos vierem</h2>
+<p>Às vezes uma função precisa aceitar 2 valores, ou 4, ou nenhum. Com <code>...</code> no <strong>último</strong> parâmetro, todos os argumentos que chegarem viram um array:</p>
+
+<pre class="file" data-file="somar.js">function somar(...numeros) {
+  console.log(numeros);
+  let total = 0;
+  for (const n of numeros) {
+    total += n;
+  }
+  return total;
+}
+
+console.log(somar(2, 3));
+console.log(somar(10, 20, 30, 40));
+console.log(somar());
+</pre>
+
+<dl class="anatomy">
+  <dt>function somar(...numeros)</dt><dd>O parâmetro <strong>rest</strong>: "junte todos os argumentos num array chamado <code>numeros</code>".</dd>
+  <dt>console.log(numeros)</dt><dd>Está aqui só para você ver o array que chegou.</dd>
+  <dt>for (const n of numeros)</dt><dd>Como <code>numeros</code> é um array de verdade, dá para percorrer com <code>for … of</code> (e usar <code>map</code>, <code>reduce</code>…).</dd>
+</dl>
+
+<pre class="term">$ node somar.js
+[ 2, 3 ]
+5
+[ 10, 20, 30, 40 ]
+100
+[]       « sem argumentos: um array vazio, nunca undefined
+0
+</pre>
+
+<p>Os parâmetros normais vêm antes e pegam os primeiros argumentos; o rest fica com o que sobrar:</p>
+
+<pre class="file" data-file="recado.js">function avisar(remetente, ...nomes) {
+  for (const nome of nomes) {
+    console.log(`${nome}, recado de ${remetente}: o pão saiu!`);
+  }
+}
+
+avisar("Ana", "Bia", "Caio", "Davi");
+</pre>
+
+<pre class="term">$ node recado.js
+Bia, recado de Ana: o pão saiu!
+Caio, recado de Ana: o pão saiu!
+Davi, recado de Ana: o pão saiu!
+</pre>
+
+<p><code>"Ana"</code> foi para <code>remetente</code>; os outros três, para o array <code>nomes</code>.</p>
+
+<div class="note">
+<strong>Em código antigo: <code>arguments</code></strong>
+<p>Antes do rest, funções declaradas com <code>function</code> usavam uma variável automática chamada <code>arguments</code>, parecida com um array (mas sem <code>map</code>, <code>filter</code>…). As <a href="arrow-functions.html">arrow functions</a> nem têm <code>arguments</code>. Hoje, use <code>...nomes</code>: é um array de verdade e tem o nome que você escolheu.</p>
+</div>
+
+<hr>
+
+<h2>4. Rest na desestruturação: "e o resto"</h2>
+<p>Na <a href="desestruturacao.html">desestruturação</a>, o <code>...</code> no último lugar recolhe tudo o que não foi pedido:</p>
+
+<pre class="file" data-file="restarray.js">const fila = ["Bia", "Caio", "Davi", "Eva"];
+const [primeiro, ...resto] = fila;
+console.log("Atendendo:", primeiro);
+console.log("Esperando:", resto);
+</pre>
+
+<pre class="term">$ node restarray.js
+Atendendo: Bia
+Esperando: [ 'Caio', 'Davi', 'Eva' ]
+</pre>
+
+<p>Com objetos, o resto vira um objeto novo. Um uso clássico é "todas as propriedades, menos uma", por exemplo para nunca mostrar a senha:</p>
+
+<pre class="file" data-file="restobj.js">const usuario = { nome: "Ana", email: "ana@exemplo.com", senha: "1234" };
+const { senha, ...publico } = usuario;
+console.log(publico);
+</pre>
+
+<pre class="term">$ node restobj.js
+{ nome: 'Ana', email: 'ana@exemplo.com' }
+</pre>
+
+<p>A <code>senha</code> foi para uma variável própria (que não usamos), e <code>publico</code> recebeu o resto. O objeto <code>usuario</code> continua inteiro.</p>
+
+<div class="tryjs" data-goal="out:media de Ana: 8;;src:function\s+media\s*\(\s*\w+\s*,\s*\.\.\.\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> a função <code>media</code> só funciona com 3 notas. Troque os parâmetros por <code>(aluno, ...notas)</code> e calcule a média de quantas notas vierem (some com um <code>for … of</code> e divida por <code>notas.length</code>). <code>media("Ana", 6, 9, 8, 9)</code> deve mostrar <code>media de Ana: 8</code>.</p>
+<pre class="script" data-file="main.js">function media(aluno, n1, n2, n3) {
+  const resultado = (n1 + n2 + n3) / 3;
+  console.log(`media de ${aluno}: ${resultado}`);
+}
+
+media("Ana", 6, 9, 8, 9);
+</pre>
+<pre class="solucao" data-file="main.js">function media(aluno, ...notas) {
+  let soma = 0;
+  for (const nota of notas) {
+    soma += nota;
+  }
+  console.log(`media de ${aluno}: ${soma / notas.length}`);
+}
+
+media("Ana", 6, 9, 8, 9);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Com <code>...</code></th><th>Jeito antigo (ainda funciona)</th></tr>
+<tr><td>Juntar arrays</td><td><code>[...a, ...b]</code></td><td><code>a.concat(b)</code></td></tr>
+<tr><td>Copiar array</td><td><code>[...a]</code></td><td><code>a.slice()</code></td></tr>
+<tr><td>Juntar/copiar objetos</td><td><code>{ ...a, ...b }</code></td><td><code>Object.assign({}, a, b)</code></td></tr>
+<tr><td>Array como argumentos</td><td><code>Math.max(...a)</code></td><td><code>Math.max.apply(null, a)</code></td></tr>
+<tr><td>Quantos argumentos vierem</td><td><code>function f(...args)</code></td><td><code>arguments</code></td></tr>
+</table>
+</div>
+<p>No lab, <code>frutas.concat(verduras)</code> deu o mesmo <code>[ 'maçã', 'banana', 'alface', 'couve' ]</code> e <code>Object.assign({}, { a: 1 }, { b: 2 })</code> deu <code>{ a: 1, b: 2 }</code>. <strong>Qual usar?</strong> Os três pontinhos: são mais curtos e mostram o formato do resultado (colchetes = array, chaves = objeto). Os jeitos antigos ficam para você reconhecer em código dos outros.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Espalhou um objeto dentro de colchetes</strong>
+<pre class="file" data-file="objspread.js">const produto = { nome: "Pão", preco: 0.8 };
+const lista = [...produto];
+</pre>
+<pre class="term">$ node objspread.js
+/home/ana/objspread.js:2
+const lista = [...produto];
+                  ^
+
+TypeError: produto is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/objspread.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/objspread.js:2</dt><dd>Arquivo e linha do problema.</dd>
+  <dt>const lista = [...produto]; e o ^</dt><dd>A linha, com o <code>^</code> embaixo do valor que não deu para espalhar.</dd>
+  <dt>TypeError: produto is not iterable</dt><dd>"<code>produto</code> não é iterável", isto é, não dá para percorrê-lo item por item. Dentro de <code>[ ]</code>, o spread precisa de algo com <strong>ordem</strong>: array, texto, <code>Set</code>, <code>Map</code>. Um objeto comum não tem.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/objspread.js:2:19)</dt><dd>Linha 2, coluna 19 do seu arquivo; o resto é interno do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se quer uma cópia do objeto, use chaves: <code>{ ...produto }</code>. Se quer um array com os valores, <code>Object.values(produto)</code>; com os pares, <code>Object.entries(produto)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Espalhou uma variável <code>undefined</code></strong>
+<pre class="file" data-file="undef.js">let extras;
+const pedido = ["pão", ...extras];
+</pre>
+<pre class="term">$ node undef.js
+/home/ana/undef.js:2
+const pedido = ["pão", ...extras];
+                          ^
+
+TypeError: extras is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/undef.js:2:27)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p><code>extras</code> foi criada sem valor, então vale <code>undefined</code>, que não é iterável. Curiosamente, <strong>em objetos</strong> isso não é erro: <code>{ item: "pão", ...extras }</code> com <code>extras</code> <code>undefined</code> deu <code>{ item: 'pão' }</code> no lab (o spread de objeto ignora <code>undefined</code> e <code>null</code>). <strong>Como consertar:</strong> comece a variável com um array vazio (<code>let extras = [];</code>) ou use uma reserva: <code>...(extras ?? [])</code> (veja <a href="optional-chaining.html">?. e ??</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs o rest antes de outro parâmetro</strong>
+<pre class="file" data-file="restmeio.js">function avisar(...nomes, remetente) {
+  console.log(nomes, remetente);
+}
+</pre>
+<pre class="term">$ node restmeio.js
+/home/ana/restmeio.js:1
+function avisar(...nomes, remetente) {
+                        ^
+
+SyntaxError: Rest parameter must be last formal parameter
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O parâmetro rest tem de ser o último parâmetro." Faz sentido: se o rest pega <strong>todo</strong> o resto, não sobra nada para o <code>remetente</code>. Na desestruturação a regra é a mesma, com outra mensagem: <code>const [...comeco, ultimo] = …</code> dá <code>SyntaxError: Rest element must be last element</code>. Por ser erro de sintaxe, o programa nem começa. <strong>Como consertar:</strong> <code>function avisar(remetente, ...nomes)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os pontinhos (ou pôs onde não devia)</strong>
+<p>Sem erro nenhum, mas com resultado errado: <code>Math.max(notas)</code> dá <code>NaN</code> (seção 1), e <code>[manha, tarde]</code> dá um array de arrays (a missão da seção 1). E <code>Math.max(...[])</code>, com o array vazio, dá <code>-Infinity</code> no lab: confira se a lista tem itens antes de procurar o maior.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Tipo</th><th>O que faz</th></tr>
+<tr><td><code>[...a, ...b]</code></td><td>spread</td><td>Array novo com os itens de <code>a</code> e de <code>b</code></td></tr>
+<tr><td><code>[...a]</code></td><td>spread</td><td>Cópia rasa do array</td></tr>
+<tr><td><code>[..."texto"]</code></td><td>spread</td><td>Array com as letras</td></tr>
+<tr><td><code>f(...a)</code></td><td>spread</td><td>Passa os itens como argumentos separados</td></tr>
+<tr><td><code>{ ...a, ...b }</code></td><td>spread</td><td>Objeto novo com as propriedades dos dois (as de <code>b</code> vencem)</td></tr>
+<tr><td><code>{ ...a, chave: valor }</code></td><td>spread</td><td>Cópia com uma propriedade trocada</td></tr>
+<tr><td><code>function f(x, ...resto)</code></td><td>rest</td><td>Os argumentos que sobrarem viram um array</td></tr>
+<tr><td><code>const [a, ...resto] = lista;</code></td><td>rest</td><td>O primeiro item, e o resto num array</td></tr>
+<tr><td><code>const { a, ...resto } = obj;</code></td><td>rest</td><td>Uma propriedade, e o resto num objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o spread</h3>
+<p>Junte <code>a</code> e <code>b</code> num array novo:</p>
+<div class="ex-code">const tudo = [<input data-answer="...a" aria-label="primeiro spread">, <input data-answer="...b" aria-label="segundo spread">];</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale?</h3>
+<p><code>const p = { ...{ preco: 1 }, preco: 2 };</code> Quanto vale <code>p.preco</code>?</p>
+<div class="ex-code"><input data-answer="2" aria-label="valor de p.preco"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Spread ou rest?</h3>
+<p>Em <code>function f(...valores)</code>, os três pontinhos são <em>spread</em> ou <em>rest</em>?</p>
+<div class="ex-code"><input data-answer="rest" aria-label="spread ou rest"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que mostra <code>const [x, ...y] = [1, 2, 3]; console.log(y);</code>?</p>
+<label><input type="radio" name="q4"> <code>2</code></label>
+<label><input type="radio" name="q4"> <code>[ 1, 2, 3 ]</code></label>
+<label><input type="radio" name="q4"> <code>[ 2, 3 ]</code></label>
+<label><input type="radio" name="q4"> <code>3</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>[...{ a: 1 }]</code> dá <code>TypeError: … is not iterable</code>?</p>
+<label><input type="radio" name="q5"> Porque um objeto comum não pode ser percorrido item por item, e o spread dentro de <code>[ ]</code> precisa disso</label>
+<label><input type="radio" name="q5"> Porque o spread só funciona com números</label>
+<label><input type="radio" name="q5"> Porque faltou o ponto e vírgula</label>
+</div>
+
+<h3>Missão final: o pedido com adicionais</h3>
+
+<div class="tryjs" data-goal="out:tamanho: 'G';;out:adicionais: [ 'borda', 'bacon', 'cebola' ];;out:{ item: 'Pizza', tamanho: 'M', adicionais: [] };;src:function\s+pedido\s*\([^)]*\.\.\.">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>pedido(base, ...adicionais)</code>. Ela deve devolver um objeto <strong>novo</strong> com tudo de <code>base</code> (use <code>{ ...base }</code>) e mais a propriedade <code>adicionais</code>, com o array que o rest juntou. O <code>console.log</code> do fim mostra que o <code>padrao</code> não mudou.</p>
+<pre class="script" data-file="main.js">const padrao = { item: "Pizza", tamanho: "M" };
+
+function pedido(base) {
+  // devolva o objeto novo aqui
+}
+
+console.log(pedido({ ...padrao, tamanho: "G" }, "borda", "bacon", "cebola"));
+console.log(pedido(padrao));
+console.log(padrao);
+</pre>
+<pre class="solucao" data-file="main.js">const padrao = { item: "Pizza", tamanho: "M" };
+
+function pedido(base, ...adicionais) {
+  return { ...base, adicionais };
+}
+
+console.log(pedido({ ...padrao, tamanho: "G" }, "borda", "bacon", "cebola"));
+console.log(pedido(padrao));
+console.log(padrao);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ node pizza.js
+{
+  item: 'Pizza',
+  tamanho: 'G',
+  adicionais: [ 'borda', 'bacon', 'cebola' ]
+}
+{ item: 'Pizza', tamanho: 'M', adicionais: [] }
+{ item: 'Pizza', tamanho: 'M' }
+</pre>
+<p>O primeiro objeto saiu em várias linhas porque não cabia numa linha só: quando o objeto ficaria comprido demais para uma linha, o <code>console.log</code> do Node o quebra em várias. O último mostra o <code>padrao</code> intacto. (Escrever só <code>adicionais</code> dentro das chaves é o atalho para <code>adicionais: adicionais</code>.)</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>...</code> num valor é <strong>spread</strong>: espalha os itens de um array/texto (em <code>[ ]</code> ou numa chamada) ou as propriedades de um objeto (em <code>{ }</code>).</li>
+  <li><code>...</code> num lugar que recebe é <strong>rest</strong>: junta os argumentos que sobram (parâmetros) ou os itens/propriedades que sobram (desestruturação). Sempre por último.</li>
+  <li><code>{ ...obj, chave: novo }</code> copia trocando uma propriedade: quem vem depois vence.</li>
+  <li>As cópias com spread são <strong>rasas</strong>.</li>
+  <li>Em <code>[ ]</code>, só dá para espalhar o que é iterável; objeto comum ou <code>undefined</code> dão <code>is not iterable</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
