@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Math.random — sortear números, dados e itens de uma lista | Guia JavaScript</title>
+<meta name="description" content="Números aleatórios em JavaScript para quem nunca programou: Math.random() entre 0 e 1, jogar um dado com Math.floor(Math.random() * 6) + 1, sortear entre dois números, sortear um item de um array, cara ou coroa, embaralhar uma lista, o erro do Math.round que vicia o dado e quando usar crypto em vez de Math.random.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Math.random()</span></h1>
+
+<p class="intro">Jogos de dado, sorteio de amigo secreto, a música aleatória da playlist, a pergunta surpresa do quiz: tudo isso precisa de um número que <strong>ninguém sabe qual vai ser</strong>. No JavaScript, quem entrega esse número é o <code>Math.random()</code> (<em>random</em> = "aleatório"), uma ferramenta do objeto <a href="math.html">Math</a>. Ele sozinho só sabe fazer uma coisa (um número quebrado entre 0 e 1), mas com uma continha você transforma isso em um dado, um sorteio de 1 a 60 ou um item sorteado de uma lista.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>Math.random()</code> devolve, e por que cada execução dá um resultado diferente.</li>
+  <li>A receita do dado: <code>Math.floor(Math.random() * 6) + 1</code>, peça por peça.</li>
+  <li>Como sortear um inteiro entre dois números quaisquer, um item de um array e cara ou coroa.</li>
+  <li>Como conferir se o sorteio é justo, jogando o dado 6000 vezes.</li>
+  <li>Como embaralhar uma lista.</li>
+  <li>Os erros mais comuns (o <code>Math.round</code> que vicia o dado, o <code>+ 1</code> esquecido ou no lugar errado) e quando usar o <code>crypto</code> em vez do <code>Math.random</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). <strong>Atenção:</strong> por definição, quando você rodar os mesmos programas, os números serão <strong>outros</strong>. As saídas abaixo são as que saíram no lab, naquela vez.</p>
+
+<hr>
+
+<h2>A ideia: tirar um papelzinho do saco</h2>
+<p>Na quermesse da escola, a Ana vende rifas. Para sortear, ela põe papeizinhos num saco, chacoalha e tira um sem olhar. O <code>Math.random()</code> é um saco com <strong>infinitos</strong> papeizinhos, cada um com um número entre 0 e 1: <code>0.0001</code>, <code>0.5</code>, <code>0.7391…</code>. A cada chamada, ele tira um.</p>
+<p>Para sortear de 1 a 6 (um dado), você não precisa de outro saco: basta <strong>esticar</strong> o número sorteado (multiplicar por 6), <strong>cortar</strong> a parte quebrada e <strong>empurrar</strong> uma casa (somar 1). É isso que esta aula ensina.</p>
+
+<hr>
+
+<h2>1. O que o <code>Math.random()</code> devolve</h2>
+
+<pre class="file" data-file="aleatorio.js">console.log(Math.random());
+console.log(Math.random());
+console.log(Math.random());
+</pre>
+
+<p>A Ana rodou o programa duas vezes:</p>
+
+<pre class="term">$ node aleatorio.js
+0.9620615736840291
+0.5012158354751207
+0.28400459824975033
+$ node aleatorio.js
+0.6920277009636775
+0.2643339439963017
+0.6610491702906848
+</pre>
+
+<dl class="anatomy">
+  <dt>Math.random()</dt><dd>Não recebe nada entre os parênteses. Devolve um número com casas decimais <strong>maior ou igual a 0</strong> e <strong>menor que 1</strong>. Pode sair <code>0</code> (muito raro), mas <strong>nunca sai <code>1</code></strong>. Esse detalhe é o que faz a receita do dado funcionar.</dd>
+  <dt>Cada chamada, um número novo</dt><dd>As três linhas deram números diferentes, e a segunda execução deu outros três. Não dá para adivinhar o próximo.</dd>
+</dl>
+
+<div class="note">
+<strong>"Aleatório" de mentirinha</strong>
+<p>O computador não joga dados de verdade: o <code>Math.random()</code> calcula uma sequência de números que <strong>parecem</strong> sorteados (os programadores dizem <strong>pseudoaleatórios</strong>). Para jogos, sorteios da escola e exercícios, ele é ótimo. Para senhas e códigos de segurança, existe uma ferramenta própria (veja <a href="#seguro">a seção 7</a>).</p>
+</div>
+
+<hr>
+
+<h2>2. A receita do dado: <code>Math.floor(Math.random() * 6) + 1</code></h2>
+
+<pre class="file" data-file="dado.js">const dado = Math.floor(Math.random() * 6) + 1;
+console.log(`Você tirou ${dado}`);
+</pre>
+
+<pre class="term">$ node dado.js
+Você tirou 4
+$ node dado.js
+Você tirou 4
+$ node dado.js
+Você tirou 4
+</pre>
+
+<p>Três vezes 4 seguidas! Não é defeito: num dado de verdade isso também acontece. Tirar o mesmo número três vezes seguidas acontece, em média, em uma de cada 36 sequências de três jogadas. Sorte não tem memória. Para entender a receita, a Ana separou cada passo numa variável:</p>
+
+<pre class="file" data-file="passos.js">const sorteio = Math.random();
+const vezesSeis = sorteio * 6;
+const inteiro = Math.floor(vezesSeis);
+const dado = inteiro + 1;
+
+console.log(sorteio);
+console.log(vezesSeis);
+console.log(inteiro);
+console.log(dado);
+</pre>
+
+<pre class="term">$ node passos.js
+0.2968734663266538
+1.7812407979599227
+1
+2
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Neste exemplo</th><th>Tudo que pode sair</th></tr>
+<tr><td><code>Math.random()</code></td><td><code>0.2968…</code></td><td>de 0 até 0,9999… (nunca 1)</td></tr>
+<tr><td><code>* 6</code> (esticar)</td><td><code>1.7812…</code></td><td>de 0 até 5,9999… (nunca 6)</td></tr>
+<tr><td><code>Math.floor(…)</code> (cortar para baixo)</td><td><code>1</code></td><td>0, 1, 2, 3, 4 ou 5</td></tr>
+<tr><td><code>+ 1</code> (empurrar)</td><td><code>2</code></td><td><strong>1, 2, 3, 4, 5 ou 6</strong></td></tr>
+</table>
+</div>
+
+<p>Cada um dos 6 resultados tem a mesma chance, porque cada um ocupa um pedaço do mesmo tamanho entre 0 e 6: de 0 a 0,999… vira 1; de 1 a 1,999… vira 2; e assim por diante. É por isso que se usa o <code>Math.floor</code> (para baixo) e não o <code>Math.round</code> (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<h3>O dado é justo? Jogando 6000 vezes</h3>
+<p>Se o dado é justo, cada face deve sair mais ou menos 1000 vezes em 6000 jogadas:</p>
+
+<pre class="file" data-file="contar.js">const contagem = [0, 0, 0, 0, 0, 0, 0];
+
+for (let i = 0; i &lt; 6000; i++) {
+  const dado = Math.floor(Math.random() * 6) + 1;
+  contagem[dado]++;
+}
+
+for (let face = 1; face &lt;= 6; face++) {
+  console.log(`${face}: ${contagem[face]} vezes`);
+}
+</pre>
+
+<pre class="term">$ node contar.js
+1: 1012 vezes
+2: 978 vezes
+3: 971 vezes
+4: 1019 vezes
+5: 1045 vezes
+6: 975 vezes
+</pre>
+
+<p>O array <code>contagem</code> tem 7 posições (de 0 a 6) para que a face 1 seja contada em <code>contagem[1]</code>, a face 2 em <code>contagem[2]</code>… (a posição 0 fica sem uso). Nenhuma face saiu exatamente 1000 vezes, mas todas ficaram perto: é assim que o acaso se comporta.</p>
+
+<div class="tryjs" data-goal="out:menor: 1, maior: 6;;src:Math\.floor">
+<p class="try-task"><strong>Missão:</strong> a função <code>rolarDado</code> deste programa está viciada: em 10000 jogadas, ela tira 0, que não existe num dado. Rode para ver, e conserte a função com a receita certa, até aparecer <code>menor: 1, maior: 6</code>.</p>
+<pre class="script" data-file="main.js">function rolarDado() {
+  return Math.round(Math.random() * 6);
+}
+
+let menor = Infinity;
+let maior = -Infinity;
+for (let i = 0; i &lt; 10000; i++) {
+  const valor = rolarDado();
+  menor = Math.min(menor, valor);
+  maior = Math.max(maior, valor);
+}
+console.log(`Em 10000 jogadas: menor: ${menor}, maior: ${maior}`);
+</pre>
+<pre class="solucao" data-file="main.js">function rolarDado() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+let menor = Infinity;
+let maior = -Infinity;
+for (let i = 0; i &lt; 10000; i++) {
+  const valor = rolarDado();
+  menor = Math.min(menor, valor);
+  maior = Math.max(maior, valor);
+}
+console.log(`Em 10000 jogadas: menor: ${menor}, maior: ${maior}`);
+</pre>
+</div>
+
+<p>No lab, o programa original mostrou <code>Em 10000 jogadas: menor: 0, maior: 6</code>.</p>
+
+<hr>
+
+<h2>3. Sortear entre dois números quaisquer</h2>
+<p>A receita do dado vale para qualquer intervalo. Para sortear um inteiro de <code>minimo</code> até <code>maximo</code> (os dois incluídos), quantos resultados existem? <code>maximo - minimo + 1</code> (de 1 a 6 são 6; de 100 a 199 são 100). Esse é o tamanho da "esticada"; depois, em vez de empurrar 1, empurre até o <code>minimo</code>:</p>
+
+<pre class="file" data-file="entre.js">function sortearEntre(minimo, maximo) {
+  return Math.floor(Math.random() * (maximo - minimo + 1)) + minimo;
+}
+
+console.log(`Mega-Sena: ${sortearEntre(1, 60)}`);
+console.log(`Senha da fila: ${sortearEntre(100, 199)}`);
+console.log(`Dado: ${sortearEntre(1, 6)}`);
+</pre>
+
+<pre class="term">$ node entre.js
+Mega-Sena: 35
+Senha da fila: 179
+Dado: 5
+</pre>
+
+<p>Guarde essa função: ela aparece em quase todo programa com sorteio. Os parênteses em volta de <code>maximo - minimo + 1</code> são obrigatórios: sem eles, a multiplicação seria feita antes da conta (veja <a href="precedencia.html">Precedência</a>).</p>
+
+<hr>
+
+<h2>4. Sortear um item de uma lista</h2>
+<p>Qual pizza a família da Ana pede hoje? Os itens de um array ficam nas posições 0, 1, 2… até <code>length - 1</code>. Então basta sortear uma <strong>posição</strong> (o índice):</p>
+
+<pre class="file" data-file="lista.js">const sabores = ["calabresa", "mussarela", "frango", "portuguesa"];
+const indice = Math.floor(Math.random() * sabores.length);
+
+console.log(`Índice sorteado: ${indice}`);
+console.log(`Pizza de hoje: ${sabores[indice]}`);
+</pre>
+
+<pre class="term">$ node lista.js
+Índice sorteado: 3
+Pizza de hoje: portuguesa
+$ node lista.js
+Índice sorteado: 1
+Pizza de hoje: mussarela
+</pre>
+
+<p>Aqui <strong>não</strong> tem o <code>+ 1</code>: com 4 sabores, <code>Math.floor(Math.random() * 4)</code> dá 0, 1, 2 ou 3, exatamente as posições do array. O <code>sabores.length</code> faz a conta se ajustar sozinha se a lista crescer.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode várias vezes e veja a pizza mudar. Acrescente o seu sabor preferido na lista: nada mais precisa mudar.</p>
+<pre class="script" data-file="main.js">const sabores = ["calabresa", "mussarela", "frango", "portuguesa"];
+const indice = Math.floor(Math.random() * sabores.length);
+
+console.log(`Índice sorteado: ${indice}`);
+console.log(`Pizza de hoje: ${sabores[indice]}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Cara ou coroa: uma chance em duas</h2>
+<p>Como o <code>Math.random()</code> se espalha por igual entre 0 e 1, a chance de sair menos de <code>0.5</code> é de 50%:</p>
+
+<pre class="file" data-file="moeda.js">const resultado = Math.random() &lt; 0.5 ? "cara" : "coroa";
+console.log(resultado);
+</pre>
+
+<pre class="term">$ node moeda.js
+cara
+$ node moeda.js
+coroa
+$ node moeda.js
+cara
+</pre>
+
+<p>O <code>? :</code> é o <a href="ternario.html">operador ternário</a>. Com outro número, você muda a chance: <code>Math.random() &lt; 0.1</code> é verdadeiro em 10% das vezes (um "prêmio raro" num jogo).</p>
+
+<hr>
+
+<h2>6. Embaralhar uma lista</h2>
+<p>A professora quer a ordem de apresentação dos trabalhos sorteada. O jeito certo de embaralhar tem nome: <strong>embaralhamento de Fisher-Yates</strong>. Ele vai do fim da lista para o começo, trocando cada item com um item sorteado entre os que ainda não foram fixados:</p>
+
+<pre class="file" data-file="embaralhar.js">function embaralhar(lista) {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i &gt; 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+const turma = ["Ana", "Bia", "Caio", "Duda", "Edu"];
+console.log(embaralhar(turma));
+console.log(turma);
+</pre>
+
+<pre class="term">$ node embaralhar.js
+[ 'Duda', 'Ana', 'Caio', 'Edu', 'Bia' ]
+[ 'Ana', 'Bia', 'Caio', 'Duda', 'Edu' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>const copia = [...lista];</dt><dd>Trabalha numa cópia, para não bagunçar a lista original (veja <a href="arrays-copiar.html">Copiando Arrays</a>). A segunda linha da saída mostra a <code>turma</code> intacta.</dd>
+  <dt>Math.floor(Math.random() * (i + 1))</dt><dd>A receita da seção 4: sorteia uma posição de 0 até <code>i</code>.</dd>
+  <dt>[copia[i], copia[j]] = [copia[j], copia[i]];</dt><dd>Troca os dois itens de lugar, com <a href="desestruturacao.html">desestruturação</a>.</dd>
+</dl>
+
+<div class="warning">
+<strong>O atalho que parece funcionar</strong>
+<p>Na internet você vai encontrar <code>lista.sort(() =&gt; Math.random() - 0.5)</code>. Ele embaralha, mas <strong>não de forma justa</strong>: algumas ordens saem bem mais que outras, porque o <code>sort</code> não foi feito para comparações que mudam de ideia. Para sortear de verdade, use o Fisher-Yates acima.</p>
+</div>
+
+<hr>
+
+<h2 id="seguro">7. Quando o <code>Math.random()</code> não serve: segurança</h2>
+<p>Para criar uma senha, um código de verificação ou um token de acesso, o número precisa ser impossível de prever, mesmo para alguém que estude o programa. O <code>Math.random()</code> não promete isso. Para esses casos, o JavaScript tem o <code>crypto</code> (de "criptografia"):</p>
+
+<pre class="file" data-file="seguro.js">const { randomInt } = require("node:crypto");
+
+console.log(`Código de verificação: ${randomInt(100000, 1000000)}`);
+console.log(crypto.randomUUID());
+</pre>
+
+<pre class="term">$ node seguro.js
+Código de verificação: 531261
+d6abb5f8-4dec-41d9-81bb-9ca27099c038
+</pre>
+
+<dl class="anatomy">
+  <dt>require("node:crypto") e randomInt(100000, 1000000)</dt><dd>O módulo <code>crypto</code> do Node (veja <a href="modulos-commonjs.html">require</a>). O <code>randomInt(min, max)</code> sorteia um inteiro seguro de <code>min</code> <strong>até antes de</strong> <code>max</code>: aqui, um código de 6 dígitos, de 100000 a 999999. Só existe no Node.</dd>
+  <dt>crypto.randomUUID()</dt><dd>Um identificador único e aleatório, no formato padrão chamado <strong>UUID</strong>. Esse <code>crypto</code> já vem pronto, sem <code>require</code>, no Node e no navegador.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Escrita</th><th>Observação</th></tr>
+<tr><td>Um número entre 0 e 1</td><td><code>Math.random()</code></td><td>O 1 nunca sai</td></tr>
+<tr><td>Um dado (1 a 6)</td><td><code>Math.floor(Math.random() * 6) + 1</code></td><td>A receita de base</td></tr>
+<tr><td>Um inteiro de <code>min</code> a <code>max</code></td><td><code>Math.floor(Math.random() * (max - min + 1)) + min</code></td><td>Melhor dentro de uma função <code>sortearEntre</code></td></tr>
+<tr><td>Um item de um array</td><td><code>lista[Math.floor(Math.random() * lista.length)]</code></td><td>Sem o <code>+ 1</code></td></tr>
+<tr><td>Sim ou não com chance de 50%</td><td><code>Math.random() &lt; 0.5</code></td><td>Troque o 0.5 para outra chance</td></tr>
+<tr><td>Embaralhar</td><td>Fisher-Yates (seção 6)</td><td>Evite o <code>sort</code> com <code>Math.random</code></td></tr>
+<tr><td>Senha, código, token</td><td><code>crypto.randomInt</code> (Node), <code>crypto.getRandomValues</code>, <code>crypto.randomUUID()</code></td><td>Nunca o <code>Math.random</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Os erros com sorteio quase nunca mostram mensagem: o programa roda, mas sorteia errado. Por isso vale a pena <strong>contar</strong> os resultados, como na seção 2.</p>
+
+<div class="cenario">
+<strong>Usou <code>Math.round</code>: o dado viciado</strong>
+<pre class="file" data-file="round-errado.js">const contagem = [0, 0, 0, 0, 0, 0, 0];
+
+for (let i = 0; i &lt; 6000; i++) {
+  const dado = Math.round(Math.random() * 6);
+  contagem[dado]++;
+}
+
+for (let face = 0; face &lt;= 6; face++) {
+  console.log(`${face}: ${contagem[face]} vezes`);
+}
+</pre>
+<pre class="term">$ node round-errado.js
+0: 493 vezes
+1: 997 vezes
+2: 1013 vezes
+3: 952 vezes
+4: 1040 vezes
+5: 1003 vezes
+6: 502 vezes
+</pre>
+<p>Dois problemas de uma vez: saiu <strong>0</strong>, que não existe num dado, e o 0 e o 6 saíram <strong>metade</strong> das vezes das outras faces. O <code>Math.round</code> leva para o 0 só o que fica entre 0 e 0,5 (meio pedaço), e para o 6 só o que fica entre 5,5 e 6 (outro meio pedaço). <strong>Como consertar:</strong> <code>Math.floor(Math.random() * 6) + 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>+ 1</code> no dado</strong>
+<p><code>Math.floor(Math.random() * 6)</code> dá de 0 a 5. O dado nunca tira 6 e às vezes tira 0. <strong>Como consertar:</strong> some 1 <strong>depois</strong> do <code>Math.floor</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs <code>+ 1</code> no índice de um array</strong>
+<pre class="file" data-file="fora.js">const sabores = ["calabresa", "mussarela", "frango", "portuguesa"];
+
+for (let i = 0; i &lt; 8; i++) {
+  const indice = Math.floor(Math.random() * sabores.length) + 1;
+  console.log(`${indice}: ${sabores[indice]}`);
+}
+</pre>
+<pre class="term">$ node fora.js
+3: portuguesa
+3: portuguesa
+4: undefined
+4: undefined
+3: portuguesa
+4: undefined
+3: portuguesa
+2: frango
+</pre>
+<p>Com o <code>+ 1</code>, o índice vai de 1 a 4. A posição 4 não existe (os sabores vão de 0 a 3), então ler <code>sabores[4]</code> dá <code>undefined</code>, sem erro (veja <a href="arrays-acessar.html">Acessando Itens</a>). E a calabresa, na posição 0, nunca é sorteada. <strong>Como consertar:</strong> tire o <code>+ 1</code>; índices de array começam em 0.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou o intervalo para o <code>Math.random</code></strong>
+<pre class="file" data-file="argumentos.js">console.log(Math.random(1, 6));
+console.log(Math.random(1, 6));
+</pre>
+<pre class="term">$ node argumentos.js
+0.9667637594640891
+0.25348276840170836
+</pre>
+<p>Em outras linguagens existe <code>random(1, 6)</code>. No JavaScript, o <code>Math.random</code> <strong>ignora</strong> o que você põe nos parênteses, sem avisar, e continua devolvendo um número entre 0 e 1. <strong>Como consertar:</strong> use a receita (ou a sua função <code>sortearEntre(1, 6)</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Uma meta de teste que depende da sorte</strong>
+<p>Se o seu programa sorteia, ele não dá para ser conferido comparando a saída com um número fixo ("tem de mostrar 4"): uma hora passa, outra não. Para testar, confira o que <strong>sempre</strong> vale (o resultado está entre 1 e 6? a lista embaralhada tem os mesmos itens?), ou rode milhares de vezes e confira o menor e o maior, como na missão da seção 2.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado possível</th></tr>
+<tr><td><code>Math.random()</code></td><td>De 0 (incluído) até 1 (fora)</td></tr>
+<tr><td><code>Math.random() * 10</code></td><td>De 0 até 9,999…</td></tr>
+<tr><td><code>Math.floor(Math.random() * 10)</code></td><td>Inteiro de 0 a 9</td></tr>
+<tr><td><code>Math.floor(Math.random() * 10) + 1</code></td><td>Inteiro de 1 a 10</td></tr>
+<tr><td><code>Math.floor(Math.random() * (max - min + 1)) + min</code></td><td>Inteiro de <code>min</code> a <code>max</code></td></tr>
+<tr><td><code>lista[Math.floor(Math.random() * lista.length)]</code></td><td>Um item qualquer da lista</td></tr>
+<tr><td><code>Math.random() &lt; 0.5</code></td><td><code>true</code> em 50% das vezes</td></tr>
+<tr><td><code>require("node:crypto").randomInt(min, max)</code></td><td>Inteiro seguro de <code>min</code> a <code>max - 1</code> (só Node)</td></tr>
+<tr><td><code>crypto.randomUUID()</code></td><td>Um identificador único (Node e navegador)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o dado de 20 faces</h3>
+<p>Complete para sortear de 1 a 20:</p>
+<div class="ex-code">const d20 = Math.<input data-answer="floor" aria-label="função que arredonda para baixo">(Math.random() * <input data-answer="20" aria-label="quantos resultados">) + <input data-answer="1" aria-label="quanto somar">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O intervalo</h3>
+<p><code>Math.floor(Math.random() * 5) + 10</code> sorteia um inteiro entre quais números (os dois incluídos)?</p>
+<div class="ex-code">De <input data-answer="10" aria-label="menor valor possível"> até <input data-answer="14" aria-label="maior valor possível"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destes valores o <code>Math.random()</code> <strong>nunca</strong> devolve?</p>
+<label><input type="radio" name="q3"> <code>0.5</code></label>
+<label><input type="radio" name="q3"> <code>0.999</code></label>
+<label><input type="radio" name="q3"> <code>1</code></label>
+<label><input type="radio" name="q3"> <code>0.0001</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que <code>Math.round(Math.random() * 6)</code> é um dado ruim?</p>
+<label><input type="radio" name="q4"> Porque nunca tira 6</label>
+<label><input type="radio" name="q4"> Porque pode tirar 0, e o 0 e o 6 saem com metade da chance das outras faces</label>
+<label><input type="radio" name="q4"> Porque dá erro</label>
+<label><input type="radio" name="q4"> Porque sempre tira o mesmo número</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Para gerar o código de 6 dígitos que um banco manda por SMS, o que usar?</p>
+<label><input type="radio" name="q5"> <code>Math.random()</code>, multiplicado por 1000000</label>
+<label><input type="radio" name="q5"> <code>Math.random(100000, 999999)</code></label>
+<label><input type="radio" name="q5"> <code>Date.now()</code></label>
+<label><input type="radio" name="q5"> <code>crypto.randomInt(100000, 1000000)</code>, do módulo <code>node:crypto</code></label>
+</div>
+
+<h3>Missão final: o sorteio do amigo secreto</h3>
+
+<div class="tryjs" data-goal="outre:^Sorteado: (Ana|Bia|Caio|Duda)\n?$;;src:Math\.random">
+<p class="try-task"><strong>Missão:</strong> a turma da Ana vai sortear quem começa a troca de presentes. Troque o <code>"?"</code> por um sorteio de um nome da lista, usando <code>Math.random()</code>. Rode várias vezes para ver nomes diferentes.</p>
+<pre class="script" data-file="main.js">const nomes = ["Ana", "Bia", "Caio", "Duda"];
+const sorteado = "?"; // sorteie um nome aqui
+
+console.log(`Sorteado: ${sorteado}`);
+</pre>
+<pre class="solucao" data-file="main.js">const nomes = ["Ana", "Bia", "Caio", "Duda"];
+const sorteado = nomes[Math.floor(Math.random() * nomes.length)];
+
+console.log(`Sorteado: ${sorteado}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Math.random()</code> devolve um número de 0 até quase 1 (o 1 nunca sai), diferente a cada chamada.</li>
+  <li>Para um inteiro de 1 a N: <code>Math.floor(Math.random() * N) + 1</code>. Esticar, cortar para baixo, empurrar.</li>
+  <li>Para um intervalo qualquer: <code>Math.floor(Math.random() * (max - min + 1)) + min</code>. Para um item de array: <code>lista[Math.floor(Math.random() * lista.length)]</code>, sem <code>+ 1</code>.</li>
+  <li>Use <code>Math.floor</code>, nunca <code>Math.round</code>, para o sorteio sair justo. Na dúvida, rode milhares de vezes e conte.</li>
+  <li>Para embaralhar, Fisher-Yates. Para senhas e códigos, <code>crypto</code>, nunca <code>Math.random</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
