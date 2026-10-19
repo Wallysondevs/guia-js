@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript package.json — a ficha do projeto Node.js | Guia JavaScript</title>
+<meta name="description" content="O package.json do Node.js para quem nunca programou: npm init com perguntas e com -y, cada campo (name, version, description, main, scripts, dependencies, devDependencies, type), npm start, npm test, npm run, npm pkg set, as versões com ^ e ~, commonjs × module e os erros reais (Missing script, EJSONPARSE, require is not defined in ES module scope).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">package.json</span></h1>
+
+<p class="intro">Na aula <a href="npm.html">npm: Instalando Pacotes</a>, o <code>package.json</code> apareceu como a "lista de compras" do projeto. Ele é mais do que isso: é a <strong>ficha</strong> do projeto, com o nome, a versão, os pacotes de que ele precisa, o jeito de rodá-lo e até se ele usa <code>require</code> ou <code>import</code>. É um arquivo de texto em <a href="json.html">JSON</a>, que o npm e o próprio Node leem. Esta aula é <strong>só do Node</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar o <code>package.json</code>: <code>npm init</code> com perguntas e <code>npm init -y</code> sem perguntas.</li>
+  <li>O que é cada campo: <code>name</code>, <code>version</code>, <code>description</code>, <code>main</code>, <code>scripts</code>, <code>dependencies</code>, <code>devDependencies</code>, <code>type</code>…</li>
+  <li>Como criar os seus atalhos de comando em <code>"scripts"</code> e rodá-los com <code>npm start</code>, <code>npm test</code> e <code>npm run</code>.</li>
+  <li>A diferença entre <code>dependencies</code> e <code>devDependencies</code>.</li>
+  <li>O que querem dizer <code>^4.18.1</code> e <code>~4.18.1</code>.</li>
+  <li>Como o campo <code>"type"</code> decide entre <code>require</code> e <code>import</code>.</li>
+  <li>Os erros reais: <code>Missing script</code>, <code>EJSONPARSE</code>, <code>require is not defined in ES module scope</code> e <code>Cannot use import statement outside a module</code>.</li>
+</ul>
+</div>
+
+<p>Tudo rodou no <strong>Node.js v24.22.0</strong> com o <strong>npm 11.19.1</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>).</p>
+
+<hr>
+
+<h2>A ideia: a ficha pregada na porta da cozinha</h2>
+<p>Na cozinha da padaria há uma ficha para cada receita: o nome, a versão ("pão de queijo, receita nº 3"), os ingredientes que precisam ser comprados, os utensílios que só a cozinha usa (a batedeira não vai para o cliente) e as instruções curtas ("para assar: forno a 180 °C por 25 min"). Qualquer funcionário novo lê a ficha e sabe o que fazer.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na ficha da receita</th><th>No <code>package.json</code></th></tr>
+<tr><td>Nome e número da receita</td><td><code>"name"</code> e <code>"version"</code></td></tr>
+<tr><td>Ingredientes para comprar</td><td><code>"dependencies"</code></td></tr>
+<tr><td>Utensílios só da cozinha</td><td><code>"devDependencies"</code></td></tr>
+<tr><td>"Para assar: forno a 180 °C"</td><td><code>"scripts"</code>: <code>"start": "node index.js"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Criando o <code>package.json</code></h2>
+
+<h3>Com perguntas: <code>npm init</code></h3>
+<p>A Ana vai fazer o programa do cardápio da padaria. Na pasta nova, ela roda <code>npm init</code> <strong>sem</strong> o <code>-y</code>, e o npm faz uma pergunta por vez. O que está entre parênteses é a resposta padrão: apertar Enter sem digitar nada aceita.</p>
+
+<pre class="term">$ mkdir cardapio
+$ cd cardapio
+$ npm init
+This utility will walk you through creating a package.json file.
+It only covers the most common items, and tries to guess sensible defaults.
+
+See `npm help init` for definitive documentation on these fields and exactly what they do.
+
+Use `npm install &lt;pkg&gt;` afterwards to install a package and save it as a dependency in the package.json file.
+
+Press ^C at any time to quit.
+package name: (cardapio)
+version: (1.0.0) 1.0.0
+description: Cardápio da padaria da Ana
+entry point: (index.js) index.js
+test command:
+git repository:
+keywords: padaria, pão
+author: Ana
+license: (ISC) MIT
+type: (commonjs) commonjs
+About to write to /home/ana/cardapio/package.json:
+
+{
+  "name": "cardapio",
+  "version": "1.0.0",
+  "description": "Cardápio da padaria da Ana",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [
+    "padaria",
+    "pão"
+  ],
+  "author": "Ana",
+  "license": "MIT",
+  "type": "commonjs"
+}
+
+
+Is this OK? (yes) yes
+</pre>
+
+<dl class="anatomy">
+  <dt>This utility will walk you through…</dt><dd>"Este utilitário vai guiar você na criação de um package.json." O npm avisa que vai perguntar só o mais comum e que <kbd>Ctrl</kbd>+<kbd>C</kbd> (<code>^C</code>) cancela a qualquer momento.</dd>
+  <dt>package name: (cardapio)</dt><dd>O nome do projeto. A Ana só apertou Enter e ficou o padrão, o nome da pasta.</dd>
+  <dt>version, description, entry point</dt><dd>Versão, descrição e "ponto de entrada" (o arquivo principal).</dd>
+  <dt>test command, git repository</dt><dd>O comando de testes e o endereço do repositório Git. Ela deixou em branco.</dd>
+  <dt>keywords, author, license</dt><dd>Palavras-chave (separadas por vírgula), autora e licença (as regras de uso do código; a Ana escolheu a <code>MIT</code>, uma das mais comuns).</dd>
+  <dt>type: (commonjs)</dt><dd>O tipo de módulo: <code>commonjs</code> (com <code>require</code>) ou <code>module</code> (com <code>import</code>). Veja a <a href="#type">seção 6</a>.</dd>
+  <dt>Is this OK? (yes)</dt><dd>"Está certo?". Mostra o arquivo e pede confirmação antes de gravar.</dd>
+</dl>
+
+<h3>Sem perguntas: <code>npm init -y</code></h3>
+<p>Com o <code>-y</code> (<em>yes</em>), o npm aceita tudo o que é padrão. É o mais usado: os campos se mudam depois. Repare como ele ajeita o nome quando a pasta tem letras maiúsculas e espaços:</p>
+
+<pre class="term">$ mkdir "Padaria da Ana"
+$ cd "Padaria da Ana"
+$ npm init -y
+Wrote to /home/ana/Padaria da Ana/package.json:
+
+{
+  "name": "padaria-da-ana",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+
+
+</pre>
+
+<p>O nome de um pacote é escrito em <strong>letras minúsculas</strong>, sem espaços (usa-se o hífen no lugar), por isso a pasta <code>Padaria da Ana</code> virou <code>padaria-da-ana</code>.</p>
+
+<hr>
+
+<h2>2. Os campos, um por um</h2>
+<p>Este é o <code>package.json</code> do cardápio no fim da aula, depois de a Ana instalar dois pacotes e criar alguns atalhos (você vai ver cada passo nas próximas seções):</p>
+
+<pre class="term">$ cat package.json
+{
+  "name": "cardapio",
+  "version": "1.0.0",
+  "description": "Cardápio da padaria da Ana",
+  "keywords": [
+    "padaria",
+    "pão"
+  ],
+  "license": "MIT",
+  "author": "Ana",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1",
+    "start": "node index.js",
+    "ola": "echo Bom dia, padaria!",
+    "formatar": "prettier --write feio.js"
+  },
+  "dependencies": {
+    "lodash": "^4.18.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  },
+  "type": "commonjs"
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>"name"</dt><dd>O nome do projeto (ou do pacote, se um dia for publicado). Minúsculas, sem espaços.</dd>
+  <dt>"version"</dt><dd>A versão, sempre com <strong>três números</strong>: <code>1.0.0</code>. Veja o que cada um quer dizer na <a href="#versoes">seção 5</a>.</dd>
+  <dt>"description" e "keywords"</dt><dd>Descrição e palavras-chave: servem para as pessoas acharem o pacote no site do npm. Para um projeto só seu, são opcionais.</dd>
+  <dt>"license" e "author"</dt><dd>A licença e quem escreveu.</dd>
+  <dt>"main"</dt><dd>O arquivo principal: o que outro programa recebe ao fazer <code>require("cardapio")</code>, se o projeto virar um pacote. Para rodar o seu programa, quem manda é o <code>"scripts"</code>.</dd>
+  <dt>"scripts"</dt><dd>Os atalhos de comando do projeto (<a href="#scripts">seção 3</a>).</dd>
+  <dt>"dependencies" e "devDependencies"</dt><dd>Os pacotes de que o projeto precisa para rodar e os que só servem para quem programa (<a href="#deps">seção 4</a>). Quem escreve aqui é o <code>npm install</code>.</dd>
+  <dt>"type"</dt><dd><code>"commonjs"</code> ou <code>"module"</code>: diz ao Node como ler os arquivos <code>.js</code> (<a href="#type">seção 6</a>).</dd>
+</dl>
+
+<p>A <strong>ordem</strong> dos campos não importa: o npm às vezes a muda sozinho (o <code>"type"</code>, aqui, foi parar no fim depois de a Ana mudá-lo e voltar atrás). O que importa é o JSON ser válido: aspas duplas nos nomes e nos textos, vírgula entre os campos e <strong>nenhuma vírgula depois do último</strong>.</p>
+
+<h3>O <code>package.json</code> é só JSON</h3>
+<p>Como é um arquivo JSON comum, o seu próprio programa pode lê-lo. Aqui, com o <code>readFileSync</code> do módulo <code>node:fs</code> (que tem aula própria: <a href="fs-ler.html">Lendo Arquivos</a>) e o <code>JSON.parse</code>:</p>
+
+<pre class="file" data-file="ficha.js">const { readFileSync } = require("node:fs");
+
+const texto = readFileSync("package.json", "utf8");
+const pacote = JSON.parse(texto);
+
+console.log(`Projeto: ${pacote.name}, versão ${pacote.version}`);
+console.log(`Descrição: ${pacote.description}`);
+console.log("Dependências:", pacote.dependencies);
+</pre>
+
+<pre class="term">$ node ficha.js
+Projeto: cardapio, versão 1.0.0
+Descrição: Cardápio da padaria da Ana
+Dependências: { lodash: '^4.18.1' }
+</pre>
+
+<div class="tryjs" data-goal="out:Autora: Ana;;semerro">
+<p class="try-task"><strong>Missão:</strong> a aba <code>package.json</code> é a ficha do cardápio. Acrescente uma linha que mostre <code>Autora: Ana</code>, lendo o campo <code>author</code> do objeto <code>pacote</code> (não escreva "Ana" direto no texto). Depois, por curiosidade, mude a versão na aba <code>package.json</code> e rode de novo.</p>
+<pre class="script" data-file="main.js">const { readFileSync } = require("node:fs");
+
+const pacote = JSON.parse(readFileSync("package.json", "utf8"));
+
+console.log(`Projeto: ${pacote.name}, versão ${pacote.version}`);
+</pre>
+<pre class="script" data-file="package.json">{
+  "name": "cardapio",
+  "version": "1.0.0",
+  "description": "Cardápio da padaria da Ana",
+  "author": "Ana",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "lodash": "^4.18.1"
+  },
+  "type": "commonjs"
+}
+</pre>
+<pre class="solucao" data-file="main.js">const { readFileSync } = require("node:fs");
+
+const pacote = JSON.parse(readFileSync("package.json", "utf8"));
+
+console.log(`Projeto: ${pacote.name}, versão ${pacote.version}`);
+console.log(`Autora: ${pacote.author}`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="scripts">3. <code>"scripts"</code>: os atalhos do projeto</h2>
+<p>O campo <code>"scripts"</code> guarda comandos com apelidos. Em vez de lembrar e digitar o comando inteiro, você roda o apelido com o npm. O <code>npm init</code> já cria um, o <code>test</code>, que de propósito só avisa que não há testes e termina com erro:</p>
+
+<pre class="term">$ npm test
+
+&gt; cardapio@1.0.0 test
+&gt; echo "Error: no test specified" &amp;&amp; exit 1
+
+Error: no test specified
+$ echo $?
+1
+</pre>
+
+<dl class="anatomy">
+  <dt>&gt; cardapio@1.0.0 test</dt><dd>O npm avisa qual projeto (<code>cardapio</code>, versão <code>1.0.0</code>) e qual script está rodando. (Esse <code>&gt;</code> é do npm, não é o modo interativo do Node.)</dd>
+  <dt>&gt; echo "Error: …" &amp;&amp; exit 1</dt><dd>O comando que está no <code>package.json</code>. O npm o entrega ao terminal, como se você o tivesse digitado.</dd>
+  <dt>Error: no test specified</dt><dd>A saída do <code>echo</code>: "Erro: nenhum teste definido". É só um texto, não um erro do Node.</dd>
+  <dt>echo $? → 1</dt><dd>O código de saída foi 1 ("deu errado"), por causa do <code>exit 1</code>. Quando você tiver testes de verdade (aula <a href="testes.html">Testes</a>), troca esse comando.</dd>
+</dl>
+
+<h3>Criando os seus: <code>start</code> e outros</h3>
+<p>A Ana escreveu o programa do cardápio, <code>index.js</code>:</p>
+
+<pre class="file" data-file="index.js">const cardapio = ["pão francês", "sonho", "broa"];
+console.log("Cardápio de hoje:");
+for (const item of cardapio) {
+  console.log(`- ${item}`);
+}
+</pre>
+
+<p>Ela pode abrir o <code>package.json</code> num editor de texto e escrever os scripts à mão, ou pedir ao npm, com <code>npm pkg set</code> ("definir no pacote"), que não deixa o JSON estragar:</p>
+
+<pre class="term">$ npm pkg set scripts.start="node index.js"
+$ npm pkg set scripts.ola="echo Bom dia, padaria!"
+$ cat package.json
+{
+  "name": "cardapio",
+  "version": "1.0.0",
+  "description": "Cardápio da padaria da Ana",
+  "keywords": [
+    "padaria",
+    "pão"
+  ],
+  "license": "MIT",
+  "author": "Ana",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1",
+    "start": "node index.js",
+    "ola": "echo Bom dia, padaria!"
+  }
+}
+$ npm start
+
+&gt; cardapio@1.0.0 start
+&gt; node index.js
+
+Cardápio de hoje:
+- pão francês
+- sonho
+- broa
+$ npm run ola
+
+&gt; cardapio@1.0.0 ola
+&gt; echo Bom dia, padaria!
+
+Bom dia, padaria!
+</pre>
+
+<dl class="anatomy">
+  <dt>npm start</dt><dd>Roda o script <code>start</code> ("começar"). É a convenção para "rodar o programa": quem pega um projeto desconhecido tenta <code>npm start</code> primeiro.</dd>
+  <dt>npm test</dt><dd>Roda o script <code>test</code>. O <code>start</code> e o <code>test</code> são especiais: dispensam o <code>run</code>.</dd>
+  <dt>npm run ola</dt><dd>"Rodar o ola": para qualquer outro nome, use <code>npm run</code> e o apelido.</dd>
+</dl>
+
+<p>E <code>npm run</code> sozinho lista todos os scripts do projeto:</p>
+
+<pre class="term">$ npm run
+Lifecycle scripts included in cardapio@1.0.0:
+  test
+    echo "Error: no test specified" &amp;&amp; exit 1
+  start
+    node index.js
+available via `npm run`:
+  ola
+    echo Bom dia, padaria!
+</pre>
+
+<p>"<em>Lifecycle scripts</em>" ("scripts do ciclo de vida") são os nomes especiais, como <code>start</code> e <code>test</code>; os outros estão "disponíveis via <code>npm run</code>".</p>
+
+<hr>
+
+<h2 id="deps">4. <code>dependencies</code> × <code>devDependencies</code></h2>
+<p>Alguns pacotes o programa usa <strong>para funcionar</strong>: são os ingredientes. Outros só ajudam <strong>quem programa</strong>: são os utensílios da cozinha. O <code>prettier</code>, por exemplo, arruma a formatação do código (espaços, ponto e vírgula); o programa em si não precisa dele. Para instalar um utensílio, use <code>--save-dev</code> (ou <code>-D</code>):</p>
+
+<pre class="term">$ npm install lodash
+
+added 1 package, and audited 2 packages in 469ms
+
+found 0 vulnerabilities
+$ npm install --save-dev prettier
+
+added 1 package, and audited 3 packages in 479ms
+
+1 package is looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+</pre>
+
+<p>Os dois foram para a <code>node_modules</code>, mas para listas diferentes do <code>package.json</code>:</p>
+
+<pre class="term">$ ls node_modules
+lodash
+prettier
+</pre>
+
+<pre class="file" data-file="package.json (trecho)">  "dependencies": {
+    "lodash": "^4.18.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+</pre>
+
+<p>O aviso <code>1 package is looking for funding</code> ("1 pacote procura financiamento") quer dizer que os autores do prettier aceitam doações; <code>npm fund</code> mostra o link. Não é erro. (Os tempos em <code>ms</code> e esse aviso mudam de uma instalação para outra.)</p>
+
+<h3>Um script que usa um pacote de desenvolvimento</h3>
+<p>Os scripts enxergam os programas dos pacotes instalados no projeto, sem <code>npx</code>. A Ana tem um arquivo bagunçado, <code>feio.js</code>:</p>
+
+<pre class="file" data-file="feio.js">const precos={sonho:3.5,broa:2,rosca:6}
+  console.log( precos )
+</pre>
+
+<pre class="term">$ npm pkg set scripts.formatar="prettier --write feio.js"
+$ npm run formatar
+
+&gt; cardapio@1.0.0 formatar
+&gt; prettier --write feio.js
+
+feio.js 42ms
+$ cat feio.js
+const precos = { sonho: 3.5, broa: 2, rosca: 6 };
+console.log(precos);
+</pre>
+
+<p>O prettier reescreveu o arquivo no estilo do guia: espaços em volta do <code>=</code> e das chaves, ponto e vírgula no fim, sem o recuo errado (o <code>42ms</code> é o tempo que levou, e muda). O programa continua fazendo a mesma coisa; só ficou mais fácil de ler.</p>
+
+<div class="tip">
+<strong>Por que separar?</strong>
+<p>Quando o projeto vai para um servidor, onde só precisa <strong>rodar</strong>, dá para instalar só os ingredientes com <code>npm install --omit=dev</code> ("omitir os de desenvolvimento"), economizando espaço e tempo. Na sua máquina, <code>npm install</code> instala as duas listas.</p>
+</div>
+
+<hr>
+
+<h2 id="versoes">5. Os números da versão: <code>^</code> e <code>~</code></h2>
+<p>As versões seguem uma regra chamada <strong>versionamento semântico</strong> (<em>semver</em>): três números, <code>PRINCIPAL.MENOR.CORREÇÃO</code>.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>Em <code>4.18.1</code></th><th>Sobe quando…</th></tr>
+<tr><td>Principal (<em>major</em>)</td><td><code>4</code></td><td>O pacote muda de um jeito que pode quebrar quem usa (uma função some ou muda de nome)</td></tr>
+<tr><td>Menor (<em>minor</em>)</td><td><code>18</code></td><td>Ganha coisas novas, sem quebrar nada</td></tr>
+<tr><td>Correção (<em>patch</em>)</td><td><code>1</code></td><td>Só conserta defeitos</td></tr>
+</table>
+</div>
+
+<p>No <code>package.json</code>, o símbolo antes do número diz <strong>quais versões servem</strong>:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrito</th><th>Aceita</th><th>Em palavras</th></tr>
+<tr><td><code>"^4.18.1"</code></td><td>de 4.18.1 até antes de 5.0.0</td><td>"Qualquer 4, a partir da 4.18.1". É o padrão do <code>npm install</code>.</td></tr>
+<tr><td><code>"~4.18.1"</code></td><td>de 4.18.1 até antes de 4.19.0</td><td>"Só correções da 4.18"</td></tr>
+<tr><td><code>"4.18.1"</code></td><td>só a 4.18.1</td><td>"Exatamente esta"</td></tr>
+</table>
+</div>
+
+<p>É por isso que, na aula <a href="npm.html">npm</a>, o <code>npm update</code> levou o lodash da 4.17.21 para a 4.18.1 (o <code>^4.17.21</code> permitia) mas nunca o levaria para uma 5. Para saber qual é a versão mais nova publicada de um pacote:</p>
+
+<pre class="term">$ npm view lodash version
+4.18.1
+</pre>
+
+<p>E para ler campos do seu próprio <code>package.json</code> pelo terminal:</p>
+
+<pre class="term">$ npm pkg get name version
+{
+  "name": "cardapio",
+  "version": "1.0.0"
+}
+</pre>
+
+<hr>
+
+<h2 id="type">6. <code>"type"</code>: <code>require</code> ou <code>import</code>?</h2>
+<p>O JavaScript tem dois sistemas de módulos (veja <a href="modulos.html">Módulos (import e export)</a> e <a href="modulos-commonjs.html">require e module.exports</a>). O campo <code>"type"</code> diz ao Node qual deles os arquivos <code>.js</code> do projeto usam:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>"type"</code></th><th>Os arquivos <code>.js</code> usam</th><th>Para usar o outro sistema num arquivo</th></tr>
+<tr><td><code>"commonjs"</code> (o padrão do <code>npm init</code>)</td><td><code>require</code> e <code>module.exports</code></td><td>Dê a extensão <code>.mjs</code> ao arquivo</td></tr>
+<tr><td><code>"module"</code></td><td><code>import</code> e <code>export</code></td><td>Dê a extensão <code>.cjs</code> ao arquivo</td></tr>
+</table>
+</div>
+
+<p>A Ana escreveu um arquivo com <code>import</code> num projeto <code>"commonjs"</code>:</p>
+
+<pre class="file" data-file="ola.js">import _ from "lodash";
+
+console.log(_.capitalize("bom dia!"));
+</pre>
+
+<pre class="term">$ node ola.js
+(node:9) Warning: Failed to load the ES module: /home/ana/cardapio/ola.js. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+/home/ana/cardapio/ola.js:1
+import _ from "lodash";
+^^^^^^
+
+SyntaxError: Cannot use import statement outside a module
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «… mais 7 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+
+<p>O erro está explicado em <a href="#errado">Quando dá errado</a>. O conserto é dizer ao Node que o projeto usa <code>import</code>:</p>
+
+<pre class="term">$ npm pkg set type=module
+$ node ola.js
+Bom dia!
+</pre>
+
+<p>Mas a troca vale para <strong>todos</strong> os <code>.js</code> da pasta: um arquivo antigo, com <code>require</code>, passa a dar erro:</p>
+
+<pre class="file" data-file="velho.js">const _ = require("lodash");
+
+console.log(_.capitalize("bom dia!"));
+</pre>
+
+<pre class="term">$ node velho.js
+file:///home/ana/cardapio/velho.js:1
+const _ = require("lodash");
+          ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/home/ana/cardapio/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///home/ana/cardapio/velho.js:1:11
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0
+</pre>
+
+<p>Escolha um sistema para o projeto todo e fique com ele. Para projetos novos, o <code>"module"</code> (com <code>import</code>) é o jeito moderno, o mesmo do navegador; o <code>"commonjs"</code> aparece em muito código existente.</p>
+
+<div class="note">
+<strong>E se não tiver <code>"type"</code>?</strong>
+<p>Sem o campo, o Node 24 trata o <code>.js</code> como CommonJS, mas, se encontrar <code>import</code>, tenta de novo como módulo e avisa. No lab, com o campo apagado (<code>npm pkg delete type</code>):</p>
+<pre class="term">$ node ola.js
+(node:60) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/ana/cardapio/ola.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/ana/cardapio/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Bom dia!
+</pre>
+<p>Funcionou, mas com um aviso: "o tipo não foi especificado… isso custa desempenho… acrescente <code>"type": "module"</code>". Melhor deixar o campo escrito. (O número em <code>(node:60)</code> é o número do processo e muda a cada execução.)</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de mexer no <code>package.json</code></h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Criar com perguntas</td><td><code>npm init</code></td><td>Quando quer preencher tudo de uma vez</td></tr>
+<tr><td>Criar sem perguntas</td><td><code>npm init -y</code></td><td>Quase sempre; ajusta depois</td></tr>
+<tr><td>Editar à mão</td><td>abrir no editor de texto</td><td>Mudanças grandes; cuidado com vírgulas e aspas</td></tr>
+<tr><td>Pelo terminal</td><td><code>npm pkg set scripts.start="node index.js"</code></td><td>Mudanças pequenas, sem risco de estragar o JSON</td></tr>
+<tr><td>Ler um campo</td><td><code>npm pkg get version</code></td><td>Conferir sem abrir o arquivo</td></tr>
+<tr><td>Dependências</td><td><code>npm install x</code> / <code>npm install -D x</code></td><td>Sempre pelo npm, nunca à mão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>Missing script</code>: esse atalho não existe</h3>
+<p>Antes de criar o <code>start</code>, a Ana tentou <code>npm start</code>:</p>
+<pre class="term">$ npm start
+npm error Missing script: "start"
+npm error
+npm error Did you mean one of these?
+npm error   npm star # Mark your favorite packages
+npm error   npm stars # View packages marked as favorites
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /home/ana/.npm/_logs/2026-10-19T14_09_59_280Z-debug-0.log
+</pre>
+<dl class="anatomy">
+  <dt>Missing script: "start"</dt><dd>"Script faltando: start". Não há <code>"start"</code> no <code>"scripts"</code> do <code>package.json</code>.</dd>
+  <dt>Did you mean one of these? npm star…</dt><dd>"Você quis dizer um destes?". O npm achou parecidos dois comandos dele mesmo (<code>star</code> = "marcar com estrela" um pacote favorito). Não têm nada a ver com o seu projeto; pode ignorar.</dd>
+  <dt>To see a list of scripts, run: npm run</dt><dd>"Para ver a lista de scripts, rode <code>npm run</code>". É a melhor dica da mensagem.</dd>
+</dl>
+<p>Com um nome inventado, a mensagem é mais curta:</p>
+<pre class="term">$ npm run abrir
+npm error Missing script: "abrir"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /home/ana/.npm/_logs/2026-10-19T14_10_00_095Z-debug-0.log
+</pre>
+<p><strong>Conserto:</strong> rode <code>npm run</code> para ver os nomes certos, ou crie o script. Confira também se você está na pasta do projeto.</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>EJSONPARSE</code>: o <code>package.json</code> não é JSON válido</h3>
+<p>Editando à mão, a Ana deixou duas vírgulas depois de <code>"MIT"</code>:</p>
+<pre class="file" data-file="package.json (trecho errado)">  "license": "MIT",,
+  "author": "Ana",
+</pre>
+<pre class="term">$ npm start
+npm error code EJSONPARSE
+npm error JSON.parse Invalid package.json: JSONParseError: Expected double-quoted property name in JSON at position 158 (line 9 column 20) while parsing near "...\n  \"license\": \"MIT\",,\n  \"author\": \"Ana\",..."
+npm error JSON.parse Failed to parse JSON data.
+npm error JSON.parse Note: package.json must be actual JSON, not just JavaScript.
+npm error A complete log of this run can be found in: /home/ana/.npm/_logs/2026-10-19T14_10_13_737Z-debug-0.log
+</pre>
+<dl class="anatomy">
+  <dt>code EJSONPARSE</dt><dd>"Erro ao analisar o JSON".</dd>
+  <dt>Expected double-quoted property name … (line 9 column 20)</dt><dd>"Esperava um nome de propriedade entre aspas duplas", na <strong>linha 9, coluna 20</strong>: logo depois da primeira vírgula, onde apareceu outra vírgula em vez de um nome. Vá direto a essa linha.</dd>
+  <dt>while parsing near "…\"MIT\",,…"</dt><dd>Um pedaço do arquivo em volta do problema (as <code>\n</code> e <code>\"</code> são a quebra de linha e as aspas, escritas do jeito do JSON).</dd>
+  <dt>package.json must be actual JSON, not just JavaScript</dt><dd>"O package.json tem de ser JSON de verdade, não só JavaScript". No JavaScript, uma vírgula sobrando no fim de uma lista é aceita; no JSON, não. Também não valem comentários (<code>//</code>) nem aspas simples.</dd>
+</dl>
+<p>O próprio <code>node</code> também se recusa a rodar um programa nessa pasta, porque ele lê o <code>package.json</code> para saber o <code>"type"</code>:</p>
+<pre class="term">$ node index.js
+node:internal/modules/run_main:76
+  const type = getNearestParentPackageJSONType(mainPath);
+               ^
+
+Error: Invalid package config /home/ana/cardapio/package.json.
+    at shouldUseESMLoader (node:internal/modules/run_main:76:16)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:147:20)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'ERR_INVALID_PACKAGE_CONFIG'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"Configuração de pacote inválida". Repare que o erro aponta para dentro do Node, não para o seu programa: o <code>index.js</code> está certo; o problema é o <code>package.json</code>. <strong>Conserto:</strong> corrija o JSON (ou use <code>npm pkg set</code>, que nunca deixa vírgula sobrando).</p>
+</div>
+
+<div class="cenario">
+<h3>3. <code>Cannot use import statement outside a module</code></h3>
+<p>Foi o <code>ola.js</code> da seção 6, com <code>import</code> num projeto <code>"commonjs"</code>:</p>
+<dl class="anatomy">
+  <dt>(node:9) Warning: Failed to load the ES module…</dt><dd>Um aviso antes do erro: "Falhei ao carregar o módulo ES… defina <code>"type": "module"</code> no package.json mais próximo ou use a extensão <code>.mjs</code>". Já é a solução.</dd>
+  <dt>/home/ana/cardapio/ola.js:1 e o ^^^^^^</dt><dd>Linha 1 do seu arquivo, com o <code>^</code> embaixo da palavra <code>import</code>.</dd>
+  <dt>SyntaxError: Cannot use import statement outside a module</dt><dd>"Erro de sintaxe: não dá para usar <code>import</code> fora de um módulo". No modo CommonJS, <code>import</code> nem é uma instrução conhecida.</dd>
+</dl>
+<p><strong>Conserto:</strong> <code>"type": "module"</code> no <code>package.json</code>, ou renomear o arquivo para <code>ola.mjs</code>, ou trocar o <code>import</code> por <code>require</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>4. <code>require is not defined in ES module scope</code></h3>
+<p>O contrário: o <code>velho.js</code> da seção 6, com <code>require</code>, num projeto <code>"module"</code>.</p>
+<dl class="anatomy">
+  <dt>file:///home/ana/cardapio/velho.js:1</dt><dd>Linha 1 do arquivo. O <code>file://</code> na frente é o jeito dos módulos ES de escrever um caminho (como um endereço).</dd>
+  <dt>ReferenceError: require is not defined in ES module scope, you can use import instead</dt><dd>"<code>require</code> não existe num módulo ES; você pode usar <code>import</code>".</dd>
+  <dt>This file is being treated as an ES module because…</dt><dd>"Este arquivo está sendo tratado como módulo ES porque tem a extensão <code>.js</code> e o package.json tem <code>"type": "module"</code>. Para tratá-lo como CommonJS, renomeie para <code>.cjs</code>". O Node diz exatamente a causa e duas saídas.</dd>
+</dl>
+<p><strong>Conserto:</strong> trocar <code>const _ = require("lodash");</code> por <code>import _ from "lodash";</code>, ou renomear para <code>velho.cjs</code>, ou voltar o <code>"type"</code> para <code>"commonjs"</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Campo</th><th>Exemplo</th><th>Para quê</th></tr>
+<tr><td><code>name</code></td><td><code>"cardapio"</code></td><td>Nome (minúsculas, sem espaços)</td></tr>
+<tr><td><code>version</code></td><td><code>"1.0.0"</code></td><td>Versão: principal.menor.correção</td></tr>
+<tr><td><code>description</code></td><td><code>"Cardápio da padaria"</code></td><td>Descrição curta</td></tr>
+<tr><td><code>main</code></td><td><code>"index.js"</code></td><td>Arquivo principal, se o projeto for usado como pacote</td></tr>
+<tr><td><code>scripts</code></td><td><code>{ "start": "node index.js" }</code></td><td>Atalhos: <code>npm start</code>, <code>npm test</code>, <code>npm run nome</code></td></tr>
+<tr><td><code>dependencies</code></td><td><code>{ "lodash": "^4.18.1" }</code></td><td>Pacotes para o programa rodar (<code>npm install x</code>)</td></tr>
+<tr><td><code>devDependencies</code></td><td><code>{ "prettier": "^3.9.10" }</code></td><td>Pacotes só para quem programa (<code>npm install -D x</code>)</td></tr>
+<tr><td><code>type</code></td><td><code>"commonjs"</code> / <code>"module"</code></td><td><code>require</code> ou <code>import</code> nos <code>.js</code></td></tr>
+<tr><td><code>license</code>, <code>author</code>, <code>keywords</code></td><td><code>"MIT"</code>, <code>"Ana"</code>, <code>["padaria"]</code></td><td>Licença, autoria, palavras de busca</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>npm init</code> / <code>npm init -y</code></td><td>Cria o <code>package.json</code> (com / sem perguntas)</td></tr>
+<tr><td><code>npm start</code>, <code>npm test</code></td><td>Rodam os scripts <code>start</code> e <code>test</code></td></tr>
+<tr><td><code>npm run nome</code></td><td>Roda o script <code>nome</code>; <code>npm run</code> sozinho lista os scripts</td></tr>
+<tr><td><code>npm pkg set campo=valor</code></td><td>Muda um campo</td></tr>
+<tr><td><code>npm pkg get campo</code></td><td>Mostra um campo</td></tr>
+<tr><td><code>npm pkg delete campo</code></td><td>Apaga um campo</td></tr>
+<tr><td><code>npm view pacote version</code></td><td>Versão mais nova publicada de um pacote</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o script</h3>
+<p>Complete o trecho do <code>package.json</code> para que <code>npm start</code> rode o arquivo <code>loja.js</code>:</p>
+<div class="ex-code">"scripts": {<br>&nbsp;&nbsp;"<input data-answer="start" aria-label="nome do script">": "node <input data-answer="loja.js" aria-label="arquivo">"<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual comando?</h3>
+<p>O <code>package.json</code> tem o script <code>"relatorio": "node relatorio.js"</code>. Complete o comando que o roda:</p>
+<div class="ex-code">$ npm <input data-answer="run" aria-label="subcomando"> relatorio</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O <code>package.json</code> diz <code>"lodash": "^4.18.1"</code>. Qual destas versões o <code>npm update</code> <strong>pode</strong> instalar?</p>
+<label><input type="radio" name="q3"> 5.0.0</label>
+<label><input type="radio" name="q3"> 4.20.0</label>
+<label><input type="radio" name="q3"> 4.17.21</label>
+<label><input type="radio" name="q3"> 3.10.1</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Em qual lista vai um pacote que só serve para arrumar a formatação do código (o programa não precisa dele para rodar)?</p>
+<label><input type="radio" name="q4"> <code>"dependencies"</code>, com <code>npm install x</code></label>
+<label><input type="radio" name="q4"> <code>"scripts"</code></label>
+<label><input type="radio" name="q4"> <code>"devDependencies"</code>, com <code>npm install --save-dev x</code></label>
+<label><input type="radio" name="q4"> <code>"main"</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Um projeto tem <code>"type": "module"</code>. Um arquivo <code>.js</code> com <code>require("lodash")</code> dá qual erro?</p>
+<label><input type="radio" name="q5"> <code>ReferenceError: require is not defined in ES module scope</code></label>
+<label><input type="radio" name="q5"> <code>SyntaxError: Cannot use import statement outside a module</code></label>
+<label><input type="radio" name="q5"> <code>npm error Missing script</code></label>
+<label><input type="radio" name="q5"> Nenhum: os dois sistemas se misturam sem problema</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual destas linhas deixa o <code>package.json</code> inválido (<code>EJSONPARSE</code>)?</p>
+<label><input type="radio" name="q6"> <code>"version": "1.0.0",</code> (com outro campo depois)</label>
+<label><input type="radio" name="q6"> <code>"keywords": [],</code> (com outro campo depois)</label>
+<label><input type="radio" name="q6"> <code>"author": "Ana"</code> (o último campo, sem vírgula)</label>
+<label><input type="radio" name="q6"> <code>'name': 'cardapio',</code> (com aspas simples)</label>
+</div>
+
+<h3>Missão final: a lista de atalhos</h3>
+
+<div class="tryjs" data-goal="out:npm run formatar  →  prettier --write feio.js;;out:npm run start  →  node index.js;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça um programa que mostre todos os scripts da aba <code>package.json</code>, um por linha, no formato <code>npm run start  →  node index.js</code> (dois espaços antes e depois da seta). Use <code>Object.entries(pacote.scripts)</code> num <code>for … of</code> (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>).</p>
+<pre class="script" data-file="main.js">const { readFileSync } = require("node:fs");
+
+const pacote = JSON.parse(readFileSync("package.json", "utf8"));
+
+// mostre aqui cada script: npm run NOME  →  COMANDO
+</pre>
+<pre class="script" data-file="package.json">{
+  "name": "cardapio",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1",
+    "start": "node index.js",
+    "ola": "echo Bom dia, padaria!",
+    "formatar": "prettier --write feio.js"
+  },
+  "type": "commonjs"
+}
+</pre>
+<pre class="solucao" data-file="main.js">const { readFileSync } = require("node:fs");
+
+const pacote = JSON.parse(readFileSync("package.json", "utf8"));
+
+for (const [nome, comando] of Object.entries(pacote.scripts)) {
+  console.log(`npm run ${nome}  →  ${comando}`);
+}
+</pre>
+</div>
+
+<p>No lab, com o <code>package.json</code> do cardápio, a saída foi:</p>
+
+<pre class="term">$ node comandos.js
+npm run test  →  echo "Error: no test specified" &amp;&amp; exit 1
+npm run start  →  node index.js
+npm run ola  →  echo Bom dia, padaria!
+npm run formatar  →  prettier --write feio.js
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>package.json</code> é a ficha do projeto, em JSON: nome, versão, scripts, dependências e tipo de módulo. <code>npm init</code> o cria com perguntas; <code>npm init -y</code>, sem.</li>
+  <li><code>"scripts"</code> guarda atalhos: <code>npm start</code> e <code>npm test</code> rodam direto; os outros, com <code>npm run nome</code>; <code>npm run</code> sozinho lista todos.</li>
+  <li><code>"dependencies"</code> são os pacotes para rodar (<code>npm install x</code>); <code>"devDependencies"</code>, os só de quem programa (<code>npm install -D x</code>). Quem escreve essas listas é o npm.</li>
+  <li>Versões têm três números (principal.menor.correção). <code>^4.18.1</code> aceita qualquer 4 a partir da 4.18.1; <code>~4.18.1</code>, só correções da 4.18.</li>
+  <li><code>"type": "commonjs"</code> → <code>require</code>; <code>"type": "module"</code> → <code>import</code>. Misturar dá <code>Cannot use import statement outside a module</code> ou <code>require is not defined in ES module scope</code>.</li>
+  <li>O arquivo tem de ser JSON válido (sem vírgula sobrando, sem comentários, aspas duplas); se não for, vem o <code>EJSONPARSE</code>. O <code>npm pkg set</code> muda campos sem esse risco.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
