@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Versões — ECMAScript, ES6, ES2026 e as versões do Node.js | Guia JavaScript</title>
+<meta name="description" content="As versões do JavaScript explicadas para quem está começando: JavaScript × ECMAScript, o TC39 e as etapas de uma proposta, ES5, ES6 (ES2015) e as edições anuais até o ES2026, os motores (V8, SpiderMonkey, JavaScriptCore), as versões do Node.js (Current, LTS, fim de vida; Node 24 e Node 26), como descobrir a sua versão e como o código se protege de recursos que não existem.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Versões</span> (ECMAScript, ES6, Node)</h1>
+
+<p class="intro">Em tutoriais e vagas de emprego aparecem siglas como "ES6", "ES2015", "ES2025", "Node 24 LTS". Parecem coisas diferentes, mas contam uma história só: a linguagem JavaScript ganha uma <strong>edição nova por ano</strong>, e cada programa que roda JavaScript (o Chrome, o Firefox, o Node…) vai aprendendo as novidades no seu próprio ritmo. Esta aula explica essas versões, para você saber o que pode usar, onde, e o que fazer quando um recurso "não existe" no computador de alguém.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <strong>JavaScript</strong> e <strong>ECMAScript</strong>, e quem decide o que entra na linguagem.</li>
+  <li>A linha do tempo: ES3, ES5, o grande <strong>ES6 (ES2015)</strong> e as edições anuais até o <strong>ES2026</strong>.</li>
+  <li>O que é um <strong>motor</strong> de JavaScript (V8, SpiderMonkey, JavaScriptCore).</li>
+  <li>Como funcionam as versões do <strong>Node.js</strong>: Current, LTS, fim de vida, e onde estão o Node 24 e o Node 26.</li>
+  <li>Como ver a sua versão e como o programa pode conferir se um recurso existe antes de usar.</li>
+</ul>
+</div>
+
+<p>Os comandos desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). As datas vêm das páginas oficiais: a da Ecma International (o padrão ECMA-262), a do TC39 e a do Node.js (<code>nodejs.org/about/previous-releases</code> e o calendário do repositório <code>nodejs/Release</code>), conferidas em outubro de 2026.</p>
+
+<hr>
+
+<h2>A ideia: a gramática e quem fala a língua</h2>
+<p>O português tem as regras dele, escritas em gramáticas e atualizadas de tempos em tempos (o último acordo ortográfico, por exemplo). Cada pessoa aprende as regras novas no seu ritmo: uns já escrevem "ideia" sem acento, outros ainda não. Com o JavaScript é igual:</p>
+<ul>
+  <li><strong>ECMAScript</strong> é a "gramática": o documento oficial com as regras da linguagem, chamado <strong>ECMA-262</strong>, publicado pela <strong>Ecma International</strong> (uma organização de padrões, como a ABNT).</li>
+  <li><strong>JavaScript</strong> é o nome do dia a dia da linguagem que segue essas regras.</li>
+  <li>Os <strong>motores</strong> são "quem fala a língua": os programas dentro do navegador e do Node que leem e rodam o seu código. Cada um aprende as regras novas no seu próprio ritmo.</li>
+</ul>
+<p>Na prática, "JavaScript" e "ECMAScript" são usados como sinônimos. "ES" é a abreviação de ECMAScript: <strong>ES2025</strong> quer dizer "a edição de 2025 das regras".</p>
+
+<hr>
+
+<h2>1. Quem decide: o TC39</h2>
+<p>As novidades da linguagem são decididas por um comitê chamado <strong>TC39</strong> (<em>Technical Committee 39</em>), com gente das empresas que fazem navegadores, de empresas que usam muito JavaScript e da comunidade. Toda ideia nova vira uma <strong>proposta</strong> e passa por etapas (<em>stages</em>), de 0 a 4:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Etapa</th><th>O que quer dizer</th></tr>
+<tr><td>Stage 0 e 1</td><td>Uma ideia, e depois uma proposta com um problema bem descrito</td></tr>
+<tr><td>Stage 2</td><td>O comitê escolheu uma solução e está detalhando</td></tr>
+<tr><td>Stage 2.7</td><td>Texto aprovado, faltam os testes</td></tr>
+<tr><td>Stage 3</td><td>Pronta: os motores começam a implementar</td></tr>
+<tr><td>Stage 4</td><td><strong>Terminada</strong>: funciona em pelo menos dois motores e entra na próxima edição anual</td></tr>
+</table>
+</div>
+
+<p>Por isso, muitas vezes um recurso <strong>já funciona</strong> no Chrome ou no Node antes de "sair" oficialmente na edição do ano: os motores implementam no stage 3, e a edição só "carimba" o que chegou ao stage 4. A lista de propostas terminadas, com o ano de cada uma, fica em <code>github.com/tc39/proposals</code>.</p>
+
+<hr>
+
+<h2>2. A linha do tempo</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Edição</th><th>Ano</th><th>Destaques</th></tr>
+<tr><td>ES1</td><td>1997</td><td>A primeira edição. (O JavaScript nasceu em 1995, no navegador Netscape.)</td></tr>
+<tr><td>ES2</td><td>1998</td><td>Ajustes de texto</td></tr>
+<tr><td>ES3</td><td>1999</td><td><code>try … catch</code>, <a href="regex.html">expressões regulares</a>. Foi a base da web por 10 anos</td></tr>
+<tr><td>ES4</td><td>—</td><td><strong>Abandonada</strong>: era ambiciosa demais e nunca foi publicada</td></tr>
+<tr><td>ES5</td><td>2009</td><td><code>"use strict"</code> (<a href="strict-mode.html">modo estrito</a>), <a href="json.html">JSON</a>, <code>forEach</code>/<code>map</code>/<code>filter</code>, <code>Object.freeze</code></td></tr>
+<tr><td><strong>ES6 = ES2015</strong></td><td>2015</td><td>A grande virada: <code>let</code>/<code>const</code>, <a href="arrow-functions.html">arrow functions</a>, <a href="classes.html">classes</a>, <a href="modulos.html">módulos</a>, <a href="template-strings.html">template strings</a>, <a href="promises.html">Promises</a>, <code>Map</code>/<code>Set</code>, <a href="desestruturacao.html">desestruturação</a>, <code>for … of</code></td></tr>
+<tr><td>ES2016</td><td>2016</td><td><code>includes</code> e o <code>**</code> (potência)</td></tr>
+<tr><td>ES2017</td><td>2017</td><td><a href="async-await.html"><code>async</code>/<code>await</code></a>, <code>Object.entries</code>/<code>values</code>, <code>padStart</code></td></tr>
+<tr><td>ES2018</td><td>2018</td><td>Spread/rest em objetos (<code>{ ...obj }</code>), <code>finally</code> das Promises</td></tr>
+<tr><td>ES2019</td><td>2019</td><td><code>flat</code>, <code>Object.fromEntries</code>, <code>trimStart</code>/<code>trimEnd</code></td></tr>
+<tr><td>ES2020</td><td>2020</td><td><a href="optional-chaining.html"><code>?.</code> e <code>??</code></a>, <a href="bigint.html">BigInt</a>, <code>globalThis</code>, <code>Promise.allSettled</code></td></tr>
+<tr><td>ES2021</td><td>2021</td><td><code>replaceAll</code>, <code>Promise.any</code>, <code>WeakRef</code>, separador <code>1_000_000</code></td></tr>
+<tr><td>ES2022</td><td>2022</td><td><code>at()</code>, <a href="campos-privados.html">campos privados <code>#</code></a>, <code>await</code> fora de função em módulos, <code>Object.hasOwn</code></td></tr>
+<tr><td>ES2023</td><td>2023</td><td><code>toSorted</code>/<code>toReversed</code>/<code>with</code>, <code>findLast</code>, símbolos como chave de <a href="weakmap.html">WeakMap</a></td></tr>
+<tr><td>ES2024</td><td>2024</td><td><code>Object.groupBy</code>, <code>Promise.withResolvers</code></td></tr>
+<tr><td>ES2025</td><td>2025</td><td>Métodos de <a href="set.html">Set</a> (<code>union</code>, <code>intersection</code>…), ajudantes de <a href="iteradores.html">iteradores</a>, <code>Promise.try</code>, <code>RegExp.escape</code>, importar JSON</td></tr>
+<tr><td>ES2026</td><td>junho de 2026</td><td><code>Error.isError</code>, <code>Array.fromAsync</code>, <code>Math.sumPrecise</code>, Base64 em <code>Uint8Array</code>, <code>Iterator.concat</code>, <code>Map</code> com <code>getOrInsert</code></td></tr>
+</table>
+</div>
+
+<p>Repare na mudança de nome: até o ES6, as edições tinham número; a partir dele, passaram a ter o <strong>ano</strong>, uma por ano, publicadas todo mês de junho. "ES6" e "ES2015" são a <strong>mesma coisa</strong>; o nome "ES6" pegou porque a mudança foi enorme, e até hoje se fala em "JavaScript moderno (ES6+)" para dizer "com <code>let</code>, <code>const</code>, arrow functions e companhia". Os destaques de cada ano mais recente estão em <a href="novidades.html">Novidades Recentes</a>.</p>
+
+<div class="note">
+<strong>Nada é removido</strong>
+<p>Uma regra de ouro do JavaScript: <strong>não quebrar a web</strong>. Código de 1999 ainda roda num navegador de hoje. Por isso o <a href="var.html"><code>var</code></a> e o <code>==</code> continuam existindo, mesmo com coisas melhores no lugar. As edições novas só <strong>acrescentam</strong>.</p>
+</div>
+
+<hr>
+
+<h2>3. Os motores</h2>
+<p>O <strong>motor</strong> (em inglês, <em>engine</em>) é a parte do programa que lê e roda o JavaScript. Os principais:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Motor</th><th>Quem faz</th><th>Onde está</th></tr>
+<tr><td><strong>V8</strong></td><td>Google</td><td>Chrome, Edge, Opera, <strong>Node.js</strong>, Deno</td></tr>
+<tr><td><strong>SpiderMonkey</strong></td><td>Mozilla</td><td>Firefox</td></tr>
+<tr><td><strong>JavaScriptCore</strong></td><td>Apple</td><td>Safari (e todos os navegadores do iPhone), Bun</td></tr>
+</table>
+</div>
+<p>O Node.js é, por dentro, o motor V8 com os módulos do Node em volta (<code>fs</code>, <code>process</code>…). Então o que o Node sabe da linguagem depende da versão do V8 que veio com ele:</p>
+
+<pre class="term">$ node -v
+v24.22.0
+$ node -p process.versions.v8
+13.6.233.17-node.57
+</pre>
+
+<p>O <code>node -p</code> ("imprimir") roda um pedaço de JavaScript e mostra o resultado. O Node 24.22 da Ana traz o V8 13.6. O Chrome que você usa pode ter um V8 mais novo e, por isso, conhecer recursos que o Node 24 ainda não conhece (e vice-versa).</p>
+
+<hr>
+
+<h2>4. As versões do Node.js</h2>
+<p>Uma versão do Node tem três números, como <code>24.22.0</code>:</p>
+<dl class="anatomy">
+  <dt>24</dt><dd>A versão <strong>principal</strong> (<em>major</em>). Muda uma ou duas vezes por ano e pode trazer mudanças que quebram programas antigos.</dd>
+  <dt>22</dt><dd>A versão <strong>secundária</strong> (<em>minor</em>): recursos novos que não quebram nada.</dd>
+  <dt>0</dt><dd>A <strong>correção</strong> (<em>patch</em>): só conserta defeitos.</dd>
+</dl>
+<p>Esse jeito de numerar se chama <strong>versionamento semântico</strong> (<em>semver</em>), e é o mesmo dos pacotes do <a href="npm.html">npm</a>.</p>
+
+<h3>Current, LTS e fim de vida</h3>
+<p>Cada versão principal passa por fases:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Fase</th><th>O que quer dizer</th></tr>
+<tr><td><strong>Current</strong> ("atual")</td><td>Os primeiros 6 meses: recebe novidades o tempo todo. Bom para experimentar.</td></tr>
+<tr><td><strong>Active LTS</strong></td><td><em>Long-Term Support</em>, "suporte de longo prazo": estável, recomendada para programas de verdade. Ganha um apelido (o do Node 24 é <strong>Krypton</strong>).</td></tr>
+<tr><td><strong>Maintenance LTS</strong></td><td>"Manutenção": só correções importantes e de segurança.</td></tr>
+<tr><td><strong>EOL</strong> (<em>end of life</em>)</td><td>"Fim de vida": não recebe mais nem correção de segurança. Hora de atualizar.</td></tr>
+</table>
+</div>
+
+<p>Até o Node 26, a regra era: duas versões principais por ano; as <strong>pares</strong> (20, 22, 24, 26) viram LTS, e as <strong>ímpares</strong> (21, 23, 25) duram só 6 meses. O LTS garante correções por cerca de 30 meses no total. As datas das versões em uso hoje, segundo o calendário oficial:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Apelido</th><th>Lançada</th><th>Vira LTS</th><th>Manutenção</th><th>Fim de vida</th></tr>
+<tr><td>Node 20</td><td>Iron</td><td>abr/2023</td><td>out/2023</td><td>out/2024</td><td>30/04/2026 (já acabou)</td></tr>
+<tr><td>Node 22</td><td>Jod</td><td>abr/2024</td><td>out/2024</td><td>out/2025</td><td>30/04/2027</td></tr>
+<tr><td><strong>Node 24</strong></td><td><strong>Krypton</strong></td><td>06/05/2025</td><td>28/10/2025</td><td>20/10/2026</td><td>30/04/2028</td></tr>
+<tr><td>Node 25</td><td>—</td><td>out/2025</td><td>— (ímpar)</td><td>abr/2026</td><td>01/06/2026 (já acabou)</td></tr>
+<tr><td><strong>Node 26</strong></td><td>(a definir)</td><td>05/05/2026</td><td><strong>28/10/2026</strong></td><td>20/10/2027</td><td>30/04/2029</td></tr>
+</table>
+</div>
+
+<p>O que isso quer dizer para você, em outubro de 2026:</p>
+<ul>
+  <li>O <strong>Node 24</strong>, usado neste guia, é LTS e entra em <strong>manutenção</strong> em 20 de outubro de 2026: continua recebendo correções de segurança até abril de 2028. É uma escolha segura.</li>
+  <li>O <strong>Node 26</strong> está na fase Current e vira <strong>LTS em 28 de outubro de 2026</strong>. A partir daí, ele passa a ser a LTS mais nova, recomendada para projetos novos. Tudo o que este guia ensina funciona nele também.</li>
+  <li>O Node 20 e o Node 25 já chegaram ao fim de vida: se você encontrar um computador com eles, atualize.</li>
+</ul>
+
+<div class="tip">
+<strong>A mudança a partir do Node 27</strong>
+<p>A página oficial do Node anuncia um calendário novo: a partir do <strong>Node 27</strong>, sai <strong>uma</strong> versão principal por ano, e <strong>todas</strong> viram LTS, depois de 6 meses de fase <em>Alpha</em> (testes) e 6 meses de Current. Pelo calendário, o Node 27 começa em fase Alpha em 28/10/2026 e é lançado em abril de 2027. Ou seja: a regra "par é LTS, ímpar não" termina no Node 26.</p>
+</div>
+
+<h3>Descobrindo a sua versão</h3>
+
+<pre class="term">$ node -v
+v24.22.0
+$ node -p process.release
+{
+  name: 'node',
+  lts: 'Krypton',
+  sourceUrl: 'https://nodejs.org/download/release/v24.22.0/node-v24.22.0.tar.gz',
+  headersUrl: 'https://nodejs.org/download/release/v24.22.0/node-v24.22.0-headers.tar.gz'
+}
+$ npm -v
+11.19.1
+</pre>
+
+<p>O <code>node -v</code> ("versão") é o jeito rápido. O <code>process.release</code> mostra o apelido da LTS (<code>lts: 'Krypton'</code>); numa versão Current, esse campo não aparece. O npm tem a versão dele, separada (o npm 11 vem junto com o Node 24). Dentro de um programa, a versão está em <code>process.version</code> (<code>'v24.22.0'</code>) e em <code>process.versions.node</code> (<code>'24.22.0'</code>, sem o <code>v</code>):</p>
+
+<pre class="term">$ node -p "process.versions.node.split('.')"
+[ '24', '22', '0' ]
+</pre>
+
+<hr>
+
+<h2>5. "Esse recurso existe aqui?"</h2>
+<p>Como cada motor aprende no seu ritmo, um recurso novo pode faltar no computador de alguém. O <code>Math.sumPrecise</code> (soma sem os errinhos de arredondamento do <a href="numeros-especiais.html"><code>0.1 + 0.2</code></a>) entrou no ES2026, mas o V8 do Node 24 ainda não o tem:</p>
+
+<pre class="file" data-file="soma-precisa.js">const valores = [0.1, 0.2, 0.3];
+console.log(Math.sumPrecise(valores));
+</pre>
+
+<pre class="term">$ node soma-precisa.js
+/home/ana/soma-precisa.js:2
+console.log(Math.sumPrecise(valores));
+                 ^
+
+TypeError: Math.sumPrecise is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/soma-precisa.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>Math.sumPrecise</code> não é uma função": no Node 24, <code>Math.sumPrecise</code> é <code>undefined</code>, e chamar <code>undefined(…)</code> dá esse erro. É <strong>o</strong> sintoma típico de usar um recurso mais novo que o motor. Três jeitos de lidar:</p>
+<ol class="passo">
+  <li><strong>Conferir antes de usar</strong>, com <a href="typeof.html"><code>typeof</code></a>: <code>if (typeof Math.sumPrecise === "function") { … } else { … }</code>. Isso se chama <strong>detecção de recurso</strong>.</li>
+  <li><strong>Consultar a tabela de compatibilidade</strong>: no fim de cada página da MDN (<code>developer.mozilla.org</code>) há uma tabela dizendo em que versão de cada navegador e do Node o recurso chegou.</li>
+  <li><strong>Avisar a versão mínima</strong> no <a href="package-json.html">package.json</a>, com o campo <code>"engines"</code> (veja <a href="#errado">Quando dá errado</a>).</li>
+</ol>
+
+<div class="tryjs" data-goal="out:Total: 42.5;;src:typeof\s+Math\.sumPrecise;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa quebra onde o <code>Math.sumPrecise</code> não existe (como no Node 24). Use a detecção de recurso: se <code>typeof Math.sumPrecise === "function"</code>, use ele; senão, some com o <code>reduce</code> (já escrito no comentário). O programa tem de mostrar <code>Total: 42.5</code> em qualquer motor.</p>
+<pre class="script" data-file="main.js">const valores = [10, 20, 12.5];
+
+// plano B: valores.reduce((soma, v) =&gt; soma + v, 0)
+const total = Math.sumPrecise(valores);
+
+console.log(`Total: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const valores = [10, 20, 12.5];
+
+let total;
+if (typeof Math.sumPrecise === "function") {
+  total = Math.sumPrecise(valores);
+} else {
+  total = valores.reduce((soma, v) =&gt; soma + v, 0);
+}
+
+console.log(`Total: ${total}`);
+</pre>
+</div>
+
+<p>(O editor do guia usa o motor do <strong>seu</strong> navegador: dependendo dele, o <code>Math.sumPrecise</code> pode existir ou não aí. A detecção funciona nos dois casos; por isso a missão usa números que dão o mesmo total nos dois caminhos.)</p>
+
+<hr>
+
+<h2 id="formas">Qual versão usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>O que escolher</th></tr>
+<tr><td>Aprender, ou um projeto novo</td><td>A LTS mais recente (Node 24; Node 26 a partir de 28/10/2026)</td></tr>
+<tr><td>Um servidor ou programa em produção</td><td>Uma LTS (Active ou Maintenance); nunca uma versão em fim de vida</td></tr>
+<tr><td>Experimentar o que vem por aí</td><td>A versão Current</td></tr>
+<tr><td>Código para navegadores</td><td>Recursos com a tabela de compatibilidade da MDN toda verde nos navegadores do seu público</td></tr>
+<tr><td>Um recurso muito novo</td><td>Detecção de recurso (<code>typeof … === "function"</code>) com um plano B</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>… is not a function</code> num método que "existe" na documentação</strong>
+<p>Como o <code>Math.sumPrecise</code> acima: o recurso é novo demais para o motor. Isso também acontece ao contrário: um tutorial recente usa <code>toSorted</code> (ES2023), e um Node 18 antigo responde <code>TypeError: lista.toSorted is not a function</code> (ilustrativo; o lab tem o Node 24, onde ele existe). <strong>Como consertar:</strong> confira a tabela de compatibilidade da MDN, atualize o Node, ou use detecção de recurso.</p>
+</div>
+
+<div class="cenario">
+<strong>O projeto pede uma versão do Node mais nova que a sua</strong>
+<p>A Ana criou um projeto que exige o Node 26 (<code>npm pkg set engines.node="&gt;=26"</code>, que grava <code>"engines": { "node": "&gt;=26" }</code> no <code>package.json</code>) e rodou o <code>npm install</code> no Node 24:</p>
+<pre class="term">$ npm install
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'motor@1.0.0',
+npm warn EBADENGINE   required: { node: '&gt;=26' },
+npm warn EBADENGINE   current: { node: 'v24.22.0', npm: '11.19.1' }
+npm warn EBADENGINE }
+
+up to date, audited 1 package in 211ms
+
+found 0 vulnerabilities
+</pre>
+<p>Um aviso (<code>warn</code>): "motor não suportado: o pacote <code>motor@1.0.0</code> exige Node <code>&gt;=26</code>; o atual é o v24.22.0". Por padrão o npm só avisa e segue em frente. Com <code>npm install --engine-strict</code> ("motor estrito"), vira erro de verdade: <code>npm error code EBADENGINE</code> e <code>Not compatible with your version of node/npm: motor@1.0.0</code>, e nada é instalado. <strong>Como consertar:</strong> instale a versão pedida (veja <a href="instalar.html">Instalar o Node.js</a>) ou, se o projeto é seu, ajuste o <code>"engines"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Funciona no meu computador!"</strong>
+<p>Duas pessoas com versões diferentes do Node podem ver resultados diferentes no mesmo código. Antes de pedir ajuda num fórum, mande o <code>node -v</code> junto. Em equipe, combine a versão (o <code>"engines"</code> no <code>package.json</code>, ou um arquivo <code>.nvmrc</code> com o número, lido por ferramentas como o <code>nvm</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo / comando</th><th>O que é</th></tr>
+<tr><td>ECMAScript, ECMA-262</td><td>O padrão oficial da linguagem, uma edição por ano (junho)</td></tr>
+<tr><td>TC39</td><td>O comitê que decide o que entra; propostas em stages 0 a 4</td></tr>
+<tr><td>ES6 = ES2015</td><td>A edição que trouxe o JavaScript moderno</td></tr>
+<tr><td>ES2026</td><td>A edição mais recente (17ª, junho de 2026)</td></tr>
+<tr><td>V8, SpiderMonkey, JavaScriptCore</td><td>Os motores (Chrome/Node, Firefox, Safari)</td></tr>
+<tr><td>LTS</td><td>Versão do Node com suporte longo, recomendada para uso real</td></tr>
+<tr><td><code>node -v</code> / <code>npm -v</code></td><td>Versão do Node / do npm</td></tr>
+<tr><td><code>node -p process.versions.v8</code></td><td>Versão do motor V8 dentro do Node</td></tr>
+<tr><td><code>process.version</code>, <code>process.versions.node</code></td><td>A versão do Node, dentro do programa</td></tr>
+<tr><td><code>"engines": { "node": "&gt;=24" }</code></td><td>Versão mínima, no <code>package.json</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. ES6 é…</h3>
+<p>O ES6 é a mesma coisa que o ES de que ano?</p>
+<div class="ex-code">ES<input data-answer="2015" aria-label="ano"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O comando</h3>
+<p>Qual comando mostra a versão do Node instalada? (sem o <code>$</code>)</p>
+<div class="ex-code"><input data-answer="node -v|node --version" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual motor de JavaScript está dentro do Node.js?</p>
+<label><input type="radio" name="q3"> SpiderMonkey</label>
+<label><input type="radio" name="q3"> JavaScriptCore</label>
+<label><input type="radio" name="q3"> V8</label>
+<label><input type="radio" name="q3"> TC39</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Para um programa que vai rodar num servidor de verdade, qual tipo de versão do Node é o recomendado?</p>
+<label><input type="radio" name="q4"> Uma versão LTS</label>
+<label><input type="radio" name="q4"> A Current mais nova, sempre</label>
+<label><input type="radio" name="q4"> Uma versão ímpar</label>
+<label><input type="radio" name="q4"> Qualquer uma, mesmo em fim de vida</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Um programa dá <code>TypeError: Math.sumPrecise is not a function</code>. O motivo mais provável é:</p>
+<label><input type="radio" name="q5"> Um erro de digitação no <code>console.log</code></label>
+<label><input type="radio" name="q5"> O <code>Math</code> foi apagado</label>
+<label><input type="radio" name="q5"> Faltou o <code>"use strict"</code></label>
+<label><input type="radio" name="q5"> O recurso é mais novo que o motor que está rodando o programa</label>
+</div>
+
+<h3>Missão final: lendo um número de versão</h3>
+
+<div class="tryjs" data-goal="out:v24.22.0: versão principal 24;;out:v26.0.0: versão principal 26;;out:v18.20.8: versão principal 18;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>principal</code> para devolver a versão principal (o primeiro número) de um texto como <code>"v24.22.0"</code>, como <strong>número</strong>. Dica: tire o <code>v</code> com <code>slice(1)</code>, separe nos pontos com <code>split(".")</code>, pegue o primeiro pedaço e converta com <code>Number</code>.</p>
+<pre class="script" data-file="main.js">function principal(versao) {
+  // complete aqui
+}
+
+for (const v of ["v24.22.0", "v26.0.0", "v18.20.8"]) {
+  console.log(`${v}: versão principal ${principal(v)}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">function principal(versao) {
+  return Number(versao.slice(1).split(".")[0]);
+}
+
+for (const v of ["v24.22.0", "v26.0.0", "v18.20.8"]) {
+  console.log(`${v}: versão principal ${principal(v)}`);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>v24.22.0: versão principal 24</code>, <code>v26.0.0: versão principal 26</code> e <code>v18.20.8: versão principal 18</code>. Num programa de verdade, passe <code>process.version</code> para a função e você tem a versão principal do Node que está rodando.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>ECMAScript</strong> (ECMA-262) é o padrão oficial; <strong>JavaScript</strong> é o nome do dia a dia. O <strong>TC39</strong> decide as novidades, que passam pelos stages 0 a 4.</li>
+  <li>ES5 (2009) trouxe o modo estrito e o JSON; o <strong>ES6 = ES2015</strong> trouxe o JavaScript moderno; desde então, uma edição por ano, até o <strong>ES2026</strong> (junho de 2026). Nada é removido.</li>
+  <li>Os <strong>motores</strong> (V8, SpiderMonkey, JavaScriptCore) aprendem as novidades no seu ritmo; o Node 24 usa o V8 13.6.</li>
+  <li>Versões do Node: <code>principal.secundária.correção</code>; fases Current → LTS → Manutenção → fim de vida. Node 24 (Krypton) é LTS até abril de 2028; o <strong>Node 26 vira LTS em 28/10/2026</strong>; a partir do Node 27, uma versão por ano, todas LTS.</li>
+  <li><code>node -v</code>, <code>npm -v</code>, <code>process.version</code>. Recurso que não existe dá <code>… is not a function</code>: use detecção de recurso (<code>typeof</code>) e a tabela de compatibilidade da MDN.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
