@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript split e join — dividindo e juntando textos | Guia JavaScript</title>
+<meta name="description" content="Como dividir um texto em pedaços e juntar de volta no JavaScript, para quem nunca programou: split(separador) que devolve um array, contar palavras, separar uma linha de CSV, split(&quot;&quot;) para letras, o limite, join(separador) para juntar com vírgula, traço ou quebra de linha, inverter uma palavra, trocar a data de formato, e os erros reais do Node.js 24 (join is not a function, split is not a function, espaços que sobram, string vazia no fim).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Dividindo e Juntando (split e join)</span></h1>
+
+<p class="intro">A Ana anotou a lista de compras num texto só: <code>"pão, leite, café, manteiga"</code>. Para contar os itens, mostrar um por linha ou riscar o que já comprou, ela precisa <strong>separar</strong> esse texto em pedaços. E, no caminho de volta, juntar pedaços num texto só. O <code>split</code> ("dividir") quebra um texto num <strong>array</strong> (uma lista) de pedaços, e o <code>join</code> ("juntar") faz o contrário.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>texto.split(separador)</code>: quebrar um texto onde aparece o separador, e o array que ele devolve.</li>
+  <li>Receitas: contar palavras, separar uma linha de planilha (CSV), pegar as letras uma a uma.</li>
+  <li><code>lista.join(separador)</code>: juntar os pedaços com vírgula, traço, quebra de linha ou nada.</li>
+  <li>Os dois juntos: inverter uma palavra e trocar a data de <code>19/10/2026</code> para <code>2026-10-19</code>.</li>
+  <li>Os erros reais: <code>join</code> num texto, <code>split</code> numa lista, os espaços que sobram e os pedaços vazios.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: picotar a tira de papel</h2>
+<p>A lista de compras está escrita numa tira de papel comprida: <em>pão, leite, café, manteiga</em>. A Ana pega a tesoura e corta <strong>em cada vírgula</strong>. Sobram quatro papeizinhos, cada um com um item, e as vírgulas vão para o lixo. Isso é o <code>split(",")</code>.</p>
+<p>Depois, ela pode colar os papeizinhos de volta numa tira só, pondo entre eles o que quiser: um traço, uma barra, nada. Isso é o <code>join</code>.</p>
+<p>Os papeizinhos soltos, em ordem, formam um <strong>array</strong>: uma lista de valores numa variável só. Os arrays têm um grupo inteiro de aulas, a partir de <a href="arrays.html">Arrays</a>; aqui você só precisa de três coisas: o Node mostra um array entre colchetes (<code>[ 'pão', 'leite' ]</code>), cada item tem uma posição começando do 0 (<code>lista[0]</code>), e <code>lista.length</code> diz quantos itens há.</p>
+
+<hr>
+
+<h2>1. <code>split</code>: de um texto para uma lista</h2>
+
+<pre class="file" data-file="dividir.js">const texto = "pão,leite,café,manteiga";
+const itens = texto.split(",");
+
+console.log(itens);
+console.log(itens.length);
+console.log(itens[0]);
+console.log(itens[3]);
+console.log(texto);
+</pre>
+
+<pre class="term">$ node dividir.js
+[ 'pão', 'leite', 'café', 'manteiga' ]
+4
+pão
+manteiga
+pão,leite,café,manteiga
+</pre>
+
+<dl class="anatomy">
+  <dt>texto.split(",")</dt><dd>Corta o texto em cada <code>,</code>. O separador entre os parênteses é um texto, entre aspas. Ele <strong>some</strong> do resultado: nenhum pedaço tem vírgula.</dd>
+  <dt>[ 'pão', 'leite', 'café', 'manteiga' ]</dt><dd>O jeito do Node mostrar um array: colchetes, os itens separados por vírgula, e cada texto entre aspas simples (para mostrar que é uma string, como no <a href="repl.html">modo interativo</a>).</dd>
+  <dt>itens.length</dt><dd>Quantos pedaços saíram: 4.</dd>
+  <dt>itens[0] e itens[3]</dt><dd>O primeiro e o último pedaço, pela posição.</dd>
+  <dt>console.log(texto)</dt><dd>O texto original não mudou.</dd>
+</dl>
+
+<h3>O separador é o texto exato</h3>
+<p>Quando a lista vem escrita "como gente escreve", com espaço depois da vírgula, o separador tem de incluir o espaço:</p>
+
+<pre class="file" data-file="separador.js">const lista = "pão, leite, café";
+
+console.log(lista.split(","));
+console.log(lista.split(", "));
+console.log(lista.split(";"));
+</pre>
+
+<pre class="term">$ node separador.js
+[ 'pão', ' leite', ' café' ]
+[ 'pão', 'leite', 'café' ]
+[ 'pão, leite, café' ]
+</pre>
+
+<ul>
+  <li>Com <code>split(",")</code>, o espaço depois de cada vírgula ficou grudado no item seguinte: <code>' leite'</code>.</li>
+  <li>Com <code>split(", ")</code> (vírgula <strong>e</strong> espaço), os itens saem limpos.</li>
+  <li>Com um separador que não aparece no texto (<code>";"</code>), não há onde cortar: sai um array com <strong>um</strong> item, o texto inteiro.</li>
+</ul>
+
+<div class="tryjs" data-goal="out:A lista tem 5 itens.;;src:split">
+<p class="try-task"><strong>Missão:</strong> conte os itens da lista com <code>split</code> e <code>.length</code>. O programa deve mostrar <code>A lista tem 5 itens.</code> (sem você escrever o 5 à mão).</p>
+<pre class="script" data-file="main.js">const lista = "pão, leite, café, manteiga, ovos";
+const quantidade = 0;
+console.log(`A lista tem ${quantidade} itens.`);
+</pre>
+<pre class="solucao" data-file="main.js">const lista = "pão, leite, café, manteiga, ovos";
+const quantidade = lista.split(", ").length;
+console.log(`A lista tem ${quantidade} itens.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Receitas com <code>split</code></h2>
+
+<h3>Contar palavras</h3>
+
+<pre class="file" data-file="palavras.js">const frase = "o pão de queijo saiu agora";
+const palavras = frase.split(" ");
+console.log(palavras);
+console.log(`${palavras.length} palavras`);
+</pre>
+
+<pre class="term">$ node palavras.js
+[ 'o', 'pão', 'de', 'queijo', 'saiu', 'agora' ]
+6 palavras
+</pre>
+
+<h3>Uma linha de planilha (CSV)</h3>
+<p>Planilhas salvas como texto (o formato <strong>CSV</strong>) guardam cada linha com os campos separados por vírgula ou ponto e vírgula. O <code>split</code> separa os campos:</p>
+
+<pre class="file" data-file="csv.js">const linha = "Ana Souza;30;Recife;ana@email.com";
+const campos = linha.split(";");
+
+console.log("Nome:", campos[0]);
+console.log("Idade:", Number(campos[1]));
+console.log("Cidade:", campos[2]);
+</pre>
+
+<pre class="term">$ node csv.js
+Nome: Ana Souza
+Idade: 30
+Cidade: Recife
+</pre>
+
+<p>Tudo o que o <code>split</code> devolve é <strong>texto</strong>, inclusive o <code>"30"</code>. Para fazer conta com a idade, converta com <code>Number()</code> (veja <a href="conversao.html">Conversão</a>). Em <a href="desestruturacao.html">Desestruturação</a> você vai ver um jeito de pôr cada campo direto numa variável com nome: <code>const [nome, idade, cidade] = linha.split(";");</code>.</p>
+
+<h3>As letras, uma a uma</h3>
+
+<pre class="file" data-file="letras.js">console.log("pão".split(""));
+console.log("a-b-c-d".split("-", 2));
+console.log("pão".split());
+</pre>
+
+<pre class="term">$ node letras.js
+[ 'p', 'ã', 'o' ]
+[ 'a', 'b' ]
+[ 'pão' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>split("")</dt><dd>Com a string vazia como separador, corta <strong>entre cada caractere</strong>: sai uma lista de letras.</dd>
+  <dt>split("-", 2)</dt><dd>Um segundo número limita quantos pedaços você quer: só os 2 primeiros. O resto é descartado.</dd>
+  <dt>split()</dt><dd>Sem separador nenhum, não corta: o texto inteiro vira o único item.</dd>
+</dl>
+
+<hr>
+
+<h2>3. <code>join</code>: de uma lista para um texto</h2>
+<p>O <code>join</code> é um método das <strong>listas</strong> (arrays), não dos textos. Ele cola os itens numa string só, pondo o separador entre eles:</p>
+
+<pre class="file" data-file="juntar.js">const itens = ["pão", "leite", "café"];
+
+console.log(itens.join(", "));
+console.log(itens.join(" - "));
+console.log(itens.join(""));
+console.log(itens.join());
+console.log(itens.join("\n"));
+</pre>
+
+<pre class="term">$ node juntar.js
+pão, leite, café
+pão - leite - café
+pãoleitecafé
+pão,leite,café
+pão
+leite
+café
+</pre>
+
+<dl class="anatomy">
+  <dt>["pão", "leite", "café"]</dt><dd>Um array escrito direto no código: itens entre colchetes, separados por vírgula.</dd>
+  <dt>join(", ")</dt><dd>Cola com vírgula e espaço: o jeito de escrever uma lista para gente ler.</dd>
+  <dt>join("")</dt><dd>Cola sem nada entre os itens.</dd>
+  <dt>join()</dt><dd>Sem separador, o <code>join</code> usa a vírgula sem espaço. É o mesmo que você viu ao pôr um array num template string (aula <a href="template-strings.html">Template Strings</a>).</dd>
+  <dt>join("\n")</dt><dd>Com a quebra de linha (veja <a href="strings-escape.html">Caracteres Especiais</a>), um item por linha.</dd>
+</dl>
+
+<p>O separador vai só <strong>entre</strong> os itens: não aparece antes do primeiro nem depois do último. Se você quer um tracinho na frente de cada item, ponha-o também no começo: <code>"- " + itens.join("\n- ")</code>.</p>
+
+<hr>
+
+<h2>4. Os dois juntos</h2>
+<p>O poder de verdade aparece quando você divide, mexe na lista e junta de novo. Dois exemplos clássicos:</p>
+
+<pre class="file" data-file="juntos.js">const palavra = "padaria";
+const invertida = palavra.split("").reverse().join("");
+console.log(invertida);
+
+const data = "19/10/2026";
+const partes = data.split("/");
+console.log(partes);
+console.log(partes.reverse().join("-"));
+
+const telefone = "81 99999 0000";
+console.log(telefone.split(" ").join(""));
+</pre>
+
+<pre class="term">$ node juntos.js
+airadap
+[ '19', '10', '2026' ]
+2026-10-19
+81999990000
+</pre>
+
+<dl class="anatomy">
+  <dt>split("").reverse().join("")</dt><dd>Quebra em letras, inverte a ordem da lista (o <code>reverse</code>, "inverter", é um método de array) e cola sem nada entre elas. Tudo encadeado, como em <a href="strings-metodos.html">Métodos de String</a>.</dd>
+  <dt>data.split("/") … reverse().join("-")</dt><dd>Dia, mês e ano viram uma lista; invertida, fica ano, mês, dia; colada com hífen, é o formato <code>2026-10-19</code>, usado por bancos de dados e planilhas.</dd>
+  <dt>split(" ").join("")</dt><dd>Tirar todos os espaços: corta em cada espaço e cola sem nada. Funciona, mas a aula <a href="strings-substituir.html">Substituindo</a> mostra o jeito direto: <code>replaceAll(" ", "")</code>.</dd>
+</dl>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque a frase e o separador do <code>join</code>. Tente <code>" | "</code>, <code>"\n"</code>, <code>" e "</code>. Tente também inverter a ordem das palavras com <code>.reverse()</code> antes do <code>join</code>.</p>
+<pre class="script" data-file="main.js">const frase = "bolo de fubá com café";
+const palavras = frase.split(" ");
+console.log(palavras);
+console.log(palavras.join(" | "));
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para transformar um texto numa lista de caracteres há dois jeitos, e eles <strong>não</strong> são iguais quando o texto tem emoji:</p>
+
+<pre class="file" data-file="formas.js">const texto = "bolo🎂";
+
+console.log(texto.split(""));
+console.log([...texto]);
+console.log(texto.length, [...texto].length);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 'b', 'o', 'l', 'o', '\ud83c', '\udf82' ]
+[ 'b', 'o', 'l', 'o', '🎂' ]
+6 5
+</pre>
+
+<p>O bolo de aniversário virou dois pedaços estranhos no <code>split("")</code>: <code>'\ud83c'</code> e <code>'\udf82'</code>. Por dentro, o JavaScript guarda os textos em unidades de 16 bits, e um emoji ocupa <strong>duas</strong> delas. O <code>split("")</code> e o <code>.length</code> contam essas unidades (por isso <code>"bolo🎂".length</code> é 6); o <code>[...texto]</code> (o "espalhar", aula <a href="spread-rest.html">Spread e Rest</a>) separa por caractere de verdade e conta 5. Para textos só com letras, acentos e números, os dois dão o mesmo resultado.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Separar campos (lista, CSV, data, caminho)</td><td><code>texto.split(separador)</code></td></tr>
+<tr><td>Contar palavras de uma frase simples</td><td><code>frase.split(" ").length</code> (veja os espaços duplos em <a href="#errado">Quando dá errado</a>)</td></tr>
+<tr><td>Lista de caracteres (sem emojis)</td><td><code>texto.split("")</code></td></tr>
+<tr><td>Lista de caracteres (com emojis)</td><td><code>[...texto]</code></td></tr>
+<tr><td>Juntar uma lista num texto</td><td><code>lista.join(separador)</code></td></tr>
+<tr><td>Separar com padrão ("um ou mais espaços")</td><td><code>split</code> com expressão regular (aula <a href="regex-metodos.html">Regex na Prática</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>join</code> num texto</strong>
+<pre class="file" data-file="joinerrado.js">const lista = "pão, leite, café";
+console.log(lista.join(" - "));
+</pre>
+<pre class="term">$ node joinerrado.js
+/home/ana/joinerrado.js:2
+console.log(lista.join(" - "));
+                  ^
+
+TypeError: lista.join is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/joinerrado.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/joinerrado.js:2</dt><dd>O arquivo e a linha do problema: a linha 2.</dd>
+  <dt>^</dt><dd>A setinha embaixo de <code>join</code>.</dd>
+  <dt>TypeError: lista.join is not a function</dt><dd>"Erro de tipo: <code>lista.join</code> não é uma função." Apesar do nome, a variável <code>lista</code> é um <strong>texto</strong> (está entre aspas), e o <code>join</code> é método de <strong>array</strong>. Textos não têm <code>join</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/joinerrado.js:2:19)</dt><dd>Linha 2, coluna 19. As linhas <code>at</code> seguintes são de dentro do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> divida primeiro, depois junte: <code>lista.split(", ").join(" - ")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>split</code> numa lista</strong>
+<pre class="file" data-file="spliterrado.js">const itens = ["pão", "leite"];
+console.log(itens.split(","));
+</pre>
+<pre class="term">$ node spliterrado.js
+/home/ana/spliterrado.js:2
+console.log(itens.split(","));
+                  ^
+
+TypeError: itens.split is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/spliterrado.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>O contrário do anterior: <code>split</code> é método de <strong>texto</strong>, e <code>itens</code> já é uma lista. Lembre a direção: <code>split</code> vai do texto para a lista; <code>join</code>, da lista para o texto. <strong>Como consertar:</strong> se você já tem a lista, não precisa dividir; para virar texto, <code>itens.join(",")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Espaços duplos e pedaços vazios</strong>
+<pre class="file" data-file="vazios.js">console.log("o  pão".split(" "));
+console.log("pão,leite,".split(","));
+console.log("".split(","));
+console.log("".split(",").length);
+</pre>
+<pre class="term">$ node vazios.js
+[ 'o', '', 'pão' ]
+[ 'pão', 'leite', '' ]
+[ '' ]
+1
+</pre>
+<p>Nenhum erro, mas pedaços vazios (<code>''</code>) apareceram na lista:</p>
+<ul>
+  <li>Entre dois espaços seguidos não há nada, e esse "nada" vira um item: <code>"o  pão"</code> parece ter 3 palavras.</li>
+  <li>Uma vírgula no <strong>fim</strong> do texto cria um último item vazio.</li>
+  <li>Um texto vazio vira uma lista com <strong>um</strong> item vazio, e o <code>.length</code> dá 1, não 0.</li>
+</ul>
+<p><strong>Como consertar:</strong> arrume o texto antes (<code>trim()</code> tira os espaços das pontas), e, para jogar fora os itens vazios, use o <code>filter</code> (aula <a href="filter.html">filter</a>): <code>texto.split(",").filter((item) =&gt; item !== "")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu de guardar o resultado, ou usou o array como texto</strong>
+<pre class="file" data-file="naoguardou.js">const data = "19/10/2026";
+data.split("/");
+console.log(data[0]);
+
+const partes = data.split("/");
+console.log(partes[0]);
+</pre>
+<pre class="term">$ node naoguardou.js
+1
+19
+</pre>
+<p>A segunda linha fez a divisão e jogou o resultado fora: <code>data</code> continua sendo o texto, e <code>data[0]</code> é a primeira <strong>letra</strong> (<code>1</code>). Só depois de guardar a lista em <code>partes</code>, <code>partes[0]</code> é o primeiro <strong>pedaço</strong> (<code>19</code>). <strong>Como consertar:</strong> guarde o que o <code>split</code> devolve numa variável.</p>
+</div>
+
+<div class="tryjs" data-goal="out:pão, leite, café;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa devia mostrar a lista com vírgula e espaço, mas dá erro. Leia a mensagem, conserte (a lista ainda é texto: divida antes de juntar), até aparecer <code>pão, leite, café</code>.</p>
+<pre class="script" data-file="main.js">const anotado = "pão/leite/café";
+console.log(anotado.join(", "));
+</pre>
+<pre class="solucao" data-file="main.js">const anotado = "pão/leite/café";
+console.log(anotado.split("/").join(", "));
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>texto.split(sep)</code></td><td>Array dos pedaços entre os <code>sep</code></td><td><code>"a,b,c".split(",")</code> → <code>[ 'a', 'b', 'c' ]</code></td></tr>
+<tr><td><code>texto.split(sep, n)</code></td><td>Só os <code>n</code> primeiros pedaços</td><td><code>"a,b,c".split(",", 2)</code> → <code>[ 'a', 'b' ]</code></td></tr>
+<tr><td><code>texto.split("")</code></td><td>Array dos caracteres</td><td><code>"pão".split("")</code> → <code>[ 'p', 'ã', 'o' ]</code></td></tr>
+<tr><td><code>texto.split()</code></td><td>Array com o texto inteiro</td><td><code>[ 'pão' ]</code></td></tr>
+<tr><td><code>lista.join(sep)</code></td><td>Texto com <code>sep</code> entre os itens</td><td><code>["a", "b"].join(" - ")</code> → <code>a - b</code></td></tr>
+<tr><td><code>lista.join()</code></td><td>Texto com vírgula entre os itens</td><td><code>a,b</code></td></tr>
+<tr><td><code>texto.split(a).join(b)</code></td><td>Troca todo <code>a</code> por <code>b</code></td><td><code>"19/10".split("/").join("-")</code> → <code>19-10</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: … .join is not a function</code></td><td>Chamou <code>join</code> num texto: faça o <code>split</code> antes</td></tr>
+<tr><td><code>TypeError: … .split is not a function</code></td><td>Chamou <code>split</code> numa lista (ou num número)</td></tr>
+<tr><td>Itens com espaço na frente (<code>' leite'</code>)</td><td>O separador não incluiu o espaço: <code>split(", ")</code></td></tr>
+<tr><td>Itens vazios (<code>''</code>) na lista</td><td>Separadores seguidos, ou um separador no fim</td></tr>
+<tr><td>Uma lista com um item só, o texto todo</td><td>O separador não aparece no texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quantos pedaços?</h3>
+<div class="ex-code">"a-b-c-d".split("-").length → <input data-answer="4" aria-label="resultado 1"><br>"bolo".split("").length → <input data-answer="4" aria-label="resultado 2"><br>"bolo".split("x").length → <input data-answer="1" aria-label="resultado 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o texto?</h3>
+<div class="ex-code">["Ana", "Bia", "Caio"].join(" e ") → <input data-answer="Ana e Bia e Caio" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete</h3>
+<p>Complete para pegar o mês de <code>const data = "19/10/2026";</code>:</p>
+<div class="ex-code">const mes = data.<input data-answer="split" aria-label="método">("/")[<input data-answer="1" aria-label="posição">];</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que o <code>split</code> devolve?</p>
+<label><input type="radio" name="q4"> Um texto</label>
+<label><input type="radio" name="q4"> Um número</label>
+<label><input type="radio" name="q4"> Um array (lista) de textos</label>
+<label><input type="radio" name="q4"> Nada: ele muda o texto original</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>"pão, leite".split(",")</code> dá <code>[ 'pão', ' leite' ]</code>. Por que o <code>' leite'</code> tem um espaço?</p>
+<label><input type="radio" name="q5"> Porque o separador foi só a vírgula, e o espaço depois dela ficou no pedaço seguinte</label>
+<label><input type="radio" name="q5"> Porque o <code>split</code> sempre põe um espaço</label>
+<label><input type="radio" name="q5"> É um erro do Node</label>
+<label><input type="radio" name="q5"> Porque faltou o <code>join</code></label>
+</div>
+
+<h3>Missão final: a data no formato do banco</h3>
+
+<div class="tryjs" data-goal="out:2026-10-19;;src:split;;src:join">
+<p class="try-task"><strong>Missão:</strong> o sistema da padaria precisa da data no formato <code>ano-mês-dia</code>. Transforme <code>19/10/2026</code> em <code>2026-10-19</code> com <code>split</code>, <code>reverse</code> e <code>join</code>. Depois, teste com outra data, como <code>01/02/2027</code>.</p>
+<pre class="script" data-file="main.js">const data = "19/10/2026";
+const formatoBanco = data;
+console.log(formatoBanco);
+</pre>
+<pre class="solucao" data-file="main.js">const data = "19/10/2026";
+const formatoBanco = data.split("/").reverse().join("-");
+console.log(formatoBanco);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>texto.split(separador)</code> corta o texto em cada separador e devolve um <strong>array</strong> de pedaços (textos); o separador some. O original não muda.</li>
+  <li>O separador é o texto exato: <code>split(", ")</code> para "vírgula e espaço". Se ele não aparece, sai um array com o texto inteiro.</li>
+  <li><code>split("")</code> dá as letras; <code>split(sep, n)</code> só os <code>n</code> primeiros pedaços.</li>
+  <li><code>lista.join(separador)</code> cola os itens num texto, com o separador só <strong>entre</strong> eles (sem argumento, vírgula).</li>
+  <li>Juntos: <code>split("").reverse().join("")</code> inverte; <code>split("/").reverse().join("-")</code> troca o formato da data.</li>
+  <li>Erros comuns: <code>join</code> num texto ou <code>split</code> numa lista (<code>is not a function</code>), espaços que sobram, itens vazios com separadores seguidos ou no fim.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
