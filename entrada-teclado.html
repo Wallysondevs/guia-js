@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Lendo o Teclado no Node (readline) — perguntar e esperar a resposta | Guia JavaScript</title>
+<meta name="description" content="Como ler o que a pessoa digita no terminal com o Node.js 24, para quem nunca programou: node:readline/promises, createInterface, await rl.question e rl.close, a resposta sempre chega como texto (Number), perguntar num laço até digitar sair, Ctrl+C e Ctrl+D, e os erros reais ([object Promise], o programa que não termina, require com await, is not a function).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Lendo o Teclado no Node</span></h1>
+
+<p class="intro">Até agora, todos os valores dos seus programas estavam escritos no próprio código: o nome <code>"Ana"</code>, o preço <code>0.5</code>. Para mudar, só editando o arquivo. Nesta aula, o programa vai <strong>perguntar</strong>, esperar a pessoa digitar no terminal e apertar <kbd>Enter</kbd>, e usar a resposta. No Node, quem faz isso é o módulo <code>readline</code> ("ler linha"), que já vem com o Node: não precisa instalar nada.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As quatro linhas que fazem um programa perguntar algo no terminal: <code>import</code>, <code>createInterface</code>, <code>await rl.question(…)</code> e <code>rl.close()</code>.</li>
+  <li>Por que o <code>await</code> está ali (só o necessário, por enquanto).</li>
+  <li>Que a resposta chega sempre como <strong>texto</strong>, e como transformá-la em número.</li>
+  <li>Como perguntar várias vezes, num laço, até a pessoa digitar "sair".</li>
+  <li>O que acontece com <kbd>Ctrl</kbd>+<kbd>C</kbd> e <kbd>Ctrl</kbd>+<kbd>D</kbd> no meio de uma pergunta.</li>
+  <li>Os erros reais mais comuns: o <code>[object Promise]</code>, o programa que não termina, e o <code>require</code> misturado com <code>await</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, num terminal de verdade, com a Ana digitando as respostas. Nas caixas "Experimente", quem digita é você, no terminal da própria caixa.</p>
+
+<div class="note">
+<strong>E no navegador?</strong>
+<p>Isto é só do <strong>Node</strong>. Numa página web, o jeito simples de perguntar é a caixinha do <code>prompt()</code>, que é do navegador e não existe no Node: é a próxima aula, <a href="prompt.html">prompt() e alert()</a>.</p>
+</div>
+
+<hr>
+
+<h2>A ideia: o atendente com um bloquinho</h2>
+<p>Pense num atendente de lanchonete. Para anotar um pedido ele precisa de três coisas:</p>
+<ol class="passo">
+  <li><strong>Pegar o bloquinho</strong> antes de começar (no programa: criar o "leitor" ligado ao teclado e à tela).</li>
+  <li><strong>Perguntar e esperar</strong>: "o que vai ser?". Ele não sai anotando antes de o cliente responder (no programa: <code>await rl.question(…)</code>).</li>
+  <li><strong>Guardar o bloquinho</strong> no fim do atendimento (no programa: <code>rl.close()</code>). Se ele esquecer, fica parado no balcão, esperando um pedido que não vem.</li>
+</ol>
+
+<hr>
+
+<h2>1. A primeira pergunta</h2>
+
+<pre class="file" data-file="pergunta.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+
+rl.close();
+</pre>
+
+<p>A Ana rodou e, quando apareceu a pergunta, digitou <code>Ana</code> e apertou <kbd>Enter</kbd>:</p>
+
+<pre class="term">$ node pergunta.js
+Qual é o seu nome? Ana
+Olá, Ana!
+</pre>
+
+<dl class="anatomy">
+  <dt>import { createInterface } from "node:readline/promises";</dt><dd>"Traga a ferramenta <code>createInterface</code> do módulo <code>node:readline/promises</code>". Um <strong>módulo</strong> é um pacote de código pronto; este já vem com o Node (o <code>node:</code> na frente avisa isso). Por enquanto, copie a linha como está; o <code>import</code> é explicado em <a href="modulos.html">Módulos</a>.</dd>
+  <dt>createInterface({ input: …, output: … })</dt><dd>Cria o "leitor" (o bloquinho do atendente). <code>input</code> ("entrada") diz de onde ler: <code>process.stdin</code>, o teclado. <code>output</code> ("saída") diz onde escrever as perguntas: <code>process.stdout</code>, a tela.</dd>
+  <dt>const rl</dt><dd>Guarda o leitor numa constante. O nome <code>rl</code> (de <strong>r</strong>ead<strong>l</strong>ine) é o que todo mundo usa, inclusive a documentação do Node.</dd>
+  <dt>rl.question("Qual é o seu nome? ")</dt><dd>Mostra a pergunta e fica esperando a pessoa digitar e apertar <kbd>Enter</kbd> ("question" = "pergunta"). O espaço no fim do texto separa a pergunta do que vai ser digitado.</dd>
+  <dt>await</dt><dd>"Espere". A resposta só existe <strong>depois</strong> que a pessoa digitar, e isso pode levar 1 segundo ou 10 minutos. O <code>await</code> faz o programa esperar a resposta chegar antes de seguir para a próxima linha.</dd>
+  <dt>const nome = …</dt><dd>Guarda o que a pessoa digitou (sem o <kbd>Enter</kbd>).</dd>
+  <dt>rl.close();</dt><dd>"Feche" o leitor: avisa que o programa não vai perguntar mais nada. Sem isso, o programa <strong>não termina</strong> (veja em <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<div class="tip">
+<strong>O <code>await</code>, em uma frase</strong>
+<p>Algumas operações demoram e não podem parar o computador inteiro enquanto esperam: ler o teclado, baixar algo da internet, ler um arquivo grande. Elas devolvem uma "promessa" de resultado (uma <em>Promise</em>), e o <code>await</code> espera a promessa ser cumprida e entrega o valor. Por enquanto, basta lembrar: <strong>toda <code>rl.question</code> leva um <code>await</code> na frente</strong>. O porquê completo está em <a href="promises.html">Promises</a> e <a href="async-await.html">async e await</a>.</p>
+</div>
+
+<div class="tryjs" data-digitar="Bia" data-goal="out:Prazer, Bia! Seja bem-vinda.;;src:await\s+rl\.question">
+<p class="try-task"><strong>Missão:</strong> rode, digite o seu nome no terminal da caixa e aperte <kbd>Enter</kbd>. Depois, mude a resposta do programa para <code>Prazer, NOME! Seja bem-vinda.</code> (com o nome digitado no lugar de NOME).</p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+
+rl.close();
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Prazer, ${nome}! Seja bem-vinda.`);
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A resposta é sempre texto</h2>
+<p>Duas perguntas são duas linhas com <code>await rl.question</code>, uma depois da outra. Mas cuidado com números:</p>
+
+<pre class="file" data-file="idade_texto.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+const idade = await rl.question("Quantos anos você tem? ");
+console.log(`Olá, ${nome}! Daqui a 10 anos você terá ${idade + 10}.`);
+console.log(typeof idade);
+
+rl.close();
+</pre>
+
+<pre class="term">$ node idade_texto.js
+Qual é o seu nome? Ana
+Quantos anos você tem? 30
+Olá, Ana! Daqui a 10 anos você terá 3010.
+string
+</pre>
+
+<p><strong>3010?</strong> O <code>rl.question</code> devolve sempre uma <strong>string</strong> (texto), mesmo que a pessoa digite só algarismos: o <code>typeof</code> confirma (veja <a href="typeof.html">typeof</a>). E <code>"30" + 10</code> não soma: <strong>junta</strong> os textos, <code>"3010"</code> (veja <a href="conversao-automatica.html">Conversão Automática</a>). A solução é converter a resposta com <code>Number()</code> (veja <a href="conversao.html">Conversão</a>):</p>
+
+<pre class="file" data-file="idade.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+const idade = Number(await rl.question("Quantos anos você tem? "));
+console.log(`Olá, ${nome}! Daqui a 10 anos você terá ${idade + 10}.`);
+
+rl.close();
+</pre>
+
+<pre class="term">$ node idade.js
+Qual é o seu nome? Ana
+Quantos anos você tem? 30
+Olá, Ana! Daqui a 10 anos você terá 40.
+</pre>
+
+<p>O <code>Number(await rl.question(…))</code> se lê de dentro para fora: pergunta, espera a resposta (<code>"30"</code>) e converte para número (<code>30</code>).</p>
+
+<h3>E se a pessoa digitar letras?</h3>
+<p><code>Number("dez")</code> dá <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN</a>). Um programa cuidadoso confere com <code>Number.isNaN</code> antes de fazer contas:</p>
+
+<pre class="file" data-file="compra.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const quantidade = Number(await rl.question("Quantos pães? "));
+const preco = Number(await rl.question("Preço de cada um: "));
+
+if (Number.isNaN(quantidade) || Number.isNaN(preco)) {
+  console.log("Isso não é um número.");
+} else {
+  console.log(`Total: R$ ${(quantidade * preco).toFixed(2)}`);
+}
+
+rl.close();
+</pre>
+
+<p>A Ana rodou duas vezes: na primeira digitou <code>10</code> e <code>0.5</code>; na segunda, <code>dez</code> e <code>0.5</code>:</p>
+
+<pre class="term">$ node compra.js
+Quantos pães? 10
+Preço de cada um: 0.5
+Total: R$ 5.00
+$ node compra.js
+Quantos pães? dez
+Preço de cada um: 0.5
+Isso não é um número.
+</pre>
+
+<p>Para casas decimais, digite com <strong>ponto</strong> (<code>0.5</code>): <code>Number("0,5")</code> também dá <code>NaN</code>.</p>
+
+<div class="tryjs" data-digitar="Ana\n30" data-goal="out:Daqui a 10 anos você terá 40.;;src:await\s+rl\.question">
+<p class="try-task"><strong>Missão:</strong> rode, responda <code>Ana</code> e <code>30</code>, e veja o <code>3010</code>. Conserte o programa para a conta dar <code>40</code>.</p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+const idade = await rl.question("Quantos anos você tem? ");
+console.log(`Olá, ${nome}! Daqui a 10 anos você terá ${idade + 10}.`);
+
+rl.close();
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+const idade = Number(await rl.question("Quantos anos você tem? "));
+console.log(`Olá, ${nome}! Daqui a 10 anos você terá ${idade + 10}.`);
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Perguntar num laço, até a pessoa digitar "sair"</h2>
+<p>O <code>await rl.question</code> funciona dentro de laços. Com o <code>while (true)</code> e o <code>break</code> da aula <a href="break-continue.html">break e continue</a>, o programa pergunta quantas vezes for preciso:</p>
+
+<pre class="file" data-file="lista.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+let itens = 0;
+while (true) {
+  const item = await rl.question("Item (ou sair): ");
+  if (item === "sair") {
+    break;
+  }
+  itens++;
+  console.log(`  anotado: ${item}`);
+}
+console.log(`A lista tem ${itens} itens.`);
+
+rl.close();
+</pre>
+
+<pre class="term">$ node lista.js
+Item (ou sair): pão
+  anotado: pão
+Item (ou sair): leite
+  anotado: leite
+Item (ou sair): café
+  anotado: café
+Item (ou sair): sair
+A lista tem 3 itens.
+</pre>
+
+<p>O <code>rl.close()</code> fica <strong>depois</strong> do laço: o leitor só pode ser fechado quando não houver mais perguntas.</p>
+
+<hr>
+
+<h2>4. <kbd>Ctrl</kbd>+<kbd>C</kbd> e <kbd>Ctrl</kbd>+<kbd>D</kbd> no meio da pergunta</h2>
+<p>Se, em vez de responder, a pessoa apertar <kbd>Ctrl</kbd>+<kbd>C</kbd> (interromper), a pergunta é <strong>abortada</strong>, e o programa termina com um erro:</p>
+
+<pre class="term">$ node pergunta.js
+Qual é o seu nome? node:internal/readline/interface:1347
+            this[kQuestionReject]?.(new AbortError('Aborted with Ctrl+C'));
+                                    ^
+
+AbortError: Aborted with Ctrl+C
+    at [_ttyWrite] (node:internal/readline/interface:1347:37)   « mais 8 linhas "at" internas cortadas
+    at Readable.push (node:internal/streams/readable:400:5) {
+  code: 'ABORT_ERR'
+}
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+
+<p>Parece assustador, mas a linha que importa é <code>AbortError: Aborted with Ctrl+C</code>: "erro de aborto: abortado com <kbd>Ctrl</kbd>+<kbd>C</kbd>". As linhas com <code>node:internal</code> mostram que o erro nasceu dentro do próprio Node (no <code>readline</code>), não no seu código. O código de saída é 1, de erro. Com <kbd>Ctrl</kbd>+<kbd>D</kbd> ("fim da entrada") acontece o mesmo, com <code>Aborted with Ctrl+D</code>. Para um programa seu, de estudo, tudo bem: é só o jeito de desistir. Tratar esse erro com elegância fica para <a href="try-catch.html">try … catch</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p><strong>Com <code>require</code> e uma função <code>async</code>.</strong> Em muitos programas Node você vai ver o módulo trazido com <code>require</code> (o jeito antigo do Node, o CommonJS; veja <a href="modulos-commonjs.html">require e module.exports</a>). Nesse formato o <code>await</code> não pode ficar solto no arquivo: ele tem de estar dentro de uma função marcada com <code>async</code>:</p>
+
+<pre class="file" data-file="cjs.js">const { createInterface } = require("node:readline/promises");
+
+async function main() {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const nome = await rl.question("Qual é o seu nome? ");
+  console.log(`Olá, ${nome}!`);
+  rl.close();
+}
+
+main();
+</pre>
+
+<pre class="term">$ node cjs.js
+Qual é o seu nome? Ana
+Olá, Ana!
+</pre>
+
+<p><strong>Com uma função de retorno (o jeito mais antigo).</strong> O módulo <code>node:readline</code>, sem o <code>/promises</code>, não usa <code>await</code>: você passa para o <code>question</code> uma função, que o Node chama quando a resposta chegar (veja <a href="callbacks.html">Callbacks Assíncronos</a>):</p>
+
+<pre class="file" data-file="callback.js">const readline = require("node:readline");
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+rl.question("Qual é o seu nome? ", (nome) =&gt; {
+  console.log(`Olá, ${nome}!`);
+  rl.close();
+});
+</pre>
+
+<pre class="term">$ node callback.js
+Qual é o seu nome? Ana
+Olá, Ana!
+</pre>
+
+<p><strong>Sem perguntar nada: argumentos na linha de comando.</strong> Às vezes nem é preciso perguntar: a pessoa já passa os valores ao rodar, como em <code>node saudar.js Ana</code>. É o assunto de <a href="process-argv.html">process.argv</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Programa seu, novo, perguntando pelo terminal</td><td><code>import</code> + <code>await rl.question</code> (o desta aula)</td></tr>
+<tr><td>Arquivo que já usa <code>require</code></td><td><code>require</code> + <code>async function main()</code></td></tr>
+<tr><td>Código antigo que você vai encontrar por aí</td><td><code>node:readline</code> com função de retorno</td></tr>
+<tr><td>Os valores já são conhecidos ao rodar</td><td><a href="process-argv.html">process.argv</a></td></tr>
+<tr><td>Uma página no navegador</td><td><a href="prompt.html">prompt()</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code>: <code>[object Promise]</code></strong>
+<pre class="file" data-file="semawait.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+
+rl.close();
+</pre>
+<pre class="term">$ node semawait.js
+Qual é o seu nome? Olá, [object Promise]!
+</pre>
+<p>A Ana nem teve tempo de digitar. Sem o <code>await</code>, o programa não esperou: guardou em <code>nome</code> a <strong>promessa</strong> da resposta (uma <em>Promise</em>, que dentro de um texto aparece como <code>[object Promise]</code>), mostrou a saudação logo em seguida e fechou o leitor. <strong>Como consertar:</strong> <code>const nome = await rl.question(…);</code>. Se aparecer <code>[object Promise]</code> em qualquer programa, procure um <code>await</code> esquecido.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>rl.close()</code>: o programa não termina</strong>
+<pre class="file" data-file="semclose.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+</pre>
+<pre class="term">$ node semclose.js
+Qual é o seu nome? Ana
+Olá, Ana!   « o programa ficou parado aqui, sem voltar ao $, até a Ana apertar Ctrl+C
+$ echo $?
+0
+</pre>
+<p>A saudação apareceu, mas o <code>$</code> do terminal não voltou: o leitor continuava aberto, esperando mais linhas do teclado. Quando a Ana apertou <kbd>Ctrl</kbd>+<kbd>C</kbd>, o programa saiu sem mensagem (e, como não havia pergunta em andamento, com código 0). <strong>Como consertar:</strong> <code>rl.close();</code> depois da última pergunta.</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou <code>require</code> com <code>await</code> solto</strong>
+<pre class="file" data-file="misturou.js">const { createInterface } = require("node:readline/promises");
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.question("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+
+rl.close();
+</pre>
+<pre class="term">$ node misturou.js
+file:///home/ana/misturou.js:1
+const { createInterface } = require("node:readline/promises");
+                            ^
+
+ReferenceError: Cannot determine intended module format because both 'require' and top-level await are present. If the code is intended to be CommonJS, wrap await in an async function. If the code is intended to be an ES module, replace require() with import.
+    at file:///home/ana/misturou.js:1:29   « mais 2 linhas "at" internas cortadas
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  code: 'ERR_AMBIGUOUS_MODULE_SYNTAX'
+}
+
+Node.js v24.22.0
+</pre>
+<p>Uma das mensagens mais claras do Node: "não dá para saber o formato do módulo, porque há <code>require</code> e <code>await</code> fora de função. Se o código é CommonJS, ponha o <code>await</code> dentro de uma função <code>async</code>. Se é um módulo ES, troque o <code>require()</code> por <code>import</code>." Os dois jeitos de consertar são exatamente os dois programas desta aula: o <code>import</code> da seção 1 ou o <code>async function main()</code> de <a href="#formas">Formas diferentes</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome do método errado</strong>
+<pre class="file" data-file="digitou_errado.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const nome = await rl.questiom("Qual é o seu nome? ");
+console.log(`Olá, ${nome}!`);
+
+rl.close();
+</pre>
+<pre class="term">$ node digitou_errado.js
+file:///home/ana/digitou_errado.js:5
+const nome = await rl.questiom("Qual é o seu nome? ");
+                      ^
+
+TypeError: rl.questiom is not a function
+    at file:///home/ana/digitou_errado.js:5:23   « mais 3 linhas "at" internas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: <code>file:///home/ana/digitou_errado.js:5</code> é o arquivo e a linha (com <code>import</code>, o Node mostra o caminho como endereço, <code>file:///</code>); o <code>^</code> aponta o nome errado; <code>TypeError: rl.questiom is not a function</code> diz que o leitor não tem nada chamado <code>questiom</code> que possa ser chamado. <strong>Como consertar:</strong> <code>rl.question</code>, com <strong>n</strong> no fim.</p>
+</div>
+
+<div class="cenario">
+<strong>Mandou as respostas por um "cano" (pipe)</strong>
+<p>Quem já conhece o terminal pode tentar responder sem digitar, mandando as respostas por um "cano" (o <code>|</code>) com o <code>printf</code>. Com uma pergunta só, funciona (a resposta não aparece na tela, porque ninguém digitou):</p>
+<pre class="term">$ printf 'Ana\n' | node pergunta.js
+Qual é o seu nome? Olá, Ana!
+$ printf 'Ana\n30\n' | node idade.js
+Qual é o seu nome? Quantos anos você tem? Warning: Detected unsettled top-level await at file:///home/ana/idade.js:6
+const idade = Number(await rl.question("Quantos anos você tem? "));
+                     ^
+
+
+
+$ echo $?
+13
+</pre>
+<p>Com duas perguntas, o <code>readline/promises</code> leu as duas linhas de uma vez, logo na primeira pergunta, e a segunda ficou sem resposta. O Node percebeu que o programa acabou parado num <code>await</code> que nunca seria cumprido: "aviso: detectado um <code>await</code> de nível superior não resolvido", na linha 6, e o código de saída 13. Para testar programas com várias perguntas, digite as respostas de verdade.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>import { createInterface } from "node:readline/promises";</code></td><td>Traz a ferramenta do módulo <code>readline</code> do Node</td></tr>
+<tr><td><code>const rl = createInterface({ input: process.stdin, output: process.stdout });</code></td><td>Cria o leitor, ligado ao teclado e à tela</td></tr>
+<tr><td><code>const r = await rl.question("Pergunta? ");</code></td><td>Mostra a pergunta, espera o <kbd>Enter</kbd> e guarda o que foi digitado (texto)</td></tr>
+<tr><td><code>Number(await rl.question("…"))</code></td><td>Pergunta e já converte a resposta para número</td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td><code>true</code> se a conversão falhou</td></tr>
+<tr><td><code>rl.close();</code></td><td>Fecha o leitor; sem isso, o programa não termina</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>[object Promise]</code></td><td>Faltou o <code>await</code></td></tr>
+<tr><td>O programa não volta para o <code>$</code></td><td>Faltou o <code>rl.close()</code></td></tr>
+<tr><td><code>3010</code> em vez de <code>40</code></td><td>A resposta é texto: faltou <code>Number()</code></td></tr>
+<tr><td><code>NaN</code> na conta</td><td>A pessoa digitou letras, ou vírgula no lugar do ponto</td></tr>
+<tr><td><code>Cannot determine intended module format…</code></td><td><code>require</code> e <code>await</code> solto no mesmo arquivo</td></tr>
+<tr><td><code>AbortError: Aborted with Ctrl+C</code></td><td>A pessoa apertou <kbd>Ctrl</kbd>+<kbd>C</kbd> (ou <kbd>Ctrl</kbd>+<kbd>D</kbd>) durante a pergunta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o programa esperar a resposta e depois fechar o leitor:</p>
+<div class="ex-code">const cidade = <input data-answer="await" aria-label="palavra para esperar"> rl.question("Sua cidade? ");<br>console.log(cidade);<br>rl.<input data-answer="close" aria-label="método para fechar">();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>A pessoa digitou <code>5</code>. O que este trecho mostra?</p>
+<pre class="file" data-file="ex2.js">const n = await rl.question("Número: ");
+console.log(n + 1);
+</pre>
+<div class="ex-code">Mostra <input data-answer="51" aria-label="saída">.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>rl.question</code> devolve quando a pessoa digita <code>42</code>?</p>
+<label><input type="radio" name="q3"> O número 42</label>
+<label><input type="radio" name="q3"> O texto <code>"42"</code> (depois do <code>await</code>)</label>
+<label><input type="radio" name="q3"> <code>true</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Um programa mostra a resposta certa, mas o terminal não volta para o <code>$</code>. O que falta?</p>
+<label><input type="radio" name="q4"> Um <code>await</code></label>
+<label><input type="radio" name="q4"> Um <code>Number()</code></label>
+<label><input type="radio" name="q4"> Um <code>break</code></label>
+<label><input type="radio" name="q4"> O <code>rl.close()</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O <code>readline</code> desta aula funciona numa página do navegador?</p>
+<label><input type="radio" name="q5"> Não: ele é do Node; no navegador se usa o <code>prompt()</code></label>
+<label><input type="radio" name="q5"> Sim, igualzinho</label>
+<label><input type="radio" name="q5"> Só no Chrome</label>
+<label><input type="radio" name="q5"> Só com <code>require</code></label>
+</div>
+
+<h3>Missão final: a calculadora de soma</h3>
+
+<div class="tryjs" data-digitar="7\n5" data-goal="out:Soma: 12;;src:await\s+rl\.question[\s\S]*await\s+rl\.question;;src:\brl\.close\(\)">
+<p class="try-task"><strong>Missão:</strong> complete o programa: pergunte dois números (<code>Primeiro número: </code> e <code>Segundo número: </code>), converta as respostas e mostre <code>Soma: </code> com o resultado. Não esqueça de fechar o leitor. Teste com <code>7</code> e <code>5</code>.</p>
+<pre class="script" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+// pergunte os dois números aqui
+
+// mostre a soma aqui
+</pre>
+<pre class="solucao" data-file="main.js">import { createInterface } from "node:readline/promises";
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+const a = Number(await rl.question("Primeiro número: "));
+const b = Number(await rl.question("Segundo número: "));
+console.log(`Soma: ${a + b}`);
+
+rl.close();
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>No Node, o teclado se lê com o módulo <code>node:readline/promises</code>: <code>import</code>, <code>createInterface</code>, <code>await rl.question(…)</code> e <code>rl.close()</code>.</li>
+  <li>O <code>await</code> faz o programa esperar a pessoa digitar; sem ele, aparece <code>[object Promise]</code>.</li>
+  <li>A resposta é sempre texto: use <code>Number()</code> para fazer contas, e <code>Number.isNaN</code> para conferir.</li>
+  <li>Dá para perguntar num laço (<code>while (true)</code> + <code>break</code> no "sair").</li>
+  <li>Sem <code>rl.close()</code>, o programa não termina. <kbd>Ctrl</kbd>+<kbd>C</kbd> durante a pergunta encerra com <code>AbortError</code>.</li>
+  <li>No navegador, o equivalente é o <a href="prompt.html">prompt()</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
