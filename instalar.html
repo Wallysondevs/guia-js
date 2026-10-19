@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Instalar o Node.js — Windows, macOS e Linux | Guia JavaScript</title>
+<meta name="description" content="Como instalar o Node.js 24 LTS para quem nunca programou: conferir se já está instalado, LTS ou Current, Linux com nvm (transcrição real), a armadilha do apt no Ubuntu, Windows com o instalador ou o winget, macOS com o instalador, nvm ou Homebrew, o teste final e os erros reais explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Instalar o Node.js</span></h1>
+
+<p class="intro">Para rodar programas JavaScript no terminal, com <code>node arquivo.js</code>, você precisa do <strong>Node.js</strong> instalado. O navegador já vem com JavaScript, mas o Node.js não vem com o computador: é um programa que se instala, como qualquer outro. Esta aula mostra como conferir se você já tem, qual versão escolher e como instalar no Linux, no Windows e no macOS. Se ainda não quiser instalar nada, tudo bem: as caixas "Experimente" do guia funcionam sem instalação (aula <a href="simulador.html">O Editor do Guia</a>).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A conferir se o Node.js já está instalado, com <code>node -v</code>.</li>
+  <li>A diferença entre as versões <strong>LTS</strong> e <strong>Current</strong>, e por que este guia usa o <strong>Node.js 24 LTS</strong>.</li>
+  <li>A instalar no <strong>Linux</strong> com o <strong>nvm</strong>, o jeito que o site oficial recomenda, e por que o <code>apt install nodejs</code> do Ubuntu entrega uma versão mais velha.</li>
+  <li>A instalar no <strong>Windows</strong> (instalador ou <code>winget</code>) e no <strong>macOS</strong> (instalador, nvm ou Homebrew).</li>
+  <li>A conferir o <code>node</code>, o <code>npm</code> e o <code>npx</code>, e a rodar o teste final.</li>
+  <li>Os erros reais: comando não encontrado, <code>nvm</code> não encontrado logo depois de instalar, opção errada.</li>
+</ul>
+</div>
+
+<p>As transcrições de Linux desta aula são reais: foram feitas na máquina fictícia da Ana, um <strong>Ubuntu 26.04</strong> (usuária <code>ana</code>, computador <code>notebook</code>), primeiro <strong>sem</strong> Node.js e depois instalando de verdade. As partes de Windows e macOS não puderam ser rodadas aqui: estão marcadas como <strong>ilustrativas</strong> e seguem as instruções oficiais de <code>nodejs.org</code>.</p>
+
+<hr>
+
+<h2>A ideia: a receita e a cozinha</h2>
+<p>O arquivo <code>.js</code> é uma <strong>receita</strong>. Sozinha, uma receita não faz bolo nenhum: alguém precisa de uma cozinha para seguir os passos. O Node.js é essa <strong>cozinha</strong>: o programa que lê a sua receita em JavaScript e a executa no computador.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No computador</th></tr>
+<tr><td>A receita</td><td>O seu arquivo <code>receita.js</code></td></tr>
+<tr><td>A cozinha que segue a receita</td><td>O <strong>Node.js</strong> (o comando <code>node</code>)</td></tr>
+<tr><td>A despensa de ingredientes prontos</td><td>O <strong>npm</strong>, que vem junto, e busca bibliotecas prontas (aula <a href="npm.html">npm</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. O Node.js já está instalado?</h2>
+<p>Abra o terminal (no Ubuntu, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>) e pergunte a versão do Node.js com <code>node -v</code> (o <code>-v</code> é de <em>version</em>, "versão"). Num computador que ainda não tem o Node.js, a resposta do Ubuntu é esta:</p>
+
+<pre class="term">$ node -v
+Comando 'node' não encontrado, mas poder ser instalado com:
+sudo apt install nodejs
+</pre>
+
+<dl class="anatomy">
+  <dt>Comando 'node' não encontrado</dt><dd>O terminal procurou um programa chamado <code>node</code> e não achou: o Node.js não está instalado (ou está num lugar que o terminal não conhece).</dd>
+  <dt>mas poder ser instalado com:</dt><dd>O Ubuntu tenta ajudar e sugere um pacote. (O "poder" no lugar de "pode" é um errinho da tradução do próprio Ubuntu; saiu assim mesmo.)</dd>
+  <dt>sudo apt install nodejs</dt><dd>O comando que ele sugere. <strong>Cuidado:</strong> esse pacote existe, mas traz uma versão mais velha que a do guia. Veja a <a href="#apt">seção 4</a> antes de usar.</dd>
+</dl>
+
+<p>Se, em vez disso, aparecer um número como <code>v24.22.0</code>, o Node.js já está instalado. Se o número começar com <code>v24</code> (ou maior), você pode pular para a <a href="#conferir">seção 7</a>. Se começar com <code>v18</code>, <code>v20</code> ou <code>v22</code>, ele funciona, mas algumas aulas usam recursos novos que só existem no 24: vale atualizar.</p>
+
+<p>No Windows e no macOS a ideia é a mesma: abra o Terminal (ou o PowerShell) e digite <code>node -v</code>. Sem Node.js, aparece uma mensagem dizendo que <code>node</code> não é reconhecido como comando.</p>
+
+<hr>
+
+<h2>2. Qual versão: LTS ou Current</h2>
+<p>O Node.js lança uma versão "grande" nova a cada seis meses. As de número <strong>par</strong> (20, 22, 24, 26…) viram <strong>LTS</strong> e recebem correções por anos. O site oficial sempre oferece duas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>O que é</th><th>Para quem</th></tr>
+<tr><td><strong>LTS</strong> (<em>Long Term Support</em>, "suporte de longo prazo")</td><td>A versão estável, com correções garantidas por bastante tempo</td><td><strong>Para você.</strong> É a recomendada para o dia a dia e para aprender</td></tr>
+<tr><td><strong>Current</strong> ("atual")</td><td>A mais nova, com as novidades primeiro; muda mais</td><td>Para quem quer testar o que vem por aí</td></tr>
+</table>
+</div>
+
+<p>Este guia usa o <strong>Node.js 24 LTS</strong> (cada LTS ganha também um apelido; o do 24 é <em>Krypton</em>, que você vai ver no <code>nvm</code> logo abaixo). Na máquina da Ana, a versão é a <code>v24.22.0</code>, a mais nova do 24 em outubro de 2026. Os números depois do 24 (<code>.22.0</code>) mudam a cada atualização; o que importa é o 24.</p>
+
+<div class="note">
+<strong>E o Node.js 26?</strong>
+<p>O Node.js 26 está previsto para virar LTS no fim de outubro de 2026. Se você instalar "a LTS" depois disso, pode receber o 26. A linguagem que o guia ensina é a mesma; as diferenças entre versões ficam em <a href="versoes.html">Versões do Node.js</a>. Para ter exatamente o 24, use os comandos com o número (<code>nvm install 24</code>, <code>brew install node@24</code>), mostrados abaixo.</p>
+</div>
+
+<hr>
+
+<h2 id="nvm">3. Linux: o jeito recomendado, com o nvm</h2>
+<p>O <strong>nvm</strong> (<em>Node Version Manager</em>, "gerenciador de versões do Node") é um pequeno programa que instala o Node.js <strong>dentro da sua pasta pessoal</strong>, sem pedir senha de administrador, e deixa você ter várias versões e trocar entre elas. É o primeiro jeito que a página de download do <code>nodejs.org</code> mostra para Linux e macOS. São três comandos, que você pode copiar de lá. Na máquina da Ana, ainda sem Node.js, foi assim:</p>
+
+<pre class="term">$ node -v
+Comando 'node' não encontrado, mas poder ser instalado com:
+sudo apt install nodejs
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current     « o curl mostra
+                                 Dload  Upload  Total   Spent   Left   Speed       « o andamento
+100  17883 100  17883   0      0 187.5k      0                              0     « do download
+=&gt; Downloading nvm as script to '/home/ana/.nvm'
+
+=&gt; Appending nvm source string to /home/ana/.bashrc
+=&gt; Appending bash_completion source string to /home/ana/.bashrc
+=&gt; Close and reopen your terminal to start using nvm or run the following to use it now:
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] &amp;&amp; \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] &amp;&amp; \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+$ \. "$HOME/.nvm/nvm.sh"
+$ nvm install 24
+Downloading and installing node v24.22.0...
+Downloading https://nodejs.org/dist/v24.22.0/node-v24.22.0-linux-x64.tar.xz...
+######################################################################## 100.0%
+Computing checksum with sha256sum
+Checksums matched!
+Now using node v24.22.0 (npm v11.19.1)
+Creating default alias: default -&gt; 24 (-&gt; v24.22.0 *)
+$ node -v
+v24.22.0
+$ npm -v
+11.19.1
+</pre>
+
+<p>Vamos por partes:</p>
+<dl class="anatomy">
+  <dt>curl -o- https://…/install.sh | bash</dt><dd>O <code>curl</code> baixa da internet o instalador do nvm (o <code>-o-</code> manda o que baixou para a tela, em vez de salvar num arquivo) e a barra <code>|</code> (o "cano") entrega esse texto ao <code>bash</code>, que o executa. O <code>v0.40.8</code> no endereço é a versão do nvm; copie o comando do <code>nodejs.org</code> ou do site do nvm para ter a mais nova.</dd>
+  <dt>Downloading nvm as script to '/home/ana/.nvm'</dt><dd>O nvm foi baixado para a pasta escondida <code>.nvm</code> dentro da pasta da Ana. Nada foi instalado fora dela; por isso não precisou de <code>sudo</code> nem de senha.</dd>
+  <dt>Appending … to /home/ana/.bashrc</dt><dd>O instalador acrescentou três linhas no fim do <code>.bashrc</code>, o arquivo que o terminal lê toda vez que abre. Assim, os próximos terminais já conhecem o comando <code>nvm</code>.</dd>
+  <dt>Close and reopen your terminal…</dt><dd>"Feche e abra o terminal para começar a usar o nvm, ou rode o seguinte para usar agora". O terminal que já estava aberto ainda não leu o <code>.bashrc</code> novo.</dd>
+  <dt>\. "$HOME/.nvm/nvm.sh"</dt><dd>É o "rode agora" do aviso: carrega o nvm neste terminal mesmo, sem precisar fechar. O <code>.</code> (ponto) lê um arquivo de comandos dentro do terminal atual; a <code>\</code> na frente só garante que é o ponto "de verdade" do bash.</dd>
+  <dt>nvm install 24</dt><dd>Baixa e instala a versão mais nova do Node.js 24 (aqui, a <code>v24.22.0</code>), direto do <code>nodejs.org</code>.</dd>
+  <dt>Checksums matched!</dt><dd>"As somas de verificação bateram": o nvm conferiu que o arquivo baixado chegou inteiro e sem alterações.</dd>
+  <dt>Now using node v24.22.0 (npm v11.19.1)</dt><dd>"Agora usando o node v24.22.0". O <strong>npm</strong>, a "despensa" de bibliotecas, veio junto, na versão 11.19.1.</dd>
+  <dt>Creating default alias: default -&gt; 24</dt><dd>Como é a primeira versão instalada, ela vira a <strong>padrão</strong>: todo terminal novo já abre usando o Node.js 24.</dd>
+</dl>
+
+<p>Num terminal novo, sem fazer nada, o <code>node</code> já funciona (o <code>.bashrc</code> carrega o nvm sozinho). O comando <code>nvm ls</code> lista as versões instaladas; a setinha <code>-&gt;</code> marca a que está em uso:</p>
+
+<pre class="term">$ node -v
+v24.22.0
+$ nvm ls
+-&gt;     v24.22.0 *
+default -&gt; 24 (-&gt; v24.22.0 *)
+iojs -&gt; N/A (default)
+node -&gt; stable (-&gt; v24.22.0 *) (default)
+stable -&gt; 24.22 (-&gt; v24.22.0 *) (default)
+unstable -&gt; N/A (default)
+lts/* -&gt; lts/krypton (-&gt; v24.22.0 *)
+lts/argon -&gt; v4.9.1 (-&gt; N/A)                « daqui para baixo: os apelidos
+lts/boron -&gt; v6.17.1 (-&gt; N/A)               « de todas as LTS antigas;
+lts/carbon -&gt; v8.17.0 (-&gt; N/A)              « N/A = não instalada
+lts/dubnium -&gt; v10.24.1 (-&gt; N/A)
+lts/erbium -&gt; v12.22.12 (-&gt; N/A)
+lts/fermium -&gt; v14.21.3 (-&gt; N/A)
+lts/gallium -&gt; v16.20.2 (-&gt; N/A)
+lts/hydrogen -&gt; v18.20.8 (-&gt; N/A)
+lts/iron -&gt; v20.20.2 (-&gt; N/A)
+lts/jod -&gt; v22.23.3 (-&gt; N/A)
+lts/krypton -&gt; v24.22.0 *
+$ which node
+/home/ana/.nvm/versions/node/v24.22.0/bin/node
+</pre>
+
+<p>O <code>which node</code> ("qual node?") mostra onde está o programa: dentro da pasta <code>.nvm</code> da Ana. Para ter outra versão ao lado, é só <code>nvm install 22</code>; para trocar, <code>nvm use 24</code> (você vai ver um exemplo em <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2 id="apt">4. A armadilha do <code>apt install nodejs</code></h2>
+<p>O próprio Ubuntu sugeriu <code>sudo apt install nodejs</code>, e esse comando funciona: instala o Node.js que vem nos pacotes do Ubuntu. O problema é a <strong>versão</strong>. As distribuições Linux congelam as versões dos programas quando lançam, e o Node.js anda rápido. Segundo o site oficial de pacotes do Ubuntu (<code>packages.ubuntu.com</code>):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ubuntu</th><th>Versão do pacote <code>nodejs</code></th><th>Serve para o guia?</th></tr>
+<tr><td>26.04 LTS</td><td><strong>22</strong>.22.1</td><td>Quase tudo, mas não o que é novo do 24</td></tr>
+<tr><td>24.04 LTS</td><td><strong>18</strong>.19.1</td><td>Não: velho demais para várias aulas</td></tr>
+</table>
+</div>
+
+<p>Além disso, no Ubuntu o <code>npm</code> é um pacote separado (<code>sudo apt install npm</code>), também numa versão mais velha (9.2.0 no 26.04). Por isso, para este guia, prefira o <strong>nvm</strong> (seção 3). Se você já instalou pelo <code>apt</code>, não tem problema: o nvm instala o 24 na sua pasta e passa na frente do Node.js do sistema.</p>
+
+<div class="note">
+<strong>Outros caminhos no Linux</strong>
+<p>A página de download do <code>nodejs.org</code> também mostra outros gerenciadores (como o <strong>fnm</strong>) e o Node.js em <strong>Docker</strong>, e o site oficial oferece o arquivo pronto (<code>node-v24.22.0-linux-x64.tar.xz</code>) para quem quer descompactar à mão. Há ainda repositórios de terceiros com versões novas para o <code>apt</code>. Todos funcionam; o nvm é o mais simples de desfazer e de atualizar.</p>
+</div>
+
+<hr>
+
+<h2>5. Windows (ilustrativo)</h2>
+<p>No Windows há dois caminhos simples. Esta seção segue o <code>nodejs.org</code> e não foi rodada na máquina da Ana (que é Linux).</p>
+
+<h3>Com o instalador (o mais fácil)</h3>
+<ol class="passo">
+  <li>Abra <code>https://nodejs.org</code> e clique no botão de download da versão <strong>LTS</strong>. Para um computador comum (64 bits, processador Intel ou AMD), o arquivo é algo como <code>node-v24.22.0-x64.msi</code>.</li>
+  <li>Abra o arquivo baixado. Clique em <em>Next</em> ("Próximo"), aceite a licença e deixe as opções como estão: elas já colocam o <code>node</code> e o <code>npm</code> no PATH (a lista de lugares onde o Windows procura comandos).</li>
+  <li>Na tela <em>Tools for Native Modules</em> ("ferramentas para módulos nativos"), pode deixar a caixa <strong>desmarcada</strong>: este guia não precisa delas.</li>
+  <li>Clique em <em>Install</em> e, no fim, em <em>Finish</em>.</li>
+  <li><strong>Abra um terminal novo</strong> (o Terminal do Windows ou o PowerShell) e digite <code>node -v</code>. Deve aparecer <code>v24.</code> seguido de mais números.</li>
+</ol>
+
+<h3>Com o winget, pelo terminal</h3>
+<p>O <strong>winget</strong> é o instalador de programas por linha de comando que vem no Windows 10 e 11. No Terminal ou no PowerShell:</p>
+<pre class="file" data-file="PowerShell">winget install OpenJS.NodeJS.LTS
+</pre>
+<p>O <code>OpenJS.NodeJS.LTS</code> é o nome do pacote do Node.js LTS no catálogo do winget. Depois, feche o terminal, abra outro e confira com <code>node -v</code>. Como esse pacote acompanha "a LTS do momento", ele pode instalar o 26 a partir do fim de outubro de 2026 (veja o aviso da seção 2).</p>
+
+<div class="tip">
+<strong>Abra um terminal novo depois de instalar</strong>
+<p>Um terminal que já estava aberto antes da instalação não fica sabendo do <code>node</code> novo. É a causa número um do "instalei e não funciona" no Windows.</p>
+</div>
+
+<hr>
+
+<h2>6. macOS (ilustrativo)</h2>
+<p>Também segue o <code>nodejs.org</code>; não foi rodado na máquina da Ana. Três caminhos:</p>
+<ul>
+  <li><strong>O instalador</strong>: no <code>nodejs.org</code>, baixe o arquivo <code>.pkg</code> da LTS (algo como <code>node-v24.22.0.pkg</code>), abra e siga os passos. Ele instala o <code>node</code> e o <code>npm</code>.</li>
+  <li><strong>O nvm</strong>: os mesmos três comandos da <a href="#nvm">seção 3</a>, no aplicativo Terminal. No macOS o terminal padrão é o <code>zsh</code>, e o instalador do nvm escreve no arquivo de configuração dele.</li>
+  <li><strong>O Homebrew</strong>, para quem já usa o <code>brew</code>: <code>brew install node@24</code>. O Homebrew pode avisar, no fim, que é preciso acrescentar uma pasta ao PATH; siga o aviso que ele mostrar.</li>
+</ul>
+<p>Em qualquer caso, termine abrindo um Terminal novo e digitando <code>node -v</code>.</p>
+
+<hr>
+
+<h2 id="conferir">7. Conferindo a instalação</h2>
+<p>Junto com o Node.js vêm três comandos. Na máquina da Ana, com o Node.js oficial (instalado em <code>/usr/local</code>, a pasta dos programas instalados "à mão"):</p>
+
+<pre class="term">$ node -v
+v24.22.0
+$ npm -v
+11.19.1
+$ npx -v
+11.19.1
+$ which node
+/usr/local/bin/node
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que é</th></tr>
+<tr><td><code>node</code></td><td>O Node.js: roda os seus arquivos <code>.js</code> (aula <a href="executar.html">Rodando um Programa</a>) e abre o modo interativo (aula <a href="repl.html">O Modo Interativo</a>)</td></tr>
+<tr><td><code>npm</code></td><td>O gerenciador de pacotes: instala bibliotecas prontas (aula <a href="npm.html">npm</a>)</td></tr>
+<tr><td><code>npx</code></td><td>Roda uma ferramenta de um pacote sem instalar de vez; vem junto com o npm, por isso a mesma versão</td></tr>
+</table>
+</div>
+
+<p>O <code>node --version</code>, por extenso, faz o mesmo que <code>node -v</code>. O lugar que o <code>which node</code> mostra muda conforme o jeito de instalar: <code>/usr/local/bin/node</code> (arquivo oficial), <code>/usr/bin/node</code> (<code>apt</code>), uma pasta dentro de <code>~/.nvm</code> (nvm).</p>
+
+<hr>
+
+<h2>8. O teste final</h2>
+<p>Agora o teste de verdade: um programa. Crie um arquivo <code>teste.js</code> (a aula <a href="executar.html">Rodando um Programa</a> mostra como criar e salvar, passo a passo) com estas duas linhas:</p>
+
+<pre class="file" data-file="teste.js">console.log("O Node.js está funcionando!");
+console.log("Versão:", process.version);
+</pre>
+
+<pre class="term">$ node teste.js
+O Node.js está funcionando!
+Versão: v24.22.0
+</pre>
+
+<p>Se apareceram as duas linhas, está tudo pronto. O <code>process.version</code> é a versão do Node.js que rodou o arquivo (é só do Node: veja <a href="onde-roda.html">Onde o JavaScript Roda</a>).</p>
+
+<div class="tryjs" data-goal="out:O Node.js está funcionando!;;semerro">
+<p class="try-task"><strong>Missão:</strong> sem instalar nada, faça o teste aqui: troque os <code>???</code> para que a primeira linha mostre <code>O Node.js está funcionando!</code> e clique em Rodar. A segunda linha mostra a versão que o editor do guia imita.</p>
+<pre class="script" data-file="main.js">console.log("???");
+console.log("Versão:", process.version);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("O Node.js está funcionando!");
+console.log("Versão:", process.version);
+</pre>
+</div>
+
+<hr>
+
+<h2>9. Um editor para escrever os programas</h2>
+<p>Um programa JavaScript é um arquivo de <strong>texto puro</strong>. Para escrevê-lo, use um editor de código, nunca um editor de documentos como o Word ou o LibreOffice Writer (eles gravam formatação escondida e trocam as aspas <code>"</code> por aspas "curvas", que o JavaScript não entende).</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Editor</th><th>Onde</th><th>Comentário</th></tr>
+<tr><td><strong>VS Code</strong></td><td>Windows, macOS, Linux</td><td>O mais usado para JavaScript: cores no código, avisos de erro, terminal embutido</td></tr>
+<tr><td><code>nano</code></td><td>Dentro do terminal (Linux, macOS)</td><td>Simples e já vem no Ubuntu; é o que a Ana usa na aula <a href="executar.html">Rodando um Programa</a></td></tr>
+<tr><td>Editor de Texto do sistema</td><td>Linux, macOS</td><td>Serve, desde que salve como texto puro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de ter o Node.js</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Sistema</th><th>Vantagem</th><th>Cuidado</th></tr>
+<tr><td><code>nvm install 24</code></td><td>Linux, macOS</td><td>Sem senha, várias versões, fácil de atualizar</td><td>Só funciona num terminal que carregou o nvm</td></tr>
+<tr><td>Instalador <code>.msi</code> / <code>.pkg</code></td><td>Windows, macOS</td><td>Clicar e pronto</td><td>Para atualizar, baixe e instale de novo</td></tr>
+<tr><td><code>winget install OpenJS.NodeJS.LTS</code></td><td>Windows</td><td>Uma linha no terminal</td><td>Instala a LTS do momento</td></tr>
+<tr><td><code>brew install node@24</code></td><td>macOS</td><td>Para quem já usa o Homebrew</td><td>Pode pedir ajuste no PATH</td></tr>
+<tr><td><code>sudo apt install nodejs</code></td><td>Ubuntu, Debian</td><td>Já está nos pacotes do sistema</td><td>Versão velha (22 no Ubuntu 26.04; 18 no 24.04)</td></tr>
+<tr><td>Nenhuma: o editor do guia</td><td>Qualquer navegador</td><td>Nada para instalar</td><td>Imita o Node.js; não mexe nos seus arquivos de verdade</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>nvm</code> não encontrado, logo depois de instalar</strong>
+<pre class="term">$ curl -so- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash &gt; /dev/null
+$ nvm install 24
+Comando 'nvm' não encontrado, você quis dizer:
+  comando 'nm' do deb binutils (2.46-3ubuntu2)
+  comando 'num' do deb quickcal (2.4-1build1)
+  comando 'nsm' do deb linuxptp (4.4-0ubuntu1)
+  comando 'lvm' do deb lvm2 (2.03.31-2ubuntu3)       « e mais 10 sugestões
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+<p>A Ana instalou o nvm (aqui, com a saída escondida) e, no <strong>mesmo</strong> terminal, já pediu <code>nvm install 24</code>. O terminal ainda não conhece o <code>nvm</code>: ele só é carregado quando o terminal lê o <code>.bashrc</code>, ao abrir. O Ubuntu, sem saber disso, sugere comandos de nome parecido ("você quis dizer") que <strong>não têm nada a ver</strong>: não instale nenhum deles. <strong>Como consertar:</strong> feche e abra o terminal, ou rode <code>\. "$HOME/.nvm/nvm.sh"</code>, como o próprio instalador avisa:</p>
+<pre class="term">$ \. "$HOME/.nvm/nvm.sh"
+$ nvm --version
+0.40.8
+</pre>
+</div>
+
+<div class="cenario">
+<strong><code>nvm use</code> numa versão que não foi instalada</strong>
+<pre class="term">$ nvm install 22
+Downloading and installing node v22.23.3...
+Downloading https://nodejs.org/dist/v22.23.3/node-v22.23.3-linux-x64.tar.xz...
+######################################################################## 100.0%
+Computing checksum with sha256sum
+Checksums matched!
+Now using node v22.23.3 (npm v10.9.9)
+Creating default alias: default -&gt; 22 (-&gt; v22.23.3 *)
+$ node -v
+v22.23.3
+$ nvm use 24
+N/A: version "v24" is not yet installed.
+
+You need to run `nvm install 24` to install and use it.
+$ node -v
+v22.23.3
+</pre>
+<p>Num outro computador, a Ana instalou o Node.js <strong>22</strong> por engano (digitou 22 em vez de 24). Ao tentar trocar com <code>nvm use 24</code>, o nvm respondeu "N/A: a versão v24 ainda não está instalada. Você precisa rodar <code>nvm install 24</code> para instalar e usar". O <code>node -v</code> continuou no 22. <strong>Como consertar:</strong> <code>nvm install 24</code> (ele instala e já passa a usar). Para o 24 virar o padrão dos próximos terminais: <code>nvm alias default 24</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>nodejs</code> em vez de <code>node</code></strong>
+<pre class="term">$ nodejs -v
+Comando 'nodejs' não encontrado, mas poder ser instalado com:
+sudo apt install nodejs
+$ node -v
+v24.22.0
+</pre>
+<p>O <strong>pacote</strong> do Ubuntu se chama <code>nodejs</code>, mas o <strong>comando</strong> se chama <code>node</code>. Na máquina da Ana, que tem o Node.js oficial, o comando <code>nodejs</code> não existe. <strong>Como consertar:</strong> digite sempre <code>node</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Opção com a letra errada</strong>
+<pre class="term">$ node -V
+node: bad option: -V
+$ echo $?
+9
+</pre>
+<p>"Opção ruim: <code>-V</code>". Para o Node.js, o <code>-V</code> maiúsculo não existe: a versão é com <code>-v</code> minúsculo (ou <code>--version</code>). O terminal diferencia maiúsculas de minúsculas, igual ao JavaScript. O <code>echo $?</code> mostra o código de saída: <code>9</code>, que o Node.js usa para "opção inválida" (diferente do <code>0</code> de quando dá certo).</p>
+</div>
+
+<div class="cenario">
+<strong>Instalei no Windows e o terminal não acha o <code>node</code> (ilustrativo)</strong>
+<p>Quase sempre o terminal já estava aberto antes da instalação. <strong>Como consertar:</strong> feche todas as janelas do terminal (ou do VS Code) e abra de novo. Se ainda assim não funcionar, reinicie o computador; se continuar, rode o instalador outra vez e confira se a opção de pôr o Node.js no PATH ficou marcada.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>node -v</code> mostra uma versão velha</strong>
+<p>Se aparece <code>v18…</code> ou <code>v22…</code> e você queria o 24, provavelmente há um Node.js antigo do sistema (do <code>apt</code>) sendo achado primeiro. Use <code>which node</code> para ver qual está sendo usado. Com o nvm, rode <code>nvm install 24</code> e abra um terminal novo; o do nvm passa na frente.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Versão do Node: ;;src:\);\s*$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo tem o mesmo erro do primeiro cenário da <a href="introducao.html">Introdução</a> e esqueceu o ponto e vírgula do fim. Conserte os dois até ele mostrar <code>Versão do Node: </code> seguido da versão.</p>
+<pre class="script" data-file="main.js">Console.log("Versão do Node: " + process.version)
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Versão do Node: " + process.version);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>node -v</code> / <code>node --version</code></td><td>Mostra a versão do Node.js (ou "não encontrado", se não estiver instalado)</td></tr>
+<tr><td><code>npm -v</code> / <code>npx -v</code></td><td>Mostram a versão do npm e do npx</td></tr>
+<tr><td><code>which node</code></td><td>Mostra onde está o programa <code>node</code> (Linux, macOS)</td></tr>
+<tr><td><code>curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash</code></td><td>Instala o nvm</td></tr>
+<tr><td><code>\. "$HOME/.nvm/nvm.sh"</code></td><td>Carrega o nvm no terminal atual (ou feche e abra o terminal)</td></tr>
+<tr><td><code>nvm install 24</code></td><td>Instala o Node.js 24 mais novo e passa a usá-lo</td></tr>
+<tr><td><code>nvm use 24</code> / <code>nvm ls</code></td><td>Troca para o 24 / lista as versões instaladas</td></tr>
+<tr><td><code>winget install OpenJS.NodeJS.LTS</code></td><td>Windows: instala o Node.js LTS</td></tr>
+<tr><td><code>brew install node@24</code></td><td>macOS com Homebrew: instala o Node.js 24</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Comando 'node' não encontrado</code></td><td>O Node.js não está instalado (ou o terminal é anterior à instalação)</td></tr>
+<tr><td><code>Comando 'nvm' não encontrado, você quis dizer…</code></td><td>O nvm foi instalado, mas o terminal ainda não o carregou</td></tr>
+<tr><td><code>N/A: version "v24" is not yet installed.</code></td><td><code>nvm use</code> numa versão que não foi instalada: rode <code>nvm install 24</code></td></tr>
+<tr><td><code>Comando 'nodejs' não encontrado</code></td><td>O comando é <code>node</code>; <code>nodejs</code> é o nome do pacote</td></tr>
+<tr><td><code>node: bad option: -V</code></td><td>A opção de versão é <code>-v</code>, minúsculo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A versão</h3>
+<p>Complete o comando que mostra a versão do Node.js instalada:</p>
+<div class="ex-code">$ node <input data-answer="-v|--version" aria-label="opção"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Com o nvm</h3>
+<p>Complete o comando do nvm que instala o Node.js 24:</p>
+<div class="ex-code">$ nvm <input data-answer="install" aria-label="subcomando"> 24</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual versão do Node.js é a recomendada para aprender e para o dia a dia?</p>
+<label><input type="radio" name="q3"> A Current, porque é a mais nova</label>
+<label><input type="radio" name="q3"> A LTS, porque é estável e recebe correções por anos</label>
+<label><input type="radio" name="q3"> Qualquer versão de número ímpar</label>
+<label><input type="radio" name="q3"> A que vem no <code>apt</code>, porque é a do sistema</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana instalou o nvm e, no mesmo terminal, digitou <code>nvm install 24</code>. Apareceu <code>Comando 'nvm' não encontrado</code>. O que fazer?</p>
+<label><input type="radio" name="q4"> Instalar o <code>nm</code> que o Ubuntu sugeriu</label>
+<label><input type="radio" name="q4"> Rodar <code>sudo apt install nodejs</code></label>
+<label><input type="radio" name="q4"> Abrir um terminal novo (ou carregar o <code>nvm.sh</code>) e tentar de novo</label>
+<label><input type="radio" name="q4"> Reinstalar o nvm com <code>sudo</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que este guia não recomenda o <code>sudo apt install nodejs</code> no Ubuntu?</p>
+<label><input type="radio" name="q5"> Porque esse pacote não existe</label>
+<label><input type="radio" name="q5"> Porque ele apaga o navegador</label>
+<label><input type="radio" name="q5"> Porque ele não vem com o comando <code>node</code></label>
+<label><input type="radio" name="q5"> Porque traz uma versão mais velha que a do guia (22 no Ubuntu 26.04)</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual programa vem junto com o Node.js e instala bibliotecas prontas?</p>
+<label><input type="radio" name="q6"> npm</label>
+<label><input type="radio" name="q6"> nvm</label>
+<label><input type="radio" name="q6"> winget</label>
+<label><input type="radio" name="q6"> curl</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Node.js é o programa que roda os seus arquivos <code>.js</code> no computador. Confira se ele existe com <code>node -v</code>.</li>
+  <li>Use a versão <strong>LTS</strong>; este guia usa o <strong>Node.js 24 LTS</strong> (<code>v24.22.0</code> na máquina da Ana).</li>
+  <li><strong>Linux e macOS:</strong> o nvm instala o Node.js na sua pasta, sem senha: instale o nvm com o comando do <code>nodejs.org</code>, abra um terminal novo (ou carregue o <code>nvm.sh</code>) e rode <code>nvm install 24</code>.</li>
+  <li>O <code>apt install nodejs</code> do Ubuntu funciona, mas entrega uma versão mais velha (22 no 26.04, 18 no 24.04).</li>
+  <li><strong>Windows:</strong> o instalador <code>.msi</code> do <code>nodejs.org</code> ou <code>winget install OpenJS.NodeJS.LTS</code>. <strong>macOS:</strong> o <code>.pkg</code>, o nvm ou <code>brew install node@24</code>. Depois, sempre um terminal novo.</li>
+  <li>Junto vêm o <code>npm</code> e o <code>npx</code>. O teste final é rodar um <code>console.log</code> com <code>node teste.js</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
