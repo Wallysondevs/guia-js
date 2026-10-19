@@ -393,6 +393,7 @@ DOMException [DataCloneError]: saudar() {
 Node.js v24.22.0
 </pre>
 <p>Desta vez as primeiras linhas mostram o código <strong>de dentro do Node</strong> (<code>node:internal/…</code>), onde o erro estourou. A sua linha aparece mais abaixo: <code>/home/ana/clonefuncao.js:7:15</code>, a do <code>structuredClone</code>. A mensagem <code>DataCloneError: saudar() { … } could not be cloned</code> quer dizer "erro de clonagem: <em>saudar</em> não pôde ser clonado": <code>structuredClone</code> copia dados (números, textos, arrays, objetos, datas…), mas <strong>não funções</strong> (os métodos, veja <a href="objetos-metodos.html">Métodos e this</a>). <strong>Como consertar:</strong> clone só os dados, ou use <code>{ ...loja }</code>, que copia o método como mais uma propriedade (os dois objetos passam a apontar para a mesma função, o que normalmente não é problema).</p>
+<p>No editor do guia, que roda no seu navegador, o erro é o mesmo <code>DataCloneError</code>, com o texto do navegador (<code>Failed to execute 'structuredClone' on 'WorkerGlobalScope': saudar() { … } could not be cloned.</code>), e o <code>^</code> já aponta para a linha 7 do seu arquivo.</p>
 </div>
 
 <hr>
