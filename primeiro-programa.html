@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Seu Primeiro Programa — Olá, mundo! | Guia JavaScript</title>
+<meta name="description" content="O primeiro programa em JavaScript para quem nunca programou: o Olá, mundo! parte por parte, aspas duplas, simples e crase, várias linhas na ordem, linha em branco, números e contas, juntar texto e número, um recibo da padaria, e os erros reais do Node.js 24 (aspas, parênteses, aspas curvas do Word) explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Seu Primeiro Programa</span></h1>
+
+<p class="intro">É tradição: o primeiro programa em qualquer linguagem mostra na tela a frase "Olá, mundo!". Em JavaScript, ele tem uma linha só. Nesta aula você vai escrever esse programa, entender cada pedaço dele e, a partir dele, montar um programa de verdade: o recibo da padaria da Ana, com textos, números e contas. E vai ver, com as mensagens reais, os erros que todo mundo comete no primeiro dia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A escrever e rodar o <code>console.log("Olá, mundo!");</code>, e o que é cada parte.</li>
+  <li>Os três tipos de aspas do JavaScript: <code>"duplas"</code>, <code>'simples'</code> e <code>`crase`</code>.</li>
+  <li>Que o programa roda de cima para baixo, uma linha da saída por <code>console.log</code>, e a linha em branco com <code>console.log()</code>.</li>
+  <li>A mostrar números e o resultado de contas, e por que <code>"2 + 3"</code> e <code>2 + 3</code> são diferentes.</li>
+  <li>A juntar texto e número, com <code>+</code> e com vírgula.</li>
+  <li>Os erros reais: aspa sem fechar, aspas trocadas, aspas curvas, parêntese sem fechar, texto sem aspas, e a conta que dá <code>87</code> em vez de <code>15</code>.</li>
+</ul>
+</div>
+
+<p>Os programas foram rodados com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana, na pasta <code>/home/ana/js</code> (aula <a href="executar.html">Rodando um Programa</a>). As caixas "Experimente" rodam o JavaScript do seu navegador, imitando o Node.js.</p>
+
+<hr>
+
+<h2>A ideia: o recado no quadro de avisos</h2>
+<p>Na padaria há um quadro de avisos. A Ana escreve um recado num papel e prega no quadro, e o recado aparece para todo mundo, do jeitinho que foi escrito. Para pregar outro recado, outro papel, embaixo do primeiro.</p>
+
+<p>No seu programa, o quadro de avisos é a <strong>tela</strong> (o terminal), e quem prega os recados é o <code>console.log</code>. Cada <code>console.log</code> prega um papel: uma linha na tela, embaixo da anterior.</p>
+
+<hr>
+
+<h2>1. Olá, mundo!</h2>
+
+<pre class="file" data-file="ola.js">console.log("Olá, mundo!");
+</pre>
+
+<pre class="term">$ node ola.js
+Olá, mundo!
+</pre>
+
+<p>Uma linha de código, uma linha na tela. Vamos olhar cada pedaço:</p>
+
+<dl class="anatomy">
+  <dt>console</dt><dd>O <strong>console</strong> é a "mesa de controle" do programa: a ferramenta que o JavaScript oferece para escrever mensagens. No Node.js, o que ela escreve vai para o terminal; no navegador, para o Console do <kbd>F12</kbd>. Escreve-se em minúsculas.</dd>
+  <dt>.</dt><dd>O ponto quer dizer "a parte de dentro". <code>console.log</code> é "o <code>log</code> que fica dentro do <code>console</code>".</dd>
+  <dt>log</dt><dd>Em inglês, "registrar, anotar" (como o diário de bordo de um navio). <code>console.log</code> é uma <strong>função</strong>: um comando com nome que faz um trabalho. O trabalho dela é escrever na tela.</dd>
+  <dt>( )</dt><dd>Os parênteses <strong>chamam</strong> (põem para trabalhar) a função. O que vai dentro deles é o que você entrega a ela.</dd>
+  <dt>"Olá, mundo!"</dt><dd>Um <strong>texto</strong>, que em programação se chama <strong>string</strong> ("cordão": letras enfileiradas). As aspas marcam onde o texto começa e termina, e <strong>não aparecem</strong> na tela. Dentro delas, tudo sai igualzinho: espaços, vírgula, acentos, o ponto de exclamação.</dd>
+  <dt>;</dt><dd>O <strong>ponto e vírgula</strong> marca o fim da instrução, como o ponto final de uma frase. O JavaScript até consegue adivinhar onde a instrução termina se você esquecer, mas este guia sempre escreve o <code>;</code> (o porquê está na próxima aula, <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>).</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Olá, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> troque <code>mundo</code> por <code>Ana</code>, para o programa mostrar <code>Olá, Ana!</code>. Clique em Rodar.</p>
+<pre class="script" data-file="main.js">console.log("Olá, mundo!");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Olá, Ana!");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Três tipos de aspas</h2>
+<p>O JavaScript aceita textos entre aspas <strong>duplas</strong>, <strong>simples</strong> ou <strong>crase</strong> (o acento grave, <code>`</code>, que no teclado brasileiro fica perto do <kbd>Enter</kbd>, junto com o <code>´</code>). Para ele, os três são o mesmo texto. A regra é uma só: <strong>feche com a mesma aspa que abriu</strong>.</p>
+
+<pre class="file" data-file="aspas.js">console.log("Bom dia, Ana!");
+console.log('Bom dia, Ana!');
+console.log(`Bom dia, Ana!`);
+console.log("Padaria D'Ouro");
+console.log('Ela disse: "Que pão cheiroso!"');
+</pre>
+
+<pre class="term">$ node aspas.js
+Bom dia, Ana!
+Bom dia, Ana!
+Bom dia, Ana!
+Padaria D'Ouro
+Ela disse: "Que pão cheiroso!"
+</pre>
+
+<p>As três primeiras linhas saíram iguais. A escolha da aspa fica útil quando o texto tem aspas dentro: o nome <em>Padaria D'Ouro</em> tem um apóstrofo (que é a aspa simples), então vai entre aspas duplas; a frase com aspas duplas dentro vai entre aspas simples.</p>
+
+<div class="tip">
+<strong>Qual aspa usar?</strong>
+<p>Este guia usa <strong>aspas duplas</strong> para textos comuns, e a <strong>crase</strong> quando precisa encaixar valores no meio do texto (as <em>template strings</em>, com <code>${ }</code>, da aula <a href="template-strings.html">Template Strings</a>). As simples aparecem quando o texto tem aspas duplas dentro. O importante é ser coerente.</p>
+</div>
+
+<hr>
+
+<h2>3. Várias linhas, na ordem</h2>
+<p>Um programa pode ter quantos <code>console.log</code> você quiser. Eles rodam de cima para baixo, e cada um escreve uma linha. Um <code>console.log()</code> <strong>vazio</strong>, sem nada nos parênteses, escreve uma linha em branco. Este é o cartão de visitas da Ana:</p>
+
+<pre class="file" data-file="cartao.js">console.log("Ana Souza");
+console.log("Confeiteira");
+console.log();
+console.log("Padaria do Bairro");
+console.log("Rua das Flores, 123");
+</pre>
+
+<pre class="term">$ node cartao.js
+Ana Souza
+Confeiteira
+
+Padaria do Bairro
+Rua das Flores, 123
+</pre>
+
+<p>Cinco <code>console.log</code>, cinco linhas na saída: quatro com texto e a do meio em branco. Repare que <code>"Rua das Flores, 123"</code> é um texto só, com a vírgula e o número <strong>dentro</strong> das aspas: para o JavaScript, tudo ali é letra.</p>
+
+<div class="tryjs" data-goal="outre:Ana Souza\nConfeiteira\n\nPadaria do Bairro;;src:^console\.log\(\s*\);;semerro">
+<p class="try-task"><strong>Missão:</strong> ponha uma linha em branco entre <code>Confeiteira</code> e <code>Padaria do Bairro</code>, usando um <code>console.log()</code> vazio.</p>
+<pre class="script" data-file="main.js">console.log("Ana Souza");
+console.log("Confeiteira");
+console.log("Padaria do Bairro");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Ana Souza");
+console.log("Confeiteira");
+console.log();
+console.log("Padaria do Bairro");
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Números e contas</h2>
+<p>Números se escrevem <strong>sem aspas</strong>. E, se você puser uma conta dentro do <code>console.log</code>, o JavaScript primeiro <strong>calcula</strong> e depois mostra o resultado:</p>
+
+<pre class="file" data-file="contas.js">console.log(42);
+console.log(3.5);
+console.log(2 + 3);
+console.log("2 + 3");
+console.log(10 * 4);
+console.log(10 / 4);
+console.log(7 - 10);
+</pre>
+
+<pre class="term">$ node contas.js
+42
+3.5
+5
+2 + 3
+40
+2.5
+-3
+</pre>
+
+<dl class="anatomy">
+  <dt>42 e 3.5</dt><dd>Números. A casa decimal se separa com <strong>ponto</strong>, nunca com vírgula.</dd>
+  <dt>2 + 3 → 5</dt><dd>Uma conta: o JavaScript soma e entrega o resultado ao <code>console.log</code>.</dd>
+  <dt>"2 + 3" → 2 + 3</dt><dd>Entre aspas, não é conta: é um texto com cinco caracteres, mostrado como está.</dd>
+  <dt>10 * 4 → 40</dt><dd>O <code>*</code> (asterisco) é a multiplicação.</dd>
+  <dt>10 / 4 → 2.5</dt><dd>A <code>/</code> é a divisão. O resultado pode ter casas decimais.</dd>
+  <dt>7 - 10 → -3</dt><dd>A subtração; o resultado pode ser negativo. Todas as contas estão em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</dd>
+</dl>
+
+<div class="warning">
+<strong>Com aspas é texto, sem aspas é valor</strong>
+<p><code>"2 + 3"</code> é um recado escrito num papel; <code>2 + 3</code> é uma conta que o JavaScript resolve. Essa diferença volta o guia inteiro; a aula <a href="tipos-de-dados.html">Os Tipos de Dados</a> conta a história toda.</p>
+</div>
+
+<hr>
+
+<h2>5. Juntando texto e número</h2>
+<p>Para mostrar "Pães: 12", há dois jeitos simples:</p>
+
+<pre class="file" data-file="juntar.js">console.log("Pães: " + 12);
+console.log("Pães:", 12);
+console.log("Total: R$ " + 3 * 2.5);
+console.log("2" + 3);
+</pre>
+
+<pre class="term">$ node juntar.js
+Pães: 12
+Pães: 12
+Total: R$ 7.5
+23
+</pre>
+
+<dl class="anatomy">
+  <dt>"Pães: " + 12</dt><dd>Quando um dos lados do <code>+</code> é um texto, o <code>+</code> <strong>junta</strong> (em vez de somar): o <code>12</code> vira texto e gruda no fim. O espaço depois dos dois-pontos foi escrito <strong>dentro</strong> das aspas; o <code>+</code> não põe espaço nenhum.</dd>
+  <dt>"Pães:", 12</dt><dd>A vírgula entrega <strong>dois valores</strong> ao <code>console.log</code>, e ele os mostra lado a lado, com um espaço entre eles, por conta própria (mais em <a href="console-log.html">console.log()</a>).</dd>
+  <dt>"Total: R$ " + 3 * 2.5</dt><dd>A multiplicação acontece <strong>antes</strong> do <code>+</code> (como na escola: primeiro vezes, depois mais). <code>3 * 2.5</code> dá <code>7.5</code>, que depois é juntado ao texto.</dd>
+  <dt>"2" + 3 → 23</dt><dd>Cuidado: <code>"2"</code> entre aspas é texto, então o <code>+</code> junta: <code>2</code> grudado com <code>3</code>, <code>23</code>. Não é vinte e três: é o texto "2" seguido do "3". Essa pegadinha tem aula própria: <a href="conversao-automatica.html">Conversão Automática</a>.</dd>
+</dl>
+
+<hr>
+
+<h2>6. Juntando tudo: o recibo da padaria</h2>
+<p>Agora um programa com cara de programa. A Ana vendeu 10 pães de R$ 0,80 e 2 cafés de R$ 3,50:</p>
+
+<pre class="file" data-file="recibo.js">console.log("Padaria do Bairro");
+console.log("-----------------");
+console.log("10 pães:", 10 * 0.8);
+console.log("2 cafés:", 2 * 3.5);
+console.log("Total:", 10 * 0.8 + 2 * 3.5);
+console.log();
+console.log("Obrigado e volte sempre!");
+</pre>
+
+<pre class="term">$ node recibo.js
+Padaria do Bairro
+-----------------
+10 pães: 8
+2 cafés: 7
+Total: 15
+
+Obrigado e volte sempre!
+</pre>
+
+<p>Repare que <code>10 * 0.8</code> saiu <code>8</code>, e não <code>8.00</code>: o JavaScript não mostra zeros desnecessários. Para mostrar dinheiro com duas casas (<code>8.00</code>) ou no jeito brasileiro (<code>R$ 8,00</code>) há outros recursos, que você vai conhecer mais adiante, a partir da aula <a href="numeros.html">Números</a>.</p>
+
+<div class="tryjs" data-goal="out:3 sonhos: 13.5;;out:Total: 28.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana também vendeu <strong>3 sonhos de R$ 4,50</strong>. Acrescente a linha <code>3 sonhos:</code> com a conta <code>3 * 4.5</code>, e some os sonhos no total. O recibo deve mostrar <code>3 sonhos: 13.5</code> e <code>Total: 28.5</code>.</p>
+<pre class="script" data-file="main.js">console.log("Padaria do Bairro");
+console.log("-----------------");
+console.log("10 pães:", 10 * 0.8);
+console.log("2 cafés:", 2 * 3.5);
+console.log("Total:", 10 * 0.8 + 2 * 3.5);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Padaria do Bairro");
+console.log("-----------------");
+console.log("10 pães:", 10 * 0.8);
+console.log("2 cafés:", 2 * 3.5);
+console.log("3 sonhos:", 3 * 4.5);
+console.log("Total:", 10 * 0.8 + 2 * 3.5 + 3 * 4.5);
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de mostrar a mesma coisa</h2>
+<p>As quatro linhas abaixo mostram <code>Pães: 12</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>console.log("Pães: 12");</code></td><td>Quando tudo é fixo: um texto só</td></tr>
+<tr><td><code>console.log("Pães:", 12);</code></td><td>Para mostrar rápido vários valores (o espaço vem sozinho). Ótimo para testar e procurar erros</td></tr>
+<tr><td><code>console.log("Pães: " + 12);</code></td><td>Para montar uma frase com o espaçamento exato que você quer. Cuidado com as contas (veja abaixo)</td></tr>
+<tr><td><code>console.log(`Pães: ${12}`);</code></td><td>A <strong>template string</strong>: o jeito mais usado no JavaScript moderno para encaixar valores num texto (aula <a href="template-strings.html">Template Strings</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>As mensagens saem em inglês; aqui, explicadas em português. Para não repetir, as linhas <code>at …</code> do próprio Node.js foram cortadas (a aula <a href="introducao.html">Introdução</a> mostra uma mensagem inteira, lida linha por linha).</p>
+
+<div class="cenario">
+<strong>Aspa que não fecha</strong>
+<pre class="file" data-file="e1.js">console.log("Olá, mundo!);
+</pre>
+<pre class="term">$ node e1.js
+/home/ana/js/e1.js:1
+console.log("Olá, mundo!);
+            ^^^^^^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo (<em>token</em>) inválido ou inesperado". O JavaScript achou a aspa que abriu o texto e procurou outra <code>"</code> para fechar; a linha acabou sem ela (os <code>^^^^</code> sublinham o texto que ficou aberto, que engoliu até o <code>);</code>). Um texto entre aspas duplas ou simples não pode atravessar a linha. É um <code>SyntaxError</code>: nada do arquivo roda. <strong>Como consertar:</strong> feche a aspa: <code>console.log("Olá, mundo!");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspas trocadas</strong>
+<pre class="file" data-file="e2.js">console.log("Olá, mundo!');
+</pre>
+<pre class="term">$ node e2.js
+/home/ana/js/e2.js:1
+console.log("Olá, mundo!');
+            ^^^^^^^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Abriu com aspa dupla, fechou com simples. A simples não fecha um texto que começou com dupla: para o JavaScript, ela é só mais uma letra dentro do texto, que continua aberto. Mesma mensagem do cenário anterior. <strong>Como consertar:</strong> feche com a mesma aspa que abriu.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspas curvas, copiadas do Word ou do WhatsApp</strong>
+<pre class="file" data-file="e3.js">console.log(“Olá, mundo!”);
+</pre>
+<pre class="term">$ node e3.js
+/home/ana/js/e3.js:1
+console.log(“Olá, mundo!”);
+                                         « a linha do ^ veio vazia
+
+SyntaxError: Invalid or unexpected token
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Olhe bem as aspas: são as <strong>curvas</strong> (<code>“ ”</code>), que editores de texto como o Word, o Google Docs e alguns aplicativos de celular colocam sozinhos "para ficar bonito". Para o JavaScript, elas não são aspas: são símbolos estranhos. Aqui o Node.js nem conseguiu desenhar os <code>^</code>. <strong>Como consertar:</strong> escreva o código num editor de código (aula <a href="instalar.html">Instalar o Node.js</a>, seção 9) e troque as curvas pelas retas: <code>"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Parêntese que não fecha</strong>
+<pre class="file" data-file="e4.js">console.log("Padaria do Bairro"
+console.log("Pão às 7h");
+</pre>
+<pre class="term">$ node e4.js
+/home/ana/js/e4.js:1
+console.log("Padaria do Bairro"
+            ^^^^^^^^^^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    «  8 linhas "at …" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Faltou <code>)</code> depois da lista de argumentos". Os argumentos são o que vai dentro dos parênteses; depois de <code>"Padaria do Bairro"</code>, o JavaScript esperava o <code>)</code> e encontrou outra coisa (o <code>console</code> da linha 2). Nenhuma das duas linhas rodou. <strong>Como consertar:</strong> feche o parêntese, e ponha o <code>;</code>: <code>console.log("Padaria do Bairro");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto sem aspas</strong>
+<pre class="file" data-file="e5.js">console.log(Ola);
+</pre>
+<pre class="term">$ node e5.js
+/home/ana/js/e5.js:1
+console.log(Ola);
+            ^
+
+ReferenceError: Ola is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/js/e5.js:1:13)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Sem aspas, <code>Ola</code> não é um texto: o JavaScript acha que é o <strong>nome</strong> de alguma coisa (uma variável, aula <a href="variaveis.html">Variáveis</a>). Como ninguém criou nada com esse nome, vem o <code>ReferenceError</code>: "<code>Ola</code> não está definido". Repare no <code>:1:13</code>: linha 1, coluna 13, exatamente onde está o <code>O</code>. <strong>Como consertar:</strong> <code>console.log("Ola");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A conta que dá 87 em vez de 15</strong>
+<pre class="file" data-file="e6.js">console.log("Total: " + 10 * 0.8 + 2 * 3.5);
+console.log("Total: " + (10 * 0.8 + 2 * 3.5));
+</pre>
+<pre class="term">$ node e6.js
+Total: 87
+Total: 15
+</pre>
+<p>Nenhuma mensagem de erro, e mesmo assim a primeira linha está errada. O JavaScript fez as multiplicações primeiro (<code>8</code> e <code>7</code>) e depois os <code>+</code>, da esquerda para a direita: <code>"Total: " + 8</code> deu o texto <code>"Total: 8"</code>, e <code>"Total: 8" + 7</code> <strong>juntou</strong> o 7 no fim: <code>"Total: 87"</code>. Uma vez que virou texto, o <code>+</code> só junta. <strong>Como consertar:</strong> parênteses em volta da conta (segunda linha), para ela ser feita antes de juntar; ou use a vírgula: <code>console.log("Total:", 10 * 0.8 + 2 * 3.5);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma conta solta: não aparece nada</strong>
+<pre class="file" data-file="e7.js">console.log("Calculando...");
+2 + 3;
+</pre>
+<pre class="term">$ node e7.js
+Calculando...
+</pre>
+<p>A linha 2 não é erro: o JavaScript calculou <code>5</code> e jogou fora, porque ninguém pediu para mostrar. No <a href="repl.html">modo interativo</a>, <code>2 + 3</code> mostra <code>5</code> sozinho; num arquivo, só o <code>console.log</code> mostra. <strong>Como consertar:</strong> <code>console.log(2 + 3);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Vírgula no lugar do ponto decimal</strong>
+<pre class="file" data-file="e8.js">console.log(18,9);
+</pre>
+<pre class="term">$ node e8.js
+18 9
+</pre>
+<p>A Ana queria dezoito e noventa. Para o JavaScript, a vírgula separa valores: ele entendeu <strong>dois</strong> números e mostrou os dois, com um espaço. Sem erro nenhum. <strong>Como consertar:</strong> decimal com ponto: <code>console.log(18.9);</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="semerro;;out:Pão saindo às 7h">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>dois</strong> erros e não roda. Clique em Rodar, leia a mensagem, conserte e rode de novo até aparecerem as duas linhas.</p>
+<pre class="script" data-file="main.js">console.log("Padaria do Bairro");
+Console.log("Pão saindo às 7h);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Padaria do Bairro");
+console.log("Pão saindo às 7h");
+</pre>
+</div>
+
+<p>Repare na ordem em que os erros aparecem: primeiro o da aspa (um <code>SyntaxError</code>, e nada roda); só depois de consertá-lo o programa começa, mostra a primeira linha e para no <code>Console is not defined</code>.</p>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que mostra</th></tr>
+<tr><td><code>console.log("Olá");</code></td><td><code>Olá</code> (o texto, sem as aspas)</td></tr>
+<tr><td><code>console.log('Olá');</code> / <code>console.log(`Olá`);</code></td><td><code>Olá</code> (as três aspas funcionam igual)</td></tr>
+<tr><td><code>console.log();</code></td><td>Uma linha em branco</td></tr>
+<tr><td><code>console.log(3.5);</code></td><td>Um número (decimal com ponto)</td></tr>
+<tr><td><code>console.log(2 + 3);</code> / <code>console.log("2 + 3");</code></td><td><code>5</code> / <code>2 + 3</code></td></tr>
+<tr><td><code>console.log("Pães: " + 12);</code></td><td><code>Pães: 12</code> (juntou texto e número)</td></tr>
+<tr><td><code>console.log("Pães:", 12);</code></td><td><code>Pães: 12</code> (dois valores, com espaço entre eles)</td></tr>
+<tr><td><code>console.log("2" + 3);</code></td><td><code>23</code> (texto + número junta)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td>Aspa sem fechar, aspas trocadas ou aspas curvas (<code>“ ”</code>)</td></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td>Parêntese sem fechar, ou um texto sem aspas no meio</td></tr>
+<tr><td><code>ReferenceError: Ola is not defined</code></td><td>Texto sem aspas (virou um nome), ou nome escrito errado</td></tr>
+<tr><td><code>ReferenceError: Console is not defined</code></td><td><code>console</code> com maiúscula</td></tr>
+<tr><td>Saiu <code>87</code> em vez de <code>15</code>, sem erro</td><td>Conta depois de um texto com <code>+</code>: ponha a conta entre parênteses</td></tr>
+<tr><td>Não apareceu nada, sem erro</td><td>Conta solta, sem <code>console.log</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Complete para mostrar <code>Bom dia</code> na tela:</p>
+<div class="ex-code">console.<input data-answer="log" aria-label="nome da função">("Bom dia");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>O que aparece com <code>console.log(7 * 3);</code>?</p>
+<div class="ex-code">Saída: <input data-answer="21" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E agora?</h3>
+<p>O que aparece com <code>console.log("7 * 3");</code>?</p>
+<div class="ex-code">Saída: <input data-answer="7 * 3" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Juntando</h3>
+<p>O que aparece com <code>console.log("1" + 1);</code>?</p>
+<div class="ex-code">Saída: <input data-answer="11" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas linhas mostra <code>Padaria D'Ouro</code> sem erro?</p>
+<label><input type="radio" name="q5"> <code>console.log('Padaria D'Ouro');</code></label>
+<label><input type="radio" name="q5"> <code>console.log(Padaria D'Ouro);</code></label>
+<label><input type="radio" name="q5"> <code>console.log("Padaria D'Ouro");</code></label>
+<label><input type="radio" name="q5"> <code>Console.log("Padaria D'Ouro");</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Um programa tem 4 linhas: <code>console.log("a");</code>, <code>console.log();</code>, <code>console.log("b");</code> e <code>console.log("c");</code>. Quantas linhas aparecem na saída?</p>
+<label><input type="radio" name="q6"> 3</label>
+<label><input type="radio" name="q6"> 4, sendo uma em branco</label>
+<label><input type="radio" name="q6"> 1, com <code>abc</code></label>
+<label><input type="radio" name="q6"> Dá erro, porque o <code>console.log()</code> está vazio</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. O que mostra <code>console.log("Total: " + 2 + 3);</code>?</p>
+<label><input type="radio" name="q7"> <code>Total: 5</code></label>
+<label><input type="radio" name="q7"> <code>Total: 2 + 3</code></label>
+<label><input type="radio" name="q7"> Um erro</label>
+<label><input type="radio" name="q7"> <code>Total: 23</code></label>
+</div>
+
+<h3>Missão final: o quadro da padaria</h3>
+<div class="tryjs" data-goal="outre:^Padaria do Bairro\n\nPão francês: 12\nBolo de fubá: 3\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> monte o quadro de avisos. Ele deve mostrar <code>Padaria do Bairro</code>, depois <strong>uma linha em branco</strong>, depois <code>Pão francês: 12</code> e, na última linha, <code>Bolo de fubá: 3</code>. Escreva os números como números (sem aspas em volta deles).</p>
+<pre class="script" data-file="main.js">console.log("Padaria do Bairro");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Padaria do Bairro");
+console.log();
+console.log("Pão francês:", 12);
+console.log("Bolo de fubá:", 3);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>console.log(...)</code> mostra na tela o que está nos parênteses e pula para a linha de baixo. Cada <code>console.log</code> é uma linha, na ordem do arquivo; <code>console.log()</code> vazio dá uma linha em branco.</li>
+  <li>Textos vão entre aspas duplas, simples ou crase (feche com a mesma que abriu); as aspas não aparecem. Este guia usa duplas, e crase nas template strings.</li>
+  <li>Números e contas vão sem aspas, e o JavaScript calcula antes de mostrar. Decimal com ponto.</li>
+  <li><code>"texto" + número</code> junta; <code>"texto", número</code> mostra os dois com um espaço. Depois que virou texto, o <code>+</code> só junta: use parênteses nas contas.</li>
+  <li>Termine cada instrução com <code>;</code>.</li>
+  <li>Erros comuns: aspa sem fechar, trocada ou curva → <code>Invalid or unexpected token</code>; parêntese → <code>missing ) after argument list</code>; texto sem aspas → <code>is not defined</code>. Com <code>SyntaxError</code>, nada roda.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
