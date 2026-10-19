@@ -281,7 +281,7 @@ $ cat estoque.json
 <p>O arquivo agora diz 15 pães. Rodando <code>ler.js</code> de novo, seriam 10: os dados sobrevivem entre uma execução e outra. (No navegador não há <code>fs</code>; lá, o JSON costuma ir para o <code>localStorage</code> ou chegar da internet com <a href="fetch.html">fetch</a>.)</p>
 
 <div class="tryjs">
-<p class="try-task"><strong>Experimente:</strong> rode: o programa salva o estoque, lê o arquivo de volta e mostra o conteúdo dele. Depois troque o <code>2</code> do <code>stringify</code> por <code>4</code>, ou apague os dois últimos argumentos, e rode de novo para ver o formato mudar.</p>
+<p class="try-task"><strong>Experimente:</strong> rode: o programa salva o estoque, lê o arquivo de volta e mostra o conteúdo dele. Depois troque o <code>2</code> do <code>stringify</code> por <code>4</code>, ou apague os dois últimos argumentos, e rode de novo para ver o formato mudar. (A caixa imita o <code>fs</code> do Node numa pasta só dela: o <code>estoque.json</code> gravado vale até o fim daquele Rodar; cada Rodar começa do zero.)</p>
 <pre class="script" data-file="main.js">const fs = require("node:fs");
 
 const estoque = { pao: 20, leite: 8, cafe: 3 };
