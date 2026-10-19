@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Modo Interativo do Node (&gt;) — o REPL | Guia JavaScript</title>
+<meta name="description" content="O modo interativo do Node.js (REPL) para quem nunca programou: abrir com node, o prompt &gt;, valores mostrados sozinhos, o undefined depois de const e console.log, o _, várias linhas com o |, o .editor, .help, .save, Ctrl+C e .exit, e os erros reais do Node.js 24 explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Modo Interativo do Node (&gt;)</span></h1>
+
+<p class="intro">Para testar uma conta ou uma linha de código, não é preciso criar um arquivo. Digite só <code>node</code> no terminal, sem nome de arquivo, e o Node.js abre o <strong>modo interativo</strong>: aparece um <code>&gt;</code>, você digita uma linha de JavaScript, aperta <kbd>Enter</kbd> e ele responde na hora. É o melhor lugar para tirar uma dúvida rápida ("quanto dá isso?", "como sai aquilo?"), e você vai usá-lo o guia inteiro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A abrir o modo interativo com <code>node</code> e a sair com <code>.exit</code> ou <kbd>Ctrl</kbd>+<kbd>D</kbd>.</li>
+  <li>Que ele <strong>mostra sozinho</strong> o valor de cada linha, e por que aparece <code>undefined</code> depois de <code>const</code> e de <code>console.log</code>.</li>
+  <li>Por que os textos aparecem com aspas simples (<code>'Ana'</code>), e o atalho <code>_</code> (o último resultado).</li>
+  <li>A escrever várias linhas (o prompt de continuação <code>|</code>) e o modo <code>.editor</code>.</li>
+  <li>Os comandos com ponto: <code>.help</code>, <code>.save</code>, <code>.load</code>, <code>.exit</code>.</li>
+  <li>A parar um programa travado com <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+  <li>Os erros reais: <code>Uncaught ReferenceError</code>, <code>has already been declared</code>, <code>Assignment to constant variable</code>, comando do terminal digitado no <code>&gt;</code>.</li>
+</ul>
+</div>
+
+<p>Todas as sessões desta aula foram digitadas no <strong>Node.js 24 LTS</strong>, num terminal de verdade, na máquina fictícia da Ana (<code>ana@notebook</code>). O que aparece aqui é exatamente o que ficou na tela.</p>
+
+<hr>
+
+<h2>A ideia: a calculadora e a carta</h2>
+<p>Um programa em arquivo é como uma <strong>carta</strong>: você escreve tudo, revisa, envia, e só depois vê o resultado. O modo interativo é como uma <strong>calculadora</strong>: você digita uma conta, aperta "=", e a resposta aparece na hora; digita outra, outra resposta. Ninguém escreve uma carta numa calculadora, nem faz uma conta rápida mandando carta.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Arquivo (<code>node ola.js</code>)</th><th>Modo interativo (<code>node</code>)</th></tr>
+<tr><td>Como é</td><td>Escreve tudo, roda tudo de uma vez</td><td>Uma linha por vez, resposta na hora</td></tr>
+<tr><td>Mostra resultados</td><td>Só o que passar por <code>console.log</code></td><td>Mostra sozinho o valor de cada linha</td></tr>
+<tr><td>Fica guardado</td><td>Sim, no arquivo</td><td>Não: ao sair, tudo some (a não ser que você salve)</td></tr>
+<tr><td>Bom para</td><td>Programas</td><td>Testes rápidos, dúvidas, explorar</td></tr>
+</table>
+</div>
+
+<p>O nome técnico do modo interativo é <strong>REPL</strong>, de <em>Read, Eval, Print, Loop</em>: "ler" o que você digitou, "avaliar" (executar), "mostrar" o resultado e "repetir", voltando ao <code>&gt;</code>.</p>
+
+<hr>
+
+<h2>1. Abrindo e fechando</h2>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 2 + 3
+5
+&gt; .exit
+</pre>
+
+<dl class="anatomy">
+  <dt>$ node</dt><dd>O <code>node</code> sozinho, sem nome de arquivo. É o que abre o modo interativo.</dd>
+  <dt>Welcome to Node.js v24.22.0.</dt><dd>"Bem-vindo ao Node.js v24.22.0": ele mostra a versão logo de cara.</dd>
+  <dt>Type ".help" for more information.</dt><dd>"Digite <code>.help</code> para mais informações" (a <a href="#comandos">seção 5</a> mostra o que aparece).</dd>
+  <dt>&gt;</dt><dd>O <strong>prompt</strong> do Node.js: ele está esperando você digitar <strong>JavaScript</strong>. Repare a diferença: no <code>$</code> você fala com o terminal; no <code>&gt;</code>, com o Node.js.</dd>
+  <dt>2 + 3 → 5</dt><dd>Você digitou a conta e apertou <kbd>Enter</kbd>; ele respondeu na linha de baixo e voltou para o <code>&gt;</code>.</dd>
+  <dt>.exit</dt><dd>Sai do modo interativo e volta para o <code>$</code> do terminal. Também dá para sair com <kbd>Ctrl</kbd>+<kbd>D</kbd>, ou apertando <kbd>Ctrl</kbd>+<kbd>C</kbd> duas vezes.</dd>
+</dl>
+
+<hr>
+
+<h2>2. A calculadora que responde sozinha</h2>
+<p>No <code>&gt;</code>, o Node.js mostra o valor de qualquer coisa que você digitar, sem precisar de <code>console.log</code>:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 2 + 3
+5
+&gt; 10 / 4
+2.5
+&gt; "Olá, " + "Ana"
+'Olá, Ana'
+&gt; "pão".toUpperCase()
+'PÃO'
+&gt; Math.max(3, 9, 4)
+9
+&gt; .exit
+</pre>
+
+<dl class="anatomy">
+  <dt>10 / 4 → 2.5</dt><dd>A divisão. Decimais saem com <strong>ponto</strong>, nunca com vírgula.</dd>
+  <dt>"Olá, " + "Ana" → 'Olá, Ana'</dt><dd>O <code>+</code> entre dois textos <strong>junta</strong> os textos. E repare: a resposta veio entre aspas <strong>simples</strong>. O modo interativo mostra os textos assim para você saber que é um texto (e não um número ou um nome). É só o jeito de mostrar: o texto em si não tem aspas.</dd>
+  <dt>"pão".toUpperCase() → 'PÃO'</dt><dd>Um <strong>método</strong> de texto: "passar para maiúsculas". Os métodos de texto têm aula própria: <a href="strings-metodos.html">Métodos de String</a>.</dd>
+  <dt>Math.max(3, 9, 4) → 9</dt><dd>O maior dos números. O <code>Math</code> é a caixa de ferramentas de matemática do JavaScript.</dd>
+</dl>
+
+<h3>Variáveis e o <code>undefined</code> que aparece sozinho</h3>
+<p>Você pode criar uma variável (um nome que guarda um valor; aula <a href="variaveis.html">Variáveis</a>) e usar nas linhas seguintes. Ela vale até você sair:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const nome = "Ana";
+undefined
+&gt; nome
+'Ana'
+&gt; nome.length
+3
+&gt; console.log("Bom dia, " + nome);
+Bom dia, Ana
+undefined
+&gt; .exit
+</pre>
+
+<p>Dois <code>undefined</code> ("indefinido") apareceram, e eles assustam todo mundo no começo. Não são erros:</p>
+<dl class="anatomy">
+  <dt>const nome = "Ana"; → undefined</dt><dd>Criar uma variável é uma <strong>ação</strong>, não uma conta; ela não tem um "resultado" para mostrar. O modo interativo sempre mostra alguma coisa, então mostra <code>undefined</code>: "não há valor aqui". A variável foi criada, sim: na linha seguinte, <code>nome</code> respondeu <code>'Ana'</code>.</dd>
+  <dt>nome.length → 3</dt><dd>O tamanho do texto: <code>Ana</code> tem 3 letras.</dd>
+  <dt>Bom dia, Ana</dt><dd>Isto é o que o <code>console.log</code> <strong>escreveu</strong>. Repare que saiu sem aspas: o <code>console.log</code> escreve o texto puro, como num programa.</dd>
+  <dt>undefined (depois do Bom dia)</dt><dd>E isto é o <strong>valor</strong> da linha <code>console.log(...)</code>. O <code>console.log</code> escreve na tela, mas não "devolve" nada; o modo interativo mostra esse "nada" como <code>undefined</code>.</dd>
+</dl>
+
+<div class="tryjs" data-repl data-digitar="2 + 3\n10 / 4\nconst nome = &quot;Ana&quot;;\nnome\nnome.length\nconsole.log(&quot;Bom dia, &quot; + nome);\nidade">
+<p class="try-task"><strong>Experimente:</strong> esta caixa imita o modo interativo. Digite as linhas acima, uma de cada vez, e invente outras contas. Repare nos <code>undefined</code>.</p>
+</div>
+
+<h3>O atalho <code>_</code>: o último resultado</h3>
+<p>O nome <code>_</code> (sublinhado), só no modo interativo, guarda o resultado da linha anterior. Útil para continuar uma conta:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; 7 * 6
+42
+&gt; _ + 1
+43
+&gt; .exit
+</pre>
+
+<h3>Num arquivo, um valor solto não aparece</h3>
+<p>Esse "mostrar sozinho" <strong>só existe no modo interativo</strong>. Num arquivo, uma linha com <code>2 + 3;</code> é calculada e jogada fora, sem aparecer nada. Num programa, quem mostra é sempre o <code>console.log</code>:</p>
+
+<div class="tryjs" data-goal="out:5;;src:console\.log\s*\(;;semerro">
+<p class="try-task"><strong>Missão:</strong> este arquivo calcula <code>2 + 3</code>, mas rode e veja: não aparece nada. Faça o resultado aparecer.</p>
+<pre class="script" data-file="main.js">2 + 3;
+</pre>
+<pre class="solucao" data-file="main.js">console.log(2 + 3);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Várias linhas: o prompt <code>|</code></h2>
+<p>Quando você abre uma chave <code>{</code> e aperta <kbd>Enter</kbd>, o Node.js percebe que a instrução ainda não acabou e, em vez do <code>&gt;</code>, mostra o <code>|</code>: o prompt de <strong>continuação</strong>, "pode continuar". Quando a chave fecha, ele executa tudo junto:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; for (let i = 1; i &lt;= 3; i++) {
+| console.log("volta " + i);
+| }
+volta 1
+volta 2
+volta 3
+undefined
+&gt; function dobro(x) {
+| return x * 2;
+| }
+undefined
+&gt; dobro(21)
+42
+&gt; .exit
+</pre>
+
+<dl class="anatomy">
+  <dt>for (…) {</dt><dd>Uma repetição (aula <a href="for.html">for</a>) que abriu a chave e ainda não fechou.</dd>
+  <dt>| console.log(…);</dt><dd>O <code>|</code> diz "continuo esperando o resto". Você digita a linha de dentro.</dd>
+  <dt>| }</dt><dd>A chave fechou: o Node.js executa as três linhas juntas, e o laço mostra três voltas. O <code>undefined</code> do fim é o valor do <code>for</code>, que não tem nenhum.</dd>
+  <dt>function dobro(x) { … }</dt><dd>Uma <strong>função</strong> (aula <a href="funcoes.html">Funções</a>). Criá-la não mostra nada além de <code>undefined</code>; usá-la, <code>dobro(21)</code>, mostra <code>42</code>.</dd>
+</dl>
+
+<p>Repare que o modo interativo não acrescenta os espaços da indentação: as linhas de dentro ficaram encostadas na margem. Para trechos maiores, bem arrumados, use o <code>.editor</code> (a seguir) ou um arquivo.</p>
+
+<h3>O modo <code>.editor</code></h3>
+<p>O comando <code>.editor</code> abre um "mini editor": você digita quantas linhas quiser, <kbd>Enter</kbd> só pula de linha, e nada roda até você apertar <kbd>Ctrl</kbd>+<kbd>D</kbd>. (Para desistir, <kbd>Ctrl</kbd>+<kbd>C</kbd>.)</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; .editor
+// Entering editor mode (Ctrl+D to finish, Ctrl+C to cancel)
+const itens = ["pão", "leite"];
+for (const item of itens) {
+  console.log("- " + item);
+}
+                                         « aqui a Ana apertou Ctrl+D
+- pão
+- leite
+undefined
+&gt; .exit
+</pre>
+
+<p>"Entrando no modo editor (Ctrl+D para terminar, Ctrl+C para cancelar)". Depois do <kbd>Ctrl</kbd>+<kbd>D</kbd>, as linhas rodaram de uma vez e o <code>&gt;</code> voltou.</p>
+
+<div class="tryjs" data-repl data-digitar="for (let i = 1; i &lt;= 3; i++) {\nconsole.log(&quot;volta &quot; + i);\n}\nfunction dobro(x) {\nreturn x * 2;\n}\ndobro(21)">
+<p class="try-task"><strong>Experimente:</strong> digite o <code>for</code> e a função <code>dobro</code> acima, linha por linha, e repare no prompt de continuação. Depois experimente <code>dobro(100)</code>.</p>
+</div>
+
+<hr>
+
+<h2>4. Parando o que travou: <kbd>Ctrl</kbd>+<kbd>C</kbd></h2>
+<p>O <kbd>Ctrl</kbd>+<kbd>C</kbd> é o "freio de mão". Ele serve para duas coisas no modo interativo.</p>
+
+<p><strong>Desistir de uma linha pela metade.</strong> Aqui a Ana esqueceu de fechar o parêntese, o Node.js ficou no <code>|</code> esperando o resto, e ela apertou <kbd>Ctrl</kbd>+<kbd>C</kbd>: o pedaço foi descartado e o <code>&gt;</code> voltou.</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; console.log("tchau"
+|                                        « Ctrl+C aqui
+&gt;
+&gt; 2 + 2
+4
+&gt; .exit
+</pre>
+
+<p><strong>Parar uma conta que não termina.</strong> O <code>while (true) {}</code> é uma repetição que nunca acaba (aula <a href="while.html">while</a>): o modo interativo trava, sem voltar ao <code>&gt;</code>. O <kbd>Ctrl</kbd>+<kbd>C</kbd> interrompe:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; while (true) {}
+^C
+Uncaught Error: Script execution was interrupted by `SIGINT`
+    at ContextifyScript.runInThisContext (node:vm:137:12)
+    «  mais 7 linhas "at …" cortadas: são do próprio Node
+    at [_line] [as _line] (node:internal/readline/interface:969:18) {
+  code: 'ERR_SCRIPT_EXECUTION_INTERRUPTED'
+}
+&gt;
+&gt; 3 + 3
+6
+&gt; .exit
+</pre>
+
+<p>O <code>^C</code> é o jeito de o terminal mostrar o <kbd>Ctrl</kbd>+<kbd>C</kbd>. A mensagem diz "a execução foi interrompida pelo <code>SIGINT</code>" (<code>SIGINT</code> é o nome do sinal que o <kbd>Ctrl</kbd>+<kbd>C</kbd> manda: "interromper"). O importante: o modo interativo <strong>continua aberto</strong> e o <code>3 + 3</code> funcionou normalmente. Num <code>&gt;</code> vazio, um <kbd>Ctrl</kbd>+<kbd>C</kbd> mostra o aviso <code>(To exit, press Ctrl+C again or Ctrl+D or type .exit)</code>, "para sair, aperte Ctrl+C de novo, ou Ctrl+D, ou digite .exit".</p>
+
+<div class="note">
+<strong>E o <code>.break</code>?</strong>
+<p>O <code>.help</code> (seção 5) lista um comando <code>.break</code> para "sair" de uma linha pela metade. No Node.js 24 da Ana, digitado no meio de um trecho de várias linhas, ele foi lido como parte do código e deu erro de sintaxe. Use o <kbd>Ctrl</kbd>+<kbd>C</kbd>, que funcionou sempre.</p>
+</div>
+
+<hr>
+
+<h2 id="comandos">5. Os comandos com ponto</h2>
+<p>As linhas que começam com <strong>ponto</strong> não são JavaScript: são comandos do próprio modo interativo. O <code>.help</code> lista todos:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; .help
+.break    Sometimes you get stuck, this gets you out
+.clear    Alias for .break
+.editor   Enter editor mode
+.exit     Exit the REPL
+.help     Print this help message
+.load     Load JS from a file into the REPL session
+.save     Save all evaluated commands in this REPL session to a file
+
+Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL
+&gt; .exit
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>Em português</th></tr>
+<tr><td><code>.break</code> / <code>.clear</code></td><td>"Às vezes você fica preso, isto tira você de lá" (veja a nota acima: prefira <kbd>Ctrl</kbd>+<kbd>C</kbd>)</td></tr>
+<tr><td><code>.editor</code></td><td>Entra no modo editor (seção 3)</td></tr>
+<tr><td><code>.exit</code></td><td>Sai do modo interativo</td></tr>
+<tr><td><code>.help</code></td><td>Mostra esta ajuda</td></tr>
+<tr><td><code>.load arquivo.js</code></td><td>Carrega e roda um arquivo dentro da sessão, e as variáveis dele ficam disponíveis</td></tr>
+<tr><td><code>.save arquivo.js</code></td><td>Salva num arquivo tudo o que você digitou na sessão</td></tr>
+</table>
+</div>
+
+<h3>Guardando o que você digitou: <code>.save</code></h3>
+<p>Ao sair, tudo o que você digitou some. Se fez algo que quer guardar, use o <code>.save</code> antes de sair:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; .editor
+// Entering editor mode (Ctrl+D to finish, Ctrl+C to cancel)
+const itens = ["pão", "leite"];
+for (const item of itens) {
+  console.log("- " + item);
+}
+
+- pão
+- leite
+undefined
+&gt; const total = 7.5 + 5.2;
+undefined
+&gt; .save compras-repl.js
+Session saved to: compras-repl.js
+&gt; .exit
+$ cat compras-repl.js; echo
+const itens = ["pão", "leite"];
+for (const item of itens) {
+  console.log("- " + item);
+}
+
+const total = 7.5 + 5.2;
+</pre>
+
+<p>"Sessão salva em <code>compras-repl.js</code>". O arquivo ficou com o código que a Ana digitou (sem as respostas), pronto para virar um programa com <code>node compras-repl.js</code>.</p>
+
+<div class="tip">
+<strong>Mais dois atalhos</strong>
+<p><strong>Setas para cima e para baixo:</strong> trazem de volta as linhas que você já digitou, para repetir ou corrigir sem digitar tudo de novo. <strong>Tab:</strong> completa nomes. Na máquina da Ana, com a variável <code>preco</code> criada, digitar <code>pre</code> e apertar <kbd>Tab</kbd> completou para <code>preco</code>; <code>"pão".toUp</code> + <kbd>Tab</kbd> completou para <code>"pão".toUpperCase</code>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de testar uma linha</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como</th><th>Quando usar</th></tr>
+<tr><td>Modo interativo</td><td><code>node</code>, e digitar no <code>&gt;</code></td><td>Várias perguntas seguidas, explorar</td></tr>
+<tr><td>Uma linha pelo terminal</td><td><code>node -p '2 + 3'</code> (aula <a href="executar.html">Rodando um Programa</a>)</td><td>Uma pergunta só, sem entrar e sair</td></tr>
+<tr><td>Console do navegador</td><td><kbd>F12</kbd> → Console (aula <a href="console-navegador.html">O Console do Navegador</a>)</td><td>Testar com uma página aberta: funciona igualzinho a um <code>&gt;</code></td></tr>
+<tr><td>Caixa "Experimente" com <code>&gt;</code></td><td>Aqui no guia</td><td>Sem instalar nada</td></tr>
+<tr><td>Arquivo</td><td><code>node arquivo.js</code></td><td>Quando passou de umas poucas linhas, ou quando quer guardar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>No modo interativo, um erro <strong>não fecha nada</strong>: aparece a mensagem, começando com <code>Uncaught</code> ("não capturado": ninguém tratou o erro), e o <code>&gt;</code> volta. Por isso ele é ótimo para errar à vontade.</p>
+
+<div class="cenario">
+<strong>Um nome que não existe</strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; idade
+Uncaught ReferenceError: idade is not defined
+&gt; Console.log("oi")
+Uncaught ReferenceError: Console is not defined
+&gt; .exit
+</pre>
+<p>"<code>idade</code> não está definido": ninguém criou essa variável. "<code>Console</code> não está definido": com C maiúsculo, o nome não existe (é <code>console</code>). Repare que, aqui, a mensagem é bem mais curta que num arquivo: sem caminho, sem linhas <code>at …</code>, sem <code>Node.js v24…</code>. <strong>Como consertar:</strong> crie a variável antes (<code>const idade = 30;</code>) ou corrija o nome.</p>
+</div>
+
+<div class="cenario">
+<strong>Criar de novo uma variável que já existe</strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; let preco = 7.5;
+undefined
+&gt; let preco = 8;
+Uncaught SyntaxError: Identifier 'preco' has already been declared
+&gt; preco = 8;
+8
+&gt; preco
+8
+&gt; const loja = "Padaria";
+undefined
+&gt; loja = "Mercado";
+Uncaught TypeError: Assignment to constant variable.
+&gt; .exit
+</pre>
+<p>No modo interativo, as variáveis ficam vivas até você sair, e isso pega muita gente que está testando e redigita uma linha:</p>
+<dl class="anatomy">
+  <dt>Identifier 'preco' has already been declared</dt><dd>"O identificador <code>preco</code> já foi declarado". Não dá para criar com <code>let</code> um nome que já existe. Para <strong>mudar</strong> o valor, escreva sem o <code>let</code>: <code>preco = 8;</code>.</dd>
+  <dt>Assignment to constant variable.</dt><dd>"Atribuição a uma variável constante". O <code>const</code> não deixa trocar o valor (aula <a href="const.html">Constantes</a>). É um <code>TypeError</code> ("erro de tipo").</dd>
+</dl>
+<p><strong>Como consertar:</strong> para mudar um valor, use o nome sem <code>let</code>; se quiser recomeçar do zero, saia (<code>.exit</code>) e abra o <code>node</code> de novo: tudo é esquecido.</p>
+</div>
+
+<div class="cenario">
+<strong>Comando do terminal digitado no <code>&gt;</code></strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; ls
+Uncaught ReferenceError: ls is not defined
+&gt; .exit
+</pre>
+<p>O <code>ls</code> é um comando do terminal (o <code>$</code>), não JavaScript. No <code>&gt;</code>, o Node.js achou que <code>ls</code> era o nome de uma variável. O mesmo acontece com <code>node ola.js</code> digitado aqui dentro (veja <a href="executar.html">Rodando um Programa</a>). <strong>Como consertar:</strong> saia com <code>.exit</code> e digite o comando no <code>$</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "pão".toUpperCase
+[Function: toUpperCase]
+&gt; "pão".toUpperCase()
+'PÃO'
+&gt; .exit
+</pre>
+<p>Sem os parênteses, você não <strong>chamou</strong> o método: só perguntou "o que é <code>toUpperCase</code>?", e o Node.js respondeu "é uma função" (<code>[Function: toUpperCase]</code>). Não é erro, mas também não é o que você queria. <strong>Como consertar:</strong> ponha os parênteses: <code>toUpperCase()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um comando com ponto que não existe</strong>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; .sair
+Invalid REPL keyword
+</pre>
+<p>"Palavra-chave do REPL inválida". Os comandos com ponto são em inglês e são só os do <code>.help</code>. <strong>Como consertar:</strong> <code>.exit</code>.</p>
+</div>
+
+<h3>Missão final: do <code>&gt;</code> para o arquivo</h3>
+<div class="tryjs" data-goal="out:dobro de 21: 42;;semerro">
+<p class="try-task"><strong>Missão:</strong> no modo interativo, <code>dobro(21)</code> mostrava <code>42</code> sozinho. Neste arquivo, a última linha não mostra nada. Troque-a para que o programa mostre <code>dobro de 21: 42</code> (dica: <code>console.log("dobro de 21: " + dobro(21));</code>).</p>
+<pre class="script" data-file="main.js">function dobro(x) {
+  return x * 2;
+}
+
+dobro(21);
+</pre>
+<pre class="solucao" data-file="main.js">function dobro(x) {
+  return x * 2;
+}
+
+console.log("dobro de 21: " + dobro(21));
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O quê</th><th>Como</th></tr>
+<tr><td>Abrir</td><td><code>node</code> (sem nome de arquivo)</td></tr>
+<tr><td>Sair</td><td><code>.exit</code>, <kbd>Ctrl</kbd>+<kbd>D</kbd>, ou <kbd>Ctrl</kbd>+<kbd>C</kbd> duas vezes</td></tr>
+<tr><td>Ver o valor de algo</td><td>Digitar e apertar <kbd>Enter</kbd> (sem <code>console.log</code>)</td></tr>
+<tr><td>O último resultado</td><td><code>_</code></td></tr>
+<tr><td>Várias linhas</td><td>Abra uma chave e continue no <code>|</code>; ou <code>.editor</code> e <kbd>Ctrl</kbd>+<kbd>D</kbd></td></tr>
+<tr><td>Desistir de uma linha / parar algo travado</td><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td></tr>
+<tr><td>Salvar / carregar</td><td><code>.save arquivo.js</code> / <code>.load arquivo.js</code></td></tr>
+<tr><td>Repetir uma linha / completar um nome</td><td>Seta para cima / <kbd>Tab</kbd></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Resposta</th><th>O que significa</th></tr>
+<tr><td><code>undefined</code> depois de <code>const</code>, <code>let</code>, <code>console.log</code>, <code>for</code>, <code>function</code></td><td>Normal: a linha não tem valor para mostrar</td></tr>
+<tr><td><code>'Ana'</code> (com aspas simples)</td><td>Um texto; as aspas são só o jeito de mostrar</td></tr>
+<tr><td><code>Uncaught ReferenceError: x is not defined</code></td><td>O nome <code>x</code> não existe (ou é comando do terminal)</td></tr>
+<tr><td><code>Uncaught SyntaxError: Identifier 'x' has already been declared</code></td><td><code>let</code>/<code>const</code> de novo num nome que já existe na sessão</td></tr>
+<tr><td><code>Uncaught TypeError: Assignment to constant variable.</code></td><td>Tentou mudar uma <code>const</code></td></tr>
+<tr><td><code>[Function: nome]</code></td><td>Faltaram os parênteses para chamar a função</td></tr>
+<tr><td><code>Invalid REPL keyword</code></td><td>Comando com ponto que não existe</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Abrir</h3>
+<p>Qual comando, digitado no terminal, abre o modo interativo do Node.js?</p>
+<div class="ex-code">$ <input data-answer="node" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Sair</h3>
+<p>Qual comando com ponto sai do modo interativo?</p>
+<div class="ex-code">&gt; <input data-answer=".exit" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O que aparece?</h3>
+<p>No modo interativo, o que aparece depois de digitar <code>"bolo" + "s"</code>?</p>
+<div class="ex-code">Resposta: <input data-answer="'bolos'" aria-label="resposta"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A Ana digitou <code>const total = 10;</code> e apareceu <code>undefined</code>. O que aconteceu?</p>
+<label><input type="radio" name="q4"> Deu erro: a variável não foi criada</label>
+<label><input type="radio" name="q4"> Nada de errado: a variável foi criada, e a linha não tem valor para mostrar</label>
+<label><input type="radio" name="q4"> O <code>total</code> vale <code>undefined</code></label>
+<label><input type="radio" name="q4"> Faltou o <code>console.log</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que o prompt <code>|</code> quer dizer?</p>
+<label><input type="radio" name="q5"> Que deu erro</label>
+<label><input type="radio" name="q5"> Que você voltou para o terminal</label>
+<label><input type="radio" name="q5"> Que a instrução ainda não terminou e ele espera o resto</label>
+<label><input type="radio" name="q5"> Que o programa travou</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um <code>while (true) {}</code> travou o modo interativo. O que fazer?</p>
+<label><input type="radio" name="q6"> Apertar <kbd>Ctrl</kbd>+<kbd>C</kbd></label>
+<label><input type="radio" name="q6"> Digitar <code>.exit</code></label>
+<label><input type="radio" name="q6"> Digitar <code>.sair</code></label>
+<label><input type="radio" name="q6"> Esperar: uma hora ele termina</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Num <strong>arquivo</strong> rodado com <code>node conta.js</code>, a linha <code>7 * 6;</code> sozinha mostra o quê?</p>
+<label><input type="radio" name="q7"> <code>42</code></label>
+<label><input type="radio" name="q7"> <code>undefined</code></label>
+<label><input type="radio" name="q7"> Um erro de sintaxe</label>
+<label><input type="radio" name="q7"> Nada: num arquivo, só o <code>console.log</code> mostra</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>node</code> sozinho abre o modo interativo (o REPL). O <code>&gt;</code> espera JavaScript; o <code>$</code> é o terminal.</li>
+  <li>Ele mostra sozinho o valor de cada linha; textos aparecem com aspas simples (<code>'Ana'</code>). <code>_</code> é o último resultado.</li>
+  <li><code>undefined</code> depois de <code>const</code>, <code>console.log</code>, <code>for</code> ou <code>function</code> é normal: a linha não tem valor.</li>
+  <li>Abrindo uma chave, o prompt vira <code>|</code> até a instrução terminar; <code>.editor</code> + <kbd>Ctrl</kbd>+<kbd>D</kbd> roda um trecho maior.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>C</kbd> desiste de uma linha ou para algo travado; <code>.exit</code> ou <kbd>Ctrl</kbd>+<kbd>D</kbd> sai. Ao sair, tudo some, a não ser o que você guardou com <code>.save</code>.</li>
+  <li>Um erro no modo interativo começa com <code>Uncaught</code> e não fecha nada. Variáveis vivem até sair: <code>let</code> de novo dá <code>has already been declared</code>.</li>
+  <li>Num arquivo, nada aparece sozinho: use <code>console.log</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
