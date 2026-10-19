@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript if — fazendo o programa decidir | Guia JavaScript</title>
+<meta name="description" content="O if do JavaScript para quem nunca programou: if (condição) { … }, o bloco que só roda quando a condição é verdadeira, comparações e variáveis booleanas na condição, as chaves e a indentação, o if no modo interativo do Node e os erros reais do Node.js 24 (parênteses esquecidos, chave que falta, = no lugar de ===, o ponto e vírgula depois do if e o if sem chaves).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">if</span></h1>
+
+<p class="intro">Até agora, os seus programas rodaram <strong>todas</strong> as linhas, de cima para baixo, sempre do mesmo jeito. Mas um programa de verdade precisa <strong>decidir</strong>: mostrar o aviso só se o estoque estiver baixo, dar o desconto só se a compra passar de um valor, liberar a entrada só se a senha estiver certa. Para isso existe o <code>if</code>, que em inglês quer dizer "<strong>se</strong>". Ele roda um pedaço do programa <strong>só quando</strong> uma condição é verdadeira.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um <code>if</code>: a condição entre parênteses <code>( )</code> e o bloco entre chaves <code>{ }</code>.</li>
+  <li>O que acontece quando a condição é verdadeira e quando é falsa.</li>
+  <li>Como pôr várias linhas dentro do <code>if</code>, e por que indentar com 2 espaços.</li>
+  <li>Que tipo de coisa pode ir na condição: comparações (<code>===</code>, <code>&gt;</code>…), <code>&amp;&amp;</code> e <code>||</code>, e variáveis booleanas.</li>
+  <li>Como o <code>if</code> aparece no modo interativo do Node.</li>
+  <li>As armadilhas e os erros reais: parênteses esquecidos, a chave que falta, <code>=</code> no lugar de <code>===</code>, o ponto e vírgula depois do <code>if</code> e o <code>if</code> sem chaves.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "se chover, leve o guarda-chuva"</h2>
+<p>Antes de sair de casa, a mãe da Ana sempre diz: <em>"Se estiver chovendo, leve o guarda-chuva."</em> Repare como essa frase funciona:</p>
+<ol class="passo">
+  <li>Tem uma <strong>pergunta</strong> de sim ou não: está chovendo?</li>
+  <li>Tem uma <strong>ação</strong>: levar o guarda-chuva.</li>
+  <li>A ação só acontece se a resposta for <strong>sim</strong>. Se for não, a Ana simplesmente segue o caminho, sem guarda-chuva.</li>
+</ol>
+<p>Em JavaScript, a pergunta se chama <strong>condição</strong>, e a resposta é sempre um booleano: <code>true</code> (verdadeiro, "sim") ou <code>false</code> (falso, "não"), como você viu em <a href="booleanos.html">Booleanos</a>. A ação é um <strong>bloco</strong> de código, uma ou mais linhas entre chaves.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>if</code></h2>
+<p>A Ana cuida do estoque da lojinha. Quando sobram menos de 5 unidades de um produto, o programa deve avisar:</p>
+
+<pre class="file" data-file="estoque.js">const estoque = 3;
+
+if (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+}
+
+console.log("Fim da conferência.");
+</pre>
+
+<dl class="anatomy">
+  <dt>if</dt><dd>A palavra-chave: "se". Sempre em minúsculas (<code>If</code> ou <code>IF</code> não funcionam).</dd>
+  <dt>( … )</dt><dd>Os <strong>parênteses</strong> em volta da condição. No JavaScript eles são <strong>obrigatórios</strong>.</dd>
+  <dt>estoque &lt; 5</dt><dd>A <strong>condição</strong>: "o estoque é menor que 5?". Ela vira <code>true</code> ou <code>false</code> (veja <a href="operadores-comparacao.html">Comparação</a>).</dd>
+  <dt>{</dt><dd>Abre o <strong>bloco</strong>: as linhas que só rodam se a condição for verdadeira.</dd>
+  <dt>console.log("Atenção: estoque baixo!");</dt><dd>O <strong>corpo</strong> do <code>if</code>. Os 2 espaços na frente mostram, para quem lê, que essa linha está dentro do bloco.</dd>
+  <dt>}</dt><dd>Fecha o bloco. Repare: <strong>não</strong> vai ponto e vírgula depois da chave.</dd>
+  <dt>console.log("Fim da conferência.");</dt><dd>Fora do bloco: roda <strong>sempre</strong>, com a condição verdadeira ou falsa.</dd>
+</dl>
+
+<pre class="term">$ node estoque.js
+Atenção: estoque baixo!
+Fim da conferência.
+</pre>
+
+<p>Como <code>3 &lt; 5</code> é <code>true</code>, o Node entrou no bloco e mostrou o aviso. Depois, seguiu para a linha de baixo.</p>
+
+<h3>Quando a condição é falsa</h3>
+<p>Agora a Ana recebeu mercadoria, e o estoque é 12:</p>
+
+<pre class="file" data-file="estoque12.js">const estoque = 12;
+
+if (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+}
+
+console.log("Fim da conferência.");
+</pre>
+
+<pre class="term">$ node estoque12.js
+Fim da conferência.
+</pre>
+
+<p><code>12 &lt; 5</code> é <code>false</code>: o Node <strong>pulou</strong> o bloco inteiro, do <code>{</code> até o <code>}</code>, e continuou depois dele. Nenhum erro, nenhum aviso: o <code>if</code> sem a resposta "sim" simplesmente não faz nada.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor de <code>estoque</code></th><th><code>estoque &lt; 5</code></th><th>O que aparece</th></tr>
+<tr><td>3</td><td><code>true</code></td><td>o aviso e o "Fim da conferência."</td></tr>
+<tr><td>12</td><td><code>false</code></td><td>só o "Fim da conferência."</td></tr>
+<tr><td>5</td><td><code>false</code> (5 não é <strong>menor</strong> que 5)</td><td>só o "Fim da conferência."</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Atenção: estoque baixo!;;src:const estoque = 4;">
+<p class="try-task"><strong>Missão:</strong> rode como está e veja que o aviso não aparece. Depois mude o estoque para <strong>4</strong> e rode de novo: agora o aviso tem de aparecer.</p>
+<pre class="script" data-file="main.js">const estoque = 12;
+
+if (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+}
+
+console.log("Fim da conferência.");
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = 4;
+
+if (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+}
+
+console.log("Fim da conferência.");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Várias linhas dentro do bloco</h2>
+<p>O bloco pode ter quantas linhas você quiser. Todas elas rodam juntas, se a condição for verdadeira, ou são todas puladas. Na padaria do bairro, compras de R$ 50 ou mais ganham 10% de desconto:</p>
+
+<pre class="file" data-file="desconto.js">let total = 64;
+
+if (total &gt;= 50) {
+  const desconto = total * 0.1;
+  total = total - desconto;
+  console.log(`Você ganhou R$ ${desconto} de desconto!`);
+}
+
+console.log(`Total a pagar: R$ ${total}`);
+</pre>
+
+<pre class="term">$ node desconto.js
+Você ganhou R$ 6.4 de desconto!
+Total a pagar: R$ 57.6
+</pre>
+
+<p>As três linhas do bloco rodaram, porque <code>64 &gt;= 50</code> é <code>true</code>. Repare que o <code>total</code> foi criado com <code>let</code>: ele muda dentro do <code>if</code>. Com uma compra de R$ 30, o bloco inteiro seria pulado, e a saída seria só <code>Total a pagar: R$ 30</code>.</p>
+
+<div class="tip">
+<strong>Indentação: 2 espaços</strong>
+<p>Para o JavaScript, os espaços no começo da linha não fazem diferença: quem marca o começo e o fim do bloco são as chaves. Mas para as <strong>pessoas</strong> que leem o código, fazem toda a diferença: com as linhas do bloco 2 espaços mais para a direita, dá para ver de relance o que está dentro do <code>if</code>. Use sempre (a maioria dos editores faz isso sozinha quando você aperta Enter depois do <code>{</code>).</p>
+</div>
+
+<div class="note">
+<strong>A <code>const desconto</code> só existe dentro do bloco</strong>
+<p>Uma variável criada com <code>const</code> ou <code>let</code> <strong>dentro</strong> das chaves só existe ali dentro. Tentar usar <code>desconto</code> depois do <code>}</code> dá <code>ReferenceError: desconto is not defined</code>. Por isso o <code>total</code> foi criado antes do <code>if</code>: ele é usado dentro e fora. A aula <a href="escopo.html">Escopo</a> explica isso em detalhe.</p>
+</div>
+
+<hr>
+
+<h2>3. O que pode ir na condição</h2>
+<p>Qualquer coisa que dê <code>true</code> ou <code>false</code>. As mais comuns:</p>
+
+<pre class="file" data-file="condicoes.js">const idade = 17;
+const nome = "Bia";
+const temCupom = true;
+const nota = 8;
+
+if (idade &gt;= 18) {
+  console.log("Pode tirar a carteira de motorista.");
+}
+if (nome === "Bia") {
+  console.log("Oi, Bia!");
+}
+if (temCupom) {
+  console.log("Cupom aplicado.");
+}
+if (nota &gt;= 7 &amp;&amp; nota &lt;= 10) {
+  console.log("Aprovada.");
+}
+</pre>
+
+<pre class="term">$ node condicoes.js
+Oi, Bia!
+Cupom aplicado.
+Aprovada.
+</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 18</dt><dd>Comparação de números: <code>17 &gt;= 18</code> é <code>false</code>, por isso a frase da carteira não apareceu.</dd>
+  <dt>nome === "Bia"</dt><dd>Comparação de textos com o <strong>igual estrito</strong> <code>===</code> (três sinais de igual). Use sempre o <code>===</code>, nunca o <code>==</code>: a aula <a href="operadores-comparacao.html">Comparação</a> mostra por quê.</dd>
+  <dt>temCupom</dt><dd>Uma variável que <strong>já é</strong> booleana pode ir sozinha na condição. Não precisa escrever <code>temCupom === true</code>: o resultado seria o mesmo <code>true</code>.</dd>
+  <dt>nota &gt;= 7 &amp;&amp; nota &lt;= 10</dt><dd>Duas perguntas juntas com o "e" (<code>&amp;&amp;</code>): as duas precisam ser verdadeiras. Também existe o "ou" (<code>||</code>) e o "não" (<code>!</code>); veja <a href="operadores-logicos.html">Operadores Lógicos</a>.</dd>
+</dl>
+
+<p>Repare também que cada <code>if</code> é <strong>independente</strong>: o Node testa um, depois o outro, depois o outro. Nenhum deles depende do resultado do anterior. Para escolher <strong>entre</strong> caminhos ("se for assim, faça isto; senão, faça aquilo"), existe o <code>else</code>, assunto da próxima aula: <a href="if-else.html">else e else if</a>.</p>
+
+<div class="note">
+<strong>E se a condição não for um booleano?</strong>
+<p>O JavaScript aceita qualquer valor na condição: um número, um texto… Ele transforma o valor em <code>true</code> ou <code>false</code> por conta própria. Por exemplo, <code>if (0)</code> não entra no bloco, e <code>if ("Ana")</code> entra. Essa regra tem nome e aula própria: <a href="truthy-falsy.html">Truthy e Falsy</a>.</p>
+</div>
+
+<hr>
+
+<h2>4. O <code>if</code> no modo interativo</h2>
+<p>Dá para escrever um <code>if</code> direto no <code>&gt;</code> do Node (veja <a href="repl.html">O Modo Interativo do Node</a>). Depois da linha com o <code>{</code>, o <code>&gt;</code> dá lugar a uma barrinha, <code>|</code>: o Node está esperando o resto do bloco. Ele só roda quando recebe o <code>}</code>:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const estoque = 3;
+undefined
+&gt; if (estoque &lt; 5) {
+| console.log("Estoque baixo!");
+| }
+Estoque baixo!
+undefined
+&gt; .exit
+</pre>
+
+<p>Os <code>undefined</code> não são erro: no modo interativo, o Node mostra o "valor" de cada coisa que você digita, e nem o <code>const</code> nem o <code>if</code> têm valor para mostrar. (Em versões mais antigas do Node, a linha de continuação aparecia como <code>...</code> em vez de <code>|</code>.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O aviso de estoque baixo pode ser escrito de mais de um jeito. Todos estes mostram a mesma coisa:</p>
+
+<pre class="file" data-file="formas.js">const estoque = 3;
+
+// 1. O jeito recomendado: com chaves, em várias linhas
+if (estoque &lt; 5) {
+  console.log("Estoque baixo (1)");
+}
+
+// 2. Com chaves, numa linha só
+if (estoque &lt; 5) { console.log("Estoque baixo (2)"); }
+
+// 3. Sem chaves (só vale para UMA linha)
+if (estoque &lt; 5) console.log("Estoque baixo (3)");
+
+// 4. Com &amp;&amp; (um atalho que você vai ver em código dos outros)
+estoque &lt; 5 &amp;&amp; console.log("Estoque baixo (4)");
+</pre>
+
+<pre class="term">$ node formas.js
+Estoque baixo (1)
+Estoque baixo (2)
+Estoque baixo (3)
+Estoque baixo (4)
+</pre>
+
+<dl class="anatomy">
+  <dt>Forma 2</dt><dd>Igual à 1, só que apertada numa linha. Serve para blocos bem curtos.</dd>
+  <dt>Forma 3</dt><dd>Sem chaves, o <code>if</code> controla <strong>só a próxima instrução</strong>. Funciona, mas é uma armadilha: veja em <a href="#errado">Quando dá errado</a> o que acontece quando alguém acrescenta uma segunda linha.</dd>
+  <dt>Forma 4</dt><dd>O <code>&amp;&amp;</code> só olha o lado direito se o esquerdo for verdadeiro (veja <a href="operadores-logicos.html">Operadores Lógicos</a>). Programadores experientes usam isso como um "if curto", mas é bem mais difícil de ler.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Quase sempre</td><td><code>if (condição) { … }</code>, com chaves e o bloco em linhas próprias</td></tr>
+<tr><td>Uma ação curtinha, numa linha só</td><td><code>if (condição) { … }</code> na mesma linha (com chaves)</td></tr>
+<tr><td>Sem chaves</td><td>Evite: funciona, mas engana quem acrescenta linhas depois</td></tr>
+<tr><td><code>condição &amp;&amp; ação</code></td><td>Saiba ler; prefira o <code>if</code> para escrever</td></tr>
+<tr><td>Escolher entre dois caminhos</td><td><code>if … else</code> (aula <a href="if-else.html">else e else if</a>) ou o ternário (aula <a href="ternario.html">O Operador Ternário</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="semparenteses.js">const idade = 20;
+if idade &gt;= 18 {
+  console.log("Maior de idade");
+}
+</pre>
+<pre class="term">$ node semparenteses.js
+/home/ana/semparenteses.js:2
+if idade &gt;= 18 {
+   ^^^^^
+
+SyntaxError: Unexpected identifier 'idade'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semparenteses.js:2</dt><dd>O arquivo e a linha onde o Node percebeu o problema: a linha 2.</dd>
+  <dt>if idade &gt;= 18 {</dt><dd>A própria linha 2, copiada.</dd>
+  <dt>^^^^^</dt><dd>As setinhas embaixo marcam o ponto exato: a palavra <code>idade</code>. Depois do <code>if</code>, o Node esperava um <code>(</code> e encontrou outra coisa.</dd>
+  <dt>SyntaxError: Unexpected identifier 'idade'</dt><dd>"Erro de sintaxe: nome inesperado <code>'idade'</code>". <strong>Sintaxe</strong> é a gramática da linguagem; um erro de sintaxe quer dizer "isso não é JavaScript escrito do jeito certo".</dd>
+  <dt>at wrapSafe (node:internal/…) …</dt><dd>As linhas <code>at</code> aqui são todas internas do Node: ele estava <strong>lendo</strong> o arquivo, ainda nem tinha começado a rodar. Por isso não há nenhuma linha com o seu arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>Com erro de sintaxe, <strong>nenhuma</strong> linha do programa roda, nem as que estavam certas. Quem vem do Python costuma esquecer esses parênteses. <strong>Como consertar:</strong> <code>if (idade &gt;= 18) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu de fechar a chave</strong>
+<pre class="file" data-file="semchave.js">const estoque = 3;
+if (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+
+console.log("Fim da conferência.");
+</pre>
+<pre class="term">$ node semchave.js
+/home/ana/semchave.js:6
+
+
+
+SyntaxError: Unexpected end of input
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Fim inesperado da entrada": o Node chegou ao fim do arquivo ainda esperando a <code>}</code> que fecha o bloco. Repare que o erro aponta a linha 6, que nem existe no código: é o "lugar" logo depois da última linha, o fim do arquivo. Por isso as linhas embaixo dela estão em branco: não há código para copiar nem nada para a setinha apontar. O Node só percebe a falta no fim, e não na linha em que a chave faltou. <strong>Como consertar:</strong> procure de onde para onde vai cada bloco e feche com <code>}</code> (os 2 espaços de indentação ajudam muito a enxergar).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar de <code>===</code></strong>
+<pre class="file" data-file="igual.js">const senha = "1234";
+if (senha = "abcd") {
+  console.log("Senha certa!");
+}
+</pre>
+<pre class="term">$ node igual.js
+/home/ana/igual.js:2
+if (senha = "abcd") {
+          ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/igual.js:2:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Atribuição a uma variável constante". Um <code>=</code> sozinho não compara: ele <strong>guarda</strong> um valor (veja <a href="atribuicao.html">Atribuição</a>). O Node tentou guardar <code>"abcd"</code> dentro da constante <code>senha</code>, e constante não pode mudar. Aqui o <code>const</code> salvou a Ana. Com <code>let</code>, é pior, porque não aparece erro nenhum:</p>
+<pre class="file" data-file="igual-let.js">let senha = "1234";
+if (senha = "abcd") {
+  console.log("Senha certa!");
+}
+console.log(senha);
+</pre>
+<pre class="term">$ node igual-let.js
+Senha certa!
+abcd
+</pre>
+<p>A senha estava errada, e mesmo assim o programa disse "Senha certa!". E ainda <strong>trocou</strong> a senha para <code>"abcd"</code>. O <code>senha = "abcd"</code> guardou o texto e "valeu" <code>"abcd"</code>, um texto não vazio, que o <code>if</code> trata como verdadeiro (veja <a href="truthy-falsy.html">Truthy e Falsy</a>). <strong>Como consertar:</strong> para comparar, use sempre <code>===</code>: <code>if (senha === "abcd")</code>. É mais um motivo para usar <code>const</code> sempre que der.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto e vírgula depois do <code>if</code></strong>
+<pre class="file" data-file="pontoevirgula.js">const estoque = 12;
+if (estoque &lt; 5); {
+  console.log("Atenção: estoque baixo!");
+}
+</pre>
+<pre class="term">$ node pontoevirgula.js
+Atenção: estoque baixo!
+</pre>
+<p>O estoque é 12, e o aviso apareceu mesmo assim, sem erro nenhum. O <code>;</code> logo depois do <code>)</code> termina o <code>if</code> ali mesmo, com uma instrução <strong>vazia</strong>: "se o estoque for menor que 5, não faça nada". O bloco <code>{ … }</code> da linha de baixo virou um bloco solto, que roda sempre. <strong>Como consertar:</strong> nunca ponha <code>;</code> entre o <code>)</code> e o <code>{</code>. O ponto e vírgula vai no fim das <strong>instruções</strong> de dentro do bloco, não no <code>if</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>if</code> sem chaves e a segunda linha</strong>
+<pre class="file" data-file="semchaves.js">const estoque = 12;
+if (estoque &lt; 5)
+  console.log("Atenção: estoque baixo!");
+  console.log("Faça um pedido ao fornecedor.");
+</pre>
+<pre class="term">$ node semchaves.js
+Faça um pedido ao fornecedor.
+</pre>
+<p>Pela indentação, parece que as duas linhas estão dentro do <code>if</code>. Mas, sem chaves, o <code>if</code> só controla <strong>a primeira</strong>. A segunda roda sempre: a Ana ia pedir mercadoria com 12 unidades na prateleira. <strong>Como consertar:</strong> use chaves sempre, mesmo quando o bloco tiver uma linha só.</p>
+</div>
+
+<div class="cenario">
+<strong><code>If</code> com letra maiúscula</strong>
+<pre class="file" data-file="maiuscula.js">const estoque = 3;
+If (estoque &lt; 5) {
+  console.log("Atenção: estoque baixo!");
+}
+</pre>
+<pre class="term">$ node maiuscula.js
+/home/ana/maiuscula.js:2
+If (estoque &lt; 5) {
+                 ^
+
+SyntaxError: Unexpected token '{'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>O JavaScript diferencia maiúsculas de minúsculas: <code>If</code> não é a palavra-chave <code>if</code>. O Node achou que <code>If(…)</code> era uma chamada de função e, como o <code>{</code> logo depois não faz sentido nesse lugar, reclamou dele. <strong>Como consertar:</strong> <code>if</code>, tudo minúsculo.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Senha certa!;;semerro;;src:===">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois erros. Rode, leia a mensagem, conserte, e rode de novo até aparecer <code>Senha certa!</code> (o Node mostra um erro de cada vez).</p>
+<pre class="script" data-file="main.js">const senha = "abcd";
+if senha = "abcd" {
+  console.log("Senha certa!");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const senha = "abcd";
+if (senha === "abcd") {
+  console.log("Senha certa!");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>if (condição) { … }</code></td><td>Roda o bloco só se a condição for verdadeira; se for falsa, pula o bloco</td></tr>
+<tr><td><code>if (x === 10)</code></td><td>Compara se é igual (sempre <code>===</code>)</td></tr>
+<tr><td><code>if (x !== 10)</code></td><td>Compara se é diferente</td></tr>
+<tr><td><code>if (x &gt;= 7 &amp;&amp; x &lt;= 10)</code></td><td>As duas coisas verdadeiras ("e")</td></tr>
+<tr><td><code>if (a || b)</code></td><td>Pelo menos uma verdadeira ("ou")</td></tr>
+<tr><td><code>if (temCupom)</code></td><td>Variável booleana sozinha</td></tr>
+<tr><td><code>if (!temCupom)</code></td><td>"Se <strong>não</strong> tem cupom"</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected identifier …</code> na linha do <code>if</code></td><td>Faltaram os parênteses da condição</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>Faltou fechar uma chave <code>}</code></td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td><code>=</code> no lugar de <code>===</code> (com <code>const</code>)</td></tr>
+<tr><td>O bloco roda sempre, sem erro</td><td><code>=</code> no lugar de <code>===</code> (com <code>let</code>), ou <code>;</code> depois do <code>)</code></td></tr>
+<tr><td>Só a primeira linha obedece ao <code>if</code></td><td><code>if</code> sem chaves</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '{'</code></td><td><code>If</code> com maiúscula</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o if</h3>
+<p>Complete para mostrar "Pode entrar" só se a idade for 18 ou mais:</p>
+<div class="ex-code"><input data-answer="if" aria-label="palavra-chave"> (idade <input data-answer="&gt;=" aria-label="operador"> 18) {<br>&nbsp;&nbsp;console.log("Pode entrar");<br><input data-answer="}" aria-label="fecha o bloco"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas linhas?</h3>
+<p>Quantas linhas este programa mostra?</p>
+<pre class="file" data-file="ex2.js">const preco = 40;
+if (preco &gt; 50) {
+  console.log("Caro");
+  console.log("Muito caro");
+}
+console.log("Fim");
+</pre>
+<div class="ex-code">Mostra <input data-answer="1" aria-label="número de linhas"> linha(s).</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual linha está certa em JavaScript?</p>
+<label><input type="radio" name="q3"> <code>if idade &gt; 18 { … }</code></label>
+<label><input type="radio" name="q3"> <code>if (idade &gt; 18) { … }</code></label>
+<label><input type="radio" name="q3"> <code>if (idade &gt; 18) then { … }</code></label>
+<label><input type="radio" name="q3"> <code>If (idade &gt; 18) { … }</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Com <code>let cor = "azul";</code>, o que acontece em <code>if (cor = "verde") { console.log("Verde!"); }</code>?</p>
+<label><input type="radio" name="q4"> Não mostra nada, porque a cor é azul</label>
+<label><input type="radio" name="q4"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> Dá <code>TypeError: Assignment to constant variable.</code></label>
+<label><input type="radio" name="q4"> Mostra <code>Verde!</code> e a variável <code>cor</code> passa a valer <code>"verde"</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>if (estoque &lt; 5); { … }</code> mostra o aviso mesmo com estoque 12?</p>
+<label><input type="radio" name="q5"> O <code>;</code> encerra o <code>if</code>, e o bloco vira um bloco solto que roda sempre</label>
+<label><input type="radio" name="q5"> Porque 12 é menor que 5</label>
+<label><input type="radio" name="q5"> Porque o ponto e vírgula inverte a condição</label>
+<label><input type="radio" name="q5"> Não mostra: dá erro de sintaxe</label>
+</div>
+
+<h3>Missão final: o frete grátis</h3>
+
+<div class="tryjs" data-goal="out:Frete grátis!;;out:Total: R$ 120;;src:\bif\s*\(">
+<p class="try-task"><strong>Missão:</strong> a lojinha da Ana dá frete grátis em compras a partir de R$ 100. Escreva um <code>if</code> no lugar do comentário: se o <code>total</code> for maior ou igual a 100, mostre <code>Frete grátis!</code>. A última linha (o total) deve aparecer sempre. Depois, teste com um total de 80 e veja o aviso sumir.</p>
+<pre class="script" data-file="main.js">const total = 120;
+
+// escreva o if aqui
+
+console.log(`Total: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const total = 120;
+
+if (total &gt;= 100) {
+  console.log("Frete grátis!");
+}
+
+console.log(`Total: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>if (condição) { … }</code> ("se") roda o bloco <strong>só</strong> se a condição for verdadeira. Se for falsa, o bloco é pulado, sem erro, e o programa segue depois do <code>}</code>.</li>
+  <li>Os <strong>parênteses</strong> da condição são obrigatórios; as <strong>chaves</strong> marcam o bloco. Indente o bloco com 2 espaços e não ponha <code>;</code> depois do <code>)</code> nem do <code>}</code>.</li>
+  <li>Na condição vão comparações (<code>===</code>, <code>!==</code>, <code>&lt;</code>, <code>&gt;=</code>…), combinações com <code>&amp;&amp;</code>, <code>||</code> e <code>!</code>, e variáveis booleanas sozinhas.</li>
+  <li><code>=</code> guarda, <code>===</code> compara. Um <code>=</code> na condição dá <code>TypeError</code> com <code>const</code> e, com <code>let</code>, faz o bloco rodar sem erro.</li>
+  <li>Sem chaves, o <code>if</code> controla só a próxima instrução: use chaves sempre.</li>
+  <li>Para escolher entre dois caminhos, a próxima aula: <a href="if-else.html">else e else if</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
