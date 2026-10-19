@@ -130,14 +130,14 @@
 <h3>Os filhos de um elemento</h3>
 
 <pre class="devtools">&gt; document.body.children
-(3) [h1, p, ul]
+HTMLCollection(3) [h1, p, ul]
 &gt; document.body.children.length
 3
 &gt; document.querySelector("ul").children[1].textContent
 'Pão de queijo'
 </pre>
 
-<p>O <code>children</code> ("filhos") é uma lista dos elementos filhos, que se usa quase como um <a href="arrays.html">array</a>: tem <code>length</code> e posições contadas a partir do 0. O <code>(3)</code> na frente é o jeito do Console dizer "3 itens". O <code>children[1]</code> do <code>ul</code> é o segundo <code>li</code>.</p>
+<p>O <code>children</code> ("filhos") é uma lista dos elementos filhos, que se usa quase como um <a href="arrays.html">array</a>: tem <code>length</code> e posições contadas a partir do 0. O <code>HTMLCollection(3)</code> na frente é o jeito do Console dizer "uma lista de elementos (<em>HTML collection</em>, "coleção HTML") com 3 itens". O <code>children[1]</code> do <code>ul</code> é o segundo <code>li</code>.</p>
 
 <h3>Mudando a casa pelo Console</h3>
 <p>Agora o mais divertido: dar um valor novo ao <code>textContent</code>.</p>
