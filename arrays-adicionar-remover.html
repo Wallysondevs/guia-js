@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript push, pop, shift e unshift — pondo e tirando itens das pontas | Guia JavaScript</title>
+<meta name="description" content="Os métodos push, pop, shift e unshift do JavaScript para quem nunca programou: acrescentar no fim e no começo, tirar o último e o primeiro, o que cada um devolve, a fila da padaria e a pilha de pratos, esvaziar um array, o jeito com spread que não mexe no original e os erros reais do Node.js 24 (push is not a function, Cannot read properties of undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">push, pop, shift e unshift</span></h1>
+
+<p class="intro">Uma lista de verdade muda o tempo todo: a Ana lembra do pão e acrescenta na lista de compras; o cliente da vez é atendido e sai da fila da padaria; o último prato lavado vai para o topo da pilha. Na aula <a href="arrays-acessar.html">Acessando e Alterando Itens</a>, você trocou itens que já existiam. Agora vai <strong>pôr</strong> e <strong>tirar</strong> itens, fazendo o array crescer e diminuir. Para isso o array tem quatro métodos, dois para cada ponta da lista.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>push</code>: acrescentar um ou mais itens no <strong>fim</strong>.</li>
+  <li><code>pop</code>: tirar o <strong>último</strong> item.</li>
+  <li><code>unshift</code>: acrescentar no <strong>começo</strong>.</li>
+  <li><code>shift</code>: tirar o <strong>primeiro</strong> item.</li>
+  <li>O que cada um <strong>devolve</strong> (o novo tamanho ou o item tirado) e como aproveitar isso.</li>
+  <li>Dois usos clássicos: a <strong>fila</strong> (quem chega primeiro sai primeiro) e a <strong>pilha</strong> (o último que entra é o primeiro que sai).</li>
+  <li>Como esvaziar um array e como acrescentar sem mexer no original.</li>
+  <li>Os erros reais mais comuns: guardar o resultado do <code>push</code> no lugar da lista, chamar <code>push</code> em algo que não é array e esperar que o <code>pop</code> tire um item específico.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: as duas pontas da lista</h2>
+<p>Pense numa fila de pessoas. Ela tem duas pontas: o <strong>começo</strong> (quem vai ser atendido agora) e o <strong>fim</strong> (onde chega quem acabou de entrar). Os quatro métodos desta aula mexem só nas pontas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>No começo</th><th>No fim</th></tr>
+<tr><th>Pôr um item</th><td><code>unshift</code></td><td><code>push</code></td></tr>
+<tr><th>Tirar um item</th><td><code>shift</code></td><td><code>pop</code></td></tr>
+</table>
+</div>
+
+<p>Os nomes vêm do inglês: <strong>push</strong> = "empurrar" (para dentro, no fim), <strong>pop</strong> = "estourar", "saltar fora" (o último sai), <strong>shift</strong> = "deslocar" (todo mundo anda um lugar para a frente quando o primeiro sai) e <strong>unshift</strong> = o contrário do <code>shift</code>. Para tirar ou pôr itens <strong>no meio</strong> da lista existe o <code>splice</code>, da próxima aula (<a href="arrays-splice.html">splice e slice</a>).</p>
+
+<p>Os quatro <strong>mudam o próprio array</strong>: não fazem uma cópia. Por isso funcionam mesmo com <code>const</code> (a folha de papel é a mesma; só o que está escrito nela muda, como você viu em <a href="arrays.html">Arrays</a>).</p>
+
+<hr>
+
+<h2>1. <code>push</code>: acrescentar no fim</h2>
+
+<pre class="file" data-file="push.js">const compras = ["arroz", "feijão"];
+compras.push("café");
+console.log(compras);
+compras.push("leite", "pão");
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.push("café")</dt><dd>"Empurre o café para o fim da lista de compras". O ponto liga o array ao método, como em <code>texto.toUpperCase()</code>; o valor novo vai entre os parênteses.</dd>
+  <dt>compras.push("leite", "pão")</dt><dd>Vários valores separados por vírgula entram todos, nessa ordem.</dd>
+</dl>
+
+<pre class="term">$ node push.js
+[ 'arroz', 'feijão', 'café' ]
+[ 'arroz', 'feijão', 'café', 'leite', 'pão' ]
+</pre>
+
+<p>O <code>push</code> é o jeito mais comum de encher um array que começa vazio, item por item, como a Ana fazendo a lista da semana:</p>
+
+<pre class="file" data-file="lista_vazia.js">const lista = [];
+console.log(lista, lista.length);
+lista.push("sabão");
+lista.push("esponja");
+lista.push("detergente");
+console.log(lista, lista.length);
+</pre>
+
+<pre class="term">$ node lista_vazia.js
+[] 0
+[ 'sabão', 'esponja', 'detergente' ] 3
+</pre>
+
+<h3>O que o <code>push</code> devolve</h3>
+<p>Todo método pode <strong>devolver</strong> um valor (veja <a href="return.html">Retornando Valores</a>). O <code>push</code> devolve o <strong>novo tamanho</strong> do array:</p>
+
+<pre class="file" data-file="push_devolve.js">const fila = ["Ana", "Bia"];
+const tamanho = fila.push("Caio");
+console.log(tamanho);
+console.log(`Você é o ${fila.push("Duda")}º da fila.`);
+console.log(fila);
+</pre>
+
+<pre class="term">$ node push_devolve.js
+3
+Você é o 4º da fila.
+[ 'Ana', 'Bia', 'Caio', 'Duda' ]
+</pre>
+
+<p>Repare: ele <strong>não</strong> devolve o array, e sim um número. Guardar esse número na variável da lista é um dos erros mais comuns desta aula (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'feijão', 'café', 'pão', 'manteiga' ];;src:\.push\(">
+<p class="try-task"><strong>Missão:</strong> usando <code>push</code>, acrescente <code>"pão"</code> e <code>"manteiga"</code> no fim da lista (pode ser num <code>push</code> só ou em dois) e rode.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+compras.push("pão", "manteiga");
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>pop</code>: tirar o último</h2>
+
+<pre class="file" data-file="pop.js">const compras = ["arroz", "feijão", "café"];
+const tirado = compras.pop();
+console.log(tirado);
+console.log(compras);
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.pop()</dt><dd>Tira o <strong>último</strong> item do array. Os parênteses ficam vazios: o <code>pop</code> não precisa de nenhuma informação, porque sempre tira o último.</dd>
+  <dt>const tirado = …</dt><dd>O <code>pop</code> devolve o item que tirou. Assim você pode usá-lo (mostrar, guardar em outro lugar). Se não precisar dele, é só escrever <code>compras.pop();</code> sozinho.</dd>
+</dl>
+
+<pre class="term">$ node pop.js
+café
+[ 'arroz', 'feijão' ]
+</pre>
+
+<p>E se o array estiver vazio? O <code>pop</code> não dá erro: devolve <code>undefined</code> e o array continua vazio.</p>
+
+<pre class="file" data-file="pop_vazio.js">const vazio = [];
+console.log(vazio.pop());
+console.log(vazio);
+</pre>
+
+<pre class="term">$ node pop_vazio.js
+undefined
+[]
+</pre>
+
+<hr>
+
+<h2>3. <code>unshift</code>: acrescentar no começo</h2>
+<p>A Ana lembrou de uma coisa urgente e quer pô-la no <strong>topo</strong> da lista:</p>
+
+<pre class="file" data-file="unshift.js">const compras = ["arroz", "feijão", "café"];
+const tamanho = compras.unshift("remédio");
+console.log(tamanho);
+console.log(compras);
+console.log(compras[1]);
+</pre>
+
+<pre class="term">$ node unshift.js
+4
+[ 'remédio', 'arroz', 'feijão', 'café' ]
+arroz
+</pre>
+
+<p>Como o <code>push</code>, o <code>unshift</code> devolve o novo tamanho e aceita vários valores. Mas repare na última linha: o arroz, que estava na posição 0, agora está na posição <strong>1</strong>. Ao entrar alguém no começo, <strong>todos os outros andam uma posição</strong> para a frente, e os índices de todos mudam. Se você guardou "o arroz está na posição 0" numa variável, essa informação ficou velha.</p>
+
+<hr>
+
+<h2>4. <code>shift</code>: tirar o primeiro</h2>
+
+<pre class="file" data-file="shift.js">const fila = ["Ana", "Bia", "Caio"];
+const daVez = fila.shift();
+console.log(`Atendendo: ${daVez}`);
+console.log(fila);
+console.log(fila[0]);
+</pre>
+
+<pre class="term">$ node shift.js
+Atendendo: Ana
+[ 'Bia', 'Caio' ]
+Bia
+</pre>
+
+<p>O <code>shift</code> tira o primeiro item e o devolve, como o <code>pop</code> faz com o último. Os que ficaram andam uma posição para a frente: a Bia, que era a posição 1, agora é a posição 0. Com o array vazio, também devolve <code>undefined</code>.</p>
+
+<div class="tryjs" data-goal="out:Atendendo: Bia;;out:[ 'Caio', 'Duda' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana já foi atendida. Complete o programa: chame a próxima pessoa da fila com <code>shift</code>, guarde em <code>daVez</code>, e depois acrescente a <code>"Duda"</code>, que acabou de chegar, no fim da fila.</p>
+<pre class="script" data-file="main.js">const fila = ["Bia", "Caio"];
+const daVez = "ninguém";
+console.log(`Atendendo: ${daVez}`);
+
+console.log(fila);
+</pre>
+<pre class="solucao" data-file="main.js">const fila = ["Bia", "Caio"];
+const daVez = fila.shift();
+console.log(`Atendendo: ${daVez}`);
+fila.push("Duda");
+console.log(fila);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Os quatro juntos no modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), o Node mostra o que cada método <strong>devolve</strong>. É o melhor jeito de decorar quem devolve o quê:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const fila = ["Ana", "Bia", "Caio"]
+undefined
+&gt; fila.push("Duda")
+4
+&gt; fila.pop()
+'Duda'
+&gt; fila.unshift("Eva")
+4
+&gt; fila.shift()
+'Eva'
+&gt; fila
+[ 'Ana', 'Bia', 'Caio' ]
+&gt; .exit
+</pre>
+
+<p>Os que <strong>põem</strong> (<code>push</code>, <code>unshift</code>) devolveram o novo tamanho: <code>4</code> e depois <code>4</code> de novo. Os que <strong>tiram</strong> (<code>pop</code>, <code>shift</code>) devolveram o item que saiu.</p>
+
+<hr>
+
+<h2>6. A fila e a pilha</h2>
+<p>Juntando os métodos em pares, você tem duas das estruturas mais usadas da computação, e as duas aparecem na vida da Ana.</p>
+
+<h3>A fila da padaria: <code>push</code> + <code>shift</code></h3>
+<p>Numa fila, quem chega primeiro é atendido primeiro (os programadores chamam isso de <strong>FIFO</strong>, do inglês <em>first in, first out</em>, "primeiro a entrar, primeiro a sair"). Quem chega entra no fim (<code>push</code>); quem é atendido sai do começo (<code>shift</code>):</p>
+
+<pre class="file" data-file="fila.js">const fila = [];
+fila.push("Ana");
+fila.push("Bia");
+fila.push("Caio");
+console.log("Fila:", fila);
+
+console.log(`Atendendo ${fila.shift()}. Ainda na fila: ${fila.length}`);
+fila.push("Duda");
+console.log(`Atendendo ${fila.shift()}. Ainda na fila: ${fila.length}`);
+console.log("Fila:", fila);
+</pre>
+
+<pre class="term">$ node fila.js
+Fila: [ 'Ana', 'Bia', 'Caio' ]
+Atendendo Ana. Ainda na fila: 2
+Atendendo Bia. Ainda na fila: 2
+Fila: [ 'Caio', 'Duda' ]
+</pre>
+
+<h3>A pilha de pratos: <code>push</code> + <code>pop</code></h3>
+<p>Numa pilha de pratos, o último prato posto em cima é o primeiro a ser pego (<strong>LIFO</strong>: <em>last in, first out</em>, "último a entrar, primeiro a sair"). O botão "desfazer" dos editores de texto funciona assim: cada ação vai para o topo da pilha, e o desfazer tira a mais recente.</p>
+
+<pre class="file" data-file="desfazer.js">const historico = [];
+historico.push("escreveu 'Olá'");
+historico.push("pôs negrito");
+historico.push("apagou uma palavra");
+
+console.log("Desfazendo:", historico.pop());
+console.log("Desfazendo:", historico.pop());
+console.log("Sobrou:", historico);
+</pre>
+
+<pre class="term">$ node desfazer.js
+Desfazendo: apagou uma palavra
+Desfazendo: pôs negrito
+Sobrou: [ "escreveu 'Olá'" ]
+</pre>
+
+<p>Repare na última linha: o Node mostrou o item com aspas <strong>duplas</strong>, <code>"escreveu 'Olá'"</code>. Como o texto já tem aspas simples dentro, o <code>console.log</code> troca para as duplas, para a saída não ficar confusa. O texto guardado é o mesmo.</p>
+
+<div class="tip">
+<strong>Para ler sem tirar</strong>
+<p>Se você só quer <strong>espiar</strong> quem é o próximo, sem tirá-lo da fila, não use <code>shift</code> nem <code>pop</code>: leia com <code>fila[0]</code> (o primeiro) ou <code>pilha.at(-1)</code> (o topo), como na aula <a href="arrays-acessar.html">Acessando e Alterando Itens</a>.</p>
+</div>
+
+<hr>
+
+<h2>7. Esvaziar o array</h2>
+<p>A Ana fez as compras e quer a lista em branco de novo. Com <code>let</code>, basta pôr um array vazio na variável. Com <code>const</code>, não dá para trocar o array (você viu o <code>Assignment to constant variable</code> na aula <a href="arrays.html">Arrays</a>), mas dá para mudar o tamanho dele para zero:</p>
+
+<pre class="file" data-file="esvaziar.js">const compras = ["arroz", "feijão", "café"];
+compras.length = 0;
+console.log(compras);
+
+let outra = ["sabão", "esponja"];
+outra = [];
+console.log(outra);
+</pre>
+
+<pre class="term">$ node esvaziar.js
+[]
+[]
+</pre>
+
+<p>O <code>length</code> pode ser escrito, e não só lido: pôr um número menor <strong>corta</strong> o array nesse tamanho (<code>compras.length = 1</code> deixaria só o arroz). Outro jeito, com <code>const</code>, é tirar com <code>pop</code> até acabar, num laço; mas <code>length = 0</code> resolve numa linha.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para acrescentar no fim existem três jeitos. Os dois primeiros mudam o array; o terceiro, com os três pontinhos (o <strong>spread</strong>, "espalhar"; aula <a href="spread-rest.html">Spread e Rest</a>), cria um array <strong>novo</strong> e deixa o original como estava:</p>
+
+<pre class="file" data-file="formas.js">const a = ["arroz", "feijão"];
+a.push("café");
+
+const b = ["arroz", "feijão"];
+b[b.length] = "café";
+
+const c = ["arroz", "feijão"];
+const d = [...c, "café"];
+const e = ["remédio", ...c];
+
+console.log(a);
+console.log(b);
+console.log(c);
+console.log(d);
+console.log(e);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 'arroz', 'feijão', 'café' ]
+[ 'arroz', 'feijão', 'café' ]
+[ 'arroz', 'feijão' ]
+[ 'arroz', 'feijão', 'café' ]
+[ 'remédio', 'arroz', 'feijão' ]
+</pre>
+
+<p>O <code>c</code> continuou com 2 itens: <code>[...c, "café"]</code> quer dizer "um array novo com tudo o que está em <code>c</code> e, depois, o café". Esse jeito de não mexer no original é útil quando outra parte do programa ainda precisa da lista antiga.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Acrescentar no fim (o caso mais comum)</td><td><code>lista.push(x)</code></td></tr>
+<tr><td>Acrescentar no começo</td><td><code>lista.unshift(x)</code></td></tr>
+<tr><td>Tirar o último / o primeiro</td><td><code>lista.pop()</code> / <code>lista.shift()</code></td></tr>
+<tr><td>Fila (atender por ordem de chegada)</td><td><code>push</code> para entrar, <code>shift</code> para sair</td></tr>
+<tr><td>Pilha (desfazer, voltar)</td><td><code>push</code> para entrar, <code>pop</code> para sair</td></tr>
+<tr><td>Um array novo com um item a mais, sem mudar o original</td><td><code>[...lista, x]</code> ou <code>[x, ...lista]</code></td></tr>
+<tr><td><code>lista[lista.length] = x</code></td><td>Funciona, mas o <code>push</code> é mais claro. Reconheça em código antigo.</td></tr>
+<tr><td>Pôr ou tirar no meio</td><td><code>splice</code> (aula <a href="arrays-splice.html">splice e slice</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Guardou o resultado do <code>push</code> na variável da lista</strong>
+<pre class="file" data-file="push_errado.js">let compras = ["arroz", "feijão"];
+compras = compras.push("café");
+console.log(compras);
+compras.push("pão");
+</pre>
+<pre class="term">$ node push_errado.js
+3
+/home/ana/push_errado.js:4
+compras.push("pão");
+        ^
+
+TypeError: compras.push is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/push_errado.js:4:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>3</dt><dd>A primeira linha da saída é o <code>console.log(compras)</code>. A lista sumiu e virou o número <strong>3</strong>: o <code>push</code> devolve o novo tamanho, e a linha 2 guardou esse tamanho em <code>compras</code>, por cima do array.</dd>
+  <dt>/home/ana/push_errado.js:4</dt><dd>O erro aconteceu na linha 4, com o <code>^</code> embaixo do <code>push</code>.</dd>
+  <dt>TypeError: compras.push is not a function</dt><dd>"Erro de tipo: <code>compras.push</code> não é uma função". Números não têm <code>push</code>; só arrays têm.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/push_errado.js:4:9)</dt><dd>O lugar de novo: linha 4, coluna 9. As linhas <code>node:internal</code> foram cortadas.</dd>
+</dl>
+<p><strong>Como consertar:</strong> o <code>push</code> muda o array sozinho; não precisa (nem pode) guardar o resultado na lista: escreva só <code>compras.push("café");</code>. (Com <code>const</code>, esse erro nem chega a acontecer: a linha 2 dá <code>Assignment to constant variable</code>. Mais um motivo para preferir <code>const</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou <code>push</code> numa variável que não tem array</strong>
+<pre class="file" data-file="push_undefined.js">let compras;
+compras.push("café");
+</pre>
+<pre class="term">$ node push_undefined.js
+/home/ana/push_undefined.js:2
+compras.push("café");
+        ^
+
+TypeError: Cannot read properties of undefined (reading 'push')
+    at Object.&lt;anonymous&gt; (/home/ana/push_undefined.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível ler propriedades de <code>undefined</code> (lendo <code>push</code>)". A variável foi criada sem valor, então vale <code>undefined</code>, e o <code>undefined</code> não tem método nenhum. <strong>Como consertar:</strong> comece com um array vazio: <code>const compras = [];</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um nome de outra linguagem</strong>
+<pre class="file" data-file="append.js">const compras = ["arroz", "feijão"];
+compras.append("café");
+</pre>
+<pre class="term">$ node append.js
+/home/ana/append.js:2
+compras.append("café");
+        ^
+
+TypeError: compras.append is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/append.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Quem vem do Python escreve <code>append</code>; de outras linguagens, <code>add</code>. O array do JavaScript não tem nenhum dos dois. Com <code>Push</code> (P maiúsculo) acontece o mesmo: <code>TypeError: compras.Push is not a function</code>, porque o JavaScript diferencia maiúsculas de minúsculas. <strong>Como consertar:</strong> <code>compras.push("café")</code>, tudo em minúsculas.</p>
+</div>
+
+<div class="cenario">
+<strong>Esperou que o <code>pop</code> tirasse um item específico</strong>
+<pre class="file" data-file="pop_item.js">const compras = ["arroz", "feijão", "café"];
+compras.pop("arroz");
+console.log(compras);
+</pre>
+<pre class="term">$ node pop_item.js
+[ 'arroz', 'feijão' ]
+</pre>
+<p>Sem erro nenhum, e por isso perigoso: a Ana queria tirar o arroz, mas saiu o café. O <code>pop</code> <strong>ignora</strong> o que você põe entre os parênteses e sempre tira o último (o <code>shift</code>, sempre o primeiro). <strong>Como consertar:</strong> para tirar um item que está no meio, descubra a posição dele (aula <a href="arrays-buscar.html">Procurando</a>) e use o <code>splice</code> (aula <a href="arrays-splice.html">splice e slice</a>), ou faça uma lista nova sem ele com o <code>filter</code> (aula <a href="filter.html">filter</a>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'feijão', 'café', 'pão' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa dá erro. Rode, leia a mensagem e conserte para a lista terminar com o café e o pão.</p>
+<pre class="script" data-file="main.js">let compras = ["arroz", "feijão"];
+compras = compras.push("café");
+compras.push("pão");
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">let compras = ["arroz", "feijão"];
+compras.push("café");
+compras.push("pão");
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>lista.push(a, b…)</code></td><td>Acrescenta no fim</td><td>O novo tamanho</td></tr>
+<tr><td><code>lista.pop()</code></td><td>Tira o último</td><td>O item tirado (<code>undefined</code> se vazio)</td></tr>
+<tr><td><code>lista.unshift(a, b…)</code></td><td>Acrescenta no começo (os outros andam uma posição)</td><td>O novo tamanho</td></tr>
+<tr><td><code>lista.shift()</code></td><td>Tira o primeiro (os outros andam uma posição)</td><td>O item tirado (<code>undefined</code> se vazio)</td></tr>
+<tr><td><code>lista.length = 0</code></td><td>Esvazia o array</td><td>—</td></tr>
+<tr><td><code>[...lista, x]</code></td><td>Array <strong>novo</strong> com <code>x</code> no fim; o original não muda</td><td>O array novo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>A lista virou um número</td><td>Guardou o resultado do <code>push</code>/<code>unshift</code> na variável da lista</td></tr>
+<tr><td><code>TypeError: compras.push is not a function</code></td><td>A variável não tem mais um array (virou número?), ou o nome foi escrito errado (<code>Push</code>, <code>append</code>)</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'push')</code></td><td>A variável não recebeu um array</td></tr>
+<tr><td>Saiu o item errado</td><td><code>pop</code>/<code>shift</code> ignoram o argumento: sempre tiram uma ponta</td></tr>
+<tr><td>Os índices mudaram</td><td><code>unshift</code>/<code>shift</code> fazem todos andarem uma posição</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para acrescentar <code>"uva"</code> no fim e depois tirar a <code>"maçã"</code> do começo:</p>
+<div class="ex-code">const frutas = ["maçã", "banana"];<br>frutas.<input data-answer="push" aria-label="método que acrescenta no fim">("uva");<br>frutas.<input data-answer="shift" aria-label="método que tira o primeiro">();</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que devolve?</h3>
+<pre class="file" data-file="ex2.js">const n = [10, 20, 30];
+console.log(n.push(40));
+</pre>
+<div class="ex-code">Mostra <input data-answer="4" aria-label="valor mostrado">.</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quem sobrou?</h3>
+<pre class="file" data-file="ex3.js">const p = ["a", "b", "c", "d"];
+p.pop();
+p.shift();
+console.log(p.length);
+</pre>
+<div class="ex-code">Mostra <input data-answer="2" aria-label="tamanho">.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa fila de atendimento (quem chega primeiro é atendido primeiro), qual par de métodos você usa?</p>
+<label><input type="radio" name="q4"> <code>push</code> para entrar e <code>pop</code> para sair</label>
+<label><input type="radio" name="q4"> <code>push</code> para entrar e <code>shift</code> para sair</label>
+<label><input type="radio" name="q4"> <code>unshift</code> para entrar e <code>shift</code> para sair</label>
+<label><input type="radio" name="q4"> <code>pop</code> para entrar e <code>push</code> para sair</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. <code>const x = ["a", "b", "c"]; x.pop("a");</code>. Como fica <code>x</code>?</p>
+<label><input type="radio" name="q5"> <code>[ 'b', 'c' ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 'a', 'b', 'c' ]</code></label>
+<label><input type="radio" name="q5"> <code>[ 'a', 'b' ]</code></label>
+<label><input type="radio" name="q5"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual linha acrescenta <code>"pão"</code> sem mudar o array <code>lista</code> original?</p>
+<label><input type="radio" name="q6"> <code>const nova = [...lista, "pão"];</code></label>
+<label><input type="radio" name="q6"> <code>const nova = lista.push("pão");</code></label>
+<label><input type="radio" name="q6"> <code>lista[lista.length] = "pão";</code></label>
+<label><input type="radio" name="q6"> <code>lista.unshift("pão");</code></label>
+</div>
+
+<h3>Missão final: a pilha de pratos</h3>
+
+<div class="tryjs" data-goal="out:Lavando: prato azul;;out:Lavando: prato verde;;out:Na pilha: [ 'prato branco', 'prato florido' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> na pia da padaria, os pratos sujos formam uma pilha: o que foi posto por último é o primeiro a ser lavado. (1) Ponha o <code>"prato azul"</code> no topo da pilha. (2) Lave dois pratos: tire do topo duas vezes e mostre cada um com <code>Lavando: …</code>. (3) Ponha o <code>"prato florido"</code> no topo. (4) Mostre <code>Na pilha:</code> e a pilha.</p>
+<pre class="script" data-file="main.js">const pilha = ["prato branco", "prato verde"];
+// (1)
+
+// (2)
+
+// (3)
+
+// (4)
+</pre>
+<pre class="solucao" data-file="main.js">const pilha = ["prato branco", "prato verde"];
+// (1)
+pilha.push("prato azul");
+// (2)
+console.log(`Lavando: ${pilha.pop()}`);
+console.log(`Lavando: ${pilha.pop()}`);
+// (3)
+pilha.push("prato florido");
+// (4)
+console.log("Na pilha:", pilha);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Lavando: prato azul</code>, <code>Lavando: prato verde</code> e <code>Na pilha: [ 'prato branco', 'prato florido' ]</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>push</code> põe no fim e <code>unshift</code> põe no começo; os dois aceitam vários valores e devolvem o <strong>novo tamanho</strong>.</li>
+  <li><code>pop</code> tira o último e <code>shift</code> tira o primeiro; os dois devolvem o <strong>item tirado</strong> (<code>undefined</code> se o array estiver vazio) e ignoram o que for posto entre os parênteses.</li>
+  <li>Os quatro mudam o próprio array (funcionam com <code>const</code>). <code>shift</code> e <code>unshift</code> mudam os índices de todos os outros itens.</li>
+  <li>Fila: <code>push</code> + <code>shift</code>. Pilha: <code>push</code> + <code>pop</code>.</li>
+  <li><code>lista.length = 0</code> esvazia; <code>[...lista, x]</code> cria um array novo sem mexer no original.</li>
+  <li>Nunca guarde o resultado do <code>push</code> na variável da lista: ela vira um número.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
