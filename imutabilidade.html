@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Object.freeze — objetos que não mudam (imutabilidade) | Guia JavaScript</title>
+<meta name="description" content="Imutabilidade no JavaScript para quem nunca programou: por que o const não congela um objeto, Object.freeze e Object.isFrozen, o silêncio do modo normal e o TypeError do modo estrito, arrays congelados, o congelamento raso e a função que congela tudo, Object.seal e preventExtensions, e o jeito moderno de mudar sem estragar o original (spread, toSorted, with), com as saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Object.freeze</span> e Imutabilidade</h1>
+
+<p class="intro">Na padaria do bairro, a tabela de preços fica pregada na parede, atrás de um vidro. Qualquer funcionário pode <strong>ler</strong> os preços, mas ninguém consegue mudar um número com a caneta. No JavaScript, um objeto comum é como uma folha solta no balcão: qualquer parte do programa pode riscar e reescrever. Às vezes é isso mesmo que você quer; outras vezes, um valor mudado "sem querer" vira um defeito difícil de achar. Esta aula mostra como pôr o objeto atrás do vidro: <strong>imutável</strong> quer dizer "que não pode ser mudado".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o <code>const</code> <strong>não</strong> impede que um objeto mude por dentro.</li>
+  <li>Como congelar um objeto com <code>Object.freeze</code> e conferir com <code>Object.isFrozen</code>.</li>
+  <li>O que acontece quando alguém tenta mudar um objeto congelado: o silêncio do modo normal e o <code>TypeError</code> do modo estrito.</li>
+  <li>Que o congelamento é <strong>raso</strong> (os objetos de dentro continuam mudando) e como congelar tudo.</li>
+  <li>Os primos do <code>freeze</code>: <code>Object.seal</code> e <code>Object.preventExtensions</code>.</li>
+  <li>O jeito moderno de "mudar" sem estragar o original: criar uma cópia nova com <code>...</code>, <code>toSorted</code> e <code>with</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a etiqueta e a caixa</h2>
+<p>Lembre da aula <a href="objetos-referencia.html">Objetos são Referências</a>: a variável não guarda o objeto, guarda o <strong>caminho</strong> até ele, como uma etiqueta presa numa caixa. Isso explica tudo nesta aula:</p>
+<ul>
+  <li>O <code>const</code> cola a <strong>etiqueta</strong> na caixa para sempre: a variável não pode apontar para outra caixa. Mas a caixa continua <strong>aberta</strong>: dá para tirar e pôr coisas dentro dela.</li>
+  <li>O <code>Object.freeze</code> ("congelar") <strong>lacra a caixa</strong>: ninguém tira, põe ou troca o que está dentro, por mais etiquetas que apontem para ela.</li>
+</ul>
+<p>São duas proteções diferentes, e muita gente confunde. Vamos ver cada uma.</p>
+
+<hr>
+
+<h2>1. O <code>const</code> não congela o objeto</h2>
+
+<pre class="file" data-file="const-objeto.js">const produto = { nome: "Pão francês", preco: 0.75 };
+produto.preco = 0.9;
+produto.estoque = 120;
+console.log(produto);
+</pre>
+
+<pre class="term">$ node const-objeto.js
+{ nome: 'Pão francês', preco: 0.9, estoque: 120 }
+</pre>
+
+<p>Nenhum erro. O preço mudou e ainda ganhamos uma propriedade nova, <code>estoque</code>. O <code>const</code> só proíbe <strong>trocar a caixa inteira</strong>, isto é, dar um novo valor à variável com <code>=</code>:</p>
+
+<pre class="file" data-file="const-trocar.js">const produto = { nome: "Pão francês", preco: 0.75 };
+produto = { nome: "Sonho", preco: 4.5 };
+</pre>
+
+<pre class="term">$ node const-trocar.js
+/home/ana/const-trocar.js:2
+produto = { nome: "Sonho", preco: 4.5 };
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/const-trocar.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>"Atribuição a uma variável constante". É o erro que você já conhece da aula <a href="const.html">Constantes</a>. Guarde a diferença:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que você tenta</th><th>Com <code>const</code></th><th>Com <code>Object.freeze</code></th></tr>
+<tr><td>Trocar a variável inteira: <code>produto = {…}</code></td><td>Proibido (<code>TypeError</code>)</td><td>Permitido, se a variável for <code>let</code></td></tr>
+<tr><td>Mudar uma propriedade: <code>produto.preco = 0.9</code></td><td>Permitido</td><td>Proibido</td></tr>
+<tr><td>Criar uma propriedade: <code>produto.estoque = 120</code></td><td>Permitido</td><td>Proibido</td></tr>
+<tr><td>Apagar uma propriedade: <code>delete produto.nome</code></td><td>Permitido</td><td>Proibido</td></tr>
+</table>
+</div>
+
+<p>Por isso, na prática, os dois andam juntos: <code>const</code> para a etiqueta e <code>Object.freeze</code> para a caixa.</p>
+
+<hr>
+
+<h2>2. <code>Object.freeze</code>: lacrando o objeto</h2>
+
+<pre class="file" data-file="congelar.js">const produto = Object.freeze({ nome: "Pão francês", preco: 0.75 });
+
+produto.preco = 0.9;
+produto.estoque = 120;
+delete produto.nome;
+
+console.log(produto);
+console.log(Object.isFrozen(produto));
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.freeze( … )</dt><dd>"Congelar o objeto". Recebe um objeto, lacra e <strong>devolve o mesmo objeto</strong> (não é uma cópia). Por isso dá para escrever tudo numa linha só, direto no <code>const</code>.</dd>
+  <dt>produto.preco = 0.9;</dt><dd>Tentativa de <strong>mudar</strong> uma propriedade.</dd>
+  <dt>produto.estoque = 120;</dt><dd>Tentativa de <strong>criar</strong> uma propriedade nova.</dd>
+  <dt>delete produto.nome;</dt><dd>Tentativa de <strong>apagar</strong> uma propriedade (veja <a href="objetos-propriedades.html">Propriedades</a>).</dd>
+  <dt>Object.isFrozen(produto)</dt><dd>"O objeto está congelado?". Devolve <code>true</code> ou <code>false</code>.</dd>
+</dl>
+
+<pre class="term">$ node congelar.js
+{ nome: 'Pão francês', preco: 0.75 }
+true
+</pre>
+
+<p>As três tentativas <strong>não funcionaram</strong>: o preço continua 0.75, o <code>estoque</code> não apareceu e o <code>nome</code> continua lá. Mas repare numa coisa estranha: <strong>também não apareceu erro nenhum</strong>. O Node simplesmente ignorou as três linhas, em silêncio.</p>
+
+<h3>O silêncio e o modo estrito</h3>
+<p>Ignorar em silêncio é perigoso: você acha que mudou o preço, o programa segue em frente e o defeito só aparece lá na frente. Isso acontece porque um arquivo <code>.js</code> comum roda, por padrão, no modo "relaxado" do JavaScript. No <a href="strict-mode.html">modo estrito</a> (<code>"use strict"</code>), a mesma tentativa vira um erro de verdade:</p>
+
+<pre class="file" data-file="congelar-estrito.js">"use strict";
+const produto = Object.freeze({ nome: "Pão francês", preco: 0.75 });
+
+produto.preco = 0.9;
+console.log("Esta linha não chega a rodar.");
+</pre>
+
+<pre class="term">$ node congelar-estrito.js
+/home/ana/congelar-estrito.js:4
+produto.preco = 0.9;
+              ^
+
+TypeError: Cannot assign to read only property 'preco' of object '#&lt;Object&gt;'
+    at Object.&lt;anonymous&gt; (/home/ana/congelar-estrito.js:4:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/congelar-estrito.js:4</dt><dd>O arquivo e a linha onde o problema aconteceu: a 4.</dd>
+  <dt>produto.preco = 0.9; e o ^</dt><dd>A linha do código, e o <code>^</code> apontando o <code>=</code>: foi a <strong>atribuição</strong> que falhou.</dd>
+  <dt>TypeError</dt><dd>"Erro de tipo": a operação não vale para esse valor (veja <a href="tipos-erro.html">Os Tipos de Erro</a>).</dd>
+  <dt>Cannot assign to read only property 'preco' of object '#&lt;Object&gt;'</dt><dd>"Não é possível atribuir à propriedade somente leitura <code>preco</code> do objeto". <em>Read only</em> quer dizer "somente leitura": depois do <code>freeze</code>, toda propriedade fica assim. O <code>#&lt;Object&gt;</code> é o jeito do Node dizer "um objeto comum".</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:4:15)</dt><dd>De onde veio a chamada: linha 4, coluna 15 do arquivo. As linhas com <code>node:internal</code> são do próprio Node e foram cortadas aqui.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+
+<p>Com <code>"use strict"</code>, criar uma propriedade e apagar outra também viram <code>TypeError</code> (veja <a href="#errado">Quando dá errado</a>). E o "Esta linha não chega a rodar." de fato não apareceu: um erro não tratado encerra o programa.</p>
+
+<div class="tip">
+<strong>Onde o modo estrito já vem ligado</strong>
+<p>Você não precisa escrever <code>"use strict"</code> dentro de <a href="classes.html">classes</a> nem em <a href="modulos.html">módulos</a> (arquivos com <code>import</code>/<code>export</code>, ou <code>.mjs</code>): lá o modo estrito é automático. Em código moderno, então, mexer num objeto congelado quase sempre dá erro, e isso é bom: o defeito aparece na hora, na linha certa.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Preço: 0.75;;src:Object\.freeze">
+<p class="try-task"><strong>Missão:</strong> alguém mudou o preço do pão "sem querer" na linha 2. Proteja o objeto com <code>Object.freeze</code> para que a tentativa não tenha efeito e o programa mostre <code>Preço: 0.75</code>. (O programa já trata o erro do modo estrito com <code>try … catch</code>, então ele funciona dos dois jeitos.)</p>
+<pre class="script" data-file="main.js">const produto = { nome: "Pão francês", preco: 0.75 };
+try {
+  produto.preco = 0.9;
+} catch (erro) {
+  console.log("Bloqueado:", erro.message);
+}
+console.log(`Preço: ${produto.preco}`);
+</pre>
+<pre class="solucao" data-file="main.js">const produto = Object.freeze({ nome: "Pão francês", preco: 0.75 });
+try {
+  produto.preco = 0.9;
+} catch (erro) {
+  console.log("Bloqueado:", erro.message);
+}
+console.log(`Preço: ${produto.preco}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Arrays congelados</h2>
+<p>Um array também é um objeto, então também pode ser congelado. A lista de compras da Ana, depois de fechada, não deveria mudar:</p>
+
+<pre class="file" data-file="lista-congelada.js">const lista = Object.freeze(["pão", "leite", "café"]);
+
+lista[0] = "bolo";
+console.log(lista);
+
+lista.push("açúcar");
+console.log("Esta linha não chega a rodar.");
+</pre>
+
+<pre class="term">$ node lista-congelada.js
+[ 'pão', 'leite', 'café' ]
+/home/ana/lista-congelada.js:6
+lista.push("açúcar");
+      ^
+
+TypeError: Cannot add property 3, object is not extensible
+    at Array.push (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/lista-congelada.js:6:7)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>Duas coisas diferentes aconteceram:</p>
+<ul>
+  <li><code>lista[0] = "bolo"</code> foi <strong>ignorado em silêncio</strong>, como no objeto da seção 2 (o arquivo não tem <code>"use strict"</code>).</li>
+  <li><code>lista.push("açúcar")</code> deu <strong>erro mesmo sem</strong> <code>"use strict"</code>: os métodos prontos do array (<code>push</code>, <code>pop</code>, <code>shift</code>, <code>sort</code>, <code>splice</code>…) sempre reclamam quando não conseguem fazer o trabalho. A mensagem diz: "não é possível adicionar a propriedade 3, o objeto não é extensível" (o item novo iria para a posição 3; "extensível" é "que pode crescer").</li>
+</ul>
+<p>Já os métodos que <strong>não mudam</strong> o array continuam funcionando normalmente num array congelado: <code>map</code>, <code>filter</code>, <code>includes</code>, <code>slice</code>, <code>toSorted</code>… Eles leem a lista e devolvem um resultado novo.</p>
+
+<hr>
+
+<h2>4. O congelamento é raso</h2>
+<p>O <code>Object.freeze</code> lacra só a caixa de fora. Se dentro dela houver <strong>outra caixa</strong> (um objeto ou um array), essa de dentro continua aberta. Os programadores dizem que o congelamento é <strong>raso</strong> (em inglês, <em>shallow</em>):</p>
+
+<pre class="file" data-file="raso.js">const pedido = Object.freeze({
+  cliente: "Ana",
+  itens: ["pão", "leite"],
+});
+
+pedido.cliente = "Bia";
+pedido.itens.push("café");
+
+console.log(pedido);
+console.log(Object.isFrozen(pedido));
+console.log(Object.isFrozen(pedido.itens));
+</pre>
+
+<pre class="term">$ node raso.js
+{ cliente: 'Ana', itens: [ 'pão', 'leite', 'café' ] }
+true
+false
+</pre>
+
+<p>O <code>cliente</code> não mudou (é uma propriedade da caixa de fora, que está lacrada). Mas o <code>café</code> entrou na lista! A propriedade <code>itens</code> continua apontando para o <strong>mesmo</strong> array (isso o <code>freeze</code> garante), só que o array em si não foi congelado: <code>Object.isFrozen(pedido.itens)</code> deu <code>false</code>.</p>
+
+<h3>Congelando tudo, camada por camada</h3>
+<p>O JavaScript não tem um "congelar fundo" pronto. A solução é uma função que congela cada objeto de dentro antes de congelar o de fora, usando <a href="recursao.html">recursão</a> (a função chamando a si mesma):</p>
+
+<pre class="file" data-file="congelar-tudo.js">function congelarTudo(objeto) {
+  for (const valor of Object.values(objeto)) {
+    if (typeof valor === "object" &amp;&amp; valor !== null) {
+      congelarTudo(valor);
+    }
+  }
+  return Object.freeze(objeto);
+}
+
+const pedido = congelarTudo({
+  cliente: "Ana",
+  itens: ["pão", "leite"],
+  entrega: { rua: "Rua das Flores", numero: 12 },
+});
+
+pedido.itens[0] = "bolo";
+pedido.entrega.numero = 99;
+
+console.log(pedido);
+console.log(Object.isFrozen(pedido.itens), Object.isFrozen(pedido.entrega));
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.values(objeto)</dt><dd>Os valores de todas as propriedades (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>). Num array, são os itens.</dd>
+  <dt>typeof valor === "object" &amp;&amp; valor !== null</dt><dd>"Esse valor é uma caixa?". O teste do <code>null</code> é necessário porque <code>typeof null</code> também dá <code>"object"</code> (uma esquisitice antiga da linguagem; veja <a href="typeof.html">typeof</a>).</dd>
+  <dt>congelarTudo(valor);</dt><dd>Se for uma caixa, congela tudo o que tem dentro dela primeiro.</dd>
+  <dt>return Object.freeze(objeto);</dt><dd>Por fim, congela a caixa atual e a devolve.</dd>
+</dl>
+
+<pre class="term">$ node congelar-tudo.js
+{
+  cliente: 'Ana',
+  itens: [ 'pão', 'leite' ],
+  entrega: { rua: 'Rua das Flores', numero: 12 }
+}
+true true
+</pre>
+
+<p>Agora nada mudou, nem lá dentro. (O Node quebrou o objeto em várias linhas só porque ele ficou comprido demais para uma linha.)</p>
+
+<hr>
+
+<h2>5. Os primos do <code>freeze</code>: <code>seal</code> e <code>preventExtensions</code></h2>
+<p>Existem dois "lacres" mais fracos. O <code>Object.seal</code> ("selar") deixa <strong>mudar</strong> os valores que já existem, mas proíbe criar e apagar propriedades. É útil quando o formato do objeto é fixo mas os valores mudam, como o placar de um jogo:</p>
+
+<pre class="file" data-file="selar.js">const placar = Object.seal({ casa: 0, visitante: 0 });
+
+placar.casa = 2;
+placar.prorrogacao = true;
+delete placar.visitante;
+
+console.log(placar);
+console.log(Object.isSealed(placar), Object.isFrozen(placar));
+</pre>
+
+<pre class="term">$ node selar.js
+{ casa: 2, visitante: 0 }
+true false
+</pre>
+
+<p>O <code>casa</code> mudou para 2; a <code>prorrogacao</code> não entrou e o <code>visitante</code> não saiu (de novo em silêncio, porque não há <code>"use strict"</code>). E o <code>Object.preventExtensions</code> ("impedir extensões") é o mais fraco dos três: só proíbe <strong>criar</strong> propriedades novas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Lacre</th><th>Mudar valor</th><th>Criar propriedade</th><th>Apagar propriedade</th><th>Para conferir</th></tr>
+<tr><td><code>Object.preventExtensions(obj)</code></td><td>Pode</td><td>Não</td><td>Pode</td><td><code>Object.isExtensible(obj)</code> (dá <code>false</code>)</td></tr>
+<tr><td><code>Object.seal(obj)</code></td><td>Pode</td><td>Não</td><td>Não</td><td><code>Object.isSealed(obj)</code></td></tr>
+<tr><td><code>Object.freeze(obj)</code></td><td>Não</td><td>Não</td><td>Não</td><td><code>Object.isFrozen(obj)</code></td></tr>
+</table>
+</div>
+
+<p>Os três são <strong>para sempre</strong>: não existe "descongelar". Para ter de novo um objeto que muda, você faz uma <strong>cópia</strong>, que é o assunto da próxima seção.</p>
+
+<hr>
+
+<h2>6. Mudar sem estragar: criar um objeto novo</h2>
+<p>Se o preço do pão subiu, como atualizar um objeto congelado? Você <strong>não muda</strong> o objeto: cria um <strong>novo</strong>, com o valor novo, e deixa o antigo como estava. Essa é a ideia de <strong>imutabilidade</strong> que você vai encontrar em muito código moderno (e em bibliotecas como o React). O <a href="spread-rest.html">spread</a> (<code>...</code>) faz isso numa linha:</p>
+
+<pre class="file" data-file="copia-nova.js">const precoAntigo = Object.freeze({ nome: "Pão francês", preco: 0.75 });
+const precoNovo = { ...precoAntigo, preco: 0.9 };
+
+console.log(precoAntigo);
+console.log(precoNovo);
+console.log(Object.isFrozen(precoNovo));
+</pre>
+
+<pre class="term">$ node copia-nova.js
+{ nome: 'Pão francês', preco: 0.75 }
+{ nome: 'Pão francês', preco: 0.9 }
+false
+</pre>
+
+<p>O <code>{ ...precoAntigo, preco: 0.9 }</code> quer dizer: "um objeto novo com tudo o que o <code>precoAntigo</code> tem, e o <code>preco</code> trocado por 0.9". A cópia nasce <strong>descongelada</strong> (o <code>freeze</code> não é copiado). E o original fica intacto: dá para comparar o antes e o depois, desfazer, guardar um histórico.</p>
+
+<h3>Arrays: os métodos que devolvem uma cópia <span class="versao">ES2023</span></h3>
+<p>Para arrays, o JavaScript ganhou em 2023 versões "que não estragam" dos métodos que mudam o array:</p>
+
+<pre class="file" data-file="copia-array.js">const notas = Object.freeze([7, 10, 5]);
+
+console.log(notas.toSorted((a, b) =&gt; a - b));
+console.log(notas.toReversed());
+console.log(notas.with(2, 8));
+console.log(notas);
+</pre>
+
+<pre class="term">$ node copia-array.js
+[ 5, 7, 10 ]
+[ 5, 10, 7 ]
+[ 7, 10, 8 ]
+[ 7, 10, 5 ]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Muda o array original</th><th>Devolve uma cópia (o original fica igual)</th></tr>
+<tr><td><code>sort()</code></td><td><code>toSorted()</code> (veja <a href="sort.html">Ordenando</a>)</td></tr>
+<tr><td><code>reverse()</code></td><td><code>toReversed()</code></td></tr>
+<tr><td><code>splice(…)</code></td><td><code>toSpliced(…)</code></td></tr>
+<tr><td><code>lista[2] = 8</code></td><td><code>lista.with(2, 8)</code></td></tr>
+<tr><td><code>push(x)</code></td><td><code>[...lista, x]</code></td></tr>
+</table>
+</div>
+
+<p>Os quatro métodos da direita funcionaram no array congelado sem nenhum erro, porque não tentam mexer nele. O último mostrou que as <code>notas</code> continuam <code>[ 7, 10, 5 ]</code>.</p>
+
+<div class="tryjs" data-goal="out:[ 'pão', 'leite', 'café' ];;out:[ 'pão', 'leite' ];;semerro">
+<p class="try-task"><strong>Missão:</strong> a lista está congelada, e o <code>push</code> dá erro. Troque a linha 2 para criar uma lista <strong>nova</strong> com o café no fim (use <code>[...lista, "café"]</code>), sem mexer na original. O programa deve mostrar as duas listas.</p>
+<pre class="script" data-file="main.js">const lista = Object.freeze(["pão", "leite"]);
+const listaNova = lista.push("café");
+console.log(listaNova);
+console.log(lista);
+</pre>
+<pre class="solucao" data-file="main.js">const lista = Object.freeze(["pão", "leite"]);
+const listaNova = [...lista, "café"];
+console.log(listaNova);
+console.log(lista);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de proteger um valor</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A variável nunca vai apontar para outro valor</td><td><code>const</code> (sempre, por padrão)</td></tr>
+<tr><td>Uma tabela fixa que ninguém deve mudar (preços, configurações, nomes dos meses)</td><td><code>const</code> + <code>Object.freeze</code></td></tr>
+<tr><td>A tabela tem objetos ou arrays dentro</td><td>uma função como <code>congelarTudo</code></td></tr>
+<tr><td>O formato é fixo, mas os valores mudam (placar, formulário)</td><td><code>Object.seal</code></td></tr>
+<tr><td>Atualizar um valor sem estragar o original</td><td>cópia nova: <code>{ ...obj, campo: novo }</code>, <code>toSorted</code>, <code>with</code>, <code>[...lista, x]</code></td></tr>
+<tr><td>Copiar um objeto inteiro, com tudo o que tem dentro</td><td><code>structuredClone(obj)</code> (veja <a href="arrays-copiar.html">Copiando Arrays</a>)</td></tr>
+<tr><td>Esconder um dado dentro de uma classe</td><td>campos privados <code>#</code> (veja <a href="campos-privados.html">Campos Privados</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"Usei <code>const</code>, mas o objeto mudou!"</strong>
+<p>Não é erro do JavaScript: o <code>const</code> protege a variável, não o conteúdo (seção 1). Se o conteúdo não pode mudar, acrescente <code>Object.freeze</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Criar ou apagar propriedade num objeto congelado, no modo estrito</strong>
+<pre class="file" data-file="criar-estrito.js">"use strict";
+const produto = Object.freeze({ nome: "Pão francês", preco: 0.75 });
+produto.estoque = 120;
+</pre>
+<pre class="term">$ node criar-estrito.js
+/home/ana/criar-estrito.js:3
+produto.estoque = 120;
+                ^
+
+TypeError: Cannot add property estoque, object is not extensible
+    at Object.&lt;anonymous&gt; (/home/ana/criar-estrito.js:3:17)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+<p>"Não é possível adicionar a propriedade <code>estoque</code>: o objeto não é extensível". Com <code>delete produto.nome</code> no lugar, sai <code>TypeError: Cannot delete property 'nome' of #&lt;Object&gt;</code> ("não é possível apagar a propriedade <code>nome</code>"). <strong>Como consertar:</strong> se o objeto precisa mesmo mudar, não o congele, ou crie uma cópia nova (seção 6).</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou um objeto congelado sem <code>"use strict"</code>: nada acontece</strong>
+<p>O pior caso, porque não há mensagem nenhuma: o valor simplesmente não muda (seção 2). Se um valor "teima" em não mudar, confira com <code>console.log(Object.isFrozen(obj))</code>. Melhor ainda: use o modo estrito (ou módulos e classes, onde ele é automático), para o erro aparecer na linha certa.</p>
+</div>
+
+<div class="cenario">
+<strong><code>push</code> num array congelado</strong>
+<p><code>TypeError: Cannot add property 3, object is not extensible</code>, mesmo sem <code>"use strict"</code> (seção 3). Com <code>pop</code> sai <code>Cannot delete property '2' of [object Array]</code>, e com <code>sort</code>, <code>Cannot assign to read only property '0' of object '[object Array]'</code>. <strong>Como consertar:</strong> use a versão que devolve uma cópia: <code>[...lista, x]</code>, <code>lista.slice(0, -1)</code>, <code>lista.toSorted()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Congelei, mas a lista de dentro mudou!"</strong>
+<p>O congelamento é raso (seção 4). Use a função <code>congelarTudo</code>, ou congele também o objeto de dentro: <code>Object.freeze(pedido.itens)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>freeze</code> fazia uma cópia</strong>
+<pre class="file" data-file="mesma-caixa.js">const original = { nome: "Sonho", preco: 4.5 };
+const congelado = Object.freeze(original);
+
+original.preco = 5;
+console.log(congelado === original, original.preco);
+</pre>
+<pre class="term">$ node mesma-caixa.js
+true 4.5
+</pre>
+<p>O <code>freeze</code> devolve <strong>a mesma caixa</strong> (o <code>===</code> deu <code>true</code>), então o <code>original</code> também ficou congelado: a mudança do preço para 5 foi ignorada. <strong>Como consertar:</strong> se você quer manter uma versão que muda e outra congelada, congele uma cópia: <code>Object.freeze({ ...original })</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 10.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa quebra com <code>TypeError</code>. Leia a mensagem e conserte sem tirar o <code>Object.freeze</code>: em vez de mudar o pedido, crie um pedido <strong>novo</strong> com a quantidade 3 (dica: <code>{ ...pedido, quantidade: 3 }</code>) e use ele no cálculo.</p>
+<pre class="script" data-file="main.js">"use strict";
+const pedido = Object.freeze({ item: "Sonho", preco: 3.5, quantidade: 2 });
+pedido.quantidade = 3;
+console.log(`Total: ${pedido.preco * pedido.quantidade}`);
+</pre>
+<pre class="solucao" data-file="main.js">"use strict";
+const pedido = Object.freeze({ item: "Sonho", preco: 3.5, quantidade: 2 });
+const pedidoNovo = { ...pedido, quantidade: 3 };
+console.log(`Total: ${pedidoNovo.preco * pedidoNovo.quantidade}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Object.freeze(obj)</code></td><td>Congela: nada muda, nada entra, nada sai. Devolve o mesmo objeto</td></tr>
+<tr><td><code>Object.isFrozen(obj)</code></td><td><code>true</code> se está congelado</td></tr>
+<tr><td><code>Object.seal(obj)</code> / <code>Object.isSealed(obj)</code></td><td>Sela: valores mudam, mas nada entra nem sai</td></tr>
+<tr><td><code>Object.preventExtensions(obj)</code> / <code>Object.isExtensible(obj)</code></td><td>Nada entra; o resto pode</td></tr>
+<tr><td><code>{ ...obj, campo: valor }</code></td><td>Objeto novo com um campo trocado</td></tr>
+<tr><td><code>lista.toSorted()</code>, <code>toReversed()</code>, <code>toSpliced()</code>, <code>with(i, v)</code></td><td>Arrays novos; o original não muda <span class="versao">ES2023</span></td></tr>
+<tr><td><code>structuredClone(obj)</code></td><td>Cópia completa, com tudo o que tem dentro</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Usou <code>=</code> numa variável <code>const</code></td></tr>
+<tr><td><code>Cannot assign to read only property 'x' of object …</code></td><td>Mudou propriedade de objeto congelado (modo estrito, ou <code>sort</code> num array congelado)</td></tr>
+<tr><td><code>Cannot add property x, object is not extensible</code></td><td>Criou propriedade em objeto congelado/selado, ou <code>push</code> em array congelado</td></tr>
+<tr><td><code>Cannot delete property 'x' of …</code></td><td>Apagou propriedade de objeto congelado/selado (modo estrito, ou <code>pop</code>)</td></tr>
+<tr><td>O valor não muda e não há erro</td><td>Objeto congelado, fora do modo estrito</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para congelar a tabela e conferir se ela está congelada:</p>
+<div class="ex-code">const tabela = Object.<input data-answer="freeze" aria-label="método que congela">({ pao: 0.75 });<br>console.log(Object.<input data-answer="isFrozen" aria-label="método que confere">(tabela));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Sem <code>"use strict"</code>, o que este programa mostra?</p>
+<pre class="file" data-file="ex2.js">const p = Object.freeze({ preco: 2 });
+p.preco = 5;
+console.log(p.preco);
+</pre>
+<div class="ex-code">Mostra <input data-answer="2" aria-label="valor mostrado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>const lista = ["pão"];</code> e depois <code>lista.push("leite");</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> <code>TypeError: Assignment to constant variable.</code></label>
+<label><input type="radio" name="q3"> O <code>push</code> é ignorado em silêncio</label>
+<label><input type="radio" name="q3"> Funciona: o <code>const</code> não impede mudar o conteúdo</label>
+<label><input type="radio" name="q3"> <code>Cannot add property 1, object is not extensible</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual lacre deixa mudar os valores, mas não deixa criar nem apagar propriedades?</p>
+<label><input type="radio" name="q4"> <code>Object.freeze</code></label>
+<label><input type="radio" name="q4"> <code>Object.seal</code></label>
+<label><input type="radio" name="q4"> <code>Object.preventExtensions</code></label>
+<label><input type="radio" name="q4"> <code>const</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>const p = Object.freeze({ itens: ["pão"] });</code> e depois <code>p.itens.push("leite");</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Funciona: o congelamento é raso, e o array de dentro não foi congelado</label>
+<label><input type="radio" name="q5"> <code>TypeError</code>: o objeto está congelado</label>
+<label><input type="radio" name="q5"> É ignorado em silêncio</label>
+<label><input type="radio" name="q5"> O <code>p</code> deixa de estar congelado</label>
+</div>
+
+<h3>Missão final: a tabela de preços da padaria</h3>
+
+<div class="tryjs" data-goal="out:Pão francês: R$ 0.75;;out:true true">
+<p class="try-task"><strong>Missão:</strong> a tabela de preços tem um array <code>produtos</code> com um objeto por produto. O <code>Object.freeze</code> da linha 1 congela só a caixa de fora, e por isso o "estagiário" consegue mudar o preço do pão. Use a função <code>congelarTudo</code> (já escrita) no lugar do <code>Object.freeze</code> da tabela, para que o pão continue a R$ 0.75 e as duas conferências no fim deem <code>true true</code>.</p>
+<pre class="script" data-file="main.js">function congelarTudo(objeto) {
+  for (const valor of Object.values(objeto)) {
+    if (typeof valor === "object" &amp;&amp; valor !== null) {
+      congelarTudo(valor);
+    }
+  }
+  return Object.freeze(objeto);
+}
+
+const tabela = Object.freeze({
+  padaria: "Pão da Esquina",
+  produtos: [
+    { nome: "Pão francês", preco: 0.75 },
+    { nome: "Sonho", preco: 4.5 },
+  ],
+});
+
+// o estagiário tenta mudar o preço:
+try {
+  tabela.produtos[0].preco = 0.1;
+} catch (erro) {
+  console.log("Bloqueado:", erro.message);
+}
+
+for (const p of tabela.produtos) {
+  console.log(`${p.nome}: R$ ${p.preco}`);
+}
+console.log(Object.isFrozen(tabela.produtos), Object.isFrozen(tabela.produtos[0]));
+</pre>
+<pre class="solucao" data-file="main.js">function congelarTudo(objeto) {
+  for (const valor of Object.values(objeto)) {
+    if (typeof valor === "object" &amp;&amp; valor !== null) {
+      congelarTudo(valor);
+    }
+  }
+  return Object.freeze(objeto);
+}
+
+const tabela = congelarTudo({
+  padaria: "Pão da Esquina",
+  produtos: [
+    { nome: "Pão francês", preco: 0.75 },
+    { nome: "Sonho", preco: 4.5 },
+  ],
+});
+
+// o estagiário tenta mudar o preço:
+try {
+  tabela.produtos[0].preco = 0.1;
+} catch (erro) {
+  console.log("Bloqueado:", erro.message);
+}
+
+for (const p of tabela.produtos) {
+  console.log(`${p.nome}: R$ ${p.preco}`);
+}
+console.log(Object.isFrozen(tabela.produtos), Object.isFrozen(tabela.produtos[0]));
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Pão francês: R$ 0.75</code>, <code>Sonho: R$ 4.5</code> e <code>true true</code>. Com o código inicial, o pão saiu a <code>R$ 0.1</code> e a conferência deu <code>false false</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>const</code> impede trocar a variável inteira, mas <strong>não</strong> impede mudar o objeto por dentro.</li>
+  <li><code>Object.freeze(obj)</code> lacra o objeto: não muda, não ganha e não perde propriedades. Ele devolve o <strong>mesmo</strong> objeto, e não tem volta.</li>
+  <li>Fora do modo estrito, as tentativas de mudar um objeto congelado são <strong>ignoradas em silêncio</strong>; no modo estrito (e em módulos e classes) viram <code>TypeError</code>. Métodos como <code>push</code> dão erro sempre.</li>
+  <li>O congelamento é <strong>raso</strong>: objetos e arrays de dentro continuam mudando, a não ser que você congele cada um (função <code>congelarTudo</code>).</li>
+  <li><code>Object.seal</code> deixa mudar os valores, mas não criar nem apagar; <code>Object.preventExtensions</code> só proíbe criar.</li>
+  <li>Para "mudar" um valor imutável, crie um novo: <code>{ ...obj, campo: novo }</code>, <code>[...lista, x]</code>, <code>toSorted</code>, <code>toReversed</code>, <code>with</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
