@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Conversão Automática — as pegadinhas do &quot;5&quot; + 2 | Guia JavaScript</title>
+<meta name="description" content="A conversão automática de tipos do JavaScript (coerção) para quem nunca programou: por que &quot;5&quot; + 2 dá &quot;52&quot; e &quot;5&quot; - 2 dá 3, a ordem das contas, o == que converte, &quot;10&quot; &lt; &quot;9&quot; que dá true, objetos e arrays virando texto, o &quot;0&quot; que conta como verdadeiro, e como se proteger, com saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Conversão Automática</span></h1>
+
+<p class="intro">Na aula <a href="conversao.html">Conversão</a>, você transformou valores de um tipo em outro <strong>de propósito</strong>, com <code>Number()</code> e <code>String()</code>. Mas o JavaScript também converte <strong>sozinho</strong>, sem pedir licença, quando você mistura tipos numa conta ou numa comparação. Isso se chama <strong>conversão automática</strong> (os programadores dizem <em>coerção</em>). Às vezes ela ajuda; muitas vezes ela produz resultados que parecem piada, como <code>"5" + 2</code> dar <code>"52"</code>. Esta aula mostra as pegadinhas mais comuns, a regra por trás de cada uma, e como fugir delas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o <code>+</code> com um texto <strong>junta</strong>, e os outros sinais de conta (<code>-</code>, <code>*</code>, <code>/</code>) <strong>convertem para número</strong>.</li>
+  <li>Por que <code>1 + 2 + "3"</code> e <code>"1" + 2 + 3</code> dão resultados diferentes.</li>
+  <li>O que o <code>==</code> converte, e por que o guia usa sempre o <code>===</code>.</li>
+  <li>Por que <code>"10" &lt; "9"</code> é verdadeiro.</li>
+  <li>O que acontece quando um objeto, um array, <code>null</code> ou <code>undefined</code> vira texto.</li>
+  <li>Como se proteger: converter antes, com as próprias mãos.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o atendente que "adivinha"</h2>
+<p>Imagine um atendente de lanchonete muito prestativo, que nunca diz "não entendi". Você pede "um suco e 2", e ele não pergunta "2 o quê?": ele <strong>adivinha</strong>. Às vezes acerta (dois sucos), às vezes traz um suco e dois guardanapos. Ele nunca reclama, e por isso você só descobre o engano quando a bandeja chega.</p>
+<p>O JavaScript é esse atendente. Quando você mistura um texto e um número, ele <strong>não dá erro</strong>: escolhe sozinho para que tipo converter e segue em frente. O segredo é conhecer as regras que ele usa para adivinhar. Elas são poucas.</p>
+
+<hr>
+
+<h2>1. A regra do <code>+</code>: se tiver texto, ele junta</h2>
+<p>O sinal <code>+</code> tem dois trabalhos: <strong>somar</strong> números e <strong>juntar</strong> textos (veja <a href="strings.html">Strings</a>). Quando um dos lados é texto, o JavaScript escolhe juntar, e converte o outro lado em texto:</p>
+
+<pre class="file" data-file="mais.js">console.log("5" + 2);
+console.log(5 + "2");
+console.log("Idade: " + 30);
+console.log(typeof ("5" + 2));
+</pre>
+
+<pre class="term">$ node mais.js
+52
+52
+Idade: 30
+string
+</pre>
+
+<dl class="anatomy">
+  <dt>"5" + 2 → 52</dt><dd>O lado esquerdo é texto. O <code>2</code> virou o texto <code>"2"</code> e foi colado: <code>"52"</code>. O <code>typeof</code> da última linha confirma que o resultado é <code>string</code>, um texto.</dd>
+  <dt>5 + "2" → 52</dt><dd>Não importa de que lado está o texto: basta um.</dd>
+  <dt>"Idade: " + 30</dt><dd>Aqui a conversão é bem-vinda: é exatamente o que queríamos, juntar o número na frase. É por isso que ela existe.</dd>
+</dl>
+
+<hr>
+
+<h2>2. Os outros sinais de conta convertem para número</h2>
+<p>O <code>-</code>, o <code>*</code>, o <code>/</code> e o <code>%</code> só têm um trabalho: fazer conta. Então, com eles, o JavaScript converte o texto para <strong>número</strong>:</p>
+
+<pre class="file" data-file="outros.js">console.log("5" - 2);
+console.log("5" * "2");
+console.log("10" / "4");
+console.log("7" % 2);
+console.log("abc" * 2);
+console.log(typeof ("5" - 2));
+</pre>
+
+<pre class="term">$ node outros.js
+3
+10
+2.5
+1
+NaN
+number
+</pre>
+
+<p>Todos viraram números (o resultado é <code>number</code>), e as contas deram certo, até a de dois textos, <code>"5" * "2"</code>. Quando o texto não é um número, como <code>"abc"</code>, a conversão dá <code>NaN</code> (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>).</p>
+
+<p>Juntando as duas regras, aparece a pegadinha clássica:</p>
+
+<pre class="file" data-file="idade.js">const idadeTexto = "30";
+console.log(`Daqui a 5 anos: ${idadeTexto + 5}`);
+console.log(`Há 5 anos: ${idadeTexto - 5}`);
+</pre>
+
+<pre class="term">$ node idade.js
+Daqui a 5 anos: 305
+Há 5 anos: 25
+</pre>
+
+<p>A subtração deu certo (25) e a soma deu 305. Mesmo valor, mesmo número 5, resultados de tipos diferentes. É o atendente que adivinhou certo uma vez e errado na outra.</p>
+
+<div class="tryjs" data-goal="out:Daqui a 5 anos: 35;;semerro">
+<p class="try-task"><strong>Missão:</strong> conserte a conta da primeira linha do <code>console.log</code> para mostrar <code>Daqui a 5 anos: 35</code>. Dica: converta o texto com <code>Number()</code> antes de somar (aula <a href="conversao.html">Conversão</a>).</p>
+<pre class="script" data-file="main.js">const idadeTexto = "30";
+console.log(`Daqui a 5 anos: ${idadeTexto + 5}`);
+</pre>
+<pre class="solucao" data-file="main.js">const idadeTexto = "30";
+console.log(`Daqui a 5 anos: ${Number(idadeTexto) + 5}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. A ordem importa: da esquerda para a direita</h2>
+<p>Numa conta com vários <code>+</code>, o JavaScript resolve <strong>um de cada vez, da esquerda para a direita</strong>. A regra do texto vale a cada passo:</p>
+
+<pre class="file" data-file="ordem.js">console.log(1 + 2 + "3");
+console.log("1" + 2 + 3);
+console.log("1" + (2 + 3));
+</pre>
+
+<pre class="term">$ node ordem.js
+33
+123
+15
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>1º passo</th><th>2º passo</th><th>Resultado</th></tr>
+<tr><td><code>1 + 2 + "3"</code></td><td><code>1 + 2</code> = <code>3</code> (dois números: soma)</td><td><code>3 + "3"</code> = <code>"33"</code> (tem texto: junta)</td><td><code>"33"</code></td></tr>
+<tr><td><code>"1" + 2 + 3</code></td><td><code>"1" + 2</code> = <code>"12"</code> (tem texto: junta)</td><td><code>"12" + 3</code> = <code>"123"</code> (tem texto: junta)</td><td><code>"123"</code></td></tr>
+<tr><td><code>"1" + (2 + 3)</code></td><td><code>(2 + 3)</code> = <code>5</code> (os parênteses vêm primeiro)</td><td><code>"1" + 5</code> = <code>"15"</code></td><td><code>"15"</code></td></tr>
+</table>
+</div>
+
+<p>Depois que o resultado vira texto, ele continua texto até o fim. Os parênteses mudam a ordem, como na matemática (mais em <a href="precedencia.html">Precedência dos Operadores</a>). Na prática, isso aparece numa frase como <code>"Total: " + preco + taxa</code>, que <strong>junta</strong> os dois valores em vez de somar; o certo é <code>"Total: " + (preco + taxa)</code>, ou melhor ainda, uma template string: <code>`Total: ${preco + taxa}`</code>.</p>
+
+<hr>
+
+<h2>4. O <code>==</code> converte antes de comparar</h2>
+<p>O JavaScript tem duas igualdades. O <code>===</code> (três sinais) compara o valor <strong>e o tipo</strong>, sem converter nada. O <code>==</code> (dois sinais) primeiro <strong>converte</strong> os dois lados para um tipo comum, e só depois compara. E as conversões do <code>==</code> produzem resultados estranhos:</p>
+
+<pre class="file" data-file="igual.js">console.log("1" == 1);
+console.log("1" === 1);
+console.log(0 == "");
+console.log(0 == "0");
+console.log("" == "0");
+console.log(false == "0");
+console.log(null == 0);
+console.log(null == undefined);
+</pre>
+
+<pre class="term">$ node igual.js
+true
+false
+true
+true
+false
+true
+false
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>"1" == 1 → true / "1" === 1 → false</dt><dd>O <code>==</code> converteu o texto para número e achou igual. O <code>===</code> viu que um é texto e o outro é número: diferentes.</dd>
+  <dt>0 == "" → true e 0 == "0" → true</dt><dd>O texto vazio vira 0, e o texto <code>"0"</code> também. Os dois "são iguais" a zero.</dd>
+  <dt>"" == "0" → false</dt><dd>Mas entre si, não! Aqui os dois lados são textos, então não há conversão: são textos diferentes. Ou seja: <code>0</code> é igual a <code>""</code>, <code>0</code> é igual a <code>"0"</code>, mas <code>""</code> não é igual a <code>"0"</code>. Essa falta de lógica é o motivo de o <code>==</code> ter má fama.</dd>
+  <dt>false == "0" → true</dt><dd>O <code>false</code> vira 0, o <code>"0"</code> vira 0: "iguais".</dd>
+  <dt>null == 0 → false / null == undefined → true</dt><dd>O <code>null</code> tem regra própria: com <code>==</code>, ele só é igual ao <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>).</dd>
+</dl>
+
+<div class="tip">
+<strong>A regra do guia: sempre <code>===</code></strong>
+<p>Com o <code>===</code> você nunca precisa decorar essa tabela: tipos diferentes são sempre diferentes. Se os tipos podem ser diferentes (um texto que veio do teclado e um número), converta antes, com <code>Number()</code>, e compare com <code>===</code>. A comparação completa está na aula <a href="operadores-comparacao.html">Comparação (== × ===)</a>.</p>
+</div>
+
+<hr>
+
+<h2>5. <code>"10" &lt; "9"</code>: comparando textos</h2>
+<p>Quando os <strong>dois</strong> lados de um <code>&lt;</code> ou <code>&gt;</code> são textos, o JavaScript não converte nada: ele compara os textos como num dicionário, <strong>letra por letra</strong>, da esquerda para a direita.</p>
+
+<pre class="file" data-file="menor.js">console.log(10 &lt; 9);
+console.log("10" &lt; "9");
+console.log("10" &lt; 9);
+console.log("banana" &lt; "maçã");
+console.log("Zebra" &lt; "abelha");
+</pre>
+
+<pre class="term">$ node menor.js
+false
+true
+false
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>10 &lt; 9 → false</dt><dd>Dois números: 10 não é menor que 9. Certo.</dd>
+  <dt>"10" &lt; "9" → true</dt><dd>Dois textos: o JavaScript compara o primeiro caractere de cada um, <code>"1"</code> com <code>"9"</code>. Como <code>"1"</code> vem antes de <code>"9"</code>, ele decide que <code>"10"</code> vem antes, e para por aí. É como no dicionário, onde "casa" vem antes de "dado" mesmo sendo mais comprida.</dd>
+  <dt>"10" &lt; 9 → false</dt><dd>Basta um lado ser número para o outro ser convertido: aí a comparação é numérica.</dd>
+  <dt>"banana" &lt; "maçã" → true</dt><dd>Para textos de verdade, a comparação de dicionário faz sentido: <code>b</code> vem antes de <code>m</code>.</dd>
+  <dt>"Zebra" &lt; "abelha" → true</dt><dd>Outra surpresa: para o computador, <strong>todas as maiúsculas vêm antes de todas as minúsculas</strong>. Por isso "Zebra" vem antes de "abelha". Ordenar nomes do jeito certo é assunto de <a href="sort.html">Ordenando</a>.</dd>
+</dl>
+
+<p>Isso morde quem compara números que chegaram como texto, como preços lidos de um arquivo: <code>"100" &gt; "25"</code> dá <code>false</code> (no lab, deu <code>false</code>), e <code>Number("100") &gt; Number("25")</code> dá <code>true</code>.</p>
+
+<hr>
+
+<h2>6. Quando objetos, arrays e o "nada" viram texto</h2>
+<p>Quando um valor que não é texto entra numa frase, o JavaScript converte também. Com números e booleanos o resultado é o esperado; com o resto, nem tanto:</p>
+
+<pre class="file" data-file="objetos.js">const aluna = { nome: "Ana" };
+const notas = [7, 8, 10];
+console.log("Aluna: " + aluna);
+console.log(`Notas: ${notas}`);
+console.log([] + []);
+console.log("Total: " + null);
+</pre>
+
+<pre class="term">$ node objetos.js
+Aluna: [object Object]
+Notas: 7,8,10
+
+Total: null
+</pre>
+
+<dl class="anatomy">
+  <dt>"Aluna: " + aluna → Aluna: [object Object]</dt><dd>Um objeto (aula <a href="objetos.html">Objetos</a>) vira o texto <code>[object Object]</code>, que não diz nada. Se aparecer isso na tela, você colocou o objeto inteiro onde queria uma propriedade dele: era para ser <code>aluna.nome</code>.</dd>
+  <dt>`Notas: ${notas}` → Notas: 7,8,10</dt><dd>Um array (aula <a href="arrays.html">Arrays</a>) vira os itens separados por vírgula, sem espaço.</dd>
+  <dt>[] + [] → (linha vazia)</dt><dd>Dois arrays vazios viram dois textos vazios, e juntá-los dá um texto vazio: a linha em branco da saída. O <code>+</code> não sabe "somar" arrays.</dd>
+  <dt>"Total: " + null → Total: null</dt><dd><code>null</code> e <code>undefined</code> viram as palavras <code>"null"</code> e <code>"undefined"</code>. Na tela do usuário, isso indica um valor que faltou.</dd>
+</dl>
+
+<div class="note">
+<strong>E o <code>console.log</code> com vírgula?</strong>
+<p><code>console.log("Aluna:", aluna)</code>, com vírgula em vez de <code>+</code>, não converte nada: o Node mostra o objeto inteiro, <code>Aluna: { nome: 'Ana' }</code>. Para olhar o que tem dentro de um objeto, use a vírgula (veja <a href="console-log.html">console.log()</a>).</p>
+</div>
+
+<hr>
+
+<h2>7. Numa condição, tudo vira booleano</h2>
+<p>O <code>if</code> espera um <code>true</code> ou <code>false</code> (veja <a href="booleanos.html">Booleanos</a>). Se receber outra coisa, ele converte. E aqui há mais uma pegadinha com o <code>"0"</code>:</p>
+
+<pre class="file" data-file="condicao.js">const digitado = "0";
+if (digitado) {
+  console.log("O texto \"0\" conta como verdadeiro!");
+}
+if (0) {
+  console.log("Não aparece.");
+}
+console.log(Boolean("0"), Boolean(0), Boolean(" "), Boolean(""));
+</pre>
+
+<pre class="term">$ node condicao.js
+O texto "0" conta como verdadeiro!
+true false true false
+</pre>
+
+<p>O <strong>número</strong> <code>0</code> conta como falso, mas o <strong>texto</strong> <code>"0"</code> conta como verdadeiro, porque não está vazio (até um texto com um espaço só, <code>" "</code>, é verdadeiro). A lista completa do que conta como falso está em <a href="truthy-falsy.html">Truthy e Falsy</a>.</p>
+
+<hr>
+
+<h2>As regras, num quadro só</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde</th><th>O que o JavaScript faz</th><th>Exemplo real (lab)</th></tr>
+<tr><td><code>+</code> com algum texto</td><td>Converte o outro lado para texto e <strong>junta</strong></td><td><code>"5" + 2</code> → <code>'52'</code></td></tr>
+<tr><td><code>-</code>, <code>*</code>, <code>/</code>, <code>%</code></td><td>Converte os dois lados para <strong>número</strong></td><td><code>"5" - 2</code> → <code>3</code></td></tr>
+<tr><td>Vários <code>+</code> seguidos</td><td>Um de cada vez, da esquerda para a direita</td><td><code>1 + 2 + "3"</code> → <code>'33'</code></td></tr>
+<tr><td><code>==</code> com tipos diferentes</td><td>Converte (quase sempre para número) e compara</td><td><code>"1" == 1</code> → <code>true</code></td></tr>
+<tr><td><code>===</code></td><td>Não converte nada</td><td><code>"1" === 1</code> → <code>false</code></td></tr>
+<tr><td><code>&lt;</code>, <code>&gt;</code> entre dois textos</td><td>Compara letra por letra, como no dicionário</td><td><code>"10" &lt; "9"</code> → <code>true</code></td></tr>
+<tr><td><code>&lt;</code>, <code>&gt;</code> com algum número</td><td>Converte para número</td><td><code>"10" &lt; 9</code> → <code>false</code></td></tr>
+<tr><td>Objeto, array, <code>null</code> num texto</td><td><code>[object Object]</code>, itens com vírgula, <code>null</code></td><td><code>[1, 2] + [3]</code> → <code>'1,23'</code></td></tr>
+<tr><td><code>if (valor)</code></td><td>Converte para booleano</td><td><code>if ("0")</code> entra</td></tr>
+</table>
+</div>
+
+<p>Para conferir uma dessas expressões rapidinho, o modo interativo do Node (veja <a href="repl.html">O Modo Interativo</a>) é perfeito. A Ana testou algumas lá; repare que o Node mostra os textos <strong>entre aspas</strong> e os números sem, então dá para ver na hora que tipo saiu:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "5" + 2
+'52'
+&gt; "5" * "2"
+10
+&gt; true + 1
+2
+&gt; null + 1
+1
+&gt; undefined + 1
+NaN
+&gt; [1, 2] + [3]
+'1,23'
+&gt; ({}) + ""
+'[object Object]'
+&gt; .exit
+</pre>
+
+<div class="tryjs" data-repl data-digitar='"5" + 2\n"5" - 2\n1 + 2 + "3"\n"10" &lt; "9"\n0 == ""'>
+<p class="try-task"><strong>Experimente:</strong> o modo interativo do Node, aqui no guia. Digite cada pegadinha desta aula e tente adivinhar o resultado <strong>antes</strong> de apertar Enter: <code>"5" + 2</code>, <code>"5" - 2</code>, <code>1 + 2 + "3"</code>, <code>"10" &lt; "9"</code>, <code>0 == ""</code>, <code>true + true</code>…</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para evitar as pegadinhas, a solução é sempre a mesma: <strong>não deixe o JavaScript adivinhar</strong>. Compare os jeitos de somar uma idade que chegou como texto:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>Comentário</th></tr>
+<tr><td><code>idadeTexto + 5</code></td><td><code>"305"</code></td><td>Errado: conversão automática para texto</td></tr>
+<tr><td><code>idadeTexto - -5</code></td><td><code>35</code></td><td>"Funciona", mas é um truque ilegível. Não faça.</td></tr>
+<tr><td><code>+idadeTexto + 5</code></td><td><code>35</code></td><td>Funciona; o <code>+</code> da frente converte. Curto, mas fácil de não ver.</td></tr>
+<tr><td><code>Number(idadeTexto) + 5</code></td><td><code>35</code></td><td><strong>O jeito do guia</strong>: a conversão fica escrita com todas as letras</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Faça assim</th></tr>
+<tr><td>O valor veio como texto (teclado, formulário, arquivo) e vai entrar numa conta</td><td>Converta logo que chegar: <code>const idade = Number(idadeTexto);</code></td></tr>
+<tr><td>Comparar dois valores</td><td>Sempre <code>===</code> e <code>!==</code>; se os tipos podem ser diferentes, converta antes</td></tr>
+<tr><td>Montar uma frase com números</td><td>Template string, com a conta dentro: <code>`Total: ${preco + taxa}`</code></td></tr>
+<tr><td>Comparar números guardados como texto</td><td><code>Number(a) &gt; Number(b)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>O traço comum de todos os erros desta aula: <strong>o JavaScript não avisa</strong>. Não há mensagem de erro; só um resultado estranho. Por isso cada cenário mostra o sintoma e de onde ele vem.</p>
+
+<div class="cenario">
+<strong>O caixa que "soma" grudando</strong>
+<p>Os preços chegaram como texto, e a Ana somou um por um num total que começa em 0:</p>
+<pre class="file" data-file="caixa.js">const precos = ["4.50", "12.90", "3.25"];
+let total = 0;
+total = total + precos[0];
+total = total + precos[1];
+total = total + precos[2];
+console.log(`Total: ${total}`);
+</pre>
+<pre class="term">$ node caixa.js
+Total: 04.5012.903.25
+</pre>
+<p>O primeiro <code>+</code> juntou o <code>0</code> com <code>"4.50"</code> e virou o texto <code>"04.50"</code>; daí para frente, tudo foi colado. <strong>Sintoma:</strong> um número enorme ou cheio de pontos onde devia estar uma soma. <strong>Como consertar:</strong> converta cada preço: <code>total = total + Number(precos[0]);</code>. No lab, a versão consertada mostrou <code>Total: 20.65</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>[object Object]</code> na tela</strong>
+<p><strong>Sintoma:</strong> a frase mostra <code>Aluna: [object Object]</code>. <strong>Causa:</strong> você juntou um objeto inteiro num texto. <strong>Como consertar:</strong> use a propriedade que você quer mostrar (<code>aluna.nome</code>), ou, para investigar, <code>console.log("Aluna:", aluna)</code> com vírgula.</p>
+</div>
+
+<div class="cenario">
+<strong>O maior preço que não é o maior</strong>
+<p><strong>Sintoma:</strong> <code>"100" &gt; "25"</code> dá <code>false</code>. <strong>Causa:</strong> os dois são textos, e a comparação foi letra por letra (<code>"1"</code> vem antes de <code>"2"</code>). <strong>Como consertar:</strong> <code>Number("100") &gt; Number("25")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O "zero" que passa no <code>if</code></strong>
+<p><strong>Sintoma:</strong> a pessoa digitou <code>0</code>, mas o <code>if (digitado)</code> entrou como se ela tivesse digitado alguma coisa. <strong>Causa:</strong> o que vem do teclado é o texto <code>"0"</code>, e texto não vazio é verdadeiro. <strong>Como consertar:</strong> converta e compare: <code>if (Number(digitado) !== 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Quando o JavaScript se recusa: BigInt</strong>
+<p>Existe um tipo que <strong>não</strong> entra na adivinhação: o BigInt. <code>10n + 5</code> para o programa com <code>TypeError: Cannot mix BigInt and other types, use explicit conversions</code> ("não dá para misturar BigInt com outros tipos; use conversões explícitas"). É o atendente que, pelo menos dessa vez, pergunta antes. Veja <a href="bigint.html">BigInt</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 20.65;;semerro">
+<p class="try-task"><strong>Missão:</strong> conserte o caixa da Ana. O programa mostra <code>Total: 04.5012.903.25</code>; faça ele mostrar <code>Total: 20.65</code>, convertendo cada preço antes de somar.</p>
+<pre class="script" data-file="main.js">const precos = ["4.50", "12.90", "3.25"];
+let total = 0;
+total = total + precos[0];
+total = total + precos[1];
+total = total + precos[2];
+console.log(`Total: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = ["4.50", "12.90", "3.25"];
+let total = 0;
+total = total + Number(precos[0]);
+total = total + Number(precos[1]);
+total = total + Number(precos[2]);
+console.log(`Total: ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Resultado no Node</th><th>Por quê</th></tr>
+<tr><td><code>"5" + 2</code></td><td><code>'52'</code></td><td><code>+</code> com texto junta</td></tr>
+<tr><td><code>"5" - 2</code> / <code>"5" * "2"</code></td><td><code>3</code> / <code>10</code></td><td><code>-</code> e <code>*</code> convertem para número</td></tr>
+<tr><td><code>"abc" * 2</code></td><td><code>NaN</code></td><td>O texto não é número</td></tr>
+<tr><td><code>1 + 2 + "3"</code> / <code>"1" + 2 + 3</code></td><td><code>'33'</code> / <code>'123'</code></td><td>Da esquerda para a direita</td></tr>
+<tr><td><code>true + 1</code> / <code>null + 1</code> / <code>undefined + 1</code></td><td><code>2</code> / <code>1</code> / <code>NaN</code></td><td><code>true</code>→1, <code>null</code>→0, <code>undefined</code>→<code>NaN</code></td></tr>
+<tr><td><code>"1" == 1</code> / <code>"1" === 1</code></td><td><code>true</code> / <code>false</code></td><td>O <code>==</code> converte; o <code>===</code> não</td></tr>
+<tr><td><code>0 == ""</code> / <code>"" == "0"</code></td><td><code>true</code> / <code>false</code></td><td>As conversões do <code>==</code> não têm lógica entre si</td></tr>
+<tr><td><code>"10" &lt; "9"</code></td><td><code>true</code></td><td>Dois textos: letra por letra</td></tr>
+<tr><td><code>"x" + { }</code> / <code>[1, 2] + [3]</code></td><td><code>'x[object Object]'</code> / <code>'1,23'</code></td><td>Objeto e array viram texto</td></tr>
+<tr><td><code>Boolean("0")</code></td><td><code>true</code></td><td>Texto não vazio é verdadeiro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Junta ou soma?</h3>
+<p>O que <code>console.log("8" + 1);</code> mostra?</p>
+<div class="ex-code"><input data-answer="81" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E com o menos?</h3>
+<p>O que <code>console.log("8" - 1);</code> mostra?</p>
+<div class="ex-code"><input data-answer="7" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A ordem</h3>
+<p>O que <code>console.log(2 + 3 + "4");</code> mostra?</p>
+<div class="ex-code"><input data-answer="54" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Verdadeiro ou falso?</h3>
+<p>O que <code>console.log("2" &gt; "10");</code> mostra?</p>
+<div class="ex-code"><input data-answer="true" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que o guia recomenda o <code>===</code> em vez do <code>==</code>?</p>
+<label><input type="radio" name="q5"> Porque o <code>===</code> é mais rápido de digitar</label>
+<label><input type="radio" name="q5"> Porque o <code>===</code> não converte os tipos, e assim não produz resultados como <code>0 == ""</code> dar <code>true</code></label>
+<label><input type="radio" name="q5"> Porque o <code>==</code> dá erro com textos</label>
+<label><input type="radio" name="q5"> Porque o <code>==</code> não existe no Node 24</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. A tela mostra <code>Cliente: [object Object]</code>. O que aconteceu?</p>
+<label><input type="radio" name="q6"> O Node está com defeito</label>
+<label><input type="radio" name="q6"> O cliente não tem nome</label>
+<label><input type="radio" name="q6"> Faltou converter com <code>Number()</code></label>
+<label><input type="radio" name="q6"> Um objeto inteiro foi juntado num texto; era para usar uma propriedade dele, como <code>cliente.nome</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Qual destas linhas mostra <code>35</code>, com <code>const t = "30";</code>?</p>
+<label><input type="radio" name="q7"> <code>console.log(Number(t) + 5);</code></label>
+<label><input type="radio" name="q7"> <code>console.log(t + 5);</code></label>
+<label><input type="radio" name="q7"> <code>console.log(t + "5");</code></label>
+<label><input type="radio" name="q7"> <code>console.log(String(t) + 5);</code></label>
+</div>
+
+<h3>Missão final: a frase do total</h3>
+
+<div class="tryjs" data-goal="out:Total com entrega: 25;;semerro">
+<p class="try-task"><strong>Missão:</strong> a compra deu 20 reais e a entrega custa 5. Os dois são números, mas a frase mostra <code>Total com entrega: 205</code>. Descubra por quê (seção 3) e conserte só a linha do <code>console.log</code>, sem mudar as variáveis, para mostrar <code>Total com entrega: 25</code>.</p>
+<pre class="script" data-file="main.js">const compra = 20;
+const entrega = 5;
+console.log("Total com entrega: " + compra + entrega);
+</pre>
+<pre class="solucao" data-file="main.js">const compra = 20;
+const entrega = 5;
+console.log("Total com entrega: " + (compra + entrega));
+</pre>
+</div>
+
+<p>Os parênteses fazem a soma acontecer primeiro, entre dois números. Outra solução, ainda mais clara: <code>console.log(`Total com entrega: ${compra + entrega}`);</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Quando você mistura tipos, o JavaScript converte <strong>sozinho</strong> e não avisa. Isso se chama conversão automática (coerção).</li>
+  <li><code>+</code> com algum texto <strong>junta</strong> (<code>"5" + 2</code> é <code>"52"</code>); <code>-</code>, <code>*</code>, <code>/</code> e <code>%</code> convertem para <strong>número</strong> (<code>"5" - 2</code> é <code>3</code>). Vários <code>+</code> vão da esquerda para a direita.</li>
+  <li>O <code>==</code> converte antes de comparar e dá resultados sem lógica (<code>0 == ""</code> é <code>true</code>). Use sempre <code>===</code>.</li>
+  <li>Entre dois textos, <code>&lt;</code> e <code>&gt;</code> comparam letra por letra: <code>"10" &lt; "9"</code> é <code>true</code>.</li>
+  <li>Objetos viram <code>[object Object]</code>, arrays viram itens com vírgula, e o texto <code>"0"</code> é verdadeiro. A defesa é uma só: converta você mesmo, com <code>Number()</code> e <code>String()</code>, antes de usar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
