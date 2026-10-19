@@ -24,7 +24,13 @@
   var nFetch = G.fetch ? G.fetch.bind(G) : null;
   var NativePromise = G.Promise;
   var NWorker = G.Worker, NBlob = G.Blob, NMessageChannel = G.MessageChannel;
-  var ehV8 = typeof Error.captureStackTrace === "function";
+  // V8 (Chrome, Edge…): o Error.prepareStackTrace funciona. O Firefox tem captureStackTrace, mas não o prepareStackTrace
+  var ehV8 = (function () {
+    if (typeof Error.captureStackTrace !== "function") return false;
+    var o = Error.prepareStackTrace;
+    try { Error.prepareStackTrace = function () { return "v8"; }; return new Error().stack === "v8"; }
+    catch (e) { return false; } finally { Error.prepareStackTrace = o; }
+  })();
   var BASE = (function () { try { return String(G.location.href).replace(/[^/]*$/, ""); } catch (e) { return ""; } })();
   nImportScripts(BASE + "inspect.js");
   var U = G.util; try { delete G.util; } catch (e) { G.util = undefined; }
@@ -155,13 +161,13 @@
       var m = /^(.*?)@(.*):(\d+):(\d+)$/.exec(l);
       if (!m) return;
       var info = arquivosInfo[m[2]];
-      if (!info) return;
+      if (!info) { var ctx = CONTEXTOS[m[1].replace(/^.*\//, "")]; if (ctx && r.length) r = r.concat(ctx); return; }
       var lin = +m[3], col = +m[4] - (+m[3] === 1 ? info.linha1 : 0);
       var fn = m[1].replace(/\/<$/, "").replace(/^.*\//, "");
       var loc = info.mostrar + ":" + lin + ":" + col;
       r.push(fn ? fn + " (" + loc + ")" : info.cjs ? "Object.<anonymous> (" + loc + ")" : loc);
     });
-    return r;
+    return r.slice(0, 10);
   }
   // posição (arquivo, linha, coluna) de onde o erro aconteceu: o 1º frame do usuário
   function posicaoErro(err) {

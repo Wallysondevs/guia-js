@@ -43,7 +43,9 @@ async function abrirMotor(opc = {}) {
   const extra = {};
   const srv = await servidor(extra);
   const origem = "http://127.0.0.1:" + srv.address().port;
-  const nav = await pup.launch({
+  // NAVEGADOR=firefox: o mesmo teste no Firefox (outro motor: as mensagens de erro mudam)
+  const ff = process.env.NAVEGADOR === "firefox";
+  const nav = await pup.launch(ff ? { browser: "firefox", executablePath: process.env.FIREFOX || "/usr/bin/firefox-esr", headless: true } : {
     executablePath: CHROMIUM, headless: true,
     args: ["--no-sandbox", "--disable-gpu", "--lang=pt-BR", "--no-first-run", "--disable-dev-shm-usage"],
     env: Object.assign({}, process.env, { TZ: opc.tz || "America/Sao_Paulo", LANG: "pt_BR.UTF-8" }),
@@ -52,11 +54,11 @@ async function abrirMotor(opc = {}) {
   const errosPagina = [];
   pg.on("pageerror", (e) => errosPagina.push(String(e && e.message || e)));
   pg.on("dialog", (d) => { d.accept().catch(() => {}); });
-  await pg.emulateTimezone(opc.tz || "America/Sao_Paulo");
+  if (!ff) await pg.emulateTimezone(opc.tz || "America/Sao_Paulo");
   await pg.goto(origem + "/__sim.html");
   await pg.waitForFunction("window.JsSim && JsSim.montado && JsSim.testarWeb", { timeout: 15000 });
   const info = await pg.evaluate(() => ({ ua: navigator.userAgent, node: JsSim.NODE, motor: JsSim.motor }));
-  info.chromium = (info.ua.match(/Chrome\/([\d.]+)/) || [])[1];
+  info.chromium = (info.ua.match(/Chrome\/([\d.]+)/) || info.ua.match(/(Firefox\/[\d.]+)/) || [])[1];
 
   async function rodar(req, o = {}) {
     return pg.evaluate((req, o) => new Promise((ok) => {

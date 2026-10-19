@@ -93,7 +93,7 @@ const soRepl = repl && !arquivos[0].codigo.trim();
     if (r.excecao) extra.push("terminou com erro não tratado");
     if (r.eco && r.eco.length) extra.push("digitado: " + JSON.stringify(r.eco.join("")) + " (no editor aparece no meio da saída; não conta para out:)");
     if (stdin === null && digitar === null && r.pediuTeclado) extra.push("o programa leu o teclado: sem --stdin/--digitar o testador mandou Ctrl+D; no editor, sem data-stdin, o leitor digita");
-    console.log("-- editor: Chromium " + m.info.chromium + " (" + r.modo + "), " + r.ms + " ms" + (extra.length ? "; " + extra.join("; ") : ""));
+    console.log("-- editor: " + (/Firefox/.test(m.info.chromium) ? m.info.chromium : "Chromium " + m.info.chromium) + " (" + r.modo + "), " + r.ms + " ms" + (extra.length ? "; " + extra.join("; ") : ""));
     if (goal) {
       if (falhas === null) console.log("-- meta: não avaliada (o programa foi interrompido)");
       else if (!falhas.length) console.log("-- meta \"" + goal + "\": CUMPRIDA");
