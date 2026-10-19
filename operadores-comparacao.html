@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Comparação — &gt;, &lt;, &gt;=, &lt;=, === e o == | Guia JavaScript</title>
+<meta name="description" content="Os operadores de comparação do JavaScript para quem nunca programou: maior, menor, maior ou igual, menor ou igual, === e !==, por que o guia evita == e !=, comparar textos (maiúsculas, espaços, ordem de dicionário), NaN, a pegadinha 0 &lt;= nota &lt;= 10, arrays que nunca são iguais, e os erros reais do Node.js 24 (=&gt; no lugar de &gt;=, =&lt;).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Comparação</span></h1>
+
+<p class="intro">A pessoa tem idade para dirigir? A senha está certa? O aluno passou? Antes de decidir qualquer coisa, o programa precisa <strong>comparar</strong>: um número com outro, um texto com outro. Os <strong>operadores de comparação</strong> fazem essas perguntas, e a resposta é sempre um <a href="booleanos.html">booleano</a>: <code>true</code> ou <code>false</code>. Esta aula mostra os oito operadores, e por que o guia usa o <code>===</code> (três sinais de igual) e nunca o <code>==</code> (dois).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os operadores de "maior" e "menor": <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code> e <code>&lt;=</code>.</li>
+  <li>Os de igualdade: <code>===</code> ("é igual") e <code>!==</code> ("é diferente").</li>
+  <li>O que o <code>==</code> e o <code>!=</code> fazem de diferente, e por que evitá-los.</li>
+  <li>Como o JavaScript compara textos: maiúsculas, espaços e a ordem do dicionário.</li>
+  <li>As pegadinhas: o <code>NaN</code>, o <code>0 &lt;= nota &lt;= 10</code> e os arrays que nunca são iguais.</li>
+  <li>Os erros reais: <code>=&gt;</code> no lugar de <code>&gt;=</code>, o <code>=&lt;</code> e o <code>=</code> no lugar do <code>===</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a placa da montanha-russa</h2>
+<p>Na entrada da montanha-russa há uma placa com uma régua: "altura mínima: 1,40 m". O funcionário encosta a criança na régua e faz <strong>uma pergunta</strong>: a altura dela é maior ou igual a 1,40? A resposta é sim ou não, e é ela que decide se a criança entra.</p>
+<p>Uma comparação é isso: uma pergunta de sim ou não sobre dois valores. <code>altura &gt;= 1.40</code> é a placa da montanha-russa escrita em JavaScript. Ela não muda nada, não guarda nada: só <strong>responde</strong>.</p>
+
+<hr>
+
+<h2>1. Maior e menor: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code></h2>
+
+<pre class="file" data-file="maior.js">const idade = 16;
+console.log(idade &gt; 18);
+console.log(idade &lt; 18);
+console.log(idade &gt;= 16);
+console.log(idade &lt;= 15);
+</pre>
+
+<pre class="term">$ node maior.js
+false
+true
+true
+false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Pergunta</th><th>Exemplo (<code>idade = 16</code>)</th><th>Resposta</th></tr>
+<tr><td><code>&gt;</code></td><td>"é maior que?"</td><td><code>idade &gt; 18</code></td><td><code>false</code></td></tr>
+<tr><td><code>&lt;</code></td><td>"é menor que?"</td><td><code>idade &lt; 18</code></td><td><code>true</code></td></tr>
+<tr><td><code>&gt;=</code></td><td>"é maior <strong>ou igual</strong> a?"</td><td><code>idade &gt;= 16</code></td><td><code>true</code> (16 é igual a 16)</td></tr>
+<tr><td><code>&lt;=</code></td><td>"é menor ou igual a?"</td><td><code>idade &lt;= 15</code></td><td><code>false</code></td></tr>
+</table>
+</div>
+
+<p>Dois detalhes para gravar:</p>
+<ul>
+  <li><strong>"Ou igual" faz diferença na fronteira.</strong> Com 16 anos, <code>idade &gt; 16</code> é <code>false</code>, mas <code>idade &gt;= 16</code> é <code>true</code>. Pergunte-se sempre: o próprio limite entra ou não? ("A partir de 18" é <code>&gt;= 18</code>; "mais de 18" é <code>&gt; 18</code>.)</li>
+  <li><strong>O <code>=</code> vem sempre por último:</strong> <code>&gt;=</code> e <code>&lt;=</code>, como se lê: "maior ou igual". A seção <a href="#errado">Quando dá errado</a> mostra o que o <code>=&gt;</code> faz (e não é um erro: é pior).</li>
+</ul>
+
+<h3>Guardando a resposta</h3>
+<p>Como a resposta é um booleano, dá para guardar numa variável com um nome que soa como pergunta (veja <a href="booleanos.html">Booleanos</a>):</p>
+
+<pre class="file" data-file="guardar.js">const media = 7.5;
+const aprovado = media &gt;= 6;
+console.log(`Aprovado? ${aprovado}`);
+</pre>
+
+<pre class="term">$ node guardar.js
+Aprovado? true
+</pre>
+
+<div class="tryjs" data-goal="out:Pode entrar? true;;src:&gt;=\s*1\.4">
+<p class="try-task"><strong>Missão:</strong> a Bia mede exatamente 1,40 m, e a placa diz "altura mínima: 1,40 m". Mas o programa diz que ela não pode entrar. Troque o operador para o limite contar: o programa deve mostrar <code>Pode entrar? true</code>.</p>
+<pre class="script" data-file="main.js">const altura = 1.40;
+const podeEntrar = altura &gt; 1.40;
+console.log(`Pode entrar? ${podeEntrar}`);
+</pre>
+<pre class="solucao" data-file="main.js">const altura = 1.40;
+const podeEntrar = altura &gt;= 1.40;
+console.log(`Pode entrar? ${podeEntrar}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Igual e diferente: <code>===</code> e <code>!==</code></h2>
+<p>Para perguntar se dois valores são <strong>iguais</strong>, use três sinais de igual: <code>===</code>. Para perguntar se são <strong>diferentes</strong>, <code>!==</code> (o <code>!</code> é o "não": "não é igual").</p>
+
+<pre class="file" data-file="igual.js">const senha = "abc123";
+console.log(senha === "abc123");
+console.log(senha === "ABC123");
+console.log(senha !== "abc123");
+console.log(10 === 10.0);
+console.log(0.1 + 0.2 === 0.3);
+</pre>
+
+<pre class="term">$ node igual.js
+true
+false
+false
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>senha === "abc123" → true</dt><dd>Mesmo texto, letra por letra: iguais.</dd>
+  <dt>senha === "ABC123" → false</dt><dd>Para o computador, <code>a</code> e <code>A</code> são letras diferentes.</dd>
+  <dt>senha !== "abc123" → false</dt><dd>"A senha é diferente de abc123?" Não: são iguais. O <code>!==</code> responde sempre o contrário do <code>===</code>.</dd>
+  <dt>10 === 10.0 → true</dt><dd>Para o JavaScript, <code>10</code> e <code>10.0</code> são o mesmo número.</dd>
+  <dt>0.1 + 0.2 === 0.3 → false</dt><dd>A pegadinha da precisão: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>, que não é exatamente <code>0.3</code> (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Com números com casas decimais, desconfie do <code>===</code>.</dd>
+</dl>
+
+<div class="warning">
+<strong><code>=</code>, <code>==</code> e <code>===</code> são três coisas diferentes</strong>
+<p><code>=</code> (um sinal) <strong>guarda</strong> um valor: é a atribuição (aula <a href="atribuicao.html">Atribuição</a>). <code>===</code> (três) <strong>pergunta</strong> se é igual. E o <code>==</code> (dois) também pergunta, mas de um jeito que o guia não recomenda: é a próxima seção.</p>
+</div>
+
+<hr>
+
+<h2>3. O <code>==</code> e o <code>!=</code>: a igualdade "frouxa"</h2>
+<p>O JavaScript tem uma segunda dupla de igualdade, mais antiga: <code>==</code> e <code>!=</code>. A diferença é que, quando os dois valores são de <strong>tipos diferentes</strong> (um número e um texto, por exemplo), o <code>==</code> <strong>converte</strong> um deles antes de comparar. O <code>===</code> não converte nada: tipos diferentes já são diferentes.</p>
+
+<pre class="file" data-file="duplo.js">console.log(5 == "5");
+console.log(5 === "5");
+console.log(5 != "5");
+console.log(5 !== "5");
+console.log(0 == false);
+console.log(0 === false);
+console.log("" == 0);
+console.log(null == undefined);
+console.log(null === undefined);
+</pre>
+
+<pre class="term">$ node duplo.js
+true
+false
+false
+true
+true
+false
+true
+true
+false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comparação</th><th>Com <code>==</code> (converte)</th><th>Com <code>===</code> (não converte)</th></tr>
+<tr><td><code>5</code> e <code>"5"</code></td><td><code>true</code>: o texto virou número</td><td><code>false</code>: número não é texto</td></tr>
+<tr><td><code>0</code> e <code>false</code></td><td><code>true</code>: o <code>false</code> virou 0</td><td><code>false</code></td></tr>
+<tr><td><code>""</code> e <code>0</code></td><td><code>true</code>: o texto vazio virou 0</td><td><code>false</code></td></tr>
+<tr><td><code>null</code> e <code>undefined</code></td><td><code>true</code>: regra especial</td><td><code>false</code></td></tr>
+</table>
+</div>
+
+<p>As conversões do <code>==</code> seguem regras que nem programadores experientes lembram de cor, e produzem coisas como <code>"" == 0</code> ser <code>true</code> (a lista completa de pegadinhas está em <a href="conversao-automatica.html">Conversão Automática</a>). Com o <code>===</code>, não há nada para lembrar.</p>
+
+<div class="tip">
+<strong>A regra do guia: sempre <code>===</code> e <code>!==</code></strong>
+<p>Se os valores podem ser de tipos diferentes (a idade que chegou como texto do teclado e o número 18), <strong>converta antes</strong>, de propósito, e compare com <code>===</code>: <code>Number(idadeTexto) === 18</code> (veja <a href="conversao.html">Conversão</a>). Assim o código diz exatamente o que faz. O <code>==</code> e o <code>!=</code> aparecem no guia só para você reconhecer em código antigo.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Acertou!;;src:===;;src:Number\s*\(">
+<p class="try-task"><strong>Missão:</strong> o jogo sorteou o número 7, e a pessoa digitou <code>"7"</code> (como texto, que é como o teclado entrega). O programa usa <code>==</code> e "funciona" por acaso. Faça do jeito do guia: converta o palpite com <code>Number()</code> e compare com <code>===</code>. O programa deve continuar mostrando <code>Acertou!</code>.</p>
+<pre class="script" data-file="main.js">const sorteado = 7;
+const palpite = "7";
+if (palpite == sorteado) {
+  console.log("Acertou!");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const sorteado = 7;
+const palpite = "7";
+if (Number(palpite) === sorteado) {
+  console.log("Acertou!");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Comparando textos</h2>
+<p>Com textos, o <code>===</code> compara <strong>letra por letra</strong>, e o <code>&lt;</code> e o <code>&gt;</code> comparam na ordem do <strong>dicionário</strong>, com algumas surpresas:</p>
+
+<pre class="file" data-file="textos.js">console.log("Ana" === "Ana");
+console.log("Ana" === "ana");
+console.log("Ana " === "Ana");
+console.log("abacaxi" &lt; "banana");
+console.log("Banana" &lt; "abacaxi");
+console.log("10" &lt; "9");
+console.log("ana".toLowerCase() === "ANA".toLowerCase());
+</pre>
+
+<pre class="term">$ node textos.js
+true
+false
+false
+true
+true
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>"Ana" === "ana" → false</dt><dd>Maiúscula e minúscula são diferentes.</dd>
+  <dt>"Ana " === "Ana" → false</dt><dd>Um espaço a mais no fim (invisível na tela!) já faz os textos serem diferentes. É comum em dados digitados por pessoas; o <code>.trim()</code> tira esses espaços (aula <a href="strings-metodos.html">Métodos de String</a>).</dd>
+  <dt>"abacaxi" &lt; "banana" → true</dt><dd>No dicionário, "abacaxi" vem antes de "banana": é "menor".</dd>
+  <dt>"Banana" &lt; "abacaxi" → true</dt><dd>Surpresa: para o computador, <strong>todas as maiúsculas vêm antes de todas as minúsculas</strong>. "B" maiúsculo vem antes de "a" minúsculo.</dd>
+  <dt>"10" &lt; "9" → true</dt><dd>Dois textos: compara o primeiro caractere, <code>"1"</code> com <code>"9"</code>, e para. Números guardados como texto se comparam errado; converta antes (aula <a href="conversao-automatica.html">Conversão Automática</a>).</dd>
+  <dt>.toLowerCase() === .toLowerCase() → true</dt><dd>Para comparar sem ligar para maiúsculas, transforme os dois lados em minúsculas antes (aula <a href="strings-metodos.html">Métodos de String</a>).</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Confirmado!;;src:toLowerCase\s*\(">
+<p class="try-task"><strong>Experimente:</strong> a pessoa respondeu <code>"Sim"</code>, com S maiúsculo, e o programa não confirmou. Use o <code>.toLowerCase()</code> na resposta para o programa aceitar "Sim", "SIM" ou "sim".</p>
+<pre class="script" data-file="main.js">const resposta = "Sim";
+if (resposta === "sim") {
+  console.log("Confirmado!");
+}
+console.log("Fim.");
+</pre>
+<pre class="solucao" data-file="main.js">const resposta = "Sim";
+if (resposta.toLowerCase() === "sim") {
+  console.log("Confirmado!");
+}
+console.log("Fim.");
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Três pegadinhas</h2>
+
+<h3>O <code>NaN</code> não é igual a nada, nem a ele mesmo</h3>
+
+<pre class="file" data-file="nan.js">const valor = Number("abc");
+console.log(valor === NaN);
+console.log(NaN === NaN);
+console.log(Number.isNaN(valor));
+console.log(valor &gt; 0, valor &lt; 0);
+</pre>
+
+<pre class="term">$ node nan.js
+false
+false
+true
+false false
+</pre>
+
+<p>O <code>NaN</code> ("não é um número", o resultado de uma conversão que falhou) dá <code>false</code> em <strong>qualquer</strong> comparação, até com ele mesmo, e não é nem maior nem menor que zero. Para saber se um valor é <code>NaN</code>, a única forma confiável é <code>Number.isNaN(valor)</code> (veja <a href="conversao.html">Conversão</a>).</p>
+
+<h3><code>0 &lt;= nota &lt;= 10</code> não faz o que parece</h3>
+<p>Na matemática, "0 ≤ nota ≤ 10" quer dizer "a nota está entre 0 e 10". No JavaScript, isso não funciona:</p>
+
+<pre class="file" data-file="encadeada.js">const nota = 15;
+console.log(0 &lt;= nota &lt;= 10);
+console.log(3 &gt; 2 &gt; 1);
+console.log(0 &lt;= nota &amp;&amp; nota &lt;= 10);
+</pre>
+
+<pre class="term">$ node encadeada.js
+true
+false
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>0 &lt;= nota &lt;= 10 → true (com nota 15!)</dt><dd>O JavaScript faz uma comparação de cada vez, da esquerda para a direita. Primeiro <code>0 &lt;= 15</code>, que dá <code>true</code>. Depois, <code>true &lt;= 10</code>: o <code>true</code> vira 1 (veja <a href="conversao-automatica.html">Conversão Automática</a>), e <code>1 &lt;= 10</code> é <code>true</code>. Uma nota 15 passou como válida.</dd>
+  <dt>3 &gt; 2 &gt; 1 → false</dt><dd>Pelo mesmo motivo: <code>3 &gt; 2</code> é <code>true</code>, e <code>true &gt; 1</code> é <code>1 &gt; 1</code>, que é <code>false</code>.</dd>
+  <dt>0 &lt;= nota &amp;&amp; nota &lt;= 10 → false</dt><dd>O jeito certo: duas comparações separadas, ligadas pelo <code>&amp;&amp;</code> ("e"). "A nota é maior ou igual a 0 <strong>e</strong> menor ou igual a 10". O <code>&amp;&amp;</code> é da aula <a href="operadores-logicos.html">Operadores Lógicos</a>.</dd>
+</dl>
+
+<h3>Dois arrays iguais não são iguais</h3>
+
+<pre class="file" data-file="listas.js">console.log([1, 2] === [1, 2]);
+const a = [1, 2];
+const b = a;
+console.log(a === b);
+console.log({ nome: "Ana" } === { nome: "Ana" });
+</pre>
+
+<pre class="term">$ node listas.js
+false
+true
+false
+</pre>
+
+<p>Com arrays e objetos, o <code>===</code> não compara o <strong>conteúdo</strong>: ele pergunta "é <strong>a mesma</strong> lista?". Duas listas com os mesmos itens são como duas cadernetas de compras iguais: o conteúdo é o mesmo, mas são duas cadernetas. Já <code>b = a</code> não cria uma lista nova, só dá um segundo nome para a mesma, e aí o <code>===</code> dá <code>true</code>. Isso é explicado em detalhes em <a href="objetos-referencia.html">Objetos são Referências</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Muitas perguntas podem ser escritas de mais de um jeito. Escolha o que se lê mais parecido com a frase em português:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pergunta</th><th>Formas equivalentes</th><th>Prefira</th></tr>
+<tr><td>"Tem 18 anos ou mais?"</td><td><code>idade &gt;= 18</code> · <code>idade &gt; 17</code> · <code>18 &lt;= idade</code></td><td><code>idade &gt;= 18</code>: o número da regra aparece como está na regra</td></tr>
+<tr><td>"Não é a senha certa?"</td><td><code>senha !== certa</code> · <code>!(senha === certa)</code></td><td><code>senha !== certa</code></td></tr>
+<tr><td>"Está entre 0 e 10?"</td><td><code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code> · <code>0 &lt;= nota &amp;&amp; nota &lt;= 10</code></td><td>Qualquer uma das duas; nunca <code>0 &lt;= nota &lt;= 10</code></td></tr>
+<tr><td>"É igual a 5, mesmo vindo como texto?"</td><td><code>Number(x) === 5</code> · <code>x == 5</code></td><td><code>Number(x) === 5</code></td></tr>
+<tr><td>"É <code>NaN</code>?"</td><td><code>Number.isNaN(x)</code> · <code>Object.is(x, NaN)</code></td><td><code>Number.isNaN(x)</code> (o <code>Object.is</code> funciona, mas é mais raro)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>=&gt;</code> no lugar de <code>&gt;=</code></strong>
+<pre class="file" data-file="seta.js">const idade = 12;
+if (idade =&gt; 18) {
+  console.log("Maior de idade");
+}
+</pre>
+<pre class="term">$ node seta.js
+Maior de idade
+</pre>
+<p>Uma criança de 12 anos foi considerada maior de idade, e o Node não reclamou de nada. O <code>=&gt;</code> não é "maior ou igual": é a <strong>seta</strong> de uma arrow function (aula <a href="arrow-functions.html">Arrow Functions</a>). O JavaScript leu <code>idade =&gt; 18</code> como "uma função que recebe <code>idade</code> e devolve 18", e uma função, numa condição, conta como verdadeira. Resultado: o <code>if</code> entra sempre, qualquer que seja a idade. <strong>Como consertar:</strong> o <code>=</code> vem por último: <code>idade &gt;= 18</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>=&lt;</code> no lugar de <code>&lt;=</code></strong>
+<pre class="file" data-file="seta2.js">const idade = 20;
+console.log(idade =&lt; 18);
+</pre>
+<pre class="term">$ node seta2.js
+/home/ana/seta2.js:2
+console.log(idade =&lt; 18);
+                   ^
+
+SyntaxError: Unexpected token '&lt;'
+    …  « 8 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/seta2.js:2</dt><dd>O arquivo e a linha: a 2.</dd>
+  <dt>console.log(idade =&lt; 18); e o ^</dt><dd>O <code>^</code> aponta para o <code>&lt;</code>.</dd>
+  <dt>SyntaxError: Unexpected token '&lt;'</dt><dd>"Erro de sintaxe: símbolo <code>&lt;</code> inesperado". O JavaScript leu <code>idade =</code> como o começo de uma atribuição ("idade recebe…") e esperava um valor depois do <code>=</code>. Veio um <code>&lt;</code>, que não pode começar um valor.</dd>
+  <dt>Node.js v24.22.0</dt><dd>Todas as linhas <code>at</code> são de dentro do Node: com erro de sintaxe, o programa nem começou a rodar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>idade &lt;= 18</code>. Pelo menos aqui o JavaScript avisa; com o <code>=&gt;</code>, ele fica quieto.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar de <code>===</code></strong>
+<p><code>if (nota = 10)</code> não pergunta nada: <strong>guarda</strong> 10 na nota, e o <code>if</code> entra sempre. A aula <a href="atribuicao.html">Atribuição</a> mostra esse erro rodando no lab. <strong>Como consertar:</strong> <code>if (nota === 10)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Separou o <code>!</code> do <code>==</code></strong>
+<pre class="file" data-file="bang.js">const cor = "azul";
+console.log(cor ! == "verde");
+</pre>
+<pre class="term">$ node bang.js
+/home/ana/bang.js:2
+console.log(cor ! == "verde");
+            ^^^
+
+SyntaxError: missing ) after argument list
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Falta o <code>)</code> depois da lista de argumentos". Os símbolos de comparação são uma peça só: <code>!==</code>, <code>&gt;=</code>, <code>===</code>, sempre colados. Com espaço no meio, o JavaScript se perde logo depois do <code>cor</code> e acha que faltou fechar o parêntese. <strong>Como consertar:</strong> <code>cor !== "verde"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A comparação de texto que "não bate"</strong>
+<p><strong>Sintoma:</strong> o <code>if (resposta === "sim")</code> não entra, mas a pessoa digitou "sim". <strong>Causas prováveis:</strong> uma letra maiúscula (<code>"Sim"</code>) ou um espaço sobrando (<code>"sim "</code>), que não aparecem a olho nu. Para investigar, mostre o valor entre colchetes: <code>console.log(`[${resposta}]`)</code> deixa os espaços visíveis. <strong>Como consertar:</strong> <code>resposta.trim().toLowerCase() === "sim"</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Nota inválida;;semerro;;src:&amp;&amp;">
+<p class="try-task"><strong>Missão:</strong> a nota 15 deveria ser recusada, mas o programa diz que ela é válida, por causa do <code>0 &lt;= nota &lt;= 10</code>. Reescreva a condição com duas comparações ligadas por <code>&amp;&amp;</code> para o programa mostrar <code>Nota inválida</code>.</p>
+<pre class="script" data-file="main.js">const nota = 15;
+const valida = 0 &lt;= nota &lt;= 10;
+if (valida) {
+  console.log("Nota válida");
+}
+if (!valida) {
+  console.log("Nota inválida");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const nota = 15;
+const valida = nota &gt;= 0 &amp;&amp; nota &lt;= 10;
+if (valida) {
+  console.log("Nota válida");
+}
+if (!valida) {
+  console.log("Nota inválida");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Pergunta</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>&gt;</code></td><td>é maior que?</td><td><code>5 &gt; 3</code></td><td><code>true</code></td></tr>
+<tr><td><code>&lt;</code></td><td>é menor que?</td><td><code>5 &lt; 3</code></td><td><code>false</code></td></tr>
+<tr><td><code>&gt;=</code></td><td>é maior ou igual a?</td><td><code>5 &gt;= 5</code></td><td><code>true</code></td></tr>
+<tr><td><code>&lt;=</code></td><td>é menor ou igual a?</td><td><code>4 &lt;= 5</code></td><td><code>true</code></td></tr>
+<tr><td><code>===</code></td><td>é igual (valor e tipo)?</td><td><code>5 === "5"</code></td><td><code>false</code></td></tr>
+<tr><td><code>!==</code></td><td>é diferente (valor ou tipo)?</td><td><code>5 !== "5"</code></td><td><code>true</code></td></tr>
+<tr><td><code>==</code></td><td>é igual, depois de converter? (evite)</td><td><code>5 == "5"</code></td><td><code>true</code></td></tr>
+<tr><td><code>!=</code></td><td>é diferente, depois de converter? (evite)</td><td><code>5 != "5"</code></td><td><code>false</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O <code>if</code> entra sempre, com qualquer valor</td><td><code>=&gt;</code> no lugar de <code>&gt;=</code>, ou <code>=</code> no lugar de <code>===</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token '&lt;'</code></td><td><code>=&lt;</code> no lugar de <code>&lt;=</code></td></tr>
+<tr><td><code>missing ) after argument list</code> numa comparação</td><td>Espaço no meio do operador (<code>! ==</code>)</td></tr>
+<tr><td>Textos "iguais" que dão <code>false</code></td><td>Maiúsculas ou espaços sobrando</td></tr>
+<tr><td><code>"10" &lt; "9"</code> dá <code>true</code></td><td>Números guardados como texto: converta antes</td></tr>
+<tr><td>Valor fora da faixa aceito como válido</td><td><code>a &lt;= x &lt;= b</code>: use <code>x &gt;= a &amp;&amp; x &lt;= b</code></td></tr>
+<tr><td><code>x === NaN</code> nunca é <code>true</code></td><td>Use <code>Number.isNaN(x)</code></td></tr>
+<tr><td>Arrays com o mesmo conteúdo dão <code>false</code></td><td><code>===</code> compara se é a mesma lista, não o conteúdo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para perguntar "a idade é 18 ou mais?":</p>
+<div class="ex-code">const maior = idade <input data-answer="&gt;=" aria-label="operador"> 18;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Verdadeiro ou falso?</h3>
+<p>O que <code>console.log(7 === "7");</code> mostra?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E com dois sinais?</h3>
+<p>O que <code>console.log(7 == "7");</code> mostra?</p>
+<div class="ex-code"><input data-answer="true" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>4. A fronteira</h3>
+<p>O que <code>console.log(10 &gt; 10);</code> mostra?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que <code>"Maria" === "maria"</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>true</code>, porque é o mesmo nome</label>
+<label><input type="radio" name="q5"> Um erro</label>
+<label><input type="radio" name="q5"> <code>false</code>, porque maiúscula e minúscula são diferentes</label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Como se pergunta se <code>idade</code> está entre 13 e 17 (incluindo os dois)?</p>
+<label><input type="radio" name="q6"> <code>idade &gt;= 13 &amp;&amp; idade &lt;= 17</code></label>
+<label><input type="radio" name="q6"> <code>13 &lt;= idade &lt;= 17</code></label>
+<label><input type="radio" name="q6"> <code>idade =&gt; 13 &amp;&amp; idade =&lt; 17</code></label>
+<label><input type="radio" name="q6"> <code>idade === 13 ... 17</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Por que o guia usa <code>===</code> em vez de <code>==</code>?</p>
+<label><input type="radio" name="q7"> Porque o <code>==</code> foi removido do JavaScript</label>
+<label><input type="radio" name="q7"> Porque o <code>===</code> funciona com textos e o <code>==</code> não</label>
+<label><input type="radio" name="q7"> Porque o <code>==</code> guarda o valor na variável</label>
+<label><input type="radio" name="q7"> Porque o <code>==</code> converte os tipos antes de comparar, com resultados difíceis de prever</label>
+</div>
+
+<h3>Missão final: o cinema</h3>
+
+<div class="tryjs" data-goal="out:Filme 14 anos: pode assistir? true;;out:Filme 16 anos: pode assistir? false;;src:&gt;=">
+<p class="try-task"><strong>Missão:</strong> a Ana tem 14 anos e quer ir ao cinema. Complete as duas comparações para responder se ela pode assistir a cada filme: o primeiro é para maiores de 14 anos (14 ou mais), o segundo para maiores de 16 (16 ou mais). O programa deve mostrar <code>true</code> para o primeiro e <code>false</code> para o segundo.</p>
+<pre class="script" data-file="main.js">const idade = 14;
+const podeFilme14 = false; // troque pela comparação
+const podeFilme16 = false; // troque pela comparação
+console.log(`Filme 14 anos: pode assistir? ${podeFilme14}`);
+console.log(`Filme 16 anos: pode assistir? ${podeFilme16}`);
+</pre>
+<pre class="solucao" data-file="main.js">const idade = 14;
+const podeFilme14 = idade &gt;= 14;
+const podeFilme16 = idade &gt;= 16;
+console.log(`Filme 14 anos: pode assistir? ${podeFilme14}`);
+console.log(`Filme 16 anos: pode assistir? ${podeFilme16}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Toda comparação responde <code>true</code> ou <code>false</code>. <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code> e <code>&lt;=</code> perguntam "maior" e "menor"; o "ou igual" decide se o próprio limite entra.</li>
+  <li><code>===</code> pergunta "é igual?" e <code>!==</code> "é diferente?", comparando valor <strong>e</strong> tipo. O <code>==</code> e o <code>!=</code> convertem os tipos antes e dão resultados como <code>"" == 0</code> ser <code>true</code>: evite.</li>
+  <li>Textos se comparam letra por letra: maiúsculas, espaços e a ordem do dicionário contam (<code>"10" &lt; "9"</code> é <code>true</code>).</li>
+  <li><code>NaN</code> nunca é igual a nada (use <code>Number.isNaN</code>); <code>0 &lt;= x &lt;= 10</code> não funciona (use <code>&amp;&amp;</code>); arrays e objetos só são <code>===</code> se forem o mesmo.</li>
+  <li>O <code>=</code> vem por último: <code>&gt;=</code> e <code>&lt;=</code>. O <code>=&gt;</code> é uma arrow function e faz o <code>if</code> entrar sempre, sem erro.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
