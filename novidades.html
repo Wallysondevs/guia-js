@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Novidades Recentes — ES2023 a ES2026 e o que vem por aí | Guia JavaScript</title>
+<meta name="description" content="As novidades recentes do JavaScript, rodando no Node.js 24: toSorted e with (ES2023), Object.groupBy (ES2024), métodos de Set, ajudantes de iteradores, Promise.try, RegExp.escape e importar JSON (ES2025), Error.isError e Array.fromAsync (ES2026), o using, e o que o Node 24 ainda não tem (Math.sumPrecise, Base64, Temporal, que chega no Node 26).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Novidades Recentes</span></h1>
+
+<p class="intro">Como você viu em <a href="versoes.html">Versões</a>, o JavaScript ganha uma edição nova todo ano. Esta aula é uma vitrine das novidades dos últimos anos: do ES2023 ao ES2026, e um pouco do que já está aprovado para o ES2027. Cada recurso aparece com um exemplo pequeno, rodado no Node.js 24, e com a marca do ano em que entrou na linguagem. Muitos você já usou neste guia sem saber que eram tão novos; outros são para guardar na memória e usar quando aparecer a ocasião.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><span class="versao">ES2023</span> Os métodos de array que não estragam o original: <code>toSorted</code>, <code>with</code>, <code>findLast</code>.</li>
+  <li><span class="versao">ES2024</span> <code>Object.groupBy</code>: separar uma lista em grupos.</li>
+  <li><span class="versao">ES2025</span> Operações de conjunto no <code>Set</code>, ajudantes de iteradores, <code>Promise.try</code>, <code>RegExp.escape</code> e importar JSON.</li>
+  <li><span class="versao">ES2026</span> <code>Error.isError</code>, <code>Array.fromAsync</code>, e o que o Node 24 <strong>ainda não tem</strong> desta edição.</li>
+  <li>O que vem por aí: <code>using</code> (já funciona no Node 24) e o <strong>Temporal</strong>, a nova API de datas (chega no Node 26).</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24.22</strong> (motor V8 13.6) da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta chamada <code>nov</code>. Os anos de cada recurso vêm da lista oficial de propostas terminadas do TC39 (<code>github.com/tc39/proposals</code>).</p>
+
+<hr>
+
+<h2>A ideia: a caixa de ferramentas que cresce</h2>
+<p>Quando a Ana montou a lojinha, ela tinha uma caixa com martelo, chave de fenda e alicate, e fazia tudo com eles. Com o tempo, ganhou uma parafusadeira: o que levava dez minutos agora leva um. O martelo continua na caixa (nada é jogado fora), mas para parafusos ela usa a ferramenta nova. As novidades do JavaScript são assim: quase tudo dava para fazer antes, com mais linhas; o recurso novo faz o mesmo de um jeito <strong>mais curto e com menos chance de erro</strong>.</p>
+
+<hr>
+
+<h2>1. <span class="versao">ES2023</span> Arrays: mudar sem estragar</h2>
+<p>O <code>sort</code> e o <code>reverse</code> mudam o próprio array, o que já causou muito defeito (veja <a href="sort.html">Ordenando</a>). O ES2023 trouxe versões que devolvem uma <strong>cópia</strong>, e o <code>findLast</code>, que procura de trás para a frente:</p>
+
+<pre class="file" data-file="es2023.js">const notas = [7, 10, 5, 8];
+
+console.log(notas.toSorted((a, b) =&gt; a - b));
+console.log(notas.with(0, 9));
+console.log(notas.findLast((n) =&gt; n &gt;= 7));
+console.log(notas);
+</pre>
+
+<pre class="term">$ node es2023.js
+[ 5, 7, 8, 10 ]
+[ 9, 10, 5, 8 ]
+8
+[ 7, 10, 5, 8 ]
+</pre>
+
+<dl class="anatomy">
+  <dt>toSorted(…)</dt><dd>Uma cópia ordenada. Os irmãos: <code>toReversed()</code> e <code>toSpliced(…)</code>.</dd>
+  <dt>with(0, 9)</dt><dd>Uma cópia com a posição 0 trocada por 9 (o "<code>notas[0] = 9</code>" que não estraga).</dd>
+  <dt>findLast(…)</dt><dd>O <strong>último</strong> item que passa no teste: 8 (o <code>find</code> daria 7, o primeiro). Tem também o <code>findLastIndex</code>.</dd>
+  <dt>notas no fim</dt><dd>Continua <code>[ 7, 10, 5, 8 ]</code>: nada mudou o original.</dd>
+</dl>
+
+<p>Mais sobre isso em <a href="imutabilidade.html">Imutabilidade</a>. O ES2023 também passou a aceitar símbolos como chave de <a href="weakmap.html">WeakMap</a>.</p>
+
+<hr>
+
+<h2>2. <span class="versao">ES2024</span> <code>Object.groupBy</code>: separando em grupos</h2>
+<p>Separar uma lista em grupos (os produtos por tipo, os alunos por situação) antes exigia um <a href="reduce.html">reduce</a> de várias linhas. Agora é uma chamada:</p>
+
+<pre class="file" data-file="es2024.js">const produtos = [
+  { nome: "Pão francês", tipo: "salgado" },
+  { nome: "Sonho", tipo: "doce" },
+  { nome: "Coxinha", tipo: "salgado" },
+  { nome: "Brigadeiro", tipo: "doce" },
+];
+
+const porTipo = Object.groupBy(produtos, (p) =&gt; p.tipo);
+console.log(porTipo);
+console.log(porTipo.doce.length);
+</pre>
+
+<pre class="term">$ node es2024.js
+[Object: null prototype] {
+  salgado: [
+    { nome: 'Pão francês', tipo: 'salgado' },
+    { nome: 'Coxinha', tipo: 'salgado' }
+  ],
+  doce: [
+    { nome: 'Sonho', tipo: 'doce' },
+    { nome: 'Brigadeiro', tipo: 'doce' }
+  ]
+}
+2
+</pre>
+
+<p>O <code>Object.groupBy(lista, função)</code> chama a função para cada item; o que ela devolve (<code>"salgado"</code> ou <code>"doce"</code>) vira o nome do grupo. O resultado é um objeto com um array por grupo. O <code>[Object: null prototype]</code> no começo é o Node avisando que esse objeto foi criado "puro", sem os métodos herdados de um objeto comum (veja <a href="prototipos.html">Protótipos</a>); para usar, nada muda: <code>porTipo.doce</code>. Existe também o <code>Map.groupBy</code>, que devolve um <a href="colecao-map.html">Map</a>. Outra novidade do ES2024: <code>Promise.withResolvers()</code>.</p>
+
+<div class="tryjs" data-goal="out:Aprovadas: 3;;out:Em recuperação: 2;;src:Object\.groupBy;;semerro">
+<p class="try-task"><strong>Missão:</strong> agrupe as alunas por <code>situacao</code> com <code>Object.groupBy</code> (no lugar do <code>null</code>) e mostre quantas há em cada grupo.</p>
+<pre class="script" data-file="main.js">const alunas = [
+  { nome: "Ana", situacao: "aprovada" },
+  { nome: "Bia", situacao: "recuperação" },
+  { nome: "Duda", situacao: "aprovada" },
+  { nome: "Eva", situacao: "recuperação" },
+  { nome: "Lia", situacao: "aprovada" },
+];
+
+const grupos = null;
+
+console.log(`Aprovadas: ${grupos.aprovada.length}`);
+console.log(`Em recuperação: ${grupos["recuperação"].length}`);
+</pre>
+<pre class="solucao" data-file="main.js">const alunas = [
+  { nome: "Ana", situacao: "aprovada" },
+  { nome: "Bia", situacao: "recuperação" },
+  { nome: "Duda", situacao: "aprovada" },
+  { nome: "Eva", situacao: "recuperação" },
+  { nome: "Lia", situacao: "aprovada" },
+];
+
+const grupos = Object.groupBy(alunas, (a) =&gt; a.situacao);
+
+console.log(`Aprovadas: ${grupos.aprovada.length}`);
+console.log(`Em recuperação: ${grupos["recuperação"].length}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <span class="versao">ES2025</span> Conjuntos de verdade</h2>
+<p>O <a href="set.html">Set</a> existia desde o ES2015, mas sem as operações de conjunto da escola. O ES2025 trouxe todas:</p>
+
+<pre class="file" data-file="es2025-set.js">const turmaA = new Set(["Ana", "Bia", "Caio"]);
+const turmaB = new Set(["Caio", "Duda"]);
+
+console.log(turmaA.union(turmaB));
+console.log(turmaA.intersection(turmaB));
+console.log(turmaA.difference(turmaB));
+console.log(new Set(["Ana"]).isSubsetOf(turmaA));
+</pre>
+
+<pre class="term">$ node es2025-set.js
+Set(4) { 'Ana', 'Bia', 'Caio', 'Duda' }
+Set(1) { 'Caio' }
+Set(2) { 'Ana', 'Bia' }
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>No exemplo</th></tr>
+<tr><td><code>a.union(b)</code></td><td>todos, de <code>a</code> ou de <code>b</code> (união)</td><td>as quatro pessoas</td></tr>
+<tr><td><code>a.intersection(b)</code></td><td>os que estão nos dois (interseção)</td><td>só o Caio</td></tr>
+<tr><td><code>a.difference(b)</code></td><td>os de <code>a</code> que não estão em <code>b</code></td><td>Ana e Bia</td></tr>
+<tr><td><code>a.symmetricDifference(b)</code></td><td>os que estão em só um dos dois</td><td>Ana, Bia e Duda</td></tr>
+<tr><td><code>a.isSubsetOf(b)</code> / <code>isSupersetOf</code> / <code>isDisjointFrom</code></td><td><code>true</code>/<code>false</code>: está contido? contém? não têm nada em comum?</td><td><code>{Ana}</code> está contido na turma A</td></tr>
+</table>
+</div>
+
+<h2>4. <span class="versao">ES2025</span> Ajudantes de iteradores</h2>
+<p>Os <a href="geradores.html">geradores</a> e outros <a href="iteradores.html">iteradores</a> ganharam os métodos que antes só os arrays tinham: <code>map</code>, <code>filter</code>, <code>take</code> ("pegar só os N primeiros"), <code>drop</code> ("pular os N primeiros"), <code>toArray</code> e outros. A vantagem: eles funcionam até numa sequência <strong>sem fim</strong>, porque só calculam o que for pedido:</p>
+
+<pre class="file" data-file="es2025-iter.js">function* numeros() {
+  let n = 1;
+  while (true) {
+    yield n;
+    n++;
+  }
+}
+
+const pares = numeros()
+  .filter((n) =&gt; n % 2 === 0)
+  .map((n) =&gt; n * 10)
+  .take(3)
+  .toArray();
+
+console.log(pares);
+</pre>
+
+<pre class="term">$ node es2025-iter.js
+[ 20, 40, 60 ]
+</pre>
+
+<p>O gerador <code>numeros</code> conta para sempre (<code>while (true)</code>), mas o <code>take(3)</code> para depois de 3 resultados: o programa calculou só até o 6. Com um array, isso seria impossível (um array infinito não cabe na memória).</p>
+
+<h2>5. <span class="versao">ES2025</span> Mais três</h2>
+
+<pre class="file" data-file="es2025-outros.js">console.log(RegExp.escape("R$ 4.50"));
+
+const r = Promise.try(() =&gt; 2 + 2);
+r.then((v) =&gt; console.log("Promise.try:", v));
+</pre>
+
+<pre class="term">$ node es2025-outros.js
+\x52\$\x204\.50
+Promise.try: 4
+</pre>
+
+<ul>
+  <li><strong><code>RegExp.escape(texto)</code></strong> protege um texto para ser usado dentro de uma <a href="regex.html">expressão regular</a>: o <code>$</code> e o <code>.</code>, que têm significado especial na regex, ganharam uma <code>\</code> na frente. O <code>R</code> virou <code>\x52</code> e o espaço virou <code>\x20</code> (o código de cada caractere): é só o jeito seguro que a regra escolheu, e a regex continua procurando "R$ 4.50" ao pé da letra. Uso: <code>new RegExp(RegExp.escape(oQueOUsuarioDigitou))</code>.</li>
+  <li><strong><code>Promise.try(função)</code></strong> roda a função e sempre devolve uma <a href="promises.html">Promise</a>, mesmo que a função não seja assíncrona ou lance um erro na hora.</li>
+  <li><strong>Importar JSON</strong> direto num <a href="modulos.html">módulo</a>, com <code>with { type: "json" }</code>:</li>
+</ul>
+
+<pre class="file" data-file="importar-json.mjs">import precos from "./precos.json" with { type: "json" };
+
+console.log(precos.sonho);
+</pre>
+
+<pre class="term">$ cat precos.json
+{ "pao": 0.75, "sonho": 4.5 }
+$ node importar-json.mjs
+4.5
+</pre>
+
+<p>O <code>with { type: "json" }</code> (os "atributos de importação") avisa que o arquivo é JSON, e o <code>precos</code> já chega como objeto, sem <code>fs</code> nem <code>JSON.parse</code> (compare com <a href="json.html">JSON</a> e <a href="fs-ler.html">Lendo Arquivos</a>). O ES2025 trouxe ainda o <code>Float16Array</code> e o <code>Math.f16round</code> (números com menos precisão, para gráficos e inteligência artificial), grupos com o mesmo nome em regex alternativas e modificadores de regex.</p>
+
+<hr>
+
+<h2>6. <span class="versao">ES2026</span> A edição mais nova</h2>
+<p>O ES2026 foi publicado em junho de 2026. O Node 24 já tem dois dos recursos dele:</p>
+
+<pre class="file" data-file="es2026.js">console.log(Error.isError(new TypeError("ops")));
+console.log(Error.isError({ message: "parece erro" }));
+
+async function* entregas() {
+  yield "pão";
+  yield "leite";
+}
+Array.fromAsync(entregas()).then((lista) =&gt; console.log(lista));
+</pre>
+
+<pre class="term">$ node es2026.js
+true
+false
+[ 'pão', 'leite' ]
+</pre>
+
+<ul>
+  <li><strong><code>Error.isError(valor)</code></strong>: "isto é um erro de verdade?". Um objeto que só <strong>parece</strong> erro (tem <code>message</code>) dá <code>false</code>. Útil num <a href="try-catch.html">catch</a>, porque em JavaScript dá para lançar qualquer coisa (<code>throw "texto"</code>).</li>
+  <li><strong><code>Array.fromAsync(…)</code></strong>: o <code>Array.from</code> para fontes <a href="assincrono.html">assíncronas</a>: junta tudo o que um gerador assíncrono entrega num array (e devolve uma Promise).</li>
+</ul>
+
+<h3>O que o Node 24 ainda não tem</h3>
+<p>Quatro recursos do ES2026 ainda <strong>não</strong> estão no V8 do Node 24. Tentando usar, sai o erro típico de "recurso novo demais":</p>
+
+<pre class="file" data-file="base64.js">const bytes = Uint8Array.fromBase64("T2zDoQ==");
+</pre>
+
+<pre class="term">$ node base64.js
+/home/ana/nov/base64.js:1
+const bytes = Uint8Array.fromBase64("T2zDoQ==");
+                         ^
+
+TypeError: Uint8Array.fromBase64 is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/nov/base64.js:1:26)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Recurso do ES2026</th><th>Para que serve</th><th>No Node 24.22</th></tr>
+<tr><td><code>Error.isError</code></td><td>Conferir se é um erro de verdade</td><td>Tem</td></tr>
+<tr><td><code>Array.fromAsync</code></td><td>Array a partir de fonte assíncrona</td><td>Tem</td></tr>
+<tr><td><code>JSON.rawJSON</code> e o acesso ao texto original no <code>JSON.parse</code></td><td>Números enormes no JSON sem perder precisão</td><td>Tem</td></tr>
+<tr><td><code>Math.sumPrecise</code></td><td>Somar sem os erros de arredondamento</td><td><strong>Não</strong> (veja <a href="versoes.html">Versões</a>)</td></tr>
+<tr><td><code>Uint8Array.fromBase64</code> / <code>toBase64</code></td><td>Converter bytes de e para Base64</td><td><strong>Não</strong></td></tr>
+<tr><td><code>Iterator.concat</code></td><td>Emendar iteradores</td><td><strong>Não</strong> (chega no Node 26)</td></tr>
+<tr><td><code>map.getOrInsert</code> / <code>getOrInsertComputed</code></td><td>"Pegue o valor; se não tiver, guarde este"</td><td><strong>Não</strong> (chega no Node 26)</td></tr>
+</table>
+</div>
+
+<p>A coluna "No Node 24.22" foi conferida no lab com <code>typeof</code> (por exemplo, <code>typeof Math.sumPrecise</code> deu <code>undefined</code>). Segundo as notas de lançamento do Node 26, o V8 dele (14.6) traz o <code>getOrInsert</code> e o <code>Iterator.concat</code>.</p>
+
+<hr>
+
+<h2>7. O que vem por aí</h2>
+
+<h3><code>using</code>: limpeza automática</h3>
+<p>Aprovado para o ES2027 (proposta "Explicit Resource Management"), mas o V8 do Node 24 <strong>já tem</strong>. Uma variável declarada com <code>using</code> chama sozinha um método de "limpeza" (<code>Symbol.dispose</code>) quando o bloco termina, como fechar um arquivo ou uma conexão, mesmo que dê erro no meio:</p>
+
+<pre class="file" data-file="using.js">function abrirCaixa(nome) {
+  console.log(`Abrindo o caixa ${nome}`);
+  return {
+    [Symbol.dispose]() {
+      console.log(`Fechando o caixa ${nome}`);
+    },
+  };
+}
+
+{
+  using caixa = abrirCaixa("1");
+  console.log("Vendendo...");
+}
+console.log("Fim do expediente.");
+</pre>
+
+<pre class="term">$ node using.js
+Abrindo o caixa 1
+Vendendo...
+Fechando o caixa 1
+Fim do expediente.
+</pre>
+
+<p>Ninguém chamou o "fechar": o <code>using</code> chamou o <code>[Symbol.dispose]</code> sozinho, no <code>}</code> do bloco. É o mesmo papel do <code>finally</code> do <a href="try-catch.html">try … catch … finally</a>, sem precisar escrever um.</p>
+
+<h3>Temporal: datas sem sofrimento</h3>
+<p>O <a href="date.html">Date</a> é famoso por ser confuso (meses que começam em 0, fuso horário escondido). O <strong>Temporal</strong> é a substituição completa, aprovada para o ES2027. No Node 24 ele ainda não existe:</p>
+
+<pre class="file" data-file="temporal.js">console.log(typeof Temporal);
+const hoje = Temporal.Now.plainDateISO();
+</pre>
+
+<pre class="term">$ node temporal.js
+undefined
+/home/ana/nov/temporal.js:2
+const hoje = Temporal.Now.plainDateISO();
+             ^
+
+ReferenceError: Temporal is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/nov/temporal.js:2:14)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>A primeira linha do programa (<code>console.log(typeof Temporal)</code>) mostrou <code>undefined</code>, e a segunda deu <code>ReferenceError</code>: "<code>Temporal</code> não está definido" (um nome que não existe; veja <a href="tipos-erro.html">Os Tipos de Erro</a>). Segundo as notas de lançamento do <strong>Node 26</strong>, o Temporal vem <strong>ligado por padrão</strong> nele. Como o Node 26 vira LTS em 28 de outubro de 2026, o Temporal logo vai estar no Node recomendado para projetos novos.</p>
+
+<p>Outras propostas que já chegaram ao stage 4 e devem sair no ES2027: <code>Atomics.pause</code>, e mais ajudantes de iteradores (para juntar, dividir em pedaços e procurar).</p>
+
+<hr>
+
+<h2 id="formas">O jeito antigo e o jeito novo</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Antes</th><th>Agora</th></tr>
+<tr><td>Ordenar sem estragar</td><td><code>[...lista].sort()</code></td><td><code>lista.toSorted()</code> <span class="versao">ES2023</span></td></tr>
+<tr><td>Último item que passa</td><td><code>[...lista].reverse().find(…)</code></td><td><code>lista.findLast(…)</code> <span class="versao">ES2023</span></td></tr>
+<tr><td>Agrupar</td><td><code>reduce</code> com objeto acumulador</td><td><code>Object.groupBy(lista, f)</code> <span class="versao">ES2024</span></td></tr>
+<tr><td>Interseção de conjuntos</td><td><code>[...a].filter((x) =&gt; b.has(x))</code></td><td><code>a.intersection(b)</code> <span class="versao">ES2025</span></td></tr>
+<tr><td>Ler um JSON num módulo</td><td><code>JSON.parse(fs.readFileSync(…))</code></td><td><code>import … with { type: "json" }</code> <span class="versao">ES2025</span></td></tr>
+<tr><td>Limpar no fim do bloco</td><td><code>try … finally</code></td><td><code>using</code> <span class="versao">ES2027</span></td></tr>
+</table>
+</div>
+<p>O jeito antigo continua funcionando, e você vai encontrá-lo muito em código de outras pessoas. Use o novo quando o motor que vai rodar o programa tiver o recurso (no Node 24, todos desta tabela).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>… is not a function</code> ou <code>… is not defined</code> com um recurso novo</strong>
+<p>Como o <code>Uint8Array.fromBase64</code> e o <code>Temporal</code> acima: o recurso existe na linguagem, mas não no motor que está rodando. Um método que falta dá <code>TypeError: … is not a function</code>; um nome global que falta dá <code>ReferenceError: … is not defined</code>. <strong>Como consertar:</strong> confira a tabela de compatibilidade da MDN, atualize o Node, ou use detecção de recurso (<code>typeof</code>), como em <a href="versoes.html">Versões</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Funciona no editor do guia, mas não no Node 24 (ou ao contrário)</strong>
+<p>O editor usa o motor do <strong>seu navegador</strong>. Um Chrome recente pode ter recursos que o V8 13.6 do Node 24 ainda não tem (como o <code>Math.sumPrecise</code>); um Safari antigo pode não ter os métodos de <code>Set</code>. <strong>Como evitar:</strong> para um programa que vai rodar no Node, confira no Node (<code>node -p "typeof Map.prototype.getOrInsert"</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>Object.groupBy</code> devolveu <code>undefined</code> num grupo</strong>
+<p>Se nenhum item cair num grupo, a propriedade dele <strong>não existe</strong>: no exemplo da seção 2 sem nenhum doce, <code>porTipo.doce</code> seria <code>undefined</code>, e <code>porTipo.doce.length</code> daria <code>TypeError: Cannot read properties of undefined (reading 'length')</code>. <strong>Como consertar:</strong> <code>porTipo.doce?.length ?? 0</code> (veja <a href="optional-chaining.html">?. e ??</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ano</th><th>Recursos</th></tr>
+<tr><td><span class="versao">ES2023</span></td><td><code>toSorted</code>, <code>toReversed</code>, <code>toSpliced</code>, <code>with</code>, <code>findLast</code>, <code>findLastIndex</code>, símbolos em <code>WeakMap</code>, <code>#!</code> no início do arquivo</td></tr>
+<tr><td><span class="versao">ES2024</span></td><td><code>Object.groupBy</code>, <code>Map.groupBy</code>, <code>Promise.withResolvers</code>, <code>isWellFormed</code>/<code>toWellFormed</code> em strings, flag <code>v</code> em regex</td></tr>
+<tr><td><span class="versao">ES2025</span></td><td><code>Set</code>: <code>union</code>, <code>intersection</code>, <code>difference</code>, <code>symmetricDifference</code>, <code>isSubsetOf</code>…; iteradores: <code>map</code>, <code>filter</code>, <code>take</code>, <code>drop</code>, <code>toArray</code>…; <code>Promise.try</code>; <code>RegExp.escape</code>; <code>import … with { type: "json" }</code>; <code>Float16Array</code></td></tr>
+<tr><td><span class="versao">ES2026</span></td><td><code>Error.isError</code>, <code>Array.fromAsync</code>, <code>JSON.rawJSON</code> (no Node 24); <code>Math.sumPrecise</code>, Base64 em <code>Uint8Array</code>, <code>Iterator.concat</code>, <code>getOrInsert</code> (ainda não no Node 24)</td></tr>
+<tr><td>ES2027 (aprovados)</td><td><code>using</code> (já no Node 24), <code>Temporal</code> (no Node 26), mais ajudantes de iteradores, <code>Atomics.pause</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Sem estragar</h3>
+<p>Complete para ordenar numa cópia, sem mudar <code>precos</code>:</p>
+<div class="ex-code">const ordenados = precos.<input data-answer="toSorted" aria-label="método">((a, b) =&gt; a - b);</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p><code>new Set([1, 2, 3]).intersection(new Set([2, 3, 4]))</code> mostra <code>Set(2) { 2, 3 }</code>. Quantos itens tem <code>new Set([1, 2]).union(new Set([2, 3]))</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="quantidade"> itens</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual método separa uma lista em grupos, de acordo com o que uma função devolve?</p>
+<label><input type="radio" name="q3"> <code>Array.fromAsync</code></label>
+<label><input type="radio" name="q3"> <code>Object.groupBy</code></label>
+<label><input type="radio" name="q3"> <code>Set.union</code></label>
+<label><input type="radio" name="q3"> <code>Promise.try</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. No Node 24, <code>Temporal.Now.plainDateISO()</code> dá:</p>
+<label><input type="radio" name="q4"> A data de hoje</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> <code>TypeError: Temporal is not a function</code></label>
+<label><input type="radio" name="q4"> <code>ReferenceError: Temporal is not defined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que o <code>using</code> faz quando o bloco termina?</p>
+<label><input type="radio" name="q5"> Chama sozinho o método <code>[Symbol.dispose]</code> do valor</label>
+<label><input type="radio" name="q5"> Apaga a variável da memória na hora</label>
+<label><input type="radio" name="q5"> Congela o objeto</label>
+<label><input type="radio" name="q5"> Nada: ele é igual ao <code>const</code></label>
+</div>
+
+<h3>Missão final: quem está nas duas turmas?</h3>
+
+<div class="tryjs" data-goal="out:Nas duas turmas: Caio, Duda;;out:Só na manhã: Ana, Bia;;src:\.intersection\(;;src:\.difference\(;;semerro">
+<p class="try-task"><strong>Missão:</strong> a escola de informática tem uma turma de manhã e uma à tarde. Troque os dois <code>new Set()</code> vazios pelos métodos novos do <code>Set</code>: <code>manha.intersection(tarde)</code> (quem está nas duas) e <code>manha.difference(tarde)</code> (quem está só na manhã).</p>
+<pre class="script" data-file="main.js">const manha = new Set(["Ana", "Bia", "Caio", "Duda"]);
+const tarde = new Set(["Caio", "Duda", "Eva"]);
+
+const nasDuas = new Set();
+const soManha = new Set();
+
+console.log(`Nas duas turmas: ${[...nasDuas].join(", ")}`);
+console.log(`Só na manhã: ${[...soManha].join(", ")}`);
+</pre>
+<pre class="solucao" data-file="main.js">const manha = new Set(["Ana", "Bia", "Caio", "Duda"]);
+const tarde = new Set(["Caio", "Duda", "Eva"]);
+
+const nasDuas = manha.intersection(tarde);
+const soManha = manha.difference(tarde);
+
+console.log(`Nas duas turmas: ${[...nasDuas].join(", ")}`);
+console.log(`Só na manhã: ${[...soManha].join(", ")}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Nas duas turmas: Caio, Duda</code> e <code>Só na manhã: Ana, Bia</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><span class="versao">ES2023</span> <code>toSorted</code>, <code>toReversed</code>, <code>with</code> e <code>findLast</code>: trabalhar com arrays sem estragar o original.</li>
+  <li><span class="versao">ES2024</span> <code>Object.groupBy</code> e <code>Map.groupBy</code>: agrupar numa linha.</li>
+  <li><span class="versao">ES2025</span> Operações de conjunto no <code>Set</code>, ajudantes de iteradores (<code>map</code>, <code>filter</code>, <code>take</code>…), <code>Promise.try</code>, <code>RegExp.escape</code> e <code>import … with { type: "json" }</code>.</li>
+  <li><span class="versao">ES2026</span> <code>Error.isError</code> e <code>Array.fromAsync</code> já estão no Node 24; <code>Math.sumPrecise</code>, Base64, <code>Iterator.concat</code> e <code>getOrInsert</code> ainda não (os dois últimos chegam no Node 26).</li>
+  <li>Por vir: <code>using</code> (já funciona no Node 24) e o <strong>Temporal</strong>, ligado por padrão no Node 26, que vira LTS em 28/10/2026.</li>
+  <li>Recurso que falta no motor dá <code>is not a function</code> ou <code>is not defined</code>: confira com <code>typeof</code> e na MDN.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
