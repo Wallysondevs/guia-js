@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript no Mundo — onde a linguagem é usada e o que estudar depois | Guia JavaScript</title>
+<meta name="description" content="Onde o JavaScript é usado de verdade: páginas web (React, Vue, Angular), servidores com Node.js (um servidor de verdade com node:http e curl), ferramentas de linha de comando, aplicativos de celular (React Native) e de computador (Electron), Deno e Bun, e um mapa de próximos passos para quem terminou este guia.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">no Mundo</span></h1>
+
+<p class="intro">O JavaScript nasceu em 1995, criado em poucos dias por Brendan Eich, na empresa Netscape, para deixar as páginas da web um pouco mais vivas: conferir um formulário, trocar uma imagem. Trinta anos depois, ele está em quase todo lugar: em todas as páginas que você abre, em servidores de grandes empresas, em aplicativos de celular e de computador, nas ferramentas que os próprios programadores usam. Esta aula é um passeio por esses lugares, com um exemplo de cada um que deu para rodar, e um mapa do que estudar depois deste guia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os grandes lugares onde o JavaScript roda: o <strong>navegador</strong>, o <strong>servidor</strong>, a <strong>linha de comando</strong>, o <strong>celular</strong> e o <strong>computador</strong>.</li>
+  <li>O que são <strong>frameworks</strong> e <strong>bibliotecas</strong> (React, Vue, Angular, Express) e por que tanta gente usa.</li>
+  <li>Como é um <strong>servidor</strong> de verdade em Node.js, rodando e respondendo a um pedido.</li>
+  <li>Os outros "Nodes": Deno e Bun.</li>
+  <li>Um mapa de próximos passos, de acordo com o que você quer construir.</li>
+</ul>
+</div>
+
+<p>Os comandos desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). Os números de versão dos pacotes do npm foram consultados no dia em que a aula foi escrita, em outubro de 2026, e mudam com o tempo.</p>
+
+<hr>
+
+<h2>A ideia: uma língua, muitos países</h2>
+<p>O português é falado no Brasil, em Portugal, em Angola, em Moçambique. A gramática é praticamente a mesma; o que muda é o lugar, o vocabulário de cada um e o que as pessoas fazem com a língua. O JavaScript é assim: a <strong>linguagem</strong> que você aprendeu (variáveis, funções, arrays, objetos, <code>async</code>) é a mesma em todo lugar. O que muda é o <strong>ambiente</strong>, com as "palavras locais" de cada um:</p>
+<ul>
+  <li>no navegador, o <code>document</code> (a página), o <code>window</code>, o <code>alert</code>;</li>
+  <li>no Node, o <code>fs</code> (arquivos), o <code>process</code>, o <code>http</code> (servidores);</li>
+  <li>num aplicativo de celular, a câmera, o GPS, as notificações.</li>
+</ul>
+<p>Você já viu essa diferença na aula <a href="onde-roda.html">Onde o JavaScript Roda</a>. Agora vamos ver até onde ela vai.</p>
+
+<hr>
+
+<h2>1. No navegador: as páginas da web</h2>
+<p>É a casa original do JavaScript, e onde ele não tem concorrente: é a <strong>única</strong> linguagem de programação que todos os navegadores rodam direto. Toda página que reage ao seu clique sem recarregar (o carrinho do mercado on-line, o mapa que você arrasta, o chat) tem JavaScript. Você fez isso no grupo <a href="dom.html">A Página Web</a>:</p>
+
+<div class="tryweb" data-goal="texto:#total~R$ 5.25;;semerro" data-acoes="clicar #pao;;clicar #sonho">
+<p class="try-task"><strong>Missão:</strong> o botão do pão já soma no total, mas o do sonho não faz nada. Escreva no <code>script.js</code> o <code>addEventListener</code> do botão <code>#sonho</code>, somando 4.50. Clique nos dois botões: o total tem de mostrar <code>R$ 5.25</code>.</p>
+<pre class="script" data-file="index.html">&lt;h3&gt;Padaria da Esquina&lt;/h3&gt;
+&lt;button id="pao"&gt;Pão francês (R$ 0.75)&lt;/button&gt;
+&lt;button id="sonho"&gt;Sonho (R$ 4.50)&lt;/button&gt;
+&lt;p id="total"&gt;R$ 0.00&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">let total = 0;
+const saida = document.querySelector("#total");
+
+function somar(valor) {
+  total += valor;
+  saida.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+document.querySelector("#pao").addEventListener("click", () =&gt; somar(0.75));
+</pre>
+<pre class="solucao" data-file="script.js">let total = 0;
+const saida = document.querySelector("#total");
+
+function somar(valor) {
+  total += valor;
+  saida.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+document.querySelector("#pao").addEventListener("click", () =&gt; somar(0.75));
+document.querySelector("#sonho").addEventListener("click", () =&gt; somar(4.5));
+</pre>
+</div>
+
+<h3>Frameworks e bibliotecas</h3>
+<p>Num site grande, com centenas de botões e telas, escrever cada <code>querySelector</code> e <code>addEventListener</code> à mão vira uma bagunça. Por isso surgiram os <strong>frameworks</strong> ("estruturas") e as <strong>bibliotecas</strong>: código pronto, escrito em JavaScript, que organiza o trabalho. Você descreve "o total mostra a soma do carrinho", e ele cuida de atualizar a tela quando o carrinho muda. Os mais usados para páginas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Quem criou</th><th>Versão no npm (out/2026)</th></tr>
+<tr><td><strong>React</strong></td><td>Meta (Facebook)</td><td>19.3.1</td></tr>
+<tr><td><strong>Vue</strong></td><td>Evan You e comunidade</td><td>3.5.44</td></tr>
+<tr><td><strong>Angular</strong></td><td>Google</td><td>22.2.3 (pacote <code>@angular/core</code>)</td></tr>
+<tr><td><strong>Svelte</strong></td><td>Rich Harris e comunidade</td><td>5.57.2</td></tr>
+</table>
+</div>
+
+<pre class="term">$ npm view react version
+19.3.1
+$ npm view vue version
+3.5.44
+$ npm view @angular/core version
+22.2.3
+$ npm view svelte version
+5.57.2
+</pre>
+
+<p>O <code>npm view PACOTE version</code> pergunta ao registro do <a href="npm.html">npm</a> qual é a versão mais recente de um pacote (precisa de internet). Todos eles são "só" JavaScript: o que você aprendeu sobre funções, objetos, arrays, <code>map</code>, <code>filter</code>, módulos e <code>async</code> é exatamente o que se usa dentro deles.</p>
+
+<hr>
+
+<h2>2. No servidor: o Node.js</h2>
+<p>Em 2009, Ryan Dahl pegou o motor V8 do Chrome e o colocou para rodar <strong>fora</strong> do navegador: nasceu o Node.js, que você usou o guia inteiro. Com ele, o JavaScript passou a rodar nos <strong>servidores</strong>, os computadores que recebem os pedidos dos navegadores e dos aplicativos e devolvem as respostas. Este é um servidor de verdade, com o módulo <code>node:http</code> que vem com o Node:</p>
+
+<pre class="file" data-file="servidor.js">import { createServer } from "node:http";
+
+const cardapio = [
+  { nome: "Pão francês", preco: 0.75 },
+  { nome: "Sonho", preco: 4.5 },
+];
+
+const servidor = createServer((pedido, resposta) =&gt; {
+  console.log(`Pedido recebido: ${pedido.method} ${pedido.url}`);
+  resposta.setHeader("Content-Type", "application/json; charset=utf-8");
+  resposta.end(JSON.stringify(cardapio));
+});
+
+servidor.listen(3000, () =&gt; {
+  console.log("Padaria no ar em http://localhost:3000");
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>createServer((pedido, resposta) =&gt; { … })</dt><dd>Cria o servidor. A função é chamada <strong>a cada pedido</strong> que chega (um <a href="funcoes-valores.html">callback</a>): <code>pedido</code> diz o que foi pedido; <code>resposta</code> é o que vai ser devolvido.</dd>
+  <dt>pedido.method e pedido.url</dt><dd>O tipo do pedido (<code>GET</code> = "me dê") e o endereço pedido (<code>/cardapio</code>).</dd>
+  <dt>resposta.setHeader(…)</dt><dd>Avisa que a resposta é <a href="json.html">JSON</a>.</dd>
+  <dt>resposta.end(JSON.stringify(cardapio))</dt><dd>Manda o cardápio, como texto JSON, e encerra a resposta.</dd>
+  <dt>servidor.listen(3000, …)</dt><dd>"Escute" na porta 3000: o servidor fica no ar, esperando pedidos, até alguém pará-lo. O endereço <code>localhost</code> quer dizer "este mesmo computador".</dd>
+</dl>
+
+<p>A Ana deixou o servidor rodando num terminal e, em outro, fez um pedido com o <code>curl</code> (um programa que faz pedidos à web pela linha de comando, como um navegador sem tela):</p>
+
+<pre class="term">$ node servidor.js
+Padaria no ar em http://localhost:3000
+Pedido recebido: GET /cardapio
+</pre>
+
+<pre class="term">$ curl -s http://localhost:3000/cardapio
+[{"nome":"Pão francês","preco":0.75},{"nome":"Sonho","preco":4.5}]
+</pre>
+
+<p>No primeiro terminal, o servidor anunciou que estava no ar e, quando o pedido chegou, registrou <code>GET /cardapio</code>. No segundo, o <code>curl</code> recebeu o cardápio em JSON. Um aplicativo de celular ou uma página faria o mesmo pedido com o <a href="fetch.html">fetch</a> e mostraria o cardápio bonito na tela. O servidor só para com <kbd>Ctrl</kbd>+<kbd>C</kbd> (a Ana o parou com <code>kill</code>).</p>
+
+<p>Esse exemplo não roda no editor do guia (o editor imita o Node, mas não tem o módulo <code>http</code>: um navegador não pode virar servidor). Na vida real, quase ninguém escreve o servidor "na mão" assim: usa-se um framework de servidor como o <strong>Express</strong> (versão 5.3.0 no npm, consultada com <code>npm view express version</code>) ou o <strong>Fastify</strong>, que cuidam de rotas, formulários e segurança.</p>
+
+<hr>
+
+<h2>3. Na linha de comando: as ferramentas</h2>
+<p>Muitos programas que os programadores usam todo dia são feitos em JavaScript e rodam no Node: o próprio <code>npm</code>, o <a href="estilo.html">Prettier e o ESLint</a>. Um programa de linha de comando lê o que foi digitado depois do nome dele com o <a href="process-argv.html"><code>process.argv</code></a>:</p>
+
+<div class="tryjs" data-args="pão 3" data-goal="out:3 × pão = R$ 2.25;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é um programa de linha de comando para o caixa: <code>node main.js pão 3</code>. A caixa já passa os argumentos <code>pão</code> e <code>3</code>. Complete a conta: o total é o preço do produto (da tabela) vezes a quantidade (lembre de converter a quantidade com <code>Number</code>), com 2 casas.</p>
+<pre class="script" data-file="main.js">const precos = { "pão": 0.75, sonho: 4.5 };
+
+const produto = process.argv[2];
+const quantidade = process.argv[3];
+
+const total = 0; // calcule aqui
+
+console.log(`${quantidade} × ${produto} = R$ ${total.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = { "pão": 0.75, sonho: 4.5 };
+
+const produto = process.argv[2];
+const quantidade = process.argv[3];
+
+const total = precos[produto] * Number(quantidade);
+
+console.log(`${quantidade} × ${produto} = R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. No celular e no computador</h2>
+<ul>
+  <li><strong>Aplicativos de celular:</strong> com o <strong>React Native</strong> (da Meta), o mesmo JavaScript vira um aplicativo de Android e de iPhone, com botões e telas nativos de cada sistema. Outras opções: Ionic, Capacitor, NativeScript.</li>
+  <li><strong>Programas de computador:</strong> o <strong>Electron</strong> junta um navegador (o Chromium) e o Node num programa só. Com ele foram feitos programas que você talvez use: o editor <strong>VS Code</strong>, o <strong>Discord</strong>, o <strong>Slack</strong>. Por dentro, cada janela é uma página web com JavaScript, que também pode ler arquivos como o Node.</li>
+  <li><strong>Extensões de navegador</strong> (bloqueadores de anúncio, tradutores) são feitas de HTML, CSS e JavaScript.</li>
+  <li><strong>Jogos</strong> no navegador, com bibliotecas como Phaser e Three.js (3D).</li>
+  <li><strong>Automação e planilhas:</strong> o Google Apps Script, que automatiza Planilhas e Documentos do Google, usa JavaScript.</li>
+</ul>
+
+<hr>
+
+<h2>5. Os outros "Nodes": Deno e Bun</h2>
+<p>O Node não é o único programa que roda JavaScript fora do navegador. Dois mais novos disputam espaço:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ambiente</th><th>Motor</th><th>O que tem de diferente</th></tr>
+<tr><td><strong>Node.js</strong> (2009)</td><td>V8</td><td>O mais usado, com o maior conjunto de pacotes (o npm). É o deste guia.</td></tr>
+<tr><td><strong>Deno</strong> (2018)</td><td>V8</td><td>Criado pelo mesmo Ryan Dahl do Node, para corrigir o que ele considerava erros de projeto: mais segurança por padrão e TypeScript sem configuração.</td></tr>
+<tr><td><strong>Bun</strong> (2022)</td><td>JavaScriptCore (o do Safari)</td><td>Foco em velocidade; junta num programa só o que no Node são várias ferramentas (instalar pacotes, testar, empacotar).</td></tr>
+</table>
+</div>
+<p>A linguagem é a mesma nos três: um programa que só usa JavaScript puro (sem <code>fs</code> nem <code>process</code>) roda em qualquer um. O que você aprendeu aqui vale para todos.</p>
+
+<hr>
+
+<h2 id="formas">Para onde ir depois deste guia</h2>
+<p>Depende do que você quer construir. Um mapa:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero fazer…</th><th>Próximos passos</th></tr>
+<tr><td>Sites e páginas bonitas</td><td>HTML e CSS a fundo, depois um framework (React ou Vue) e um empacotador (Vite)</td></tr>
+<tr><td>A parte "de trás" de sites e aplicativos (back-end)</td><td>Node com Express ou Fastify, bancos de dados (SQL), APIs com JSON, autenticação</td></tr>
+<tr><td>Aplicativos de celular</td><td>React (para páginas) e depois React Native</td></tr>
+<tr><td>Programas de computador</td><td>Electron (ou o Tauri, uma alternativa mais leve)</td></tr>
+<tr><td>Trabalhar em equipe, projetos grandes</td><td><a href="typescript.html">TypeScript</a>, <a href="testes.html">testes</a>, Git</td></tr>
+<tr><td>Automatizar tarefas do dia a dia</td><td>Scripts com Node: <a href="fs-ler.html">arquivos</a>, <a href="process-argv.html">argumentos</a>, <a href="fetch.html">fetch</a></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Antes de correr para um framework</strong>
+<p>Os frameworks mudam de moda; a linguagem fica. Quem domina o JavaScript "puro" (o deste guia) aprende qualquer framework em semanas, e entende o que está acontecendo quando dá erro. Os projetos do guia, a começar pelo <a href="projeto-adivinhacao.html">Jogo de Adivinhação</a>, são o melhor treino agora.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"JavaScript é a mesma coisa que Java?"</strong>
+<p><strong>Não.</strong> São linguagens diferentes, de empresas diferentes, para usos diferentes. O nome "JavaScript" foi escolhido em 1995 por marketing, aproveitando a fama do Java naquela época. Como se diz por aí: Java está para JavaScript como carro está para carpete.</p>
+</div>
+
+<div class="cenario">
+<strong>O código de um tutorial de framework "não funciona" no Node</strong>
+<p>Um tutorial de React usa <code>document</code>, ou um tutorial do Node usa <code>fs</code> numa página. Cada ambiente tem as suas "palavras locais": rodando no lugar errado, sai <code>ReferenceError: document is not defined</code> (no Node) ou <code>require is not defined</code> (no navegador). <strong>Como evitar:</strong> antes de copiar um exemplo, descubra <strong>onde</strong> ele foi feito para rodar (veja <a href="onde-roda.html">Onde o JavaScript Roda</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>O servidor não responde no editor do guia</strong>
+<p>O editor imita o Node, mas roda dentro do navegador, e um navegador não pode abrir uma porta para receber pedidos. Por isso, no editor, o <code>import { createServer } from "node:http"</code> para com um erro: o editor não tem esse módulo. <strong>Como fazer:</strong> rode o <code>servidor.js</code> no Node do seu computador (veja <a href="instalar.html">Instalar o Node.js</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Lugar</th><th>Ferramentas mais conhecidas</th></tr>
+<tr><td>Páginas (front-end)</td><td>React, Vue, Angular, Svelte; Vite</td></tr>
+<tr><td>Servidores (back-end)</td><td>Node.js, Express, Fastify; Deno, Bun</td></tr>
+<tr><td>Linha de comando</td><td>npm, npx, Prettier, ESLint, <code>process.argv</code></td></tr>
+<tr><td>Celular</td><td>React Native, Ionic, Capacitor</td></tr>
+<tr><td>Computador</td><td>Electron (VS Code, Discord, Slack), Tauri</td></tr>
+<tr><td>Jogos e 3D</td><td>Phaser, Three.js</td></tr>
+<tr><td>Consultar a versão de um pacote</td><td><code>npm view PACOTE version</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quem criou o Node?</h3>
+<p>Complete: o Node.js foi criado em 2009 por Ryan <input data-answer="Dahl" aria-label="sobrenome">, usando o motor <input data-answer="V8" aria-label="motor"> do Chrome.</p>
+</div>
+
+<div class="exercise">
+<h3>2. Qual módulo?</h3>
+<p>Qual módulo do Node foi usado para criar o servidor da padaria? (com o <code>node:</code>)</p>
+<div class="ex-code"><input data-answer="node:http" aria-label="módulo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O VS Code, o Discord e o Slack são feitos com qual ferramenta?</p>
+<label><input type="radio" name="q3"> React Native</label>
+<label><input type="radio" name="q3"> Deno</label>
+<label><input type="radio" name="q3"> Electron</label>
+<label><input type="radio" name="q3"> Express</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual é a única linguagem de programação que todos os navegadores rodam direto?</p>
+<label><input type="radio" name="q4"> Java</label>
+<label><input type="radio" name="q4"> JavaScript</label>
+<label><input type="radio" name="q4"> Python</label>
+<label><input type="radio" name="q4"> TypeScript</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Um programa que usa só JavaScript puro (sem <code>fs</code>, <code>process</code> nem <code>document</code>) roda em quais ambientes?</p>
+<label><input type="radio" name="q5"> Só no Node</label>
+<label><input type="radio" name="q5"> Só no navegador</label>
+<label><input type="radio" name="q5"> Só no Deno</label>
+<label><input type="radio" name="q5"> Em todos: navegador, Node, Deno e Bun</label>
+</div>
+
+<h3>Missão final: o mesmo código em dois lugares</h3>
+
+<div class="tryjs" data-goal="out:Pão francês: R$ 0.75;;out:Sonho: R$ 4.50;;out:Total do cardápio: R$ 5.25;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função <code>linhaDoCardapio</code> é JavaScript puro: serviria tanto no servidor da padaria quanto na página. Complete o laço para mostrar cada produto com ela e, no fim, o total do cardápio (some os preços com <code>reduce</code> ou com um <code>for</code>).</p>
+<pre class="script" data-file="main.js">const cardapio = [
+  { nome: "Pão francês", preco: 0.75 },
+  { nome: "Sonho", preco: 4.5 },
+];
+
+function linhaDoCardapio(produto) {
+  return `${produto.nome}: R$ ${produto.preco.toFixed(2)}`;
+}
+
+// mostre cada produto e o total aqui
+</pre>
+<pre class="solucao" data-file="main.js">const cardapio = [
+  { nome: "Pão francês", preco: 0.75 },
+  { nome: "Sonho", preco: 4.5 },
+];
+
+function linhaDoCardapio(produto) {
+  return `${produto.nome}: R$ ${produto.preco.toFixed(2)}`;
+}
+
+for (const produto of cardapio) {
+  console.log(linhaDoCardapio(produto));
+}
+const total = cardapio.reduce((soma, p) =&gt; soma + p.preco, 0);
+console.log(`Total do cardápio: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Pão francês: R$ 0.75</code>, <code>Sonho: R$ 4.50</code> e <code>Total do cardápio: R$ 5.25</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O JavaScript é a única linguagem que todos os navegadores rodam, e desde o Node.js (2009) roda também em servidores e na linha de comando.</li>
+  <li>A linguagem é a mesma em todo lugar; o que muda é o <strong>ambiente</strong> (<code>document</code> no navegador, <code>fs</code> e <code>http</code> no Node).</li>
+  <li>Frameworks e bibliotecas (React, Vue, Angular, Express) são código JavaScript pronto que organiza projetos grandes.</li>
+  <li>Com o Node, poucas linhas fazem um servidor que responde JSON; com React Native e Electron, o JavaScript vira aplicativo de celular e de computador.</li>
+  <li>Deno e Bun são alternativas ao Node; o JavaScript puro roda em todos.</li>
+  <li>Próximo passo: domine a linguagem com os projetos do guia, e escolha a trilha (front-end, back-end, celular) pelo que você quer construir.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
