@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript break e continue — sair do laço ou pular uma volta | Guia JavaScript</title>
+<meta name="description" content="break e continue do JavaScript para quem nunca programou: parar a busca quando achar o item, while (true) com break, pular as notas inválidas com continue, o continue que trava o while, break dentro de laço dentro de laço e os erros reais do Node.js 24 (Illegal break statement, Illegal continue statement).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">break</span> e <span class="hl">continue</span></h1>
+
+<p class="intro">Até agora, um laço só terminava quando a condição ficava falsa, e toda volta rodava o corpo inteiro. Às vezes você quer mais controle: <strong>parar no meio</strong>, porque já achou o que procurava, ou <strong>pular só esta volta</strong>, porque o item não interessa. Para isso existem duas palavras: <code>break</code> ("quebrar", sair do laço) e <code>continue</code> ("continuar", ir direto para a próxima volta).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>break</code> encerra o laço na hora, e onde o programa continua depois dele.</li>
+  <li>Como usar <code>while (true)</code> com <code>break</code>, o laço "infinito" com saída no meio.</li>
+  <li>Como o <code>continue</code> pula o resto de uma volta, e por que no <code>for</code> o passo ainda acontece.</li>
+  <li>A armadilha do <code>continue</code> no <code>while</code>, que trava o programa.</li>
+  <li>O que acontece com <code>break</code> num laço dentro de outro laço.</li>
+  <li>Os erros reais: <code>break</code> e <code>continue</code> fora de um laço.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> (v24.22.0) da máquina da Ana, com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: procurar a chave na gaveta</h2>
+<p>A Ana procura a chave de casa numa gaveta cheia de coisas. Ela tira um objeto de cada vez:</p>
+<ul>
+  <li>Quando <strong>acha a chave</strong>, ela para de procurar. Não faz sentido olhar o resto da gaveta. Isso é o <code>break</code>.</li>
+  <li>Quando pega um papel de bala, ela nem olha direito: joga de lado e pega o <strong>próximo</strong> objeto. Isso é o <code>continue</code>.</li>
+</ul>
+<p>Os dois só fazem sentido <strong>dentro de um laço</strong> (<a href="for.html">for</a>, <a href="while.html">while</a>, <a href="do-while.html">do … while</a>).</p>
+
+<hr>
+
+<h2>1. <code>break</code>: parar quando achar</h2>
+<p>A Ana quer saber em que posição o café está na lista de compras. Assim que achar, não precisa olhar o resto:</p>
+
+<pre class="file" data-file="procura.js">const compras = ["pão", "leite", "café", "manteiga", "ovos"];
+for (let i = 0; i &lt; compras.length; i++) {
+  console.log(`Olhando: ${compras[i]}`);
+  if (compras[i] === "café") {
+    console.log(`Achei o café na posição ${i}!`);
+    break;
+  }
+}
+console.log("Fim da busca.");
+</pre>
+
+<pre class="term">$ node procura.js
+Olhando: pão
+Olhando: leite
+Olhando: café
+Achei o café na posição 2!
+Fim da busca.
+</pre>
+
+<dl class="anatomy">
+  <dt>if (compras[i] === "café")</dt><dd>A pergunta de cada volta: "este item é o café?" (o <code>===</code> compara; veja <a href="operadores-comparacao.html">Comparação</a>).</dd>
+  <dt>break;</dt><dd>"Quebre o laço". O JavaScript sai do <code>for</code> <strong>na hora</strong>: não roda o resto do corpo, não roda o passo <code>i++</code>, não testa a condição de novo.</dd>
+  <dt>console.log("Fim da busca.")</dt><dd>A primeira linha <strong>depois</strong> do laço. É para cá que o <code>break</code> pula.</dd>
+</dl>
+
+<p>Repare que <code>manteiga</code> e <code>ovos</code> nem foram olhados. Sem o <code>break</code>, o laço iria até o fim da lista, mesmo já tendo achado:</p>
+
+<pre class="term">$ node procura_sem.js
+Olhando: pão
+Olhando: leite
+Olhando: café
+Achei o café na posição 2!
+Olhando: manteiga
+Olhando: ovos
+Fim da busca.
+</pre>
+
+<p>Numa lista de 5 itens, tanto faz. Numa lista de 1 milhão de itens, parar cedo economiza muito trabalho.</p>
+
+<div class="tryjs" data-goal="out:posição 3!;;src:\bbreak\b">
+<p class="try-task"><strong>Missão:</strong> mude a busca para procurar a <strong>manteiga</strong> (troque o texto do <code>if</code> e o da mensagem). Quantas linhas <code>Olhando</code> aparecem agora?</p>
+<pre class="script" data-file="main.js">const compras = ["pão", "leite", "café", "manteiga", "ovos"];
+for (let i = 0; i &lt; compras.length; i++) {
+  console.log(`Olhando: ${compras[i]}`);
+  if (compras[i] === "café") {
+    console.log(`Achei o café na posição ${i}!`);
+    break;
+  }
+}
+console.log("Fim da busca.");
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["pão", "leite", "café", "manteiga", "ovos"];
+for (let i = 0; i &lt; compras.length; i++) {
+  console.log(`Olhando: ${compras[i]}`);
+  if (compras[i] === "manteiga") {
+    console.log(`Achei a manteiga na posição ${i}!`);
+    break;
+  }
+}
+console.log("Fim da busca.");
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>while (true)</code> com <code>break</code></h2>
+<p>Às vezes é mais fácil escrever "repita para sempre" e decidir a saída <strong>no meio</strong> do corpo. A condição <code>true</code> nunca fica falsa, então o único jeito de sair é o <code>break</code>. Quantos dias leva para R$ 1, dobrando todo dia, passar de R$ 1000?</p>
+
+<pre class="file" data-file="dobra.js">let valor = 1;
+let dias = 0;
+while (true) {
+  valor *= 2;
+  dias++;
+  if (valor &gt; 1000) {
+    break;
+  }
+}
+console.log(`Passou de R$ 1000 em ${dias} dias: R$ ${valor}`);
+</pre>
+
+<pre class="term">$ node dobra.js
+Passou de R$ 1000 em 10 dias: R$ 1024
+</pre>
+
+<p>O <code>valor *= 2</code> é "o valor passa a ser o dobro" (veja <a href="atribuicao.html">Atribuição</a>). A cada volta, o programa dobra, conta o dia e pergunta: "já passou de 1000?". Na 10ª volta, <code>1024 &gt; 1000</code> dá <code>true</code>, o <code>break</code> roda, e o programa segue para o <code>console.log</code>.</p>
+
+<div class="warning">
+<strong>Todo <code>while (true)</code> precisa de um <code>break</code> que um dia aconteça</strong>
+<p>Se a condição do <code>if</code> nunca for verdadeira, é um laço infinito de verdade (no terminal, <kbd>Ctrl</kbd>+<kbd>C</kbd>; veja <a href="for.html">for</a>). Esse formato é muito usado para ler o teclado até a pessoa digitar "sair", como você vai ver em <a href="entrada-teclado.html">Lendo o Teclado</a>.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>continue</code>: pular esta volta</h2>
+<p>O <code>continue</code> não sai do laço: ele <strong>abandona só a volta atual</strong> e vai para a próxima. Este programa mostra os números de 1 a 10, pulando os pares:</p>
+
+<pre class="file" data-file="impares.js">for (let i = 1; i &lt;= 10; i++) {
+  if (i % 2 === 0) {
+    continue;
+  }
+  console.log(i);
+}
+</pre>
+
+<pre class="term">$ node impares.js
+1
+3
+5
+7
+9
+</pre>
+
+<dl class="anatomy">
+  <dt>i % 2 === 0</dt><dd>"O resto da divisão de <code>i</code> por 2 é zero?", ou seja, "<code>i</code> é par?" (o <code>%</code> é o resto; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</dd>
+  <dt>continue;</dt><dd>"Continue com a próxima volta". O resto do corpo (o <code>console.log</code>) é pulado. No <code>for</code>, o JavaScript vai para o <strong>passo</strong> (<code>i++</code>) e depois testa a condição, como numa volta normal.</dd>
+</dl>
+
+<h3>Um uso real: pular as notas que faltam</h3>
+<p>Na lista de notas da turma, a professora marcou com <code>-1</code> quem faltou à prova. Essas notas não podem entrar na média:</p>
+
+<pre class="file" data-file="notas.js">const notas = [8, -1, 7, 10, -1, 6];
+let soma = 0;
+let quantas = 0;
+for (let i = 0; i &lt; notas.length; i++) {
+  if (notas[i] &lt; 0) {
+    console.log(`Posição ${i}: faltou, pulando`);
+    continue;
+  }
+  soma += notas[i];
+  quantas++;
+}
+console.log(`Média de ${quantas} notas: ${soma / quantas}`);
+</pre>
+
+<pre class="term">$ node notas.js
+Posição 1: faltou, pulando
+Posição 4: faltou, pulando
+Média de 4 notas: 7.75
+</pre>
+
+<p>Nas posições 1 e 4, o <code>continue</code> pulou o <code>soma += …</code> e o <code>quantas++</code>. Ficaram 8, 7, 10 e 6: soma 31, dividida por 4, dá 7.75.</p>
+
+<div class="tryjs" data-goal="outre:^3\n6\n9\n12\n15\n?$;;src:\bcontinue\b">
+<p class="try-task"><strong>Missão:</strong> mude o programa para mostrar só os <strong>múltiplos de 3</strong> de 1 a <strong>15</strong> (3, 6, 9, 12, 15). Dica: pule com <code>continue</code> todo número cujo resto da divisão por 3 <strong>não</strong> for zero (<code>!==</code>).</p>
+<pre class="script" data-file="main.js">for (let i = 1; i &lt;= 10; i++) {
+  if (i % 2 === 0) {
+    continue;
+  }
+  console.log(i);
+}
+</pre>
+<pre class="solucao" data-file="main.js">for (let i = 1; i &lt;= 15; i++) {
+  if (i % 3 !== 0) {
+    continue;
+  }
+  console.log(i);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="armadilha">4. A armadilha do <code>continue</code> no <code>while</code></h2>
+<p>No <code>for</code>, o passo (<code>i++</code>) fica no alto e roda mesmo depois de um <code>continue</code>. No <code>while</code>, o passo é uma linha comum do corpo, e o <code>continue</code> pode pular por cima dela:</p>
+
+<pre class="file" data-file="continue_while.js">let i = 0;
+while (i &lt; 5) {
+  if (i === 2) {
+    continue;
+  }
+  console.log(i);
+  i++;
+}
+console.log("Fim!");
+</pre>
+
+<pre class="term">$ timeout 2 node continue_while.js
+0
+1
+$ echo $?
+124
+</pre>
+
+<p>O programa mostrou <code>0</code> e <code>1</code> e travou. Quando <code>i</code> chegou a 2, o <code>continue</code> pulou o <code>i++</code>; na volta seguinte, <code>i</code> ainda era 2, o <code>continue</code> pulou de novo… para sempre. A Ana rodou com <code>timeout 2</code>, que mata o programa depois de 2 segundos; o <code>124</code> do <code>echo $?</code> é o código que o <code>timeout</code> devolve quando precisou matar (sem ele, seria o <kbd>Ctrl</kbd>+<kbd>C</kbd>).</p>
+
+<p><strong>Como consertar:</strong> faça o passo <strong>antes</strong> do <code>continue</code>. Aqui, mudando o <code>i++</code> para o começo do corpo (repare que agora os números mostrados vão de 1 a 5):</p>
+
+<pre class="file" data-file="continue_while_ok.js">let i = 0;
+while (i &lt; 5) {
+  i++;
+  if (i === 2) {
+    continue;
+  }
+  console.log(i);
+}
+console.log("Fim!");
+</pre>
+
+<pre class="term">$ node continue_while_ok.js
+1
+3
+4
+5
+Fim!
+</pre>
+
+<div class="tryjs" data-sem-fim>
+<p class="try-task"><strong>Experimente:</strong> rode o programa travado e clique em <strong>■ Parar</strong>. Depois mova o <code>i++</code> para a primeira linha do corpo e rode de novo.</p>
+<pre class="script" data-file="main.js">let i = 0;
+while (i &lt; 5) {
+  if (i === 2) {
+    continue;
+  }
+  console.log(i);
+  i++;
+}
+console.log("Fim!");
+</pre>
+</div>
+
+<hr>
+
+<h2 id="aninhado">5. <code>break</code> num laço dentro de outro</h2>
+<p>Um laço pode ficar dentro de outro (é o assunto da próxima aula, <a href="lacos-aninhados.html">Laços Aninhados</a>). Nesse caso, o <code>break</code> sai só do laço <strong>mais de dentro</strong>, aquele em que ele está:</p>
+
+<pre class="file" data-file="aninhado.js">for (let fila = 1; fila &lt;= 3; fila++) {
+  for (let cadeira = 1; cadeira &lt;= 3; cadeira++) {
+    if (cadeira === 2) {
+      break;
+    }
+    console.log(`Fila ${fila}, cadeira ${cadeira}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node aninhado.js
+Fila 1, cadeira 1
+Fila 2, cadeira 1
+Fila 3, cadeira 1
+</pre>
+
+<p>Em cada fila, o laço das cadeiras parou na cadeira 2, mas o laço das filas continuou: fila 1, 2 e 3. Como sair dos dois laços de uma vez fica para a aula <a href="lacos-aninhados.html">Laços Aninhados</a>.</p>
+
+<div class="note">
+<strong>E o <code>break</code> do <code>switch</code>?</strong>
+<p>É a mesma palavra, que você viu em <a href="switch.html">switch</a>: lá ela encerra o <code>switch</code>. Se um <code>switch</code> estiver dentro de um laço, o <code>break</code> dentro do <code>case</code> sai só do <code>switch</code>, não do laço.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Tudo o que o <code>break</code> e o <code>continue</code> fazem dá para fazer sem eles. A busca do café pode guardar numa variável se já achou, e pôr isso na condição do laço:</p>
+
+<pre class="file" data-file="procura_cond.js">const compras = ["pão", "leite", "café", "manteiga", "ovos"];
+let achou = false;
+for (let i = 0; i &lt; compras.length &amp;&amp; !achou; i++) {
+  console.log(`Olhando: ${compras[i]}`);
+  if (compras[i] === "café") {
+    console.log(`Achei o café na posição ${i}!`);
+    achou = true;
+  }
+}
+console.log("Fim da busca.");
+</pre>
+
+<pre class="term">$ node procura_cond.js
+Olhando: pão
+Olhando: leite
+Olhando: café
+Achei o café na posição 2!
+Fim da busca.
+</pre>
+
+<p>A condição agora é "ainda tem item <strong>e</strong> não achou" (<code>&amp;&amp;</code> e <code>!</code>; veja <a href="operadores-logicos.html">Operadores Lógicos</a>). E os ímpares podem ser mostrados com um <code>if</code> que pergunta o contrário, sem <code>continue</code>:</p>
+
+<pre class="file" data-file="impares_if.js">for (let i = 1; i &lt;= 10; i++) {
+  if (i % 2 !== 0) {
+    console.log(i);
+  }
+}
+</pre>
+
+<p>A saída é a mesma do <code>impares.js</code> (1, 3, 5, 7 e 9). Qual escolher?</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Procurar e parar no primeiro que servir</td><td><code>break</code> (mais curto e direto)</td></tr>
+<tr><td>Repetir até acontecer algo que só se sabe no meio do corpo</td><td><code>while (true)</code> com <code>break</code></td></tr>
+<tr><td>Pular itens que não interessam, quando o resto do corpo é comprido</td><td><code>continue</code> no começo do corpo (evita um <code>if</code> enorme)</td></tr>
+<tr><td>Pular itens, com um corpo de uma ou duas linhas</td><td>Um <code>if</code> com a condição ao contrário</td></tr>
+<tr><td>A condição de parada é simples e conhecida antes</td><td>Ponha na condição do laço; sem <code>break</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>break</code> fora de um laço</strong>
+<pre class="file" data-file="fora_break.js">const estoque = 0;
+if (estoque === 0) {
+  console.log("Acabou o pão!");
+  break;
+}
+console.log("Pode vender.");
+</pre>
+<pre class="term">$ node fora_break.js
+/home/ana/fora_break.js:4
+  break;
+  ^^^^^
+
+SyntaxError: Illegal break statement
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha: o arquivo e a linha 4; o código dessa linha, com <code>^^^^^</code> marcando a palavra <code>break</code> inteira; e <code>SyntaxError: Illegal break statement</code>, "erro de sintaxe: instrução <code>break</code> ilegal". O <code>if</code> não é um laço: não tem de onde "sair". Por ser erro de sintaxe, o programa nem começou (o <code>Acabou o pão!</code> não apareceu). <strong>Como consertar:</strong> para parar o programa inteiro existe o <code>process.exit()</code> (veja <a href="process-env.html">process.env e process.exit</a>); para não rodar o resto, use um <code>else</code> (veja <a href="if-else.html">else e else if</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>continue</code> fora de um laço</strong>
+<pre class="file" data-file="fora_continue.js">const nota = -1;
+if (nota &lt; 0) {
+  continue;
+}
+console.log(`Nota: ${nota}`);
+</pre>
+<pre class="term">$ node fora_continue.js
+/home/ana/fora_continue.js:3
+  continue;
+  ^^^^^^^^
+
+SyntaxError: Illegal continue statement: no surrounding iteration statement
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « mais 7 linhas "at … node:internal" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Instrução <code>continue</code> ilegal: não há uma instrução de repetição em volta". A mensagem diz exatamente o problema: <em>iteration statement</em> é o nome técnico de um laço. <strong>Como consertar:</strong> o <code>continue</code> só vale dentro de <code>for</code>, <code>while</code> ou <code>do … while</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa travou depois de um <code>continue</code></strong>
+<p>É a armadilha da <a href="#armadilha">seção 4</a>: num <code>while</code>, o <code>continue</code> pulou a linha que faz o laço andar. <strong>Como consertar:</strong> mude o contador <strong>antes</strong> do <code>continue</code>, ou use um <code>for</code>, em que o passo nunca é pulado.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>break</code> não parou tudo</strong>
+<p>Num laço dentro de outro, o <code>break</code> sai só do de dentro (<a href="#aninhado">seção 5</a>, o exemplo das filas e cadeiras). Não é erro do JavaScript; é a regra. <strong>Como consertar:</strong> veja a aula <a href="lacos-aninhados.html">Laços Aninhados</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>break;</code></td><td>Sai do laço na hora e vai para a primeira linha depois dele</td></tr>
+<tr><td><code>continue;</code></td><td>Pula o resto desta volta; no <code>for</code>, roda o passo e testa a condição</td></tr>
+<tr><td><code>while (true) { … if (…) { break; } }</code></td><td>Laço sem fim de propósito, com a saída no meio</td></tr>
+<tr><td><code>if (item ruim) { continue; }</code> no começo do corpo</td><td>Ignora os itens que não interessam</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Illegal break statement</code></td><td><code>break</code> fora de um laço (ou de um <code>switch</code>)</td></tr>
+<tr><td><code>SyntaxError: Illegal continue statement: no surrounding iteration statement</code></td><td><code>continue</code> fora de um laço</td></tr>
+<tr><td>Travou depois de um <code>continue</code> num <code>while</code></td><td>O <code>continue</code> pulou o passo</td></tr>
+<tr><td>O laço de fora continuou depois do <code>break</code></td><td>O <code>break</code> sai só do laço mais de dentro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete com a palavra certa: para <strong>sair</strong> do laço, use <input data-answer="break" aria-label="palavra para sair">; para <strong>pular para a próxima volta</strong>, use <input data-answer="continue" aria-label="palavra para pular">.</p>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Qual é o último número que este programa mostra?</p>
+<pre class="file" data-file="ex2.js">for (let i = 1; i &lt;= 10; i++) {
+  if (i === 4) {
+    break;
+  }
+  console.log(i);
+}
+</pre>
+<div class="ex-code">O último número é <input data-answer="3" aria-label="último número">.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. E se, no programa do exercício 2, o <code>break</code> fosse trocado por <code>continue</code>?</p>
+<label><input type="radio" name="q3"> Mostraria de 1 a 3</label>
+<label><input type="radio" name="q3"> Mostraria de 1 a 10, sem o 4</label>
+<label><input type="radio" name="q3"> Laço infinito</label>
+<label><input type="radio" name="q3"> <code>SyntaxError</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Num <code>for</code> dentro de outro <code>for</code>, um <code>break</code> no laço de dentro…</p>
+<label><input type="radio" name="q4"> encerra o programa</label>
+<label><input type="radio" name="q4"> encerra os dois laços</label>
+<label><input type="radio" name="q4"> dá erro</label>
+<label><input type="radio" name="q4"> encerra só o laço de dentro; o de fora segue para a próxima volta</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que o <code>continue</code> pode travar um <code>while</code>, mas não um <code>for</code>?</p>
+<label><input type="radio" name="q5"> No <code>while</code>, o passo é uma linha do corpo e pode ser pulado; no <code>for</code>, o passo roda mesmo depois do <code>continue</code></label>
+<label><input type="radio" name="q5"> O <code>while</code> não aceita <code>continue</code></label>
+<label><input type="radio" name="q5"> O <code>for</code> ignora o <code>continue</code></label>
+<label><input type="radio" name="q5"> Porque o <code>while</code> é mais lento</label>
+</div>
+
+<h3>Missão final: o primeiro múltiplo de 7</h3>
+
+<div class="tryjs" data-goal="outre:^Múltiplo de 7: 56\n?$;;src:\bbreak\b">
+<p class="try-task"><strong>Missão:</strong> este programa mostra <strong>todos</strong> os múltiplos de 7 de 50 a 100. A Ana só quer o <strong>primeiro</strong>. Acrescente um <code>break</code> no lugar certo, para a saída ser só <code>Múltiplo de 7: 56</code>.</p>
+<pre class="script" data-file="main.js">for (let n = 50; n &lt;= 100; n++) {
+  if (n % 7 === 0) {
+    console.log(`Múltiplo de 7: ${n}`);
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.js">for (let n = 50; n &lt;= 100; n++) {
+  if (n % 7 === 0) {
+    console.log(`Múltiplo de 7: ${n}`);
+    break;
+  }
+}
+</pre>
+</div>
+
+<p>No lab, um programa com essa mesma ideia mostrou <code>O primeiro múltiplo de 7 a partir de 50 é 56</code>: a busca parou no 56, sem olhar os 44 números seguintes.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>break</code> sai do laço na hora; o programa continua na primeira linha depois dele.</li>
+  <li><code>continue</code> pula o resto da volta atual; no <code>for</code>, o passo ainda roda.</li>
+  <li><code>while (true)</code> com <code>break</code> é o laço com a saída no meio; o <code>break</code> tem de acontecer um dia.</li>
+  <li>Num <code>while</code>, mude o contador antes do <code>continue</code>, senão o programa trava.</li>
+  <li>Num laço dentro de outro, o <code>break</code> sai só do de dentro.</li>
+  <li>Fora de um laço, os dois dão <code>SyntaxError</code> e o programa nem começa.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
