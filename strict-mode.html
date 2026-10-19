@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript O Modo Estrito — &quot;use strict&quot; | Guia JavaScript</title>
+<meta name="description" content="O modo estrito do JavaScript para quem nunca programou: &quot;use strict&quot; no começo do arquivo ou da função, o erro de digitação que vira variável global (totl is not defined), o objeto congelado que reclama, o this undefined, octais, parâmetros repetidos e palavras reservadas, por que módulos e classes já são estritos (inclusive o .js com import no Node.js 24) e os erros reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Modo Estrito</span></h1>
+
+<p class="intro">O JavaScript nasceu em 1995, feito às pressas, e com o tempo ficou claro que algumas coisas dele eram tolerantes demais: um erro de digitação num nome de variável não dava erro nenhum, apenas criava uma variável nova, em silêncio. Para não quebrar os sites antigos, essas regras não podiam simplesmente mudar. A solução, de 2009, foi um <strong>interruptor</strong>: uma linha, <code>"use strict"</code>, que liga o <strong>modo estrito</strong>, uma versão mais exigente da linguagem, que transforma vários desses silêncios em <strong>erros de verdade</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ligar o modo estrito: <code>"use strict";</code> no começo do arquivo ou de uma função.</li>
+  <li>O que muda: a variável não declarada, a propriedade que não pode ser alterada, o <code>this</code> das funções e mais algumas regras.</li>
+  <li>Por que o modo estrito <strong>ajuda</strong>: ele mostra o erro na hora, em vez de deixar o programa dar um resultado errado.</li>
+  <li>Onde ele já vem ligado sozinho: módulos (<code>import</code>/<code>export</code>) e classes.</li>
+  <li>Os erros reais que só aparecem no modo estrito.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana, com <code>node arquivo.js</code>. O modo estrito funciona igual no navegador.</p>
+
+<hr>
+
+<h2>A ideia: o professor que corrige a lápis e o que corrige a caneta</h2>
+<p>A Ana teve dois professores de matemática. O primeiro era bonzinho: quando ela escrevia uma conta errada, ele fingia que não via, e ela só descobria na nota final, sem saber onde tinha errado. O segundo marcava em vermelho, <strong>na hora</strong>, a linha exata do erro. Na época, o segundo parecia chato. Mas era com ele que ela aprendia, porque cada erro aparecia logo, no lugar certo.</p>
+<p>O JavaScript "normal" (os programadores chamam de <strong>modo desleixado</strong>, <em>sloppy mode</em>) é o professor bonzinho. O modo estrito é o da caneta vermelha.</p>
+
+<hr>
+
+<h2>1. O erro de digitação que vira variável</h2>
+<p>A Ana soma as compras da padaria. Ela digitou <code>totl</code> no lugar de <code>total</code> dentro do laço. Sem modo estrito:</p>
+
+<pre class="file" data-file="sem-strict.js">let total = 0;
+const precos = [4.5, 12.9, 3.25];
+for (const preco of precos) {
+  totl = total + preco;
+}
+console.log(`Total: ${total}`);
+console.log(`E o totl? ${totl}`);
+</pre>
+
+<pre class="term">$ node sem-strict.js
+Total: 0
+E o totl? 3.25
+</pre>
+
+<p>Nenhum erro. O programa rodou até o fim e disse que a compra deu <strong>zero</strong>. O que aconteceu: no modo desleixado, atribuir um valor a um nome que <strong>não existe</strong> (<code>totl = …</code>) cria uma <strong>variável global</strong> nova com esse nome. A cada volta, o <code>totl</code> recebeu <code>0 + preco</code>, e o <code>total</code> de verdade nunca mudou. Num programa grande, um erro desses pode levar horas para ser achado. Agora com <code>"use strict"</code> na primeira linha:</p>
+
+<pre class="file" data-file="com-strict.js">"use strict";
+
+let total = 0;
+const precos = [4.5, 12.9, 3.25];
+for (const preco of precos) {
+  totl = total + preco;
+}
+console.log(`Total: ${total}`);
+</pre>
+
+<pre class="term">$ node com-strict.js
+/home/ana/com-strict.js:6
+  totl = total + preco;
+       ^
+
+ReferenceError: totl is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/com-strict.js:6:8)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>"use strict";</dt><dd>"Use o modo estrito". É só um <strong>texto</strong> solto, entre aspas, na primeira linha do arquivo. Navegadores e Node antigos, que não conheciam o modo estrito, viam ali uma string que não faz nada, e por isso ele não quebrou nenhum site. Os novos reconhecem esse texto e ligam o modo estrito para o arquivo inteiro.</dd>
+  <dt>/home/ana/com-strict.js:6</dt><dd>O arquivo e a linha do erro: a 6, a do <code>totl</code>.</dd>
+  <dt>totl = total + preco; e o ^</dt><dd>A linha copiada, com o <code>^</code> no <code>=</code>: a atribuição que o modo estrito recusou.</dd>
+  <dt>ReferenceError: totl is not defined</dt><dd>"Erro de referência: <code>totl</code> não está definido". No modo estrito, atribuir a uma variável que nunca foi declarada (com <code>let</code>, <code>const</code> ou <code>var</code>) é erro.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/com-strict.js:6:8)</dt><dd>Linha 6, coluna 8, no código principal do arquivo. As linhas <code>node:internal</code> que vinham depois são do Node e foram cortadas.</dd>
+</dl>
+
+<p>Pronto: a caneta vermelha apontou a linha exata. Trocando <code>totl</code> por <code>total</code>, o programa mostra <code>Total: 20.65</code>.</p>
+
+<div class="tryjs" data-goal="erro:totl is not defined;;src:^\s*[&quot;']use strict[&quot;']">
+<p class="try-task"><strong>Missão:</strong> rode este programa e veja o <code>Total: 0</code>, sem erro nenhum. Depois acrescente <code>"use strict";</code> na <strong>primeira linha</strong> e rode de novo: agora o erro de digitação aparece. (Não conserte ainda: a missão é ver o erro.)</p>
+<pre class="script" data-file="main.js">let total = 0;
+const precos = [4.5, 12.9, 3.25];
+for (const preco of precos) {
+  totl = total + preco;
+}
+console.log(`Total: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">"use strict";
+
+let total = 0;
+const precos = [4.5, 12.9, 3.25];
+for (const preco of precos) {
+  totl = total + preco;
+}
+console.log(`Total: ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Onde pôr o <code>"use strict"</code></h2>
+<p>Ele só funciona como a <strong>primeira instrução</strong> do arquivo (comentários e linhas em branco antes podem) ou como a primeira instrução <strong>dentro de uma função</strong>, e aí vale só para aquela função:</p>
+
+<pre class="file" data-file="funcao.js">function contar() {
+  "use strict";
+  contador = 1;
+}
+valor = 5;
+console.log("fora da função, sem strict:", valor);
+contar();
+</pre>
+
+<pre class="term">$ node funcao.js
+fora da função, sem strict: 5
+/home/ana/funcao.js:3
+  contador = 1;
+           ^
+
+ReferenceError: contador is not defined
+    at contar (/home/ana/funcao.js:3:12)
+    at Object.&lt;anonymous&gt; (/home/ana/funcao.js:7:1)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Fora da função, o <code>valor = 5</code> passou (modo desleixado). Dentro da <code>contar</code>, o <code>contador = 1</code> deu erro (modo estrito). O <code>at contar</code> mostra que o erro foi dentro da função <code>contar</code>, chamada da linha 7.</p>
+
+<h3>Fora do lugar, ele é ignorado</h3>
+<p>Se o <code>"use strict"</code> vier <strong>depois</strong> de qualquer outra instrução, ele vira só uma string sem efeito, e o JavaScript não avisa nada:</p>
+
+<pre class="file" data-file="tarde.js">console.log("começando");
+"use strict";
+nome = "Ana";
+console.log(nome);
+</pre>
+
+<pre class="term">$ node tarde.js
+começando
+Ana
+</pre>
+
+<p>O <code>nome = "Ana"</code> passou sem erro: o modo estrito não foi ligado. Também não funciona com crase nem com letra diferente (<code>`use strict`</code>, <code>"Use Strict"</code>); aspas duplas ou simples, sim.</p>
+
+<hr>
+
+<h2>3. O que mais muda no modo estrito</h2>
+
+<h3>Alterar o que não pode ser alterado dá erro</h3>
+<p>Um objeto congelado com <code>Object.freeze</code> (veja <a href="imutabilidade.html">Imutabilidade</a>) não aceita mudanças. No modo desleixado, a tentativa é <strong>ignorada em silêncio</strong>:</p>
+
+<pre class="file" data-file="congelado.js">const loja = Object.freeze({ nome: "Padaria da Ana" });
+loja.nome = "Outra padaria";
+console.log(loja.nome);
+</pre>
+
+<pre class="term">$ node congelado.js
+Padaria da Ana
+</pre>
+
+<p>A linha 2 "rodou", mas não fez nada, e ninguém ficou sabendo. Com <code>"use strict"</code> no começo do mesmo arquivo:</p>
+
+<pre class="term">$ node congelado2.js
+/home/ana/congelado2.js:3
+loja.nome = "Outra padaria";
+          ^
+
+TypeError: Cannot assign to read only property 'nome' of object '#&lt;Object&gt;'
+    at Object.&lt;anonymous&gt; (/home/ana/congelado2.js:3:11)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>"Não dá para atribuir à propriedade somente-leitura <code>'nome'</code> do objeto". O <code>'#&lt;Object&gt;'</code> é o jeito do motor dizer "um objeto comum". Agora a tentativa de mudar o que não pode é um erro visível.</p>
+
+<h3>O <code>this</code> de uma função comum vira <code>undefined</code></h3>
+<p>Numa função chamada sozinha (sem <code>objeto.</code> na frente), o <code>this</code> do modo desleixado é o objeto global inteiro (o <code>globalThis</code>); no estrito, é <code>undefined</code> (veja <a href="this.html">this, call, apply e bind</a>):</p>
+
+<pre class="file" data-file="this.js">function semStrict() {
+  return typeof this;
+}
+function comStrict() {
+  "use strict";
+  return typeof this;
+}
+console.log(semStrict());
+console.log(comStrict());
+</pre>
+
+<pre class="term">$ node this.js
+object
+undefined
+</pre>
+
+<p>Parece pior, mas é melhor: com <code>this</code> igual ao objeto global, um <code>this.nome = "Ana"</code> esquecido numa função criaria uma variável global sem ninguém perceber. Com <code>undefined</code>, dá erro na hora.</p>
+
+<h3>Coisas antigas que viram erro de sintaxe</h3>
+<p>Algumas escritas confusas são recusadas antes mesmo de o programa rodar (são <code>SyntaxError</code>). Todos os arquivos abaixo começam com <code>"use strict";</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Modo desleixado</th><th>Modo estrito (mensagem real)</th></tr>
+<tr><td><code>const porta = 010;</code></td><td>Vale <code>8</code> (o zero na frente era "número octal", na base 8!)</td><td><code>SyntaxError: Octal literals are not allowed in strict mode.</code></td></tr>
+<tr><td><code>function soma(a, a) { … }</code></td><td>Aceita; o segundo <code>a</code> esconde o primeiro</td><td><code>SyntaxError: Duplicate parameter name not allowed in this context</code></td></tr>
+<tr><td><code>let public = 1;</code></td><td>Aceita</td><td><code>SyntaxError: Unexpected strict mode reserved word</code> (<code>public</code>, <code>private</code>, <code>interface</code>, <code>package</code>… ficam reservadas para o futuro)</td></tr>
+<tr><td><code>delete x;</code> (apagar uma variável)</td><td>Não faz nada e devolve <code>false</code></td><td><code>SyntaxError: Delete of an unqualified identifier in strict mode.</code></td></tr>
+<tr><td><code>with (obj) { … }</code></td><td>Aceita (um recurso antigo, confuso)</td><td><code>SyntaxError: Strict mode code may not include a with statement</code></td></tr>
+</table>
+</div>
+
+<p>Por exemplo, o número octal, com e sem modo estrito:</p>
+
+<pre class="term">$ node octal.js
+8
+$ node octal2.js
+/home/ana/octal2.js:2
+const porta = 010;
+              ^^^
+
+SyntaxError: Octal literals are not allowed in strict mode.
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>No modo desleixado, o <code>010</code> virou <strong>8</strong>, uma surpresa e tanto para quem só queria escrever "dez" com um zero na frente. No estrito, o Node recusa o arquivo e sublinha o número com <code>^^^</code>. (Para escrever um octal de propósito, existe o <code>0o10</code>, com a letra "o", que funciona nos dois modos.)</p>
+
+<hr>
+
+<h2>4. Onde o modo estrito já vem ligado</h2>
+<p>No JavaScript moderno, você raramente precisa escrever <code>"use strict"</code>, porque ele já vem ligado em dois lugares:</p>
+<ul>
+  <li><strong>Dentro de classes.</strong> Todo o corpo de uma <a href="classes.html">class</a> é estrito.</li>
+  <li><strong>Em módulos</strong> (<a href="modulos.html">import e export</a>): arquivos <code>.mjs</code>, arquivos de um projeto com <code>"type": "module"</code> no <a href="package-json.html">package.json</a>, e o <code>&lt;script type="module"&gt;</code> do navegador.</li>
+</ul>
+
+<pre class="file" data-file="modulo.mjs">nome = "Ana";
+console.log(nome);
+</pre>
+
+<pre class="term">$ node modulo.mjs
+file:///home/ana/modulo.mjs:1
+nome = "Ana";
+     ^
+
+ReferenceError: nome is not defined
+    at file:///home/ana/modulo.mjs:1:6
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+
+<p>Sem <code>"use strict"</code> nenhum, o erro apareceu: o arquivo <code>.mjs</code> é um módulo. Repare que, em módulos, o Node mostra o caminho como endereço (<code>file:///home/ana/…</code>). E tem um detalhe do Node 24: um arquivo <code>.js</code> comum que use <code>import</code> ou <code>export</code> também é tratado como módulo, e portanto também é estrito. A Ana confirmou com um <code>detecta.js</code> que começava com <code>import { sep } from "node:path";</code>: o mesmo <code>nome = "Ana"</code> deu <code>ReferenceError: nome is not defined</code>.</p>
+
+<p>Já um <code>.js</code> comum, sem <code>import</code>/<code>export</code> (o formato "CommonJS", da aula <a href="modulos-commonjs.html">require e module.exports</a>), e o <code>&lt;script&gt;</code> comum do navegador continuam no modo desleixado, a não ser que você escreva <code>"use strict"</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Há três jeitos de ter o modo estrito no seu código:</p>
+<ol>
+  <li><code>"use strict";</code> na primeira linha do arquivo: vale para tudo nele.</li>
+  <li><code>"use strict";</code> na primeira linha de uma função: vale só para ela (útil para ir arrumando um código antigo aos poucos).</li>
+  <li>Escrever o código como <strong>módulo</strong> (<code>import</code>/<code>export</code>, <code>.mjs</code>, <code>"type": "module"</code>) ou dentro de <strong>classes</strong>: o modo estrito vem junto, sem escrever nada.</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Projeto novo no Node</td><td>Módulos (<code>"type": "module"</code> ou <code>.mjs</code>): estrito automático</td></tr>
+<tr><td>Arquivo <code>.js</code> comum, com <code>require</code></td><td><code>"use strict";</code> na primeira linha</td></tr>
+<tr><td>Página web</td><td><code>&lt;script type="module"&gt;</code>, ou <code>"use strict";</code> no topo do script</td></tr>
+<tr><td>Código antigo grande, que ainda não aguenta o modo estrito</td><td><code>"use strict";</code> função por função</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Na dúvida, ligue</strong>
+<p>Todo código bem escrito (com <code>let</code>/<code>const</code>, sem <code>with</code>, sem octais) funciona igual nos dois modos. O modo estrito só reclama do que já era um erro escondido. Por isso, ligar o modo estrito num código novo não tem custo nenhum, e pega muitos erros de digitação.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Um código antigo parou de funcionar depois do <code>"use strict"</code></strong>
+<p>Você acrescentou <code>"use strict"</code> e apareceu um <code>ReferenceError: x is not defined</code> numa linha que "sempre funcionou". Ela nunca funcionou direito: criava uma variável global sem querer. <strong>Como consertar:</strong> declare a variável com <code>let</code> ou <code>const</code> no lugar certo (ou corrija o nome, se for erro de digitação).</p>
+</div>
+
+<div class="cenario">
+<strong>Parâmetro repetido</strong>
+<pre class="term">$ node duplicado.js
+/home/ana/duplicado.js:2
+function soma(a, a) {
+                 ^
+
+SyntaxError: Duplicate parameter name not allowed in this context
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Nome de parâmetro repetido não é permitido neste contexto". No modo desleixado, <code>soma(1, 2)</code> daria <code>4</code> (os dois <code>a</code> valeriam o último argumento). <strong>Como consertar:</strong> dê nomes diferentes: <code>function soma(a, b)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma variável com nome de palavra reservada</strong>
+<pre class="term">$ node reservada.js
+/home/ana/reservada.js:2
+let public = 1;
+^^^
+
+SyntaxError: Unexpected strict mode reserved word
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Palavra reservada do modo estrito inesperada". As palavras <code>implements</code>, <code>interface</code>, <code>let</code>, <code>package</code>, <code>private</code>, <code>protected</code>, <code>public</code>, <code>static</code> e <code>yield</code> não podem ser nomes de variável no modo estrito (veja <a href="ref-palavras-reservadas.html">Palavras Reservadas</a>). <strong>Como consertar:</strong> escolha outro nome, de preferência em português: <code>publico</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>"use strict"</code> e nada mudou</strong>
+<p>Ele não está na primeira linha (seção 2): alguma instrução veio antes, até um <code>console.log</code>. Ou foi escrito com crase, ou com letras diferentes. <strong>Como consertar:</strong> mova para o topo do arquivo, exatamente <code>"use strict";</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita / situação</th><th>O que acontece</th></tr>
+<tr><td><code>"use strict";</code> na 1ª linha do arquivo</td><td>Liga o modo estrito no arquivo inteiro</td></tr>
+<tr><td><code>"use strict";</code> na 1ª linha de uma função</td><td>Liga só naquela função</td></tr>
+<tr><td>Módulo (<code>import</code>/<code>export</code>, <code>.mjs</code>), corpo de <code>class</code></td><td>Estrito automaticamente</td></tr>
+<tr><td><code>nomeNaoDeclarado = 1</code></td><td>Desleixado: cria global. Estrito: <code>ReferenceError … is not defined</code></td></tr>
+<tr><td>Atribuir a propriedade congelada / somente-leitura</td><td>Desleixado: ignora. Estrito: <code>TypeError: Cannot assign to read only property</code></td></tr>
+<tr><td><code>this</code> numa função chamada sozinha</td><td>Desleixado: o objeto global. Estrito: <code>undefined</code></td></tr>
+<tr><td><code>010</code>, <code>function f(a, a)</code>, <code>let public</code>, <code>delete x</code>, <code>with</code></td><td>Estrito: <code>SyntaxError</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: x is not defined</code> numa atribuição</td><td>Variável sem <code>let</code>/<code>const</code>, ou nome digitado errado</td></tr>
+<tr><td><code>Cannot assign to read only property</code></td><td>Tentou mudar um objeto congelado (ou propriedade só de leitura)</td></tr>
+<tr><td><code>Cannot set properties of undefined</code> dentro de uma função</td><td>Usou <code>this</code> numa função chamada sozinha</td></tr>
+<tr><td><code>Octal literals are not allowed in strict mode.</code></td><td>Número com zero na frente: escreva sem o zero (ou <code>0o</code> para octal)</td></tr>
+<tr><td><code>Unexpected strict mode reserved word</code></td><td>Variável chamada <code>public</code>, <code>private</code>, <code>package</code>…</td></tr>
+<tr><td>O modo estrito não fez efeito</td><td><code>"use strict"</code> fora da primeira linha</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A linha mágica</h3>
+<p>Escreva exatamente a linha que liga o modo estrito (com as aspas e o ponto e vírgula):</p>
+<div class="ex-code"><input data-answer="&quot;use strict&quot;;|'use strict';" aria-label="a linha do modo estrito"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o valor?</h3>
+<p>No modo desleixado, quanto vale <code>010</code>?</p>
+<div class="ex-code"><input data-answer="8" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Sem modo estrito, o que acontece com <code>totl = 5</code>, se <code>totl</code> nunca foi declarada?</p>
+<label><input type="radio" name="q3"> Dá <code>ReferenceError</code></label>
+<label><input type="radio" name="q3"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q3"> Cria uma variável global <code>totl</code>, em silêncio</label>
+<label><input type="radio" name="q3"> Nada: a linha é ignorada</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em qual destes arquivos o modo estrito <strong>já</strong> está ligado, mesmo sem <code>"use strict"</code>?</p>
+<label><input type="radio" name="q4"> Um <code>.js</code> comum com <code>require</code></label>
+<label><input type="radio" name="q4"> Um <code>.mjs</code></label>
+<label><input type="radio" name="q4"> Um <code>&lt;script&gt;</code> comum no navegador</label>
+<label><input type="radio" name="q4"> Em nenhum</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O arquivo começa com <code>console.log("oi");</code> e só na segunda linha tem <code>"use strict";</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> O modo estrito vale a partir da linha 2</label>
+<label><input type="radio" name="q5"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q5"> O modo estrito vale para o arquivo inteiro</label>
+<label><input type="radio" name="q5"> O <code>"use strict"</code> é ignorado: o arquivo fica no modo desleixado</label>
+</div>
+
+<h3>Missão final: o estoque que dava zero</h3>
+
+<div class="tryjs" data-goal="out:Estoque: 42;;src:^\s*[&quot;']use strict[&quot;'];;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa diz que o estoque da padaria é <code>0</code>, mas são 30 pães e 12 litros de leite. Ligue o modo estrito na primeira linha, rode, leia o erro que ele aponta, conserte e rode de novo até aparecer <code>Estoque: 42</code>.</p>
+<pre class="script" data-file="main.js">const estoque = { pao: 30, leite: 12 };
+let total = 0;
+for (const qtd of Object.values(estoque)) {
+  totl = total + qtd;
+}
+console.log(`Estoque: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">"use strict";
+
+const estoque = { pao: 30, leite: 12 };
+let total = 0;
+for (const qtd of Object.values(estoque)) {
+  total = total + qtd;
+}
+console.log(`Estoque: ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>modo estrito</strong> é uma versão mais exigente do JavaScript, ligada com <code>"use strict";</code> na primeira linha do arquivo ou de uma função.</li>
+  <li>Ele transforma erros silenciosos em erros visíveis: variável não declarada (<code>ReferenceError</code>), mudança em objeto congelado (<code>TypeError</code>), e recusa escritas confusas (octal <code>010</code>, parâmetros repetidos, palavras reservadas, <code>with</code>).</li>
+  <li>Numa função chamada sozinha, o <code>this</code> é <code>undefined</code>, e não o objeto global.</li>
+  <li>Fora da primeira linha, o <code>"use strict"</code> é ignorado sem aviso.</li>
+  <li>Módulos (<code>import</code>/<code>export</code>, <code>.mjs</code>, <code>&lt;script type="module"&gt;</code>) e classes já são estritos sozinhos.</li>
+  <li>Código bem escrito funciona igual nos dois modos: ligue sempre.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
