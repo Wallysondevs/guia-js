@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Protótipos — de onde vêm os métodos de um objeto | Guia JavaScript</title>
+<meta name="description" content="Protótipos no JavaScript para quem está começando: por que lista.push funciona se o push não está na lista, Object.getPrototypeOf, Object.create, a cadeia de protótipos até null, propriedades próprias × herdadas (Object.hasOwn), o que uma class faz por baixo (Produto.prototype), __proto__ e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Protótipos</span></h1>
+
+<p class="intro">Desde as primeiras aulas de arrays você escreve <code>lista.push("café")</code>. Mas, se você olhar o que tem <strong>dentro</strong> da lista, só encontra os itens: nenhum <code>push</code>. Então de onde ele vem? A resposta é o mecanismo que está por baixo de todos os objetos do JavaScript, inclusive das classes que você aprendeu nas últimas aulas: o <strong>protótipo</strong>. Entender protótipos não muda o jeito de escrever o dia a dia, mas explica muitas mensagens de erro e muita coisa que parecia mágica.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o protótipo de um objeto e como o JavaScript <strong>procura</strong> uma propriedade.</li>
+  <li>A diferença entre propriedade <strong>própria</strong> e <strong>herdada</strong> (<code>Object.hasOwn</code>).</li>
+  <li>Como criar um objeto com um protótipo escolhido por você: <code>Object.create</code>.</li>
+  <li>A <strong>cadeia de protótipos</strong>, que termina em <code>null</code>, e de onde vem o <code>toString</code>.</li>
+  <li>O que uma <code>class</code> faz por baixo dos panos (<code>Produto.prototype</code>).</li>
+  <li>O antigo <code>__proto__</code> e os erros reais do Node.js.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "se não sabe, pergunte para quem te ensinou"</h2>
+<p>Na padaria do bairro, o aprendiz novo tem um caderninho com o que ele já sabe. Quando alguém pergunta uma coisa que não está no caderno dele ("quanto tempo o pão de queijo fica no forno?"), ele não responde "não sei": vai perguntar para o <strong>padeiro</strong> que o ensina. Se o padeiro também não souber, ele pergunta para a <strong>dona</strong> da padaria. Se nem a dona souber, aí sim a resposta é "ninguém aqui sabe".</p>
+<p>Todo objeto do JavaScript funciona assim:</p>
+<ul>
+  <li>o objeto tem as <strong>suas próprias</strong> propriedades (o caderninho do aprendiz);</li>
+  <li>e tem um <strong>elo escondido</strong> para outro objeto, o seu <strong>protótipo</strong> (o padeiro);</li>
+  <li>quando você pede uma propriedade que o objeto não tem, o JavaScript vai perguntar ao protótipo, e ao protótipo do protótipo, e assim por diante: é a <strong>cadeia de protótipos</strong>;</li>
+  <li>se ninguém na cadeia tiver, a resposta é <code>undefined</code>.</li>
+</ul>
+<p><em>Protótipo</em> quer dizer "o primeiro modelo, o molde de onde os outros saem".</p>
+
+<hr>
+
+<h2>1. O mistério do <code>push</code></h2>
+
+<pre class="file" data-file="misterio.js">const lista = ["pão", "leite"];
+lista.push("café");
+console.log(lista);
+console.log(Object.keys(lista));
+console.log(Object.hasOwn(lista, "push"));
+console.log(Object.getPrototypeOf(lista) === Array.prototype);
+console.log(Object.hasOwn(Array.prototype, "push"));
+</pre>
+
+<pre class="term">$ node misterio.js
+[ 'pão', 'leite', 'café' ]
+[ '0', '1', '2' ]
+false
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>Object.keys(lista) → [ '0', '1', '2' ]</dt><dd>As propriedades próprias da lista são só as posições dos itens. Nada de <code>push</code>.</dd>
+  <dt>Object.hasOwn(lista, "push") → false</dt><dd><code>Object.hasOwn(obj, "nome")</code> ("tem como próprio") pergunta: esta propriedade está <strong>no próprio objeto</strong>? Para o <code>push</code>, não está.</dd>
+  <dt>Object.getPrototypeOf(lista) === Array.prototype → true</dt><dd><code>Object.getPrototypeOf(obj)</code> ("pegar o protótipo de") devolve o elo escondido. O protótipo de todo array é um objeto chamado <code>Array.prototype</code>.</dd>
+  <dt>Object.hasOwn(Array.prototype, "push") → true</dt><dd>Achamos: o <code>push</code> mora no <code>Array.prototype</code>. Quando você escreve <code>lista.push</code>, o JavaScript não acha na lista, sobe para o protótipo e acha lá.</dd>
+</dl>
+
+<p>É por isso que todos os arrays do seu programa têm <code>push</code>, <code>map</code>, <code>filter</code>… sem que cada um carregue uma cópia: existe <strong>um</strong> <code>Array.prototype</code>, e todos os arrays apontam para ele. Com textos é igual: o <code>toUpperCase</code> mora em <code>String.prototype</code>.</p>
+
+<hr>
+
+<h2>2. Escolhendo o protótipo: <code>Object.create</code></h2>
+<p>Você pode criar um objeto e dizer qual vai ser o protótipo dele, com <code>Object.create(protótipo)</code>. A Ana faz um objeto "modelo" com o método <code>descrever</code>, e cria o leite a partir dele:</p>
+
+<pre class="file" data-file="create.js">const produtoBase = {
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  },
+};
+
+const leite = Object.create(produtoBase);
+leite.nome = "Leite 1 L";
+leite.preco = 5.49;
+
+console.log(leite.descrever());
+console.log(leite);
+console.log(Object.hasOwn(leite, "descrever"));
+console.log(Object.getPrototypeOf(leite) === produtoBase);
+</pre>
+
+<pre class="term">$ node create.js
+Leite 1 L: R$ 5.49
+{ nome: 'Leite 1 L', preco: 5.49 }
+false
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>const produtoBase = { descrever() { … } }</dt><dd>Um objeto comum (aula <a href="objetos-metodos.html">Métodos e this</a>), que vai servir de protótipo.</dd>
+  <dt>Object.create(produtoBase)</dt><dd>Cria um objeto <strong>vazio</strong> cujo protótipo é o <code>produtoBase</code>.</dd>
+  <dt>leite.nome = …; leite.preco = …;</dt><dd>As propriedades próprias do leite.</dd>
+  <dt>leite.descrever()</dt><dd>O leite não tem <code>descrever</code>; o JavaScript sobe para o <code>produtoBase</code>, acha, e chama com o <code>this</code> sendo o <strong>leite</strong> (quem estava antes do ponto). Por isso o texto usa o nome e o preço do leite.</dd>
+  <dt>{ nome: 'Leite 1 L', preco: 5.49 }</dt><dd>O <code>console.log</code> mostra só as propriedades próprias. O que vem do protótipo não aparece.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Bolo de cenoura: 40 min no forno;;src:Object\.create\(\s*receitaBase\s*\)">
+<p class="try-task"><strong>Missão:</strong> o bolo foi criado com <code>{}</code> e não tem o método <code>descrever</code>: rode e veja o erro. Troque o <code>{}</code> por <code>Object.create(receitaBase)</code>, para o bolo herdar o método, e a saída virar <code>Bolo de cenoura: 40 min no forno</code>.</p>
+<pre class="script" data-file="main.js">const receitaBase = {
+  descrever() {
+    return `${this.nome}: ${this.minutos} min no forno`;
+  },
+};
+
+const bolo = {};
+bolo.nome = "Bolo de cenoura";
+bolo.minutos = 40;
+
+console.log(bolo.descrever());
+</pre>
+<pre class="solucao" data-file="main.js">const receitaBase = {
+  descrever() {
+    return `${this.nome}: ${this.minutos} min no forno`;
+  },
+};
+
+const bolo = Object.create(receitaBase);
+bolo.nome = "Bolo de cenoura";
+bolo.minutos = 40;
+
+console.log(bolo.descrever());
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Próprio ganha de herdado; herdado é compartilhado</h2>
+<p>Duas regras completam o mecanismo:</p>
+<ol>
+  <li>Se o objeto <strong>tem</strong> a propriedade, o JavaScript nem olha o protótipo: a própria <strong>esconde</strong> (faz sombra sobre) a herdada.</li>
+  <li>Uma propriedade do protótipo é <strong>uma só</strong>, vista por todos os objetos que apontam para ele. Mudou lá, mudou para todos que não têm a sua própria.</li>
+</ol>
+
+<pre class="file" data-file="sombra.js">const produtoBase = {
+  loja: "Lojinha da Ana",
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  },
+};
+
+const leite = Object.create(produtoBase);
+leite.nome = "Leite 1 L";
+leite.preco = 5.49;
+
+const caneta = Object.create(produtoBase);
+caneta.nome = "Caneta";
+caneta.descrever = function () {
+  return `${this.nome}: grátis!`;
+};
+
+console.log(leite.descrever());
+console.log(caneta.descrever());
+console.log(leite.loja, "|", caneta.loja);
+
+produtoBase.loja = "Mercadinho da Ana";
+console.log(leite.loja, "|", caneta.loja);
+
+leite.loja = "Outra loja";
+console.log(leite.loja, "|", caneta.loja, "|", produtoBase.loja);
+</pre>
+
+<pre class="term">$ node sombra.js
+Leite 1 L: R$ 5.49
+Caneta: grátis!
+Lojinha da Ana | Lojinha da Ana
+Mercadinho da Ana | Mercadinho da Ana
+Outra loja | Mercadinho da Ana | Mercadinho da Ana
+</pre>
+
+<ul>
+  <li><strong>Linha 2:</strong> a caneta tem o <code>descrever</code> <strong>próprio</strong>, e ele ganhou do protótipo. É o mesmo "sobrescrever" da aula <a href="heranca.html">Herança</a>.</li>
+  <li><strong>Linha 4:</strong> a Ana mudou o <code>loja</code> no <strong>protótipo</strong>, e os dois objetos passaram a ver o nome novo: nenhum deles tinha uma cópia.</li>
+  <li><strong>Linha 5:</strong> <code>leite.loja = "Outra loja"</code> <strong>não</strong> mudou o protótipo: criou uma propriedade própria no leite, que agora esconde a herdada. A caneta e o protótipo continuam com <code>Mercadinho da Ana</code>. <strong>Ler</strong> sobe pela cadeia; <strong>escrever</strong> sempre grava no próprio objeto.</li>
+</ul>
+
+<hr>
+
+<h2>4. O que uma <code>class</code> faz por baixo</h2>
+<p>As classes das aulas anteriores são, por dentro, exatamente este mecanismo. Os métodos que você escreve numa <code>class</code> vão parar num objeto chamado <code>NomeDaClasse.prototype</code>, e todo objeto criado com <code>new</code> recebe esse objeto como protótipo:</p>
+
+<pre class="file" data-file="classe.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const arroz = new Produto("Arroz 5 kg", 27.9);
+const leite = new Produto("Leite 1 L", 5.49);
+
+console.log(typeof Produto);
+console.log(Object.getPrototypeOf(leite) === Produto.prototype);
+console.log(Object.hasOwn(leite, "descrever"));
+console.log(Object.hasOwn(Produto.prototype, "descrever"));
+console.log(leite.descrever === arroz.descrever);
+console.log(Object.getOwnPropertyNames(Produto.prototype));
+</pre>
+
+<pre class="term">$ node classe.js
+function
+true
+false
+true
+true
+[ 'constructor', 'descrever' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>typeof Produto → function</dt><dd>Surpresa: para o JavaScript, uma classe é um tipo especial de <strong>função</strong> (a que roda no <code>new</code>). Toda função dessas tem uma propriedade <code>prototype</code>.</dd>
+  <dt>getPrototypeOf(leite) === Produto.prototype → true</dt><dd>O <code>new Produto(…)</code> criou o leite com o elo apontando para <code>Produto.prototype</code>.</dd>
+  <dt>hasOwn(leite, "descrever") → false</dt><dd>O leite não tem o método: ele só tem <code>nome</code> e <code>preco</code>, que o construtor gravou com <code>this</code>.</dd>
+  <dt>leite.descrever === arroz.descrever → true</dt><dd>Os dois usam <strong>a mesma função</strong>, guardada uma vez só no protótipo. Com mil produtos, continua existindo um <code>descrever</code> só.</dd>
+  <dt>[ 'constructor', 'descrever' ]</dt><dd>O que mora no <code>Produto.prototype</code>: os métodos da classe e o <code>constructor</code> (que aponta de volta para a própria classe; é daí que vem o <code>leite.constructor.name</code>).</dd>
+</dl>
+
+<div class="note">
+<strong>Atenção: <code>Produto.prototype</code> não é o protótipo do <code>Produto</code></strong>
+<p>O nome confunde. <code>Produto.prototype</code> é o objeto que vai ser o protótipo <strong>dos objetos criados por</strong> <code>new Produto</code>. O protótipo do leite é <code>Object.getPrototypeOf(leite)</code>, que é igual a <code>Produto.prototype</code>.</p>
+</div>
+
+<hr>
+
+<h2>5. A cadeia até o fim: <code>Object.prototype</code> e <code>null</code></h2>
+<p>Com herança, a cadeia fica mais longa. O <code>extends</code> faz o <code>Perecivel.prototype</code> apontar para o <code>Produto.prototype</code>. E no topo de quase tudo está o <code>Object.prototype</code>, cujo protótipo é <code>null</code> ("nada"): ali a cadeia acaba.</p>
+
+<pre class="file" data-file="cadeia.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+class Perecivel extends Produto {
+  constructor(nome, preco, validade) {
+    super(nome, preco);
+    this.validade = validade;
+  }
+}
+
+const leite = new Perecivel("Leite 1 L", 5.49, "25/10");
+
+let elo = Object.getPrototypeOf(leite);
+while (elo !== null) {
+  console.log(elo.constructor.name);
+  elo = Object.getPrototypeOf(elo);
+}
+console.log(elo);
+console.log(leite.toString());
+console.log(Object.hasOwn(Object.prototype, "toString"));
+</pre>
+
+<pre class="term">$ node cadeia.js
+Perecivel
+Produto
+Object
+null
+[object Object]
+true
+</pre>
+
+<p>O <code>while</code> (aula <a href="while.html">while</a>) andou elo por elo: <code>Perecivel.prototype</code> → <code>Produto.prototype</code> → <code>Object.prototype</code> → <code>null</code>. Em forma de desenho:</p>
+
+<pre class="file" data-file="cadeia (desenho)">leite { nome, preco, validade }
+  └─► Perecivel.prototype { constructor }
+        └─► Produto.prototype { constructor }
+              └─► Object.prototype { toString, hasOwnProperty, … }
+                    └─► null
+</pre>
+
+<p>Ninguém escreveu um <code>toString</code> no <code>Produto</code>, mas <code>leite.toString()</code> funcionou e devolveu <code>[object Object]</code>: ele mora no <code>Object.prototype</code>, o "dono da padaria" de quase todos os objetos. É por isso que um texto com <code>${objeto}</code> às vezes sai como <code>[object Object]</code>.</p>
+
+<hr>
+
+<h2>6. Mexendo no protótipo depois</h2>
+<p>Como o protótipo é um objeto comum, dá para acrescentar um método nele <strong>depois</strong> que os objetos já existem, e todos passam a ter:</p>
+
+<pre class="file" data-file="acrescentar.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+
+Produto.prototype.comDesconto = function (porcento) {
+  return this.preco * (1 - porcento / 100);
+};
+
+console.log(leite.comDesconto(10).toFixed(2));
+</pre>
+
+<pre class="term">$ node acrescentar.js
+4.94
+</pre>
+
+<p>O leite foi criado <strong>antes</strong> do método existir, e mesmo assim o tem: o JavaScript procura no protótipo na hora da chamada, não na hora do <code>new</code>. Era assim que se escreviam os métodos antes das classes (veja <a href="heranca.html#formas">o jeito antigo</a> na aula de herança).</p>
+
+<div class="warning">
+<strong>Não mexa nos protótipos prontos do JavaScript</strong>
+<p>Daria para fazer <code>Array.prototype.ultimo = function () { … }</code> e todos os arrays ganhariam um <code>ultimo()</code>. Não faça: se uma versão futura do JavaScript criar um método com o mesmo nome, o seu passa por cima e o comportamento muda; e as bibliotecas que você usar podem se confundir. Isso já aconteceu na história do JavaScript (alguns métodos de array tiveram de ganhar nomes estranhos porque o nome óbvio já estava "ocupado" por bibliotecas antigas). Para o último item, use <code>lista.at(-1)</code>; para métodos seus, use classes ou funções.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Há várias formas de ler o protótipo e de criar objetos com protótipo. Algumas são antigas e só aparecem em código velho:</p>
+
+<pre class="file" data-file="proto-antigo.js">const leite = { nome: "Leite 1 L" };
+console.log(leite.__proto__ === Object.prototype);
+console.log(Object.getPrototypeOf(leite) === Object.prototype);
+const semNada = Object.create(null);
+console.log(semNada.toString);
+console.log(Object.getPrototypeOf(semNada));
+</pre>
+
+<pre class="term">$ node proto-antigo.js
+true
+true
+undefined
+null
+</pre>
+
+<ul>
+  <li><code>obj.__proto__</code> (com dois sublinhados de cada lado) é o jeito <strong>antigo</strong> de chegar ao protótipo. Ainda funciona no Node e nos navegadores, mas é considerado ultrapassado: prefira <code>Object.getPrototypeOf</code>.</li>
+  <li><code>Object.create(null)</code> cria um objeto <strong>sem</strong> protótipo nenhum: nem o <code>toString</code> ele tem. É usado às vezes como "dicionário puro"; para isso, hoje existe o <a href="colecao-map.html">Map</a>.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para</th><th>Use</th><th>Evite</th></tr>
+<tr><td>Criar vários objetos com os mesmos métodos</td><td><code>class</code> (aula <a href="classes.html">Classes</a>)</td><td>Função construtora com <code>Funcao.prototype.metodo = …</code></td></tr>
+<tr><td>Um objeto que herda de outro objeto comum</td><td><code>Object.create(base)</code></td><td><code>obj.__proto__ = base</code></td></tr>
+<tr><td>Saber qual é o protótipo</td><td><code>Object.getPrototypeOf(obj)</code></td><td><code>obj.__proto__</code></td></tr>
+<tr><td>Saber se a propriedade é própria</td><td><code>Object.hasOwn(obj, "nome")</code></td><td><code>obj.hasOwnProperty("nome")</code> (funciona, mas falha em objetos sem protótipo)</td></tr>
+<tr><td>Saber se o objeto veio de uma classe</td><td><code>obj instanceof Classe</code> (que anda pela cadeia)</td><td>Comparar <code>constructor.name</code> com texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O método não está em lugar nenhum da cadeia</strong>
+<pre class="file" data-file="erro-metodo.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+console.log(leite.descrever());
+</pre>
+<pre class="term">$ node erro-metodo.js
+/home/ana/erro-metodo.js:9
+console.log(leite.descrever());
+                  ^
+
+TypeError: leite.descrever is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/erro-metodo.js:9:19)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/erro-metodo.js:9</dt><dd>O arquivo e a linha: a 9.</dd>
+  <dt>console.log(leite.descrever()); e o ^</dt><dd>O <code>^</code> aponta o <code>descrever</code>.</dd>
+  <dt>TypeError: leite.descrever is not a function</dt><dd>"<code>leite.descrever</code> não é uma função". Agora você sabe o que aconteceu por dentro: o JavaScript procurou <code>descrever</code> no leite, no <code>Produto.prototype</code> e no <code>Object.prototype</code>, chegou ao <code>null</code> sem achar e devolveu <code>undefined</code>. E <code>undefined</code> não pode ser chamado com <code>()</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:9:19)</dt><dd>O erro foi no código principal do arquivo, linha 9, coluna 19.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira o nome (maiúsculas, letras trocadas) e se o método foi mesmo escrito na classe. Num array, a mesma mensagem aparece quando o método não existe para arrays (<code>lista.add is not a function</code>: o certo é <code>push</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Passou <code>undefined</code> para o <code>Object.create</code></strong>
+<pre class="file" data-file="erro-create2.js">let base;
+const leite = Object.create(base);
+</pre>
+<pre class="term">$ node erro-create2.js
+/home/ana/erro-create2.js:2
+const leite = Object.create(base);
+                     ^
+
+TypeError: Object prototype may only be an Object or null: undefined
+    at Object.create (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-create2.js:2:22)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"O protótipo de um objeto só pode ser um objeto ou <code>null</code>: recebi <code>undefined</code>". A variável <code>base</code> foi criada sem valor. A primeira linha da pilha, <code>at Object.create (&lt;anonymous&gt;)</code>, diz que o erro aconteceu <strong>dentro</strong> do <code>Object.create</code> (que é do próprio JavaScript, por isso não tem arquivo), chamado pela sua linha 2. <strong>Como consertar:</strong> passe um objeto de verdade. Se o nome estiver errado (<code>Object.create(produtobase)</code>, com <strong>b</strong> minúsculo), a mensagem é outra, a de sempre: <code>ReferenceError: produtobase is not defined</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Arrow function no protótipo: o <code>this</code> errado</strong>
+<pre class="file" data-file="erro-arrow.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+Produto.prototype.etiqueta = () =&gt; {
+  return `[${this.nome}]`;
+};
+
+const leite = new Produto("Leite 1 L", 5.49);
+console.log(leite.etiqueta());
+</pre>
+<pre class="term">$ node erro-arrow.js
+[undefined]
+</pre>
+<p>Sem mensagem de erro, mas o nome sumiu. Uma <a href="arrow-functions.html">arrow function</a> não tem <code>this</code> próprio: ela usa o <code>this</code> de fora, de onde foi escrita (aqui, o topo do arquivo), e não o objeto antes do ponto. <strong>Como consertar:</strong> no protótipo e nos métodos, use <code>function () { … }</code> ou, melhor, escreva o método dentro da <code>class</code>. A aula <a href="this.html">this, call, apply e bind</a> explica o <code>this</code> em detalhe.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma cadeia que dá a volta</strong>
+<pre class="file" data-file="erro-ciclo.js">const a = {};
+const b = Object.create(a);
+Object.setPrototypeOf(a, b);
+</pre>
+<pre class="term">$ node erro-ciclo.js
+/home/ana/erro-ciclo.js:3
+Object.setPrototypeOf(a, b);
+       ^
+
+TypeError: Cyclic __proto__ value
+    at Object.setPrototypeOf (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-ciclo.js:3:8)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Valor de <code>__proto__</code> cíclico". O <code>b</code> já herda do <code>a</code>; fazer o <code>a</code> herdar do <code>b</code> criaria um círculo, e a procura subiria para sempre (o aprendiz pergunta ao padeiro, que pergunta ao aprendiz…). O JavaScript não deixa. Você raramente vai usar <code>Object.setPrototypeOf</code>; se essa mensagem aparecer, procure uma herança em círculo.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Object.getPrototypeOf(obj)</code></td><td>Devolve o protótipo do objeto (ou <code>null</code>)</td></tr>
+<tr><td><code>Object.create(base)</code></td><td>Cria um objeto vazio cujo protótipo é <code>base</code></td></tr>
+<tr><td><code>Object.create(null)</code></td><td>Cria um objeto sem protótipo nenhum</td></tr>
+<tr><td><code>Object.hasOwn(obj, "nome")</code></td><td><code>true</code> se a propriedade é própria (não herdada)</td></tr>
+<tr><td><code>Object.getOwnPropertyNames(obj)</code></td><td>Os nomes de todas as propriedades próprias (inclusive as que <code>Object.keys</code> esconde, como os métodos)</td></tr>
+<tr><td><code>Classe.prototype</code></td><td>O objeto onde moram os métodos da classe; protótipo dos objetos criados com <code>new Classe</code></td></tr>
+<tr><td><code>obj instanceof Classe</code></td><td>Procura <code>Classe.prototype</code> na cadeia do objeto</td></tr>
+<tr><td><code>obj.__proto__</code></td><td>Jeito antigo de chegar ao protótipo (prefira <code>getPrototypeOf</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: obj.metodo is not a function</code></td><td>O método não está no objeto nem em nenhum protótipo da cadeia</td></tr>
+<tr><td><code>TypeError: Object prototype may only be an Object or null</code></td><td><code>Object.create</code> recebeu algo que não é objeto (<code>undefined</code>, um número…)</td></tr>
+<tr><td><code>undefined</code> onde deveria vir um dado do objeto</td><td>Arrow function usada como método (o <code>this</code> não é o objeto)</td></tr>
+<tr><td><code>[object Object]</code> num texto</td><td>O <code>toString</code> herdado do <code>Object.prototype</code>: mostre uma propriedade, ou use <code>JSON.stringify</code></td></tr>
+<tr><td><code>TypeError: Cyclic __proto__ value</code></td><td>Herança em círculo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o objeto <code>gato</code> ter como protótipo o objeto <code>animal</code>, e depois confirme:</p>
+<div class="ex-code">const gato = Object.<input data-answer="create" aria-label="método que cria com protótipo">(animal);<br>console.log(Object.<input data-answer="getPrototypeOf" aria-label="método que devolve o protótipo">(gato) === animal); // true</div>
+</div>
+
+<div class="exercise">
+<h3>2. Próprio ou herdado?</h3>
+<p>Com <code>const lista = [1, 2];</code>, o que mostra <code>console.log(Object.hasOwn(lista, "map"))</code>?</p>
+<div class="ex-code">Mostra <input data-answer="false" aria-label="true ou false"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que acontece quando você lê <code>obj.x</code> e o <code>obj</code> não tem <code>x</code>?</p>
+<label><input type="radio" name="q3"> Dá <code>ReferenceError</code></label>
+<label><input type="radio" name="q3"> O JavaScript procura no protótipo, e no protótipo do protótipo, até achar ou chegar a <code>null</code></label>
+<label><input type="radio" name="q3"> Devolve <code>null</code> na hora</label>
+<label><input type="radio" name="q3"> Cria a propriedade <code>x</code> com valor 0</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>leite</code> herda <code>loja</code> do <code>produtoBase</code>. A Ana faz <code>leite.loja = "Outra"</code>. O que acontece com <code>produtoBase.loja</code>?</p>
+<label><input type="radio" name="q4"> Muda para <code>"Outra"</code></label>
+<label><input type="radio" name="q4"> Vira <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> Não muda: a escrita criou uma propriedade própria no leite</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Onde fica o método <code>descrever</code> de uma <code>class Produto</code>?</p>
+<label><input type="radio" name="q5"> Em <code>Produto.prototype</code>, uma vez só, compartilhado por todos os produtos</label>
+<label><input type="radio" name="q5"> Uma cópia dentro de cada produto criado com <code>new</code></label>
+<label><input type="radio" name="q5"> No <code>Object.prototype</code></label>
+<label><input type="radio" name="q5"> Em lugar nenhum: classes não usam protótipos</label>
+</div>
+
+<h3>Missão final: o caminho da cadeia</h3>
+
+<div class="tryjs" data-goal="out:Congelado → Perecivel → Produto → Object;;out:Array → Object;;src:getPrototypeOf">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>cadeia(obj)</code>: comece com <code>let elo = Object.getPrototypeOf(obj);</code> e, <strong>enquanto</strong> o <code>elo</code> não for <code>null</code>, guarde <code>elo.constructor.name</code> no array <code>nomes</code> e suba um elo (<code>elo = Object.getPrototypeOf(elo);</code>). A saída esperada é <code>Congelado → Perecivel → Produto → Object</code> e, para o array, <code>Array → Object</code>.</p>
+<pre class="script" data-file="main.js">class Produto {}
+class Perecivel extends Produto {}
+class Congelado extends Perecivel {}
+
+function cadeia(obj) {
+  const nomes = [];
+  // escreva aqui o laço que sobe pela cadeia
+
+  return nomes.join(" → ");
+}
+
+console.log(cadeia(new Congelado()));
+console.log(cadeia([1, 2, 3]));
+</pre>
+<pre class="solucao" data-file="main.js">class Produto {}
+class Perecivel extends Produto {}
+class Congelado extends Perecivel {}
+
+function cadeia(obj) {
+  const nomes = [];
+  let elo = Object.getPrototypeOf(obj);
+  while (elo !== null) {
+    nomes.push(elo.constructor.name);
+    elo = Object.getPrototypeOf(elo);
+  }
+  return nomes.join(" → ");
+}
+
+console.log(cadeia(new Congelado()));
+console.log(cadeia([1, 2, 3]));
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Congelado → Perecivel → Produto → Object</code> e <code>Array → Object</code>. Experimente também <code>cadeia("Ana")</code> e <code>cadeia(new Map())</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Todo objeto tem um elo escondido para outro objeto, o seu <strong>protótipo</strong>. Ao ler uma propriedade que o objeto não tem, o JavaScript procura no protótipo, e no protótipo dele, até chegar a <code>null</code>: é a <strong>cadeia de protótipos</strong>.</li>
+  <li>Os métodos dos arrays moram em <code>Array.prototype</code>; os das suas classes, em <code>SuaClasse.prototype</code>. Cada método existe uma vez só, compartilhado por todos os objetos.</li>
+  <li><code>Object.getPrototypeOf(obj)</code> mostra o protótipo; <code>Object.create(base)</code> cria um objeto com o protótipo que você quiser; <code>Object.hasOwn(obj, "x")</code> diz se a propriedade é própria.</li>
+  <li>Propriedade própria esconde a herdada. Ler sobe pela cadeia; escrever grava sempre no próprio objeto.</li>
+  <li><code>class</code> e <code>extends</code> são um jeito mais limpo de montar essa cadeia. No topo de quase tudo está o <code>Object.prototype</code>, de onde vem o <code>toString</code>.</li>
+  <li>Não acrescente métodos aos protótipos prontos (<code>Array.prototype</code>, <code>String.prototype</code>), e prefira <code>getPrototypeOf</code> ao antigo <code>__proto__</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
