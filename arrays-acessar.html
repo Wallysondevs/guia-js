@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Acessando e Alterando Itens — lista[0], at(-1) e a troca por índice | Guia JavaScript</title>
+<meta name="description" content="Como ler e trocar os itens de um array no JavaScript, para quem nunca programou: lista[0], o índice numa variável, o último item com length - 1 e com at(-1), o undefined do índice que não existe, a troca com lista[1] = valor, os buracos ao escrever longe demais, o with() que devolve uma cópia e os erros reais do Node.js 24 (Cannot read properties of undefined, is not a function, Invalid left-hand side).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Acessando e Alterando Itens</span></h1>
+
+<p class="intro">Na aula <a href="arrays.html">Arrays</a>, você criou listas e viu que cada item mora numa posição numerada, o <strong>índice</strong>, a partir do 0. Agora é hora de usar essas posições: <strong>ler</strong> um item específico ("qual é o terceiro aluno da chamada?"), pegar o <strong>último</strong> ("qual foi a venda de ontem?") e <strong>trocar</strong> um item por outro ("a Ana errou a nota da Bia; corrija para 9").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A ler um item com <code>lista[índice]</code>, com o número escrito direto ou guardado numa variável.</li>
+  <li>A pegar o último item de dois jeitos: <code>lista[lista.length - 1]</code> e <code>lista.at(-1)</code>.</li>
+  <li>O que acontece quando o índice não existe: <code>undefined</code>, sem erro nenhum.</li>
+  <li>A trocar um item: <code>lista[1] = "novo valor"</code>.</li>
+  <li>O que acontece quando você escreve numa posição longe demais (os "buracos").</li>
+  <li>O <code>with()</code>, que devolve uma <strong>cópia</strong> com um item trocado e deixa o original como estava.</li>
+  <li>Os erros reais mais comuns: ler um item de algo que é <code>undefined</code>, usar parênteses no lugar dos colchetes e tentar trocar um item com <code>at()</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: os armários numerados da escola</h2>
+<p>No corredor da escola da Ana, os armários dos alunos ficam enfileirados e numerados. A diferença é que, no JavaScript, o primeiro armário é o <strong>número 0</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Armário (índice)</th><td><code>0</code></td><td><code>1</code></td><td><code>2</code></td><td><code>3</code></td></tr>
+<tr><th>Dono (item)</th><td><code>"Ana"</code></td><td><code>"Bia"</code></td><td><code>"Caio"</code></td><td><code>"Duda"</code></td></tr>
+</table>
+</div>
+
+<p>Para saber quem usa um armário, você vai até ele pelo <strong>número</strong>. Para dar o armário a outra pessoa, você troca o conteúdo daquele número, e os outros armários continuam iguais. É exatamente o que esta aula faz com os itens de um array.</p>
+
+<hr>
+
+<h2>1. Ler um item: <code>lista[índice]</code></h2>
+
+<pre class="file" data-file="chamada.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(alunos[0]);
+console.log(alunos[2]);
+console.log(`O segundo da chamada é ${alunos[1]}.`);
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos</dt><dd>O nome do array.</dd>
+  <dt>[0]</dt><dd>Os colchetes, colados no nome, com o <strong>índice</strong> dentro: "o item da posição 0". Repare que os colchetes têm dois papéis no JavaScript: em <code>["Ana", "Bia"]</code> eles <strong>criam</strong> um array; colados depois de um nome, como em <code>alunos[0]</code>, eles <strong>pegam um item</strong>.</dd>
+  <dt>alunos[2]</dt><dd>O terceiro item (posição 2): <code>Caio</code>.</dd>
+  <dt>${alunos[1]}</dt><dd>Um item pode ir para qualquer lugar onde caberia um valor, como dentro de uma <a href="template-strings.html">template string</a>.</dd>
+</dl>
+
+<pre class="term">$ node chamada.js
+Ana
+Caio
+O segundo da chamada é Bia.
+</pre>
+
+<p>O resultado de <code>alunos[0]</code> é um valor comum, uma string. Dá para guardar numa variável, comparar, juntar com outros textos:</p>
+
+<pre class="file" data-file="primeiro.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const primeiro = alunos[0];
+console.log(primeiro.toUpperCase());
+console.log(alunos[0] === "Ana");
+console.log(alunos[3].length);
+</pre>
+
+<pre class="term">$ node primeiro.js
+ANA
+true
+4
+</pre>
+
+<p><code>alunos[0]</code> é a string <code>"Ana"</code>, então tudo o que funciona numa string funciona nele: o <code>toUpperCase()</code> (veja <a href="strings-metodos.html">Métodos de String</a>), a comparação com <code>===</code>, o <code>length</code>, que aqui conta as letras de <code>"Duda"</code>.</p>
+
+<h3>O índice numa variável</h3>
+<p>O que vai entre os colchetes não precisa ser um número escrito: pode ser uma variável, ou uma conta. É isso que vai permitir percorrer uma lista inteira com um laço (veja <a href="for.html">for</a> e <a href="for-of.html">Percorrendo com for … of</a>).</p>
+
+<pre class="file" data-file="sorteio.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const vez = 2;
+console.log(`Hoje quem apaga o quadro é ${alunos[vez]}.`);
+console.log(`Amanhã é ${alunos[vez + 1]}.`);
+</pre>
+
+<pre class="term">$ node sorteio.js
+Hoje quem apaga o quadro é Caio.
+Amanhã é Duda.
+</pre>
+
+<p>O JavaScript primeiro calcula o que está dentro dos colchetes (<code>vez + 1</code> dá <code>3</code>) e depois busca o item dessa posição.</p>
+
+<div class="tryjs" data-goal="out:Hoje quem apaga o quadro é Duda.;;semerro">
+<p class="try-task"><strong>Missão:</strong> mude só o valor de <code>vez</code> para que a escolhida de hoje seja a <strong>Duda</strong>. Lembre que a contagem começa no 0.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const vez = 0;
+console.log(`Hoje quem apaga o quadro é ${alunos[vez]}.`);
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const vez = 3;
+console.log(`Hoje quem apaga o quadro é ${alunos[vez]}.`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O índice que não existe: <code>undefined</code></h2>
+<p>O que acontece se você pedir o armário 10 num corredor de 4 armários? Em muitas linguagens, isso é um erro. No JavaScript, não: a resposta é <code>undefined</code> ("indefinido"; veja <a href="null-undefined.html">null e undefined</a>), e o programa segue em frente.</p>
+
+<pre class="file" data-file="fora.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(alunos[4]);
+console.log(alunos[10]);
+console.log(alunos[-1]);
+console.log("O programa continuou.");
+</pre>
+
+<pre class="term">$ node fora.js
+undefined
+undefined
+undefined
+O programa continuou.
+</pre>
+
+<dl class="anatomy">
+  <dt>alunos[4]</dt><dd>O array tem 4 itens, nas posições 0, 1, 2 e 3. A posição 4 já está fora: <code>undefined</code>. É o erro de um a mais da aula anterior: o tamanho é 4, mas o último índice é 3.</dd>
+  <dt>alunos[10]</dt><dd>Muito longe do fim: <code>undefined</code> também.</dd>
+  <dt>alunos[-1]</dt><dd>Quem vem do Python espera o último item. No JavaScript, com colchetes, <strong>índice negativo não conta de trás para a frente</strong>: dá <code>undefined</code>. (Para contar de trás para a frente existe o <code>at()</code>, na seção 3.)</dd>
+</dl>
+
+<div class="warning">
+<strong>Silencioso não quer dizer certo</strong>
+<p>O <code>undefined</code> não para o programa, e é aí que mora o perigo: ele segue adiante e o problema aparece mais tarde, em outro lugar, como um <code>Olá, undefined!</code> na tela ou um erro <code>Cannot read properties of undefined</code> algumas linhas depois (veja <a href="#errado">Quando dá errado</a>). Se aparecer <code>undefined</code> onde devia haver um item, confira o índice.</p>
+</div>
+
+<hr>
+
+<h2>3. O último item</h2>
+<p>O primeiro item é fácil: <code>lista[0]</code>. E o último? O número da última posição muda conforme o tamanho da lista. Existem dois jeitos de pegá-lo sem precisar contar.</p>
+
+<h3>O jeito clássico: <code>lista[lista.length - 1]</code></h3>
+
+<pre class="file" data-file="ultimo.js">const vendas = [120, 98, 143, 110, 87];
+const ultimoIndice = vendas.length - 1;
+console.log(ultimoIndice);
+console.log(vendas[ultimoIndice]);
+console.log(vendas[vendas.length - 1]);
+</pre>
+
+<pre class="term">$ node ultimo.js
+4
+87
+87
+</pre>
+
+<p>São 5 vendas; o último índice é <code>5 - 1</code>, ou seja, <code>4</code>; e <code>vendas[4]</code> é <code>87</code>. A terceira linha faz a mesma coisa sem a variável do meio: primeiro o JavaScript calcula <code>vendas.length - 1</code>, depois busca o item. Você vai ver esse jeito em muito código.</p>
+
+<h3>O jeito moderno: <code>lista.at(-1)</code> <span class="versao">ES2022</span></h3>
+<p>O método <code>at()</code> (em inglês, "em", "na posição") faz o mesmo que os colchetes, com um superpoder: aceita índice <strong>negativo</strong>, que conta a partir do fim. <code>-1</code> é o último, <code>-2</code> o penúltimo, e assim por diante:</p>
+
+<pre class="file" data-file="at.js">const vendas = [120, 98, 143, 110, 87];
+console.log(vendas.at(0));
+console.log(vendas.at(-1));
+console.log(vendas.at(-2));
+console.log(vendas.at(9));
+</pre>
+
+<pre class="term">$ node at.js
+120
+87
+110
+undefined
+</pre>
+
+<dl class="anatomy">
+  <dt>vendas.at(0)</dt><dd>Com número positivo, igual aos colchetes: o primeiro item.</dd>
+  <dt>vendas.at(-1)</dt><dd>O último item. É o mesmo que <code>vendas[vendas.length - 1]</code>, só que mais curto e fácil de ler.</dd>
+  <dt>vendas.at(-2)</dt><dd>O penúltimo.</dd>
+  <dt>vendas.at(9)</dt><dd>Fora da lista: <code>undefined</code>, como os colchetes.</dd>
+</dl>
+
+<p>Repare que o <code>at</code> usa <strong>parênteses</strong>, não colchetes: ele é um <strong>método</strong>, uma ação do array (como o <code>toUpperCase()</code> das strings). E ele só <strong>lê</strong>: para trocar um item, só os colchetes servem (veja <a href="#errado">Quando dá errado</a>). O <code>at()</code> chegou ao JavaScript em 2022 e funciona no Node 24 e em todos os navegadores atuais; em código mais antigo, você vai ver sempre o <code>length - 1</code>. As strings também têm o <code>at()</code> (veja <a href="strings-fatiar.html">Pedaços de String</a>).</p>
+
+<div class="tryjs" data-goal="out:Última venda: 87;;out:Penúltima venda: 110;;src:\.at\(">
+<p class="try-task"><strong>Missão:</strong> complete as duas linhas usando o <code>at()</code> com índice negativo, para mostrar a última e a penúltima venda.</p>
+<pre class="script" data-file="main.js">const vendas = [120, 98, 143, 110, 87];
+console.log(`Última venda: ${vendas[0]}`);
+console.log(`Penúltima venda: ${vendas[0]}`);
+</pre>
+<pre class="solucao" data-file="main.js">const vendas = [120, 98, 143, 110, 87];
+console.log(`Última venda: ${vendas.at(-1)}`);
+console.log(`Penúltima venda: ${vendas.at(-2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Trocar um item: <code>lista[índice] = valor</code></h2>
+<p>A professora lançou a nota da Bia (posição 1) errada: era 9, não 6. Para corrigir, use os colchetes do lado <strong>esquerdo</strong> do <code>=</code>:</p>
+
+<pre class="file" data-file="corrigir.js">const notas = [7.5, 6, 8, 10];
+console.log("Antes: ", notas);
+notas[1] = 9;
+console.log("Depois:", notas);
+</pre>
+
+<pre class="term">$ node corrigir.js
+Antes:  [ 7.5, 6, 8, 10 ]
+Depois: [ 7.5, 9, 8, 10 ]
+</pre>
+
+<dl class="anatomy">
+  <dt>notas[1] = 9;</dt><dd>"O item da posição 1 passa a valer 9". É uma <a href="atribuicao.html">atribuição</a>, igual a <code>x = 9</code>, só que o alvo é um item do array. O valor antigo (<code>6</code>) some; os outros itens não mudam, e o tamanho continua 4.</dd>
+  <dt>const notas</dt><dd>Funciona mesmo com <code>const</code>: a variável continua apontando para o mesmo array; só o conteúdo dele mudou (a aula <a href="arrays.html">Arrays</a> explica isso com a folha de papel colada na geladeira).</dd>
+</dl>
+
+<p>Os operadores de atribuição que você já conhece também funcionam num item: <code>notas[0] += 1</code> soma 1 à primeira nota, <code>estoque[2]--</code> tira 1 do terceiro produto (veja <a href="incremento.html">Incremento e Decremento</a>).</p>
+
+<pre class="file" data-file="estoque.js">const estoque = [12, 5, 8];
+estoque[0] += 10;
+estoque[2]--;
+console.log(estoque);
+</pre>
+
+<pre class="term">$ node estoque.js
+[ 22, 5, 7 ]
+</pre>
+
+<div class="tryjs" data-goal="out:[ 'arroz', 'macarrão', 'café' ];;semerro;;src:compras\[1\]\s*=">
+<p class="try-task"><strong>Missão:</strong> a Ana desistiu do feijão e quer macarrão no lugar. Escreva <strong>uma linha</strong> que troque o item da posição do feijão por <code>"macarrão"</code>, sem reescrever o array.</p>
+<pre class="script" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+// troque o feijão aqui
+
+console.log(compras);
+</pre>
+<pre class="solucao" data-file="main.js">const compras = ["arroz", "feijão", "café"];
+// troque o feijão aqui
+compras[1] = "macarrão";
+console.log(compras);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Escrever longe demais: os buracos</h2>
+<p>E se você escrever numa posição que ainda não existe? O JavaScript <strong>aumenta</strong> o array até ela. Se ficar espaço entre o fim antigo e a posição nova, o espaço vira <strong>buracos</strong> vazios:</p>
+
+<pre class="file" data-file="buracos.js">const compras = ["arroz", "feijão", "café"];
+compras[3] = "leite";
+console.log(compras);
+compras[6] = "pão";
+console.log(compras);
+console.log(compras.length);
+console.log(compras[4]);
+</pre>
+
+<pre class="term">$ node buracos.js
+[ 'arroz', 'feijão', 'café', 'leite' ]
+[ 'arroz', 'feijão', 'café', 'leite', &lt;2 empty items&gt;, 'pão' ]
+7
+undefined
+</pre>
+
+<p>Escrever na posição 3, logo depois do último item (posição 2), funcionou como acrescentar no fim. Já a posição 6 criou dois buracos (as posições 4 e 5), que o Node mostra como <code>&lt;2 empty items&gt;</code>, "2 itens vazios". O <code>length</code> pulou para 7, e ler um buraco dá <code>undefined</code>. Buracos quase sempre são um engano. Para acrescentar no fim, o certo é o <code>push</code>, da próxima aula: <a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a>.</p>
+
+<hr>
+
+<h2>6. Trocar sem estragar o original: <code>with()</code> <span class="versao">ES2023</span></h2>
+<p>Às vezes você quer uma versão da lista com um item diferente, mas sem perder a original. O método <code>with(índice, valor)</code> (em inglês, "com") devolve uma <strong>cópia</strong> do array com aquele item trocado:</p>
+
+<pre class="file" data-file="with.js">const notas = [7.5, 6, 8, 10];
+const corrigidas = notas.with(1, 9);
+console.log("Original:  ", notas);
+console.log("Corrigidas:", corrigidas);
+console.log(notas.with(-1, 9.5));
+</pre>
+
+<pre class="term">$ node with.js
+Original:   [ 7.5, 6, 8, 10 ]
+Corrigidas: [ 7.5, 9, 8, 10 ]
+[ 7.5, 6, 8, 9.5 ]
+</pre>
+
+<p>O <code>notas</code> não mudou: o <code>with</code> fez uma lista nova. Como o <code>at()</code>, ele aceita índice negativo (<code>-1</code> é o último). O <code>with</code> chegou ao JavaScript em 2023 e funciona no Node 24 e nos navegadores atuais. Quando usar cada um está na tabela da seção <a href="#formas">Formas diferentes</a>.</p>
+
+<hr>
+
+<h2>7. Brincando no modo interativo</h2>
+<p>No modo interativo do Node (veja <a href="repl.html">O Modo Interativo</a>), você vê o resultado de cada leitura e de cada troca na hora:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const notas = [7.5, 6, 8, 10]
+undefined
+&gt; notas[0]
+7.5
+&gt; notas.at(-1)
+10
+&gt; notas[1] = 9
+9
+&gt; notas
+[ 7.5, 9, 8, 10 ]
+&gt; notas[7]
+undefined
+&gt; notas.with(0, 5)
+[ 5, 9, 8, 10 ]
+&gt; notas
+[ 7.5, 9, 8, 10 ]
+&gt; .exit
+</pre>
+
+<p>Repare que a própria troca <code>notas[1] = 9</code> também mostrou um resultado: <code>9</code>. Uma atribuição "vale" o valor atribuído, e o modo interativo mostra esse valor.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para…</th><th>Jeito clássico</th><th>Jeito moderno</th><th>Qual usar</th></tr>
+<tr><td>Ler o primeiro item</td><td><code>lista[0]</code></td><td><code>lista.at(0)</code></td><td>Os colchetes: mais curto e é o que todo mundo escreve</td></tr>
+<tr><td>Ler o último item</td><td><code>lista[lista.length - 1]</code></td><td><code>lista.at(-1)</code></td><td><code>at(-1)</code>: mais legível. Reconheça o outro em código antigo</td></tr>
+<tr><td>Ler a partir do fim (penúltimo…)</td><td><code>lista[lista.length - 2]</code></td><td><code>lista.at(-2)</code></td><td><code>at</code></td></tr>
+<tr><td>Trocar um item no próprio array</td><td><code>lista[1] = valor</code></td><td>(não há outro)</td><td>Os colchetes</td></tr>
+<tr><td>Ter uma cópia com um item trocado, sem mexer no original</td><td>Copiar e depois trocar (aula <a href="arrays-copiar.html">Copiando Arrays</a>)</td><td><code>lista.with(1, valor)</code></td><td><code>with</code></td></tr>
+<tr><td>Acrescentar no fim</td><td><code>lista[lista.length] = valor</code></td><td><code>lista.push(valor)</code></td><td><code>push</code> (próxima aula)</td></tr>
+</table>
+</div>
+
+<p>Também dá para tirar vários itens de uma vez em variáveis separadas, com <code>const [primeiro, segundo] = alunos;</code>. Isso se chama desestruturação e tem aula própria: <a href="desestruturacao.html">Desestruturação</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Leu um item de algo que é <code>undefined</code></strong>
+<p>O índice errado não dá erro na hora, mas o <code>undefined</code> que ele devolve dá erro assim que você tenta <strong>usar</strong> o item:</p>
+<pre class="file" data-file="undefined_item.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+const ultimo = alunos[4];
+console.log(ultimo.toUpperCase());
+</pre>
+<pre class="term">$ node undefined_item.js
+/home/ana/undefined_item.js:3
+console.log(ultimo.toUpperCase());
+                   ^
+
+TypeError: Cannot read properties of undefined (reading 'toUpperCase')
+    at Object.&lt;anonymous&gt; (/home/ana/undefined_item.js:3:20)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/undefined_item.js:3</dt><dd>O erro aconteceu na linha 3, onde o item foi <strong>usado</strong>, não na linha 2, onde estava o índice errado. Por isso, quando vir esse erro, procure também nas linhas de cima.</dd>
+  <dt>o ^ embaixo de toUpperCase</dt><dd>O ponto exato: o começo de <code>toUpperCase</code>, que o Node tentou pegar o <code>toUpperCase</code> de dentro de <code>ultimo</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'toUpperCase')</dt><dd>"Erro de tipo: não é possível ler propriedades de <code>undefined</code> (lendo <code>toUpperCase</code>)". A variável <code>ultimo</code> valia <code>undefined</code>, e <code>undefined</code> não tem nada dentro.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/undefined_item.js:3:20)</dt><dd>De novo o lugar: linha 3, coluna 20 (o 20º caractere da linha, o <code>t</code> de <code>toUpperCase</code>). As linhas <code>node:internal</code> são do próprio Node e foram cortadas.</dd>
+</dl>
+<p><strong>Como consertar:</strong> o último item é o da posição <code>length - 1</code> (aqui, 3), ou <code>alunos.at(-1)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Leu um item de um array que não existe</strong>
+<pre class="file" data-file="semarray.js">let alunos;
+console.log(alunos[0]);
+</pre>
+<pre class="term">$ node semarray.js
+/home/ana/semarray.js:2
+console.log(alunos[0]);
+                  ^
+
+TypeError: Cannot read properties of undefined (reading '0')
+    at Object.&lt;anonymous&gt; (/home/ana/semarray.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Mesma família de erro, agora com <code>(reading '0')</code>: "lendo a posição 0". A variável <code>alunos</code> foi criada mas nunca recebeu um array, então vale <code>undefined</code>, e não há posição 0 para ler. Acontece muito quando o array deveria vir de outro lugar (uma função, um arquivo) e não veio. <strong>Como consertar:</strong> confira se a variável recebeu mesmo um array (<code>let alunos = [];</code> se ela deve começar vazia).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou parênteses no lugar dos colchetes</strong>
+<pre class="file" data-file="parenteses.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(alunos(0));
+</pre>
+<pre class="term">$ node parenteses.js
+/home/ana/parenteses.js:2
+console.log(alunos(0));
+            ^
+
+TypeError: alunos is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/parenteses.js:2:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>alunos</code> não é uma função". Parênteses colados num nome querem dizer "chame esta função" (veja <a href="funcoes.html">Funções</a>), e um array não é uma função. <strong>Como consertar:</strong> para pegar um item, colchetes: <code>alunos[0]</code>. (Com o <code>at</code> são parênteses, porque o <code>at</code> é uma função do array: <code>alunos.at(0)</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou trocar um item com <code>at()</code></strong>
+<pre class="file" data-file="at_troca.js">const notas = [7.5, 6, 8, 10];
+notas.at(-1) = 9.5;
+</pre>
+<pre class="term">$ node at_troca.js
+/home/ana/at_troca.js:2
+notas.at(-1) = 9.5;
+^
+
+ReferenceError: Invalid left-hand side in assignment
+    at Object.&lt;anonymous&gt; (/home/ana/at_troca.js:2:7)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de referência: lado esquerdo inválido numa atribuição". Do lado esquerdo do <code>=</code> tem de estar um <strong>lugar</strong> onde guardar o valor (uma variável, um <code>lista[i]</code>). <code>notas.at(-1)</code> é o <strong>resultado</strong> de uma chamada, o número <code>10</code>, e não dá para guardar nada dentro de um número. Curiosidade: o tipo é <code>ReferenceError</code> (e não <code>SyntaxError</code>), e o Node só reclama quando a execução <strong>chega</strong> nessa linha; as linhas de cima rodam normalmente. <strong>Como consertar:</strong> <code>notas[notas.length - 1] = 9.5;</code> (ou, se você quer uma cópia, <code>notas.with(-1, 9.5)</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Começou a contar do 1</strong>
+<pre class="file" data-file="do1.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(`Primeira da chamada: ${alunos[1]}`);
+console.log(`Última da chamada: ${alunos[4]}`);
+</pre>
+<pre class="term">$ node do1.js
+Primeira da chamada: Bia
+Última da chamada: undefined
+</pre>
+<p>Sem mensagem de erro, mas as duas respostas estão erradas: a primeira é a Ana, não a Bia, e a última é a Duda, não <code>undefined</code>. Todo mundo comete esse erro no começo. <strong>Como consertar:</strong> primeiro item = <code>[0]</code>; último = <code>[length - 1]</code> ou <code>at(-1)</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Primeira: Ana;;out:Última: Duda;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa dá erro. Rode, leia a mensagem e conserte os índices para mostrar <code>Primeira: Ana</code> e <code>Última: Duda</code>.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(`Primeira: ${alunos[1]}`);
+const ultima = alunos[alunos.length];
+console.log(`Última: ${ultima.trim()}`);
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio", "Duda"];
+console.log(`Primeira: ${alunos[0]}`);
+const ultima = alunos[alunos.length - 1];
+console.log(`Última: ${ultima.trim()}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista[0]</code></td><td>Lê o primeiro item</td></tr>
+<tr><td><code>lista[i]</code></td><td>Lê o item da posição guardada em <code>i</code></td></tr>
+<tr><td><code>lista[lista.length - 1]</code></td><td>Lê o último item</td></tr>
+<tr><td><code>lista.at(-1)</code></td><td>Lê o último item (<code>-2</code> = penúltimo…) <span class="versao">ES2022</span></td></tr>
+<tr><td><code>lista[99]</code>, <code>lista[-1]</code></td><td><code>undefined</code> (posição que não existe; sem erro)</td></tr>
+<tr><td><code>lista[1] = valor;</code></td><td>Troca o item da posição 1</td></tr>
+<tr><td><code>lista[0] += 1;</code></td><td>Soma 1 ao primeiro item</td></tr>
+<tr><td><code>lista.with(1, valor)</code></td><td>Devolve uma cópia com o item 1 trocado; o original não muda <span class="versao">ES2023</span></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>undefined</code> no lugar de um item</td><td>Índice fora da lista (o último é <code>length - 1</code>) ou negativo com colchetes</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading '…')</code></td><td>Usou um item que era <code>undefined</code>, ou a variável não tinha array</td></tr>
+<tr><td><code>TypeError: alunos is not a function</code></td><td>Escreveu <code>alunos(0)</code> em vez de <code>alunos[0]</code></td></tr>
+<tr><td><code>ReferenceError: Invalid left-hand side in assignment</code></td><td>Tentou trocar com <code>lista.at(i) = …</code></td></tr>
+<tr><td><code>&lt;2 empty items&gt;</code> na saída</td><td>Escreveu numa posição além do fim e criou buracos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a leitura</h3>
+<p>Complete para mostrar <code>banana</code>:</p>
+<div class="ex-code">const frutas = ["maçã", "banana", "uva"];<br>console.log(frutas<input data-answer="[1]" aria-label="índice entre colchetes">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. O último sem contar</h3>
+<p>Complete com o método que aceita índice negativo:</p>
+<div class="ex-code">console.log(frutas.<input data-answer="at" aria-label="nome do método">(-1)); // uva</div>
+</div>
+
+<div class="exercise">
+<h3>3. O que sai?</h3>
+<pre class="file" data-file="ex3.js">const n = [10, 20, 30];
+n[0] = n[2] + 1;
+console.log(n[0]);
+</pre>
+<div class="ex-code">Mostra <input data-answer="31" aria-label="valor">.</div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>const cores = ["azul", "verde"];</code>. O que <code>cores[2]</code> devolve?</p>
+<label><input type="radio" name="q4"> <code>"verde"</code></label>
+<label><input type="radio" name="q4"> <code>"azul"</code></label>
+<label><input type="radio" name="q4"> Um erro <code>RangeError</code></label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>const v = [1, 2, 3]; const w = v.with(0, 100);</code>. Quanto vale <code>v[0]</code> depois disso?</p>
+<label><input type="radio" name="q5"> <code>100</code></label>
+<label><input type="radio" name="q5"> <code>1</code></label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+<label><input type="radio" name="q5"> Dá erro, porque <code>v</code> é <code>const</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Qual linha troca o último item de <code>lista</code> por <code>0</code>?</p>
+<label><input type="radio" name="q6"> <code>lista.at(-1) = 0;</code></label>
+<label><input type="radio" name="q6"> <code>lista[-1] = 0;</code></label>
+<label><input type="radio" name="q6"> <code>lista[lista.length - 1] = 0;</code></label>
+<label><input type="radio" name="q6"> <code>lista[lista.length] = 0;</code></label>
+</div>
+
+<h3>Missão final: o placar da padaria</h3>
+
+<div class="tryjs" data-goal="out:Primeiro dia: 120;;out:Último dia: 92;;out:[ 120, 98, 150, 110, 92 ];;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria anotou as vendas de pão de 5 dias. O terceiro dia (posição 2) foi anotado errado: era <code>150</code>. E o último dia ainda vai ganhar mais 5 pães vendidos no fim da tarde. Faça, nesta ordem: (1) troque o terceiro dia por <code>150</code>; (2) some <code>5</code> ao último dia com <code>+=</code>; (3) mostre o primeiro dia e o último (use <code>at(-1)</code>) nas frases já escritas; (4) mostre o array.</p>
+<pre class="script" data-file="main.js">const vendas = [120, 98, 143, 110, 87];
+// (1) e (2) aqui
+
+console.log(`Primeiro dia: ${vendas}`);
+console.log(`Último dia: ${vendas}`);
+</pre>
+<pre class="solucao" data-file="main.js">const vendas = [120, 98, 143, 110, 87];
+// (1) e (2) aqui
+vendas[2] = 150;
+vendas[vendas.length - 1] += 5;
+console.log(`Primeiro dia: ${vendas[0]}`);
+console.log(`Último dia: ${vendas.at(-1)}`);
+console.log(vendas);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Primeiro dia: 120</code>, <code>Último dia: 92</code> e o array <code>[ 120, 98, 150, 110, 92 ]</code>.</p>
+
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>lista[i]</code> lê o item da posição <code>i</code>; o índice pode ser um número, uma variável ou uma conta. A primeira posição é a <code>0</code>.</li>
+  <li>O último item é <code>lista[lista.length - 1]</code> ou, no jeito moderno, <code>lista.at(-1)</code>. O <code>at</code> aceita índices negativos; os colchetes, não.</li>
+  <li>Uma posição que não existe devolve <code>undefined</code>, sem erro. O erro aparece depois, quando o item é usado: <code>Cannot read properties of undefined</code>.</li>
+  <li><code>lista[i] = valor</code> troca o item (funciona com <code>const</code>). Escrever além do fim cria buracos.</li>
+  <li><code>lista.with(i, valor)</code> devolve uma cópia com o item trocado e deixa o original intacto.</li>
+  <li>Item se pega com colchetes; parênteses chamam funções (<code>is not a function</code>); e não dá para atribuir a <code>at()</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
