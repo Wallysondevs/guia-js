@@ -26,6 +26,7 @@
   <li>Procure pela <strong>última parte</strong> da mensagem (Ctrl+F): por exemplo, <code>is not defined</code> ou <code>Cannot read properties</code>. O nome da variável na sua mensagem será outro.</li>
   <li>Os programas de exemplo foram rodados numa pasta <code>erros</code> dentro da pasta da Ana, por isso os caminhos são <code>/home/ana/erros/arquivo.js</code>.</li>
   <li>Nas saídas completas, as linhas <code>at …</code> internas do Node (as que começam com <code>node:internal</code>) foram cortadas e marcadas com uma anotação.</li>
+  <li>Nas caixas "Experimente", o editor do guia mostra o erro do mesmo jeito que o Node (linha, <code>^</code>, <code>at …</code>, <code>Node.js v24.22.0</code>). No Chrome e no Edge o texto da mensagem é o mesmo desta página; no Firefox e no Safari ele muda (a caixa avisa), porque o motor é outro.</li>
 </ul>
 </div>
 
@@ -253,6 +254,7 @@ RangeError: Maximum call stack size exceeded
 
 Node.js v24.22.0
 </pre>
+<p>No editor do guia, este erro pode apontar outra linha e outra coluna no <code>^</code> e no primeiro <code>at contar</code> (no Chrome, por exemplo, o <code>^</code> ficou na linha 1, no nome da função): o V8 do navegador é mais novo que o do Node 24. A mensagem é a mesma.</p>
 
 <hr>
 
