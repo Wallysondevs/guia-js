@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript: lendo uma mensagem de erro do Node.js | Guia JavaScript</title>
+<meta name="description" content="Como ler uma mensagem de erro do Node.js, linha por linha, para quem nunca programou: o caminho com o número da linha, a linha do código, o ^, o tipo e a mensagem, a pilha de chamadas (at …), a versão do Node, os erros de sintaxe, o código de saída 1 e a saída de erros, com mensagens reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Lendo uma Mensagem de Erro</span></h1>
+
+<p class="intro">Todo mundo que programa erra, todo dia: quem começou ontem e quem programa há 20 anos. A diferença é que quem tem experiência <strong>lê a mensagem de erro</strong> e, quase sempre, descobre o problema em segundos. Aquele bloco de texto que o Node mostra quando algo dá errado parece assustador, mas ele não é uma bronca: é um <strong>bilhete com o endereço do problema</strong>. Nesta aula você aprende a ler esse bilhete, linha por linha.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes de uma mensagem de erro do Node: o <strong>arquivo e a linha</strong>, a <strong>linha do código</strong>, o <code>^</code>, o <strong>tipo e a mensagem</strong>, as linhas <code>at …</code> e a <strong>versão do Node</strong>.</li>
+  <li>O que acontece com o programa quando dá erro: o que já rodou, o que não roda mais, e o código de saída <code>1</code>.</li>
+  <li>Como ler a <strong>pilha de chamadas</strong> (as linhas <code>at …</code>) quando o erro acontece dentro de uma função, e quais linhas ignorar.</li>
+  <li>Os <strong>erros de sintaxe</strong>, que impedem o programa de começar, e por que às vezes eles apontam a linha "errada".</li>
+  <li>As mensagens mais comuns, traduzidas.</li>
+  <li>Uma receita para ler qualquer erro.</li>
+</ul>
+</div>
+
+<p>Todas as mensagens desta aula saíram do <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com os programas salvos na pasta pessoal dela, <code>/home/ana</code>. As mensagens do Node são sempre em <strong>inglês</strong>; aqui cada uma ganha a tradução.</p>
+
+<hr>
+
+<h2>A ideia: o bilhete da professora</h2>
+<p>Quando a professora devolve uma redação corrigida, ela não escreve só "está errado". Ela marca <strong>onde</strong> (a página e a linha), <strong>sublinha</strong> a palavra e escreve na margem <strong>o que</strong> está errado ("concordância", "falta vírgula"). Com essas três informações, você conserta rápido.</p>
+<p>A mensagem de erro do Node é esse bilhete:</p>
+<ul>
+  <li><strong>onde</strong>: o arquivo e o número da linha;</li>
+  <li><strong>o sublinhado</strong>: a linha do código copiada, com um <code>^</code> embaixo do ponto exato;</li>
+  <li><strong>o quê</strong>: o tipo do erro e uma frase curta explicando.</li>
+</ul>
+<p>Tem mais algumas linhas, que explicam o caminho até lá. Vamos a elas.</p>
+
+<hr>
+
+<h2>1. Uma mensagem completa, linha por linha</h2>
+<p>A Ana queria cumprimentar a si mesma, mas digitou o nome da variável com um <code>e</code> a mais na linha 3:</p>
+
+<pre class="file" data-file="saudacao.js">const nome = "Ana";
+console.log("Bom dia!");
+console.log(`Olá, ${nomee}!`);
+console.log("Tchau!");
+</pre>
+
+<pre class="term">$ node saudacao.js
+Bom dia!
+/home/ana/saudacao.js:3
+console.log(`Olá, ${nomee}!`);
+                    ^
+
+ReferenceError: nomee is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/saudacao.js:3:21)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Bom dia!</dt><dd>Não é parte do erro: é a saída normal da linha 2, que rodou <strong>antes</strong> do problema. O Node executa o programa de cima para baixo; as linhas 1 e 2 deram certo.</dd>
+  <dt>/home/ana/saudacao.js:3</dt><dd><strong>Onde</strong>: o caminho completo do arquivo (<code>/home/ana</code> é a pasta da Ana), dois-pontos, e o <strong>número da linha</strong>: <code>3</code>. É a primeira coisa a olhar.</dd>
+  <dt>console.log(`Olá, ${nomee}!`);</dt><dd>A linha 3 do seu código, copiada do jeito que está no arquivo. Assim você nem precisa abrir o arquivo para ver de qual linha ele está falando.</dd>
+  <dt>^</dt><dd>O "sublinhado": o acento circunflexo fica embaixo do <strong>ponto exato</strong> onde o problema foi percebido. Aqui ele aponta o começo de <code>nomee</code>.</dd>
+  <dt>(linha em branco)</dt><dd>Só um espaço para separar o "onde" do "o quê".</dd>
+  <dt>ReferenceError: nomee is not defined</dt><dd><strong>O quê</strong>: a linha mais importante. Antes dos dois-pontos vem o <strong>tipo</strong> do erro: <code>ReferenceError</code>, "erro de referência" (você citou um nome que não existe). Depois vem a <strong>mensagem</strong>: "<code>nomee</code> não está definido". Os tipos têm uma aula só para eles: <a href="tipos-erro.html">Os Tipos de Erro</a>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/saudacao.js:3:21)</dt><dd>A primeira linha <code>at</code> ("em"): o erro aconteceu no arquivo <code>saudacao.js</code>, <strong>linha 3, coluna 21</strong> (a 21ª letra da linha, contando os espaços). O <code>Object.&lt;anonymous&gt;</code> ("objeto anônimo") é o jeito do Node chamar o programa principal, fora de qualquer função.</dd>
+  <dt>at Module._compile (node:internal/…) e as outras</dt><dd>Linhas que começam com <code>node:internal</code> são o <strong>próprio Node</strong> carregando o seu arquivo. Elas aparecem em quase todo erro e quase nunca interessam. Pode pular.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa. Útil quando você pede ajuda a alguém ("deu esse erro no Node 24").</dd>
+</dl>
+
+<p>E o <code>Tchau!</code> da linha 4? Não apareceu. Quando acontece um erro que ninguém trata, o Node <strong>para o programa ali mesmo</strong>: o que vem depois não roda. (Na aula <a href="try-catch.html">try … catch</a> você aprende a tratar erros para o programa continuar.)</p>
+
+<div class="tip">
+<strong>Leia de baixo para cima? Não: leia nesta ordem</strong>
+<p>1) a linha <code>TipoDeErro: mensagem</code> (o quê); 2) a primeira linha, com o arquivo e o número (onde); 3) a linha do código com o <code>^</code> (o ponto exato). Só depois, se precisar, as linhas <code>at</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Olá, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode o programa, leia a mensagem de erro (repare em qual linha ela aponta) e conserte, até aparecer <code>Olá, Ana!</code> e <code>Tchau!</code>.</p>
+<pre class="script" data-file="main.js">const nome = "Ana";
+console.log("Bom dia!");
+console.log(`Olá, ${nomee}!`);
+console.log("Tchau!");
+</pre>
+<pre class="solucao" data-file="main.js">const nome = "Ana";
+console.log("Bom dia!");
+console.log(`Olá, ${nome}!`);
+console.log("Tchau!");
+</pre>
+</div>
+
+<p>A caixa "Experimente" imita o Node: um erro não tratado aparece no mesmo formato, com o tipo e a mensagem. Os detalhes de como ela mostra o caminho e as linhas <code>at</code> estão em <a href="simulador.html">O Editor do Guia</a>.</p>
+
+<hr>
+
+<h2>2. O programa termina "com erro": o código de saída</h2>
+<p>Todo programa, ao terminar, entrega ao terminal um número chamado <strong>código de saída</strong>: <code>0</code> quer dizer "terminei bem"; qualquer outro número quer dizer "deu problema". O terminal guarda o último código em <code>$?</code>, e o comando <code>echo $?</code> mostra:</p>
+
+<pre class="term">$ node saudacao.js
+Bom dia!
+/home/ana/saudacao.js:3
+console.log(`Olá, ${nomee}!`);
+                    ^
+
+ReferenceError: nomee is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/saudacao.js:3:21)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+
+<p>Com um erro não tratado, o Node termina com o código <strong>1</strong>. Para você, que está olhando a tela, tanto faz; mas outros programas (um script que roda vários programas em sequência, um robô que testa o seu código) usam esse número para saber se deu certo. A aula <a href="process-env.html">process.env e process.exit</a> mostra como escolher o código de saída.</p>
+
+<hr>
+
+<h2>3. Erro dentro de uma função: a pilha de chamadas</h2>
+<p>Quando o erro acontece dentro de uma <a href="funcoes.html">função</a>, as linhas <code>at</code> ficam mais interessantes. A Ana escreveu uma função que calcula a média, usando outra que soma:</p>
+
+<pre class="file" data-file="media.js">function somar(notas) {
+  let total = 0;
+  for (const nota of notas) {
+    total += nota;
+  }
+  return total;
+}
+
+function media(notas) {
+  return somar(notas) / notas.length;
+}
+
+console.log(media([8, 9, 10]));
+console.log(media());
+</pre>
+
+<pre class="term">$ node media.js
+9
+/home/ana/media.js:3
+  for (const nota of notas) {
+                     ^
+
+TypeError: notas is not iterable
+    at somar (/home/ana/media.js:3:22)
+    at media (/home/ana/media.js:10:10)
+    at Object.&lt;anonymous&gt; (/home/ana/media.js:14:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+
+<p>A primeira chamada, <code>media([8, 9, 10])</code>, deu certo e mostrou <code>9</code>. A segunda, <code>media()</code>, esqueceu de mandar as notas. O erro diz <code>TypeError: notas is not iterable</code> ("<code>notas</code> não é iterável", ou seja, não dá para percorrer com <code>for … of</code>), na linha 3. Mas a linha 3 está certa! O problema veio de longe. As linhas <code>at</code> contam a história <strong>de trás para a frente</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha <code>at</code></th><th>Lê-se</th></tr>
+<tr><td><code>at somar (/home/ana/media.js:3:22)</code></td><td>O erro estourou <strong>dentro da função <code>somar</code></strong>, na linha 3.</td></tr>
+<tr><td><code>at media (/home/ana/media.js:10:10)</code></td><td>Quem chamou o <code>somar</code> foi a função <code>media</code>, na linha 10.</td></tr>
+<tr><td><code>at Object.&lt;anonymous&gt; (/home/ana/media.js:14:13)</code></td><td>Quem chamou a <code>media</code> foi o programa principal, na <strong>linha 14</strong>: <code>console.log(media());</code>.</td></tr>
+<tr><td><code>at Module._compile (node:internal/…)</code> e as seguintes</td><td>O Node, que começou tudo. Pode ignorar.</td></tr>
+</table>
+</div>
+
+<p>Essa lista se chama <strong>pilha de chamadas</strong> (em inglês, <em>stack trace</em>, "rastro da pilha"): como uma pilha de pratos, a função chamada por último fica no topo. O erro aparece no topo, mas a <strong>causa</strong> pode estar em qualquer prato abaixo. Aqui, a causa está na linha 14, que chamou <code>media()</code> sem as notas; a linha 3 só foi onde o problema "explodiu".</p>
+
+<div class="tip">
+<strong>Ache as suas linhas</strong>
+<p>Na pilha, procure as linhas com o <strong>seu</strong> arquivo (<code>/home/ana/…</code>) e ignore as com <code>node:internal</code>. Comece pela de cima (onde estourou) e desça até achar a linha onde o valor errado <strong>entrou</strong>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:7.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> a segunda chamada da <code>media</code> está sem as notas da Bia, que são <code>[6, 9]</code>. Rode, siga a pilha de chamadas até a linha que causou o erro e conserte essa linha (não mexa nas funções).</p>
+<pre class="script" data-file="main.js">function somar(notas) {
+  let total = 0;
+  for (const nota of notas) {
+    total += nota;
+  }
+  return total;
+}
+
+function media(notas) {
+  return somar(notas) / notas.length;
+}
+
+console.log(media([8, 9, 10]));
+console.log(media());
+</pre>
+<pre class="solucao" data-file="main.js">function somar(notas) {
+  let total = 0;
+  for (const nota of notas) {
+    total += nota;
+  }
+  return total;
+}
+
+function media(notas) {
+  return somar(notas) / notas.length;
+}
+
+console.log(media([8, 9, 10]));
+console.log(media([6, 9]));
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Erros de sintaxe: o programa nem começa</h2>
+<p>Até aqui, os erros aconteceram <strong>no meio</strong> do programa: as primeiras linhas rodaram. Um <strong>erro de sintaxe</strong> é diferente. Sintaxe é a "gramática" da linguagem (veja <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>). Antes de rodar a primeira linha, o Node lê o arquivo <strong>inteiro</strong> para entender o que está escrito. Se encontra um erro de gramática, ele desiste antes de começar:</p>
+
+<pre class="file" data-file="parenteses.js">console.log("Começou");
+const preco = 4.5;
+console.log("Preço:", preco;
+console.log("Fim");
+</pre>
+
+<pre class="term">$ node parenteses.js
+/home/ana/parenteses.js:3
+console.log("Preço:", preco;
+                      ^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at Module._compile (node:internal/modules/cjs/loader:1903:20)
+«                                  (mais 6 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>Repare nas diferenças:</p>
+<ul>
+  <li>O <code>Começou</code> da linha 1 <strong>não apareceu</strong>, mesmo estando certo: com erro de sintaxe, nenhuma linha roda.</li>
+  <li>O tipo é <code>SyntaxError</code>, "erro de sintaxe". A mensagem: "falta <code>)</code> depois da lista de argumentos". Faltou fechar o parêntese do <code>console.log</code>.</li>
+  <li>Em vez de um <code>^</code>, vieram vários: <code>^^^^^</code> sublinha a palavra <code>preco</code> inteira, onde o Node esperava encontrar o <code>)</code> logo depois.</li>
+  <li>As linhas <code>at</code> são <strong>todas</strong> do Node (<code>wrapSafe</code> é ele "lendo" o arquivo). Nenhuma aponta para o seu arquivo, porque o seu código nem começou a rodar. O número que importa está na primeira linha: <code>parenteses.js:3</code>.</li>
+</ul>
+
+<h3>Quando o erro aponta a linha "errada"</h3>
+<p>O Node aponta onde ele <strong>percebeu</strong> o problema, e isso às vezes fica depois de onde você errou. A Ana esqueceu de fechar a chave do <code>if</code>:</p>
+
+<pre class="file" data-file="chave.js">const idade = 20;
+if (idade &gt;= 18) {
+  console.log("Pode votar");
+</pre>
+
+<pre class="term">$ node chave.js
+/home/ana/chave.js:4
+
+
+
+SyntaxError: Unexpected end of input
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Fim inesperado da entrada": o arquivo <strong>acabou</strong> enquanto o Node ainda esperava o <code>}</code>. Ele aponta a linha 4, que nem tem nada escrito (por isso a linha do código e a do <code>^</code> saíram em branco). O erro de verdade é a chave que faltou, que deveria fechar o bloco da linha 2. Regra prática: <strong>se a linha apontada parece certa, olhe as linhas de cima.</strong></p>
+
+<p>Outro exemplo, as aspas que não fecham:</p>
+
+<pre class="file" data-file="aspas.js">const cidade = "São Paulo;
+console.log(cidade);
+</pre>
+
+<pre class="term">$ node aspas.js
+/home/ana/aspas.js:1
+const cidade = "São Paulo;
+               ^^^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>"<em>Token</em> inválido ou inesperado". <em>Token</em> é cada "pedaço" do código: um nome, um número, um texto, um sinal. O <code>^^^^^^^^^^^</code> sublinha o texto que abriu aspas e nunca fechou. <strong>Como consertar:</strong> <code>"São Paulo";</code>.</p>
+
+<hr>
+
+<h2>5. As mensagens mais comuns, traduzidas</h2>
+<p>Você vai ver estas mensagens muitas vezes. Todas saíram do Node 24 do lab:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem (como o Node mostra)</th><th>Tradução</th><th>Causa mais comum</th></tr>
+<tr><td><code>ReferenceError: nomee is not defined</code></td><td>"<code>nomee</code> não está definido"</td><td>Nome digitado errado, ou variável que não foi criada</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'nome')</code></td><td>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>nome</code>)"</td><td>Você fez <code>algo.nome</code>, e o <code>algo</code> era <code>undefined</code> (posição que não existe, função que não devolveu nada)</td></tr>
+<tr><td><code>TypeError: nome is not a function</code></td><td>"<code>nome</code> não é uma função"</td><td>Pôs <code>()</code> depois de algo que não é função</td></tr>
+<tr><td><code>TypeError: frase.toUppercase is not a function</code></td><td>"<code>frase.toUppercase</code> não é uma função"</td><td>Método com o nome errado (o certo é <code>toUpperCase</code>, com C maiúsculo)</td></tr>
+<tr><td><code>TypeError: notas is not iterable</code></td><td>"<code>notas</code> não é iterável"</td><td><code>for … of</code> (ou <code>...</code>) em algo que não é lista, muitas vezes <code>undefined</code></td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>"Atribuição a uma variável constante"</td><td>Tentou mudar uma <code>const</code> (veja <a href="const.html">Constantes</a>)</td></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td>"Falta <code>)</code> depois da lista de argumentos"</td><td>Parêntese não fechado numa chamada</td></tr>
+<tr><td><code>SyntaxError: Unexpected token ')'</code></td><td>"Sinal <code>)</code> inesperado"</td><td>Parêntese sobrando (ou outro sinal fora do lugar)</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td>"<em>Token</em> inválido ou inesperado"</td><td>Aspas que não fecham, caractere estranho colado do Word</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>"Fim inesperado da entrada"</td><td>Faltou fechar <code>}</code>, <code>)</code> ou <code>]</code></td></tr>
+</table>
+</div>
+
+<p>Dois desses, completos, para você reconhecer o formato:</p>
+
+<pre class="term">$ node aluno.js
+Ana
+/home/ana/aluno.js:6
+console.log(turma[2].nome);
+                     ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/aluno.js:6:22)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+$ node constmuda.js
+/home/ana/constmuda.js:2
+total = total + 5;
+      ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constmuda.js:2:7)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>No <code>aluno.js</code>, a turma tinha 2 alunos (posições 0 e 1); <code>turma[2]</code> não existe e vale <code>undefined</code>, e o <code>.nome</code> de <code>undefined</code> é que deu erro. Repare que o <code>^</code> aponta o <code>.nome</code>, e a mensagem diz entre parênteses o que se tentou ler: <code>(reading 'nome')</code>.</p>
+
+<hr>
+
+<h2>6. A mensagem num módulo (<code>.mjs</code>)</h2>
+<p>Num arquivo de <a href="modulos.html">módulo</a> (<code>.mjs</code>, ou com <code>import</code>/<code>export</code>), a mensagem tem as mesmas partes, com dois detalhes diferentes:</p>
+
+<pre class="file" data-file="modulo.mjs">const nome = "Ana";
+console.log(nomee);
+</pre>
+
+<pre class="term">$ node modulo.mjs
+file:///home/ana/modulo.mjs:2
+console.log(nomee);
+            ^
+
+ReferenceError: nomee is not defined
+    at file:///home/ana/modulo.mjs:2:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0
+</pre>
+
+<ul>
+  <li>O caminho vem como endereço: <code>file:///home/ana/modulo.mjs</code> ("arquivo em /home/ana/modulo.mjs"). É o mesmo lugar, escrito do jeito dos endereços da internet.</li>
+  <li>As linhas <code>at</code> internas mudam (<code>ModuleJob.run</code>, <code>async …</code>), mas continuam sendo do Node.</li>
+</ul>
+
+<hr>
+
+<h2>7. A mensagem vai para a "saída de erros"</h2>
+<p>Um programa tem duas saídas para o terminal: a <strong>saída padrão</strong> (o <code>console.log</code>) e a <strong>saída de erros</strong> (o <code>console.error</code> e as mensagens de erro; veja <a href="console-outros.html">console.error, warn e table</a>). Na tela, as duas aparecem misturadas. Mas o terminal consegue separá-las: o <code>2&gt;</code> manda a saída de erros para um arquivo.</p>
+
+<pre class="file" data-file="cedo.js">console.log("Linha 1 rodou");
+console.log("Linha 2 rodou");
+console.log(semNome);
+console.log("Linha 4 rodou?");
+</pre>
+
+<pre class="term">$ node cedo.js 2&gt; erro.txt
+Linha 1 rodou
+Linha 2 rodou
+$ cat erro.txt
+/home/ana/cedo.js:3
+console.log(semNome);
+            ^
+
+ReferenceError: semNome is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/cedo.js:3:13)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>Na tela ficou só a saída normal; a mensagem de erro inteira foi para o arquivo <code>erro.txt</code> (o <code>cat</code> mostra o que tem nele). Isso é útil para guardar o erro e mandar para alguém, e mostra que a mensagem de erro é uma coisa à parte, que não se mistura com os resultados do programa.</p>
+
+<hr>
+
+<h2 id="receita">Receita: como ler qualquer erro</h2>
+<ol class="passo">
+  <li><strong>Não entre em pânico com o tamanho.</strong> Das 10 ou 15 linhas, só 3 ou 4 importam.</li>
+  <li><strong>Leia a linha <code>Tipo: mensagem</code></strong> e traduza. A tabela da seção 5 cobre a maioria dos casos.</li>
+  <li><strong>Olhe a primeira linha</strong>: o arquivo e o número da linha. Abra o arquivo nessa linha.</li>
+  <li><strong>Olhe o <code>^</code></strong>: ele está embaixo do ponto exato.</li>
+  <li><strong>Se a linha parece certa</strong>, olhe as linhas de cima (erro de sintaxe) ou desça na pilha de chamadas (as linhas <code>at</code> com o seu arquivo) até achar onde o valor errado entrou.</li>
+  <li><strong>Conserte uma coisa e rode de novo.</strong> O Node mostra um erro por vez; depois de consertar o primeiro, pode aparecer o próximo. Isso é progresso, não fracasso.</li>
+  <li><strong>Ainda não entendeu?</strong> Copie a linha <code>Tipo: mensagem</code> (sem os nomes que são só seus, como <code>nomee</code>) e pesquise na internet. Milhões de pessoas já viram a mesma mensagem.</li>
+</ol>
+
+<hr>
+
+<h2 id="errado">Quando dá errado (lendo o erro)</h2>
+
+<div class="cenario">
+<strong>Consertou a linha apontada, mas o erro estava antes</strong>
+<p>No <code>chave.js</code> (seção 4), o Node apontou a linha 4, que não existe no seu código. Quem tenta "consertar a linha 4" não acha nada para consertar. Lembre: num <code>SyntaxError</code>, o número é onde o Node <strong>percebeu</strong>, não onde você errou. Com <code>Unexpected end of input</code>, procure o <code>{</code>, <code>(</code> ou <code>[</code> que ficou aberto mais acima.</p>
+</div>
+
+<div class="cenario">
+<strong>Leu só as linhas <code>at</code> internas</strong>
+<p>Quem lê <code>at Module._compile (node:internal/modules/cjs/loader:1929:14)</code> acha que o problema é no Node. Quase nunca é: essas linhas aparecem em <strong>todo</strong> erro, mesmo no mais simples. A linha que interessa tem o caminho do <strong>seu</strong> arquivo.</p>
+</div>
+
+<div class="cenario">
+<strong>Nenhuma mensagem, mas o resultado está errado</strong>
+<p>Às vezes o programa roda até o fim, sem erro nenhum, e mostra <code>NaN</code>, <code>undefined</code> ou um número que não faz sentido. Isso é um <strong>erro de lógica</strong>: para o Node, está tudo certo, então ele não tem o que avisar. Para esses, a ferramenta é a depuração: espalhar <code>console.log</code> para ver os valores no meio do caminho, ou usar o depurador. É o assunto da aula <a href="depuracao.html">Depurando</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um nome com maiúscula trocada</strong>
+<pre class="file" data-file="metodo.js">const frase = "bom dia";
+console.log(frase.toUppercase());
+</pre>
+<pre class="term">$ node metodo.js
+/home/ana/metodo.js:2
+console.log(frase.toUppercase());
+                  ^
+
+TypeError: frase.toUppercase is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/metodo.js:2:19)
+«                                  (mais 7 linhas "at" internas, cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>O JavaScript diferencia maiúsculas de minúsculas: <code>toUppercase</code> e <code>toUpperCase</code> são nomes diferentes, e o primeiro não existe. A mensagem "não é uma função" quer dizer, aqui, "não achei nenhuma função com esse nome". <strong>Como consertar:</strong> <code>frase.toUpperCase()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte da mensagem</th><th>Exemplo</th><th>O que diz</th></tr>
+<tr><td>Arquivo e linha</td><td><code>/home/ana/saudacao.js:3</code></td><td>Onde o Node percebeu o erro</td></tr>
+<tr><td>Linha do código</td><td><code>console.log(`Olá, ${nomee}!`);</code></td><td>A linha copiada do seu arquivo</td></tr>
+<tr><td>Marcador</td><td><code>^</code> ou <code>^^^^^</code></td><td>O ponto exato (ou o trecho) do problema</td></tr>
+<tr><td>Tipo: mensagem</td><td><code>ReferenceError: nomee is not defined</code></td><td>O que deu errado (a linha mais importante)</td></tr>
+<tr><td>Pilha de chamadas</td><td><code>at somar (/home/ana/media.js:3:22)</code></td><td>Função, arquivo, linha e coluna; de quem chamou por último para o primeiro</td></tr>
+<tr><td>Linhas internas</td><td><code>at Module._compile (node:internal/…)</code></td><td>O próprio Node; pode ignorar</td></tr>
+<tr><td>Versão</td><td><code>Node.js v24.22.0</code></td><td>Qual Node rodou o programa</td></tr>
+<tr><td>Código de saída</td><td><code>echo $?</code> → <code>1</code></td><td>Erro não tratado termina com 1 (0 = tudo certo)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Em que linha?</h3>
+<p>A mensagem começa com <code>/home/ana/loja.js:12</code>. Em que linha do arquivo o Node percebeu o erro?</p>
+<div class="ex-code">Linha <input data-answer="12" aria-label="número da linha"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o tipo?</h3>
+<p>Na linha <code>TypeError: preco.toFixed is not a function</code>, qual é o <strong>tipo</strong> do erro? (Escreva exatamente como aparece.)</p>
+<div class="ex-code">Tipo: <input data-answer="TypeError" aria-label="tipo do erro"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Um programa tem 5 linhas de <code>console.log</code>, e a linha 3 tem um <code>ReferenceError</code>. O que aparece na tela antes da mensagem de erro?</p>
+<label><input type="radio" name="q3"> Nada: com erro, nenhuma linha roda</label>
+<label><input type="radio" name="q3"> As saídas das linhas 1 a 5</label>
+<label><input type="radio" name="q3"> As saídas das linhas 1 e 2</label>
+<label><input type="radio" name="q3"> As saídas das linhas 4 e 5</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. E se o erro da linha 3 for um <code>SyntaxError</code>?</p>
+<label><input type="radio" name="q4"> As saídas das linhas 1 e 2</label>
+<label><input type="radio" name="q4"> Nada: com erro de sintaxe, o programa nem começa</label>
+<label><input type="radio" name="q4"> Todas, menos a linha 3</label>
+<label><input type="radio" name="q4"> Só a linha 3</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Na pilha de chamadas, quais linhas <code>at</code> você normalmente pode ignorar?</p>
+<label><input type="radio" name="q5"> A primeira</label>
+<label><input type="radio" name="q5"> As que têm o nome de uma função sua</label>
+<label><input type="radio" name="q5"> As que têm <code>/home/ana/</code></label>
+<label><input type="radio" name="q5"> As que começam com <code>node:internal</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O Node mostrou <code>SyntaxError: Unexpected end of input</code> apontando a última linha do arquivo, que está vazia. O que procurar?</p>
+<label><input type="radio" name="q6"> Uma chave, parêntese ou colchete que abriu e não fechou, mais acima</label>
+<label><input type="radio" name="q6"> Um erro na última linha</label>
+<label><input type="radio" name="q6"> Um problema na instalação do Node</label>
+<label><input type="radio" name="q6"> Uma variável sem <code>const</code></label>
+</div>
+
+<h3>Missão final: três erros, um de cada vez</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 25.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa do caixa da padaria tem <strong>três</strong> erros. Rode, leia a mensagem, conserte, rode de novo. O Node mostra um por vez. No fim, deve aparecer <code>Total: R$ 25.5</code>.</p>
+<pre class="script" data-file="main.js">const precos = [4.5, 12, 9];
+let total = 0;
+for (const preco of precos {
+  total += preco;
+}
+console.log("Itens:", precos.lenght);
+console.log(`Total: R$ ${totl}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [4.5, 12, 9];
+let total = 0;
+for (const preco of precos) {
+  total += preco;
+}
+console.log("Itens:", precos.length);
+console.log(`Total: R$ ${total}`);
+</pre>
+</div>
+
+<p>Um dos três erros é traiçoeiro: <code>precos.lenght</code> (com as letras trocadas) <strong>não</strong> dá mensagem de erro, só mostra <code>Itens: undefined</code>. Ler o erro resolve dois; o terceiro, só olhando a saída com atenção. No lab, a versão consertada mostrou <code>Itens: 3</code> e <code>Total: R$ 25.5</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A mensagem de erro é um bilhete: <strong>onde</strong> (arquivo:linha), <strong>o trecho</strong> (a linha do código com <code>^</code>) e <strong>o quê</strong> (<code>Tipo: mensagem</code>).</li>
+  <li>Comece pela linha <code>Tipo: mensagem</code>, depois o número da linha, depois o <code>^</code>.</li>
+  <li>Um erro não tratado para o programa ali: as linhas anteriores rodaram, as seguintes não. O código de saída é <code>1</code>.</li>
+  <li>As linhas <code>at</code> são a pilha de chamadas, da função onde estourou até o programa principal. Procure as que têm o seu arquivo; ignore <code>node:internal</code>.</li>
+  <li>Um <code>SyntaxError</code> impede o programa de começar, e às vezes aponta uma linha depois do erro de verdade: olhe para cima.</li>
+  <li>A mensagem vai para a saída de erros (<code>2&gt;</code> separa). A última linha diz a versão do Node.</li>
+  <li>Programa que roda sem erro mas dá resultado errado é erro de lógica: veja <a href="depuracao.html">Depurando</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
