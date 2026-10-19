@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Estilo de Código — escrevendo código fácil de ler | Guia JavaScript</title>
+<meta name="description" content="Estilo de código em JavaScript para quem está começando: indentação de 2 espaços, chaves sempre, ponto e vírgula (e as armadilhas da inserção automática), aspas, nomes em camelCase, PascalCase e MAIÚSCULAS, comentários que explicam o porquê, e as ferramentas Prettier e ESLint rodando de verdade com npx no Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Estilo de Código</span></h1>
+
+<p class="intro">Um programa é lido muito mais vezes do que é escrito: por você mesma na semana que vem, por um colega, por quem vai consertar um defeito daqui a um ano. O computador não liga se o código está bonito ou feio; as pessoas ligam, e muito. <strong>Estilo de código</strong> é o conjunto de combinados que deixa o código fácil de ler: onde vão os espaços, como se dão nomes, quando usar ponto e vírgula. Nesta aula você vê os combinados que este guia segue desde a primeira aula, o porquê de cada um, e duas ferramentas que arrumam e conferem o código sozinhas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que estilo importa, mesmo quando o programa "já funciona".</li>
+  <li>Indentação de 2 espaços e chaves <code>{ }</code> sempre, com o defeito que a falta delas esconde.</li>
+  <li>Ponto e vírgula: o que o JavaScript faz quando você esquece, e as armadilhas reais disso.</li>
+  <li>Aspas, espaços, linhas em branco e comentários que explicam o <strong>porquê</strong>.</li>
+  <li>Como dar nomes: <code>camelCase</code>, <code>PascalCase</code> e <code>MAIUSCULAS_COM_SUBLINHADO</code>.</li>
+  <li>O <strong>Prettier</strong> (arruma a formatação) e o <strong>ESLint</strong> (aponta problemas), rodando de verdade.</li>
+</ul>
+</div>
+
+<p>Todos os programas e comandos desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>).</p>
+
+<hr>
+
+<h2>A ideia: a receita escrita à mão</h2>
+<p>Duas receitas de bolo com os mesmos ingredientes e os mesmos passos. Uma está em letra corrida, sem parágrafos, com abreviações que só a autora entende. A outra tem a lista de ingredientes separada, um passo por linha, numerados. O bolo sai igual nas duas, mas só uma você consegue seguir sem errar. Código é igual: estes dois programas fazem <strong>exatamente</strong> a mesma coisa.</p>
+
+<pre class="file" data-file="bagunca.js">const PRECO_PAO=0.75
+function Total_Compra(qtd){
+var t=qtd*PRECO_PAO
+    if(t==0){console.log('Nada comprado')}
+  let desconto = 0
+      return t}
+let x = Total_Compra(20)
+console.log("Total: R$ "+x.toFixed(2))
+</pre>
+
+<pre class="file" data-file="compra.js">const PRECO_PAO = 0.75;
+
+function totalDaCompra(quantidade) {
+  const total = quantidade * PRECO_PAO;
+  if (total === 0) {
+    console.log("Nada comprado");
+  }
+  return total;
+}
+
+const total = totalDaCompra(20);
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+
+<pre class="term">$ node bagunca.js
+Total: R$ 15.00
+$ node compra.js
+Total: R$ 15.00
+</pre>
+
+<p>A mesma saída. Mas no primeiro é difícil ver onde a função começa e termina, o que é <code>t</code> e <code>x</code>, e se o <code>return</code> está dentro ou fora do <code>if</code>. No segundo, os olhos encontram tudo sozinhos. O resto da aula explica cada diferença.</p>
+
+<hr>
+
+<h2>1. Indentação: 2 espaços por nível</h2>
+<p><strong>Indentar</strong> é empurrar uma linha para a direita para mostrar que ela está <strong>dentro</strong> de outra coisa: dentro da função, do <code>if</code>, do laço. Cada nível de "dentro" ganha mais 2 espaços:</p>
+
+<pre class="file" data-file="niveis.js">function mostrarNotas(notas) {
+  for (const nota of notas) {
+    if (nota &gt;= 7) {
+      console.log(`${nota}: aprovada`);
+    }
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>function … {</dt><dd>Nível 0: encostado na margem.</dd>
+  <dt>  for … {</dt><dd>Nível 1, dentro da função: 2 espaços.</dd>
+  <dt>    if … {</dt><dd>Nível 2, dentro do laço: 4 espaços.</dd>
+  <dt>      console.log(…)</dt><dd>Nível 3, dentro do <code>if</code>: 6 espaços.</dd>
+  <dt>    } / } / }</dt><dd>Cada chave que fecha volta ao nível de quem ela fecha.</dd>
+</dl>
+
+<p>O JavaScript <strong>ignora</strong> a indentação (diferente do Python, onde ela é obrigatória). Ela existe só para as pessoas. Por que 2 espaços? É o combinado mais comum no JavaScript (o Prettier, que você vai ver abaixo, usa 2); 4 espaços também se vê. O importante é escolher um e usar sempre. Prefira espaços a tabulações (<kbd>Tab</kbd>): os editores de código, como o VS Code, já põem espaços quando você aperta <kbd>Tab</kbd>.</p>
+
+<h3>Chaves sempre, mesmo com uma linha só</h3>
+<p>O JavaScript deixa escrever um <code>if</code> sem chaves quando o bloco tem <strong>uma</strong> linha. Parece economia, mas a indentação pode mentir:</p>
+
+<pre class="file" data-file="sem-chaves.js">const estoque = 0;
+if (estoque &gt; 0)
+  console.log("Tem pão!");
+  console.log("Pode vender.");
+</pre>
+
+<pre class="term">$ node sem-chaves.js
+Pode vender.
+</pre>
+
+<p>O estoque é 0 e o programa mandou vender! Sem chaves, só a <strong>primeira</strong> linha depois do <code>if</code> pertence a ele; a segunda roda sempre, apesar de estar indentada como se fosse do <code>if</code>. Com chaves, não tem como errar:</p>
+
+<pre class="file" data-file="com-chaves.js">const estoque = 0;
+if (estoque &gt; 0) {
+  console.log("Tem pão!");
+  console.log("Pode vender.");
+}
+</pre>
+
+<pre class="term">$ node com-chaves.js
+</pre>
+
+<p>(Nenhuma linha: com estoque 0, nada é mostrado, como deveria.)</p>
+
+<hr>
+
+<h2>2. Ponto e vírgula</h2>
+<p>O ponto e vírgula <code>;</code> marca o fim de uma instrução. Se você esquece, o JavaScript tenta pôr um sozinho onde acha que falta. Isso se chama <strong>inserção automática de ponto e vírgula</strong> (em inglês, <em>ASI</em>). Quase sempre ele acerta; o <code>bagunca.js</code> lá de cima não tem nenhum <code>;</code> e funcionou. O problema são as vezes em que ele erra.</p>
+
+<h3>Armadilha 1: o <code>return</code> sozinho na linha</h3>
+
+<pre class="file" data-file="asi1.js">function criarCliente(nome) {
+  return
+  {
+    nome: nome
+  };
+}
+console.log(criarCliente("Ana"));
+</pre>
+
+<pre class="term">$ node asi1.js
+undefined
+</pre>
+
+<p>A função devolveu <code>undefined</code>, e não o objeto! Depois de um <code>return</code> seguido de quebra de linha, o JavaScript <strong>sempre</strong> põe um <code>;</code>: para ele, a linha 2 é <code>return;</code> ("devolva nada"), e o objeto embaixo nunca é alcançado. Nenhum erro, nenhum aviso. <strong>Regra:</strong> o que vai ser devolvido começa <strong>na mesma linha</strong> do <code>return</code>: <code>return {</code>.</p>
+
+<h3>Armadilha 2: a linha que começa com <code>[</code> ou <code>(</code></h3>
+
+<pre class="file" data-file="asi2.js">const nome = "Ana"
+[1, 2, 3].forEach((n) =&gt; console.log(n))
+</pre>
+
+<pre class="term">$ node asi2.js
+/home/ana/asi2.js:2
+[1, 2, 3].forEach((n) =&gt; console.log(n))
+          ^
+
+TypeError: Cannot read properties of undefined (reading 'forEach')
+    at Object.&lt;anonymous&gt; (/home/ana/asi2.js:2:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+
+<p>Aqui o JavaScript <strong>não</strong> pôs o <code>;</code> no fim da linha 1, porque achou que a linha 2 continuava a 1. Ele leu as duas como uma só: <code>"Ana"[1, 2, 3].forEach(…)</code>, isto é, "a letra da posição 3 de <code>"Ana"</code>", que não existe (<code>undefined</code>). Daí o erro: "não é possível ler propriedades de <code>undefined</code> (lendo <code>forEach</code>)", apontando para a linha 2. Com um <code>(</code> no começo da linha acontece a mesma coisa: a linha de cima vira uma chamada de função, e sai <code>TypeError: total is not a function</code> (ou o nome que estiver lá).</p>
+
+<p><strong>O combinado deste guia:</strong> ponto e vírgula no fim de toda instrução. Assim você não depende de adivinhação. (Existem equipes que escrevem sem <code>;</code> de propósito, num estilo chamado <em>standard</em>; elas conhecem essas armadilhas de cor. Para quem está começando, <code>;</code> sempre é mais seguro.)</p>
+
+<div class="tryjs" data-goal="out:Bom dia, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função devolve <code>undefined</code> em vez da saudação. Conserte o <code>return</code> (o valor tem de começar na mesma linha dele) e rode até aparecer <code>Bom dia, Ana!</code>.</p>
+<pre class="script" data-file="main.js">function saudacao(nome) {
+  return
+    `Bom dia, ${nome}!`;
+}
+console.log(saudacao("Ana"));
+</pre>
+<pre class="solucao" data-file="main.js">function saudacao(nome) {
+  return `Bom dia, ${nome}!`;
+}
+console.log(saudacao("Ana"));
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Aspas, espaços e linhas em branco</h2>
+<ul>
+  <li><strong>Aspas:</strong> o JavaScript aceita <code>"pão"</code> e <code>'pão'</code>, que são idênticos (veja <a href="strings.html">Strings</a>). Escolha um e use sempre; este guia usa <strong>aspas duplas</strong>. Quando o texto tem uma variável no meio, use a crase do <a href="template-strings.html">template string</a>: <code>`Total: R$ ${total}`</code> se lê melhor que <code>"Total: R$ " + total</code>.</li>
+  <li><strong>Espaços em volta dos operadores:</strong> <code>total = quantidade * preco</code>, e não <code>total=quantidade*preco</code>. Depois da vírgula também: <code>soma(1, 2)</code>.</li>
+  <li><strong>Espaço antes da chave e depois do <code>if</code>/<code>for</code>/<code>while</code>:</strong> <code>if (x) {</code>, e não <code>if(x){</code>.</li>
+  <li><strong>Linhas em branco</strong> separam "parágrafos": as constantes, cada função, o programa principal. Uma linha em branco, não cinco.</li>
+  <li><strong>Linhas curtas:</strong> até uns 80 a 100 caracteres. Uma linha que não cabe na tela pode ser quebrada em várias.</li>
+  <li><strong>Vírgula no último item</strong> de um objeto ou array em várias linhas (<code>cidade: cidade,</code>) é permitida e comum: acrescentar um item novo depois muda uma linha só.</li>
+</ul>
+
+<hr>
+
+<h2>4. Nomes</h2>
+<p>Um bom nome dispensa comentário. Compare <code>let x = t * 1.1</code> com <code>let precoComTaxa = preco * 1.1</code>. As convenções do JavaScript:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que é</th><th>Estilo</th><th>Exemplos</th></tr>
+<tr><td>Variáveis, constantes comuns, funções, métodos</td><td><code>camelCase</code>: começa minúscula, cada palavra nova com maiúscula</td><td><code>precoTotal</code>, <code>listaDeCompras</code>, <code>calcularDesconto()</code></td></tr>
+<tr><td>Classes</td><td><code>PascalCase</code>: toda palavra com maiúscula, inclusive a primeira</td><td><code>class Produto</code>, <code>class ContaBancaria</code></td></tr>
+<tr><td>Valores fixos "de configuração", conhecidos antes de o programa rodar</td><td><code>MAIUSCULAS_COM_SUBLINHADO</code></td><td><code>PRECO_PAO</code>, <code>MAX_TENTATIVAS</code></td></tr>
+<tr><td>Valores verdadeiro/falso</td><td>pergunta com <code>e</code>, <code>esta</code>, <code>tem</code>, <code>pode</code></td><td><code>estaAberto</code>, <code>temEstoque</code>, <code>podeVender</code></td></tr>
+<tr><td>Funções</td><td>um verbo: o que ela <strong>faz</strong></td><td><code>somarItens()</code>, <code>mostrarRecibo()</code></td></tr>
+<tr><td>Arrays</td><td>no plural</td><td><code>notas</code>, <code>clientes</code></td></tr>
+</table>
+</div>
+
+<p>Evite nomes de uma letra (<code>x</code>, <code>t</code>), a não ser o <code>i</code> de um <code>for</code> curto ou o <code>n</code> de uma arrow function de uma linha. E, como combinado em <a href="nomes-variaveis.html">Nomes de Variáveis</a>, sem acento: <code>preco</code>, e não <code>preço</code>.</p>
+
+<div class="tryjs" data-goal="out:Total: R$ 15.00;;src:\btotalDaCompra\b;;src:\bquantidade\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> dê nomes melhores. Troque a função <code>Total_Compra</code> por <code>totalDaCompra</code> e o parâmetro <code>qtd</code> por <code>quantidade</code> (em todos os lugares onde eles aparecem). A saída tem de continuar <code>Total: R$ 15.00</code>.</p>
+<pre class="script" data-file="main.js">const PRECO_PAO = 0.75;
+
+function Total_Compra(qtd) {
+  return qtd * PRECO_PAO;
+}
+
+console.log(`Total: R$ ${Total_Compra(20).toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const PRECO_PAO = 0.75;
+
+function totalDaCompra(quantidade) {
+  return quantidade * PRECO_PAO;
+}
+
+console.log(`Total: R$ ${totalDaCompra(20).toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Comentários: o porquê, não o quê</h2>
+<p>Um comentário (veja <a href="comentarios.html">Comentários</a>) que repete o código só ocupa espaço. O comentário útil explica o que o código <strong>não consegue</strong> dizer: a razão de uma decisão, uma regra do negócio, um cuidado.</p>
+
+<pre class="file" data-file="comentarios.js">// Ruim: repete o que o código já diz
+let tentativas = 0; // cria a variável tentativas com 0
+
+// Bom: explica uma regra que não está no código
+const MAX_TENTATIVAS = 3; // o banco bloqueia o cartão na 4ª senha errada
+</pre>
+
+<p>Se você precisa de um comentário para explicar <strong>o que</strong> um trecho faz, muitas vezes o melhor é dar um nome melhor ou separar o trecho numa função com um nome que diga isso.</p>
+
+<hr>
+
+<h2>6. As ferramentas: Prettier e ESLint</h2>
+<p>Ninguém precisa decorar regras de espaço. Existem programas que fazem isso:</p>
+<ul>
+  <li><strong>Prettier</strong> ("mais bonito") é um <strong>formatador</strong>: reescreve o arquivo com espaços, quebras de linha, aspas e <code>;</code> padronizados. Ele não muda o que o programa faz.</li>
+  <li><strong>ESLint</strong> é um <strong>linter</strong> ("catador de fiapos"): lê o código e aponta problemas e maus hábitos (<code>var</code>, <code>==</code>, variável criada e nunca usada…). Ele não roda o programa.</li>
+</ul>
+<p>Os dois são pacotes do <a href="npm.html">npm</a>. A Ana criou uma pasta <code>estilo</code>, pôs o <code>bagunca.js</code> nela, criou o <a href="package-json.html">package.json</a> com <code>npm init -y</code> e instalou os dois como ferramentas de desenvolvimento (<code>--save-dev</code>):</p>
+
+<pre class="term">$ npm install --save-dev prettier eslint @eslint/js
+
+added 79 packages, and audited 80 packages in 2s
+
+18 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+</pre>
+
+<p>("Adicionados 79 pacotes": o Prettier e o ESLint trazem outros pacotes de que precisam. O <code>@eslint/js</code> traz as regras recomendadas.)</p>
+
+<h3>Prettier: conferir e arrumar</h3>
+
+<pre class="term">$ npx prettier --check bagunca.js
+Checking formatting...
+[warn] bagunca.js
+[warn] Code style issues found in the above file. Run Prettier with --write to fix.
+$ npx prettier --write bagunca.js
+bagunca.js 30ms
+$ cat bagunca.js
+const PRECO_PAO = 0.75;
+function Total_Compra(qtd) {
+  var t = qtd * PRECO_PAO;
+  if (t == 0) {
+    console.log("Nada comprado");
+  }
+  let desconto = 0;
+  return t;
+}
+let x = Total_Compra(20);
+console.log("Total: R$ " + x.toFixed(2));
+</pre>
+
+<dl class="anatomy">
+  <dt>npx prettier --check bagunca.js</dt><dd>"Confira a formatação". O <code>npx</code> roda um programa instalado na pasta. A resposta: "Conferindo a formatação… problemas de estilo encontrados no arquivo acima. Rode o Prettier com <code>--write</code> para consertar."</dd>
+  <dt>npx prettier --write bagunca.js</dt><dd>"Escreva": reformata o arquivo no lugar. Mostra o nome e quanto tempo levou (o número muda a cada vez).</dd>
+  <dt>cat bagunca.js</dt><dd>Mostra o arquivo depois: indentação de 2, espaços em volta dos operadores, chaves em linhas próprias, aspas duplas e <code>;</code> em todo lugar.</dd>
+</dl>
+
+<p>Repare no que o Prettier <strong>não</strong> mudou: o <code>var</code>, o <code>==</code>, os nomes <code>Total_Compra</code>, <code>t</code> e <code>x</code>, a variável <code>desconto</code> que não serve para nada. Ele só cuida da aparência. Para o resto, existe o ESLint.</p>
+
+<h3>ESLint: apontar problemas</h3>
+<p>O ESLint precisa de um arquivo de configuração dizendo quais regras usar. A Ana criou o <code>eslint.config.mjs</code> na pasta:</p>
+
+<pre class="file" data-file="eslint.config.mjs">import js from "@eslint/js";
+
+export default [
+  js.configs.recommended,
+  {
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly" },
+    },
+    rules: {
+      "no-var": "error",
+      "prefer-const": "error",
+      eqeqeq: "error",
+      camelcase: "warn",
+    },
+  },
+];
+</pre>
+
+<dl class="anatomy">
+  <dt>js.configs.recommended</dt><dd>O pacote de regras recomendadas pelo próprio ESLint (variável não usada, variável que não existe, código que nunca roda…).</dd>
+  <dt>globals</dt><dd>Avisa que <code>console</code> e <code>process</code> existem sem precisar criar (são do Node).</dd>
+  <dt>rules</dt><dd>Regras a mais, cada uma com o nível: <code>"error"</code> (erro) ou <code>"warn"</code> (aviso). <code>no-var</code>: "sem <code>var</code>"; <code>prefer-const</code>: "prefira <code>const</code>"; <code>eqeqeq</code>: "use <code>===</code>"; <code>camelcase</code>: "nomes em camelCase".</dd>
+</dl>
+
+<p>Rodando o ESLint no <code>bagunca.js</code> original (antes do Prettier):</p>
+
+<pre class="term">$ npx eslint bagunca.js
+
+/home/ana/estilo/bagunca.js
+  2:10  warning  Identifier 'Total_Compra' is not in camel case       camelcase
+  3:1   error    Unexpected var, use let or const instead             no-var
+  4:9   error    Expected '===' and instead saw '=='                  eqeqeq
+  5:7   error    'desconto' is assigned a value but never used        no-unused-vars
+  5:7   error    'desconto' is never reassigned. Use 'const' instead  prefer-const
+  7:5   error    'x' is never reassigned. Use 'const' instead         prefer-const
+
+✖ 6 problems (5 errors, 1 warning)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+
+$ echo $?
+1
+</pre>
+
+<p>Cada linha é um problema: <strong>linha:coluna</strong>, o nível, a mensagem e o nome da regra. Em português:</p>
+<ul>
+  <li><code>2:10</code> aviso: "o nome <code>Total_Compra</code> não está em camelCase".</li>
+  <li><code>3:1</code> erro: "<code>var</code> inesperado, use <code>let</code> ou <code>const</code>" (veja <a href="var.html">var</a>).</li>
+  <li><code>4:9</code> erro: "esperado <code>===</code>, mas encontrado <code>==</code>" (veja <a href="operadores-comparacao.html">Comparação</a>).</li>
+  <li><code>5:7</code> erro: "<code>desconto</code> recebe um valor, mas nunca é usado".</li>
+  <li><code>5:7</code> e <code>7:5</code> erros: "<code>desconto</code>/<code>x</code> nunca recebe outro valor: use <code>const</code>".</li>
+  <li>No fim: "6 problemas (5 erros, 1 aviso); 3 erros podem ser consertados com a opção <code>--fix</code>". E o código de saída 1 (<code>echo $?</code>) quer dizer "achei erros", o que permite usar o ESLint em scripts.</li>
+</ul>
+
+<p>O <code>--fix</code> conserta o que é seguro consertar sozinho (os <code>var</code>/<code>let</code> que viram <code>const</code>) e lista o resto, que é decisão sua. Rodado depois do Prettier:</p>
+
+<pre class="term">$ npx eslint --fix bagunca.js
+
+/home/ana/estilo/bagunca.js
+  2:10  warning  Identifier 'Total_Compra' is not in camel case  camelcase
+  4:9   error    Expected '===' and instead saw '=='             eqeqeq
+  7:9   error    'desconto' is assigned a value but never used   no-unused-vars
+
+✖ 3 problems (2 errors, 1 warning)
+
+</pre>
+
+<p>Os três que sobraram a Ana consertou à mão, e o arquivo virou o <code>compra.js</code> do começo da aula. No arquivo limpo, o ESLint não diz nada, e o código de saída é 0:</p>
+
+<pre class="term">$ npx eslint compra.js
+$ echo $?
+0
+$ npx prettier --check compra.js
+Checking formatting...
+All matched files use Prettier code style!
+</pre>
+
+<div class="tip">
+<strong>No editor de código</strong>
+<p>No VS Code (e em outros editores), as extensões do Prettier e do ESLint fazem isso enquanto você digita: o Prettier formata ao salvar, e o ESLint sublinha o problema em vermelho ou amarelo na própria linha.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Os combinados deste guia</h2>
+<p>Não existe um estilo "certo" único: existem guias de estilo famosos (o do Airbnb, o do Google, o <em>standard</em>), e cada equipe escolhe o seu. O que importa é que <strong>todos no projeto sigam o mesmo</strong>. Os combinados do Guia JavaScript são estes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Combinado</th><th>Por quê</th></tr>
+<tr><td><code>const</code> por padrão, <code>let</code> quando o valor muda, nunca <code>var</code></td><td>Quem lê sabe na hora o que pode mudar (veja <a href="const.html">const</a> e <a href="var.html">var</a>)</td></tr>
+<tr><td><code>===</code> e <code>!==</code> sempre</td><td>Sem conversões escondidas (veja <a href="conversao-automatica.html">Conversão Automática</a>)</td></tr>
+<tr><td><code>;</code> no fim das instruções</td><td>Sem as armadilhas da inserção automática</td></tr>
+<tr><td>2 espaços de indentação</td><td>O mais comum no JavaScript; é o padrão do Prettier</td></tr>
+<tr><td>Chaves em todo <code>if</code>/<code>for</code>/<code>while</code></td><td>A indentação não engana</td></tr>
+<tr><td>Aspas duplas; crase quando há <code>${}</code></td><td>Um jeito só; o template é mais legível que o <code>+</code></td></tr>
+<tr><td><code>camelCase</code>, <code>PascalCase</code> para classes, <code>MAIUSCULAS</code> para valores fixos</td><td>O formato do nome já diz o que ele é</td></tr>
+<tr><td>Nomes em português, sem acento</td><td>Fáceis de digitar em qualquer teclado</td></tr>
+<tr><td>Comentários explicam o porquê</td><td>O "o quê", o código e os nomes já dizem</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A função devolve <code>undefined</code> sem motivo</strong>
+<p>Olhe o <code>return</code>: o valor começa na linha de baixo? A inserção automática pôs um <code>;</code> logo depois do <code>return</code> (seção 2). <strong>Como consertar:</strong> comece o valor na mesma linha: <code>return {</code>, <code>return (</code>, <code>return valor</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Cannot read properties of undefined</code> ou <code>… is not a function</code> numa linha que começa com <code>[</code> ou <code>(</code></strong>
+<pre class="file" data-file="asi3.js">const total = 10
+const texto = "Total: " + total
+(function () { console.log("oi") })()
+</pre>
+<pre class="term">$ node asi3.js
+/home/ana/asi3.js:2
+const texto = "Total: " + total
+                          ^
+
+TypeError: total is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/asi3.js:2:27)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « linhas internas do Node cortadas
+    …
+
+Node.js v24.22.0
+</pre>
+<p>"<code>total</code> não é uma função". O JavaScript juntou as linhas 2 e 3 e leu <code>total(function …)</code>: como se você quisesse chamar o <code>total</code> passando a função da linha 3. O erro aponta a linha 2, mas a causa é o <code>;</code> que faltou no fim dela. <strong>Como consertar:</strong> ponha <code>;</code> no fim das linhas.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>if</code> "não funciona": uma linha roda mesmo com a condição falsa</strong>
+<p>O <code>if</code> está sem chaves e a segunda linha só <strong>parece</strong> estar dentro dele (seção 1). <strong>Como consertar:</strong> chaves sempre.</p>
+</div>
+
+<div class="cenario">
+<strong><code>npx eslint</code> não acha a configuração</strong>
+<pre class="term">$ npx eslint compra.js
+
+Oops! Something went wrong! :(
+
+ESLint: 10.13.0
+
+ESLint couldn't find an eslint.config.* file.
+
+From ESLint v9.0.0, the default configuration file is now eslint.config.*.
+If you are using a .eslintrc.* file, please follow the migration guide
+to update your configuration file to the new format:
+
+https://eslint.org/docs/latest/use/configure/migration-guide
+
+If you still have problems after following the migration guide, please stop by
+https://eslint.org/chat/help to chat with the team.
+</pre>
+<p>"Ops! Algo deu errado. O ESLint não encontrou um arquivo <code>eslint.config.*</code>." O resto explica que, desde a versão 9, a configuração mora nesse arquivo (o antigo <code>.eslintrc</code> não vale mais) e dá o endereço do guia de migração. Tutoriais antigos na internet ainda mostram o <code>.eslintrc</code>. <strong>Como consertar:</strong> crie o <code>eslint.config.mjs</code> como na seção 6, na pasta do projeto (onde está o <code>package.json</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>npm install --save-dev prettier eslint @eslint/js</code></td><td>Instala as duas ferramentas no projeto</td></tr>
+<tr><td><code>npx prettier --check arquivo.js</code></td><td>Confere a formatação, sem mudar nada</td></tr>
+<tr><td><code>npx prettier --write arquivo.js</code></td><td>Reformata o arquivo (use <code>.</code> para a pasta toda)</td></tr>
+<tr><td><code>npx eslint arquivo.js</code></td><td>Lista os problemas (código de saída 1 se houver erro)</td></tr>
+<tr><td><code>npx eslint --fix arquivo.js</code></td><td>Conserta o que é seguro e lista o resto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O nome certo</h3>
+<p>Escreva em camelCase o nome de uma variável que guarda o "preço do bolo":</p>
+<div class="ex-code"><input data-answer="precoDoBolo|precoBolo" aria-label="nome em camelCase"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o estilo?</h3>
+<p>Como se escreve, em PascalCase, o nome de uma classe para "conta bancária" (sem acento)?</p>
+<div class="ex-code">class <input data-answer="ContaBancaria" aria-label="nome da classe"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que esta função devolve? <code>function f() {</code> / <code>  return</code> / <code>  42;</code> / <code>}</code></p>
+<label><input type="radio" name="q3"> <code>42</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+<label><input type="radio" name="q3"> Dá erro de sintaxe</label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual ferramenta aponta que você usou <code>==</code> em vez de <code>===</code>?</p>
+<label><input type="radio" name="q4"> O Prettier</label>
+<label><input type="radio" name="q4"> O próprio Node, com um erro</label>
+<label><input type="radio" name="q4"> O ESLint (regra <code>eqeqeq</code>)</label>
+<label><input type="radio" name="q4"> O npm</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para o JavaScript, a indentação…</p>
+<label><input type="radio" name="q5"> não faz diferença nenhuma: ela existe para as pessoas</label>
+<label><input type="radio" name="q5"> define o que está dentro do <code>if</code>, como no Python</label>
+<label><input type="radio" name="q5"> tem de ser de 4 espaços, ou dá erro</label>
+<label><input type="radio" name="q5"> só vale dentro de funções</label>
+</div>
+
+<h3>Missão final: arrume a casa</h3>
+
+<div class="tryjs" data-goal="out:Passou: Ana;;out:Passou: Caio;;src:===;;src:^  \S;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa funciona, mas está fora dos combinados. Arrume: indentação de 2 espaços, chaves no <code>if</code>, <code>const</code> no lugar de <code>var</code>, <code>===</code> no lugar de <code>==</code> e <code>;</code> no fim das linhas. A saída tem de continuar mostrando a Ana e o Caio.</p>
+<pre class="script" data-file="main.js">var alunos = [{nome:'Ana',situacao:'ok'},{nome:'Bia',situacao:'recuperação'},{nome:'Caio',situacao:'ok'}]
+for (var aluno of alunos) {
+if (aluno.situacao == 'ok') console.log("Passou: " + aluno.nome)
+}
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = [
+  { nome: "Ana", situacao: "ok" },
+  { nome: "Bia", situacao: "recuperação" },
+  { nome: "Caio", situacao: "ok" },
+];
+
+for (const aluno of alunos) {
+  if (aluno.situacao === "ok") {
+    console.log(`Passou: ${aluno.nome}`);
+  }
+}
+</pre>
+</div>
+
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Estilo de código é para as <strong>pessoas</strong>: o computador roda os dois jeitos igual, mas só um é fácil de ler e de consertar.</li>
+  <li>Indentação de 2 espaços por nível e chaves em todo <code>if</code>/<code>for</code>/<code>while</code>, mesmo com uma linha só.</li>
+  <li>Ponto e vírgula sempre: a inserção automática erra no <code>return</code> sozinho na linha e nas linhas que começam com <code>[</code> ou <code>(</code>.</li>
+  <li>Nomes: <code>camelCase</code> para variáveis e funções, <code>PascalCase</code> para classes, <code>MAIUSCULAS_COM_SUBLINHADO</code> para valores fixos; nomes que dizem o que a coisa é.</li>
+  <li>Comentários explicam o <strong>porquê</strong>.</li>
+  <li>O <strong>Prettier</strong> arruma a formatação (<code>--check</code>, <code>--write</code>); o <strong>ESLint</strong> aponta problemas como <code>var</code>, <code>==</code> e variável não usada (<code>--fix</code> conserta o que é seguro).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
