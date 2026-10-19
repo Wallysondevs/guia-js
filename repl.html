@@ -189,7 +189,7 @@ undefined
 <p>Repare que o modo interativo não acrescenta os espaços da indentação: as linhas de dentro ficaram encostadas na margem. Para trechos maiores, bem arrumados, use o <code>.editor</code> (a seguir) ou um arquivo.</p>
 
 <h3>O modo <code>.editor</code></h3>
-<p>O comando <code>.editor</code> abre um "mini editor": você digita quantas linhas quiser, <kbd>Enter</kbd> só pula de linha, e nada roda até você apertar <kbd>Ctrl</kbd>+<kbd>D</kbd>. (Para desistir, <kbd>Ctrl</kbd>+<kbd>C</kbd>.)</p>
+<p>O comando <code>.editor</code> abre um "mini editor": você digita quantas linhas quiser, <kbd>Enter</kbd> só pula de linha, e nada roda até você apertar <kbd>Ctrl</kbd>+<kbd>D</kbd>. (Para desistir, <kbd>Ctrl</kbd>+<kbd>C</kbd>.) Ele só existe no terminal de verdade: na caixa "Experimente" do guia, o <code>.editor</code> e o <code>.save</code> (seção 5) respondem <code>Invalid REPL keyword</code> ("comando do modo interativo inválido").</p>
 
 <pre class="term">$ node
 Welcome to Node.js v24.22.0.
@@ -336,7 +336,7 @@ const total = 7.5 + 5.2;
 <tr><td>Modo interativo</td><td><code>node</code>, e digitar no <code>&gt;</code></td><td>Várias perguntas seguidas, explorar</td></tr>
 <tr><td>Uma linha pelo terminal</td><td><code>node -p '2 + 3'</code> (aula <a href="executar.html">Rodando um Programa</a>)</td><td>Uma pergunta só, sem entrar e sair</td></tr>
 <tr><td>Console do navegador</td><td><kbd>F12</kbd> → Console (aula <a href="console-navegador.html">O Console do Navegador</a>)</td><td>Testar com uma página aberta: funciona igualzinho a um <code>&gt;</code></td></tr>
-<tr><td>Caixa "Experimente" com <code>&gt;</code></td><td>Aqui no guia</td><td>Sem instalar nada</td></tr>
+<tr><td>Caixa "Experimente" com <code>&gt;</code></td><td>Aqui no guia</td><td>Sem instalar nada (mas sem <code>.editor</code> e <code>.save</code>)</td></tr>
 <tr><td>Arquivo</td><td><code>node arquivo.js</code></td><td>Quando passou de umas poucas linhas, ou quando quer guardar</td></tr>
 </table>
 </div>
