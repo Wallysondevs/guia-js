@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Eventos — addEventListener, click, input e keydown | Guia JavaScript</title>
+<meta name="description" content="Eventos no JavaScript para quem nunca programou: addEventListener, a função que roda a cada clique, um contador de cliques, os eventos mais usados (click, dblclick, mouseenter, input, change, keydown, submit, DOMContentLoaded), vários elementos com o mesmo ouvinte, removeEventListener, once, onclick e o atributo onclick antigo, e os erros reais do navegador (null, is not a function, a função chamada com parênteses).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Eventos</span></h1>
+
+<p class="intro">Um programa no terminal roda de cima para baixo e termina. Uma página é diferente: ela abre e fica <strong>esperando</strong>. Esperando a pessoa clicar num botão, digitar num campo, apertar uma tecla, passar o mouse em cima de uma foto. Cada uma dessas coisas é um <strong>evento</strong> (em inglês, <em>event</em>: "acontecimento"). Nesta aula você vai ensinar a página a <strong>reagir</strong>: "quando acontecer isto, faça aquilo".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como pedir para o navegador rodar uma função quando um evento acontece: <code>addEventListener</code>.</li>
+  <li>A diferença entre <strong>entregar</strong> a função (<code>mostrar</code>) e <strong>chamar</strong> a função (<code>mostrar()</code>), o erro número 1 com eventos.</li>
+  <li>Os eventos mais usados: <code>click</code>, <code>dblclick</code>, <code>mouseenter</code>/<code>mouseleave</code>, <code>input</code>, <code>change</code>, <code>keydown</code>, <code>submit</code> e <code>DOMContentLoaded</code>.</li>
+  <li>Como pôr o mesmo ouvinte em vários elementos, e como tirar um ouvinte (<code>removeEventListener</code> e <code>once</code>).</li>
+  <li>Os jeitos antigos (<code>onclick</code>) e por que preferir o <code>addEventListener</code>.</li>
+  <li>Os erros reais mais comuns: o <code>null</code> do seletor errado, o nome do método errado e o evento com nome errado (que falha em silêncio).</li>
+</ul>
+</div>
+
+<p>Eventos de página são do <strong>navegador</strong>. (O Node.js também tem eventos, de outro tipo, que não são assunto desta aula.) As respostas do Console mostradas aqui vieram do Chromium da máquina da Ana. Antes, veja <a href="dom-selecionar.html">Selecionando Elementos</a> e <a href="dom-alterar.html">Mudando Textos e Atributos</a>.</p>
+
+<hr>
+
+<h2>A ideia: a campainha</h2>
+<p>A Ana instalou uma campainha na porta e deixou um combinado com o filho: <em>"Quando a campainha tocar, vá ver quem é."</em></p>
+<ul>
+  <li>O combinado é feito <strong>uma vez</strong>, de manhã. Nada acontece na hora: o filho só fica sabendo o que fazer.</li>
+  <li>O filho não fica parado na porta olhando. Ele vive a vida dele; quando a campainha toca, ele vai.</li>
+  <li>Se a campainha tocar cinco vezes no dia, ele vai cinco vezes. Se não tocar nenhuma, ele não vai nenhuma.</li>
+</ul>
+<p>Num evento é igual. O <code>addEventListener</code> ("adicionar ouvinte de evento") é o combinado: você diz <strong>qual elemento</strong> (a porta), <strong>qual evento</strong> (a campainha tocar) e <strong>o que fazer</strong> (uma função). O navegador fica "ouvindo" e, a cada vez que o evento acontece, roda a sua função.</p>
+
+<hr>
+
+<h2>1. O primeiro evento: um clique</h2>
+
+<pre class="file" data-file="index.html">&lt;button id="botao"&gt;Clique aqui&lt;/button&gt;
+&lt;p id="saida"&gt;Ninguém clicou ainda.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+
+botao.addEventListener("click", () =&gt; {
+  saida.textContent = "Você clicou!";
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>botao</dt><dd>O elemento que vai ser "ouvido". O evento é sempre ligado a um elemento: este botão, e não outro.</dd>
+  <dt>.addEventListener(</dt><dd>"Adicionar um ouvinte de evento": o combinado. Recebe duas coisas entre os parênteses, separadas por vírgula.</dd>
+  <dt>"click"</dt><dd>O <strong>nome do evento</strong>, num texto, em minúsculas e <strong>sem</strong> o "on" na frente: <code>"click"</code>, e não <code>"onclick"</code> nem <code>"Click"</code>.</dd>
+  <dt>() =&gt; { … }</dt><dd>A <strong>função</strong> que vai rodar a cada clique (uma <a href="arrow-functions.html">arrow function</a>). Ela é chamada de <strong>ouvinte</strong> (<em>listener</em>) ou <strong>tratador</strong> do evento (<em>handler</em>). Repare que ninguém a chama no código: quem chama é o navegador, na hora do clique.</dd>
+  <dt>saida.textContent = "Você clicou!"</dt><dd>O que acontece no clique: troca o texto do parágrafo.</dd>
+</dl>
+
+<p>Quando a página abre, o script roda inteiro, de cima para baixo, como sempre. Só que a linha do <code>addEventListener</code> <strong>não</strong> troca o texto: ela só registra o combinado. O parágrafo continua "Ninguém clicou ainda." até a Ana clicar. Aí o navegador roda a função, e o texto vira "Você clicou!".</p>
+
+<h3>Contando os cliques</h3>
+<p>A função roda <strong>a cada</strong> clique. Com uma variável do lado de fora, dá para contar:</p>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+let cliques = 0;
+
+console.log("O script terminou de rodar.");
+
+botao.addEventListener("click", () =&gt; {
+  cliques += 1;
+  saida.textContent = `Cliques: ${cliques}`;
+  console.log(`clique número ${cliques}`);
+});
+
+console.log("O ouvinte foi registrado.");
+</pre>
+
+<p>A Ana abriu a página e clicou três vezes. O Console mostrou:</p>
+
+<pre class="devtools">O script terminou de rodar.
+O ouvinte foi registrado.
+clique número 1
+clique número 2
+clique número 3
+</pre>
+
+<p>Repare na ordem: as duas mensagens de fora apareceram <strong>logo</strong>, quando a página abriu, antes de qualquer clique. As de dentro só vieram depois, uma por clique. O <code>cliques</code> fica <strong>fora</strong> da função com <code>let</code> porque precisa lembrar o valor de um clique para o outro; se ele fosse criado dentro da função, voltaria a 0 a cada clique (a função recomeça do zero toda vez que roda).</p>
+
+<div class="tryweb" data-goal="texto:#saida~Cliques: 3;;semerro" data-acoes="clicar #botao;;clicar #botao;;clicar #botao">
+<p class="try-task"><strong>Missão:</strong> o contador está quase pronto, mas a função do clique está vazia. Faça cada clique somar 1 em <code>cliques</code> e mostrar <code>Cliques: N</code> no parágrafo. Rode e clique três vezes no botão do Resultado.</p>
+<pre class="script" data-file="index.html">&lt;button id="botao"&gt;Clique aqui&lt;/button&gt;
+&lt;p id="saida"&gt;Ninguém clicou ainda.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+let cliques = 0;
+
+botao.addEventListener("click", () =&gt; {
+  // some 1 em cliques e mostre no parágrafo
+});
+</pre>
+<pre class="solucao" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+let cliques = 0;
+
+botao.addEventListener("click", () =&gt; {
+  cliques += 1;
+  saida.textContent = `Cliques: ${cliques}`;
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Entregar a função, não chamar</h2>
+<p>A função do ouvinte também pode ser uma função com nome, escrita antes. Aí você passa <strong>o nome dela</strong>, sem parênteses:</p>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+
+function cumprimentar() {
+  saida.textContent = "Bom dia, Ana!";
+}
+
+botao.addEventListener("click", cumprimentar);
+</pre>
+
+<p><code>cumprimentar</code> sem parênteses é <strong>a função em si</strong>, como um bilhete entregue na mão do navegador: "rode isto quando clicarem". Com parênteses, <code>cumprimentar()</code>, você mesmo a <strong>chamaria</strong>, na hora, e entregaria ao navegador o <strong>resultado</strong> dela. É a diferença entre dar a receita do bolo para alguém fazer depois e entregar um bolo já pronto (aqui, nem bolo: a função não tem <code>return</code>, então o resultado é <code>undefined</code>). Veja o que acontece no erro clássico:</p>
+
+<pre class="file" data-file="script.js">botao.addEventListener("click", cumprimentar());
+</pre>
+
+<p>O parágrafo mostra "Bom dia, Ana!" <strong>assim que a página abre</strong>, sem clique nenhum, e clicar no botão não faz mais nada. Não aparece erro no Console: o navegador recebeu <code>undefined</code> como ouvinte e simplesmente não tem o que rodar. Quem já leu <a href="funcoes-valores.html">Funções como Valores</a> reconhece a ideia: funções podem ser passadas de um lado para o outro como qualquer valor.</p>
+
+<div class="tip">
+<strong>Arrow function ou função com nome?</strong>
+<p>As duas servem. A arrow function no próprio <code>addEventListener</code> é prática para ações curtas, usadas num lugar só. A função com nome é melhor quando a ação é grande, quando vários elementos usam a mesma ação, ou quando você vai precisar <strong>tirar</strong> o ouvinte depois (seção 5).</p>
+</div>
+
+<hr>
+
+<h2>3. Os eventos mais usados</h2>
+<p>O clique é só um dos eventos. Os nomes são em inglês; estes são os que você vai usar quase sempre:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Evento</th><th>Acontece quando…</th><th>Uso típico</th></tr>
+<tr><td><code>click</code></td><td>clicam no elemento (ou tocam, no celular; ou apertam Enter num botão em foco)</td><td>botões, links, cartões</td></tr>
+<tr><td><code>dblclick</code></td><td>dão um clique duplo</td><td>editar um item com dois cliques</td></tr>
+<tr><td><code>mouseenter</code> / <code>mouseleave</code></td><td>o ponteiro do mouse entra / sai de cima do elemento</td><td>destacar, mostrar uma dica</td></tr>
+<tr><td><code>input</code></td><td>o conteúdo de um campo muda (a cada letra digitada ou apagada)</td><td>contar caracteres, buscar enquanto digita</td></tr>
+<tr><td><code>change</code></td><td>o campo muda e a pessoa "confirma" (sai do campo; escolhe outra opção num <code>select</code>; marca um <code>checkbox</code>)</td><td>caixas de seleção, listas de opções</td></tr>
+<tr><td><code>keydown</code> / <code>keyup</code></td><td>uma tecla é apertada / solta</td><td>atalhos, Enter para enviar</td></tr>
+<tr><td><code>focus</code> / <code>blur</code></td><td>o elemento ganha / perde o foco (o cursor entra / sai do campo)</td><td>mostrar ajuda do campo</td></tr>
+<tr><td><code>submit</code></td><td>um formulário é enviado</td><td>validar antes de enviar (aula <a href="formularios.html">Formulários</a>)</td></tr>
+<tr><td><code>DOMContentLoaded</code></td><td>o navegador terminou de montar a página (no <code>document</code>)</td><td>rodar o script só quando todo o HTML existe</td></tr>
+</table>
+</div>
+
+<h3>Passar o mouse: <code>mouseenter</code> e <code>mouseleave</code></h3>
+<p>Um par de eventos para ligar e desligar um destaque (veja <a href="dom-estilo.html">Mudando o Estilo</a>):</p>
+
+<pre class="file" data-file="script.js">const foto = document.querySelector("#foto");
+
+foto.addEventListener("mouseenter", () =&gt; {
+  foto.classList.add("destaque");
+});
+
+foto.addEventListener("mouseleave", () =&gt; {
+  foto.classList.remove("destaque");
+});
+</pre>
+
+<p>Repare: um elemento pode ter <strong>vários</strong> ouvintes, um para cada evento (e até vários para o mesmo evento; todos rodam, na ordem em que foram registrados).</p>
+
+<h3>Digitar: <code>input</code></h3>
+<p>O evento <code>input</code> acontece a cada mudança no campo. O que está escrito fica em <code>campo.value</code> ("valor"; os campos são o assunto de <a href="formularios.html">Formulários</a>). Um contador de caracteres para um recado de no máximo 40 letras:</p>
+
+<pre class="file" data-file="index.html">&lt;input id="recado" maxlength="40" placeholder="Deixe um recado"&gt;
+&lt;p id="conta"&gt;0/40&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const recado = document.querySelector("#recado");
+const conta = document.querySelector("#conta");
+
+recado.addEventListener("input", () =&gt; {
+  conta.textContent = `${recado.value.length}/40`;
+});
+</pre>
+
+<p>Digitando <code>Oi, mãe</code>, o parágrafo passa por <code>1/40</code>, <code>2/40</code>… e para em <code>7/40</code>. Apagando uma letra, volta para <code>6/40</code>: apagar também muda o campo, então também dispara o <code>input</code>.</p>
+
+<div class="tryweb" data-goal="texto:#eco~Ana Souza;;src:&quot;input&quot;;;semerro" data-acoes="digitar #nome Ana Souza">
+<p class="try-task"><strong>Missão:</strong> faça o parágrafo <code>#eco</code> repetir, enquanto a pessoa digita, o que está escrito no campo: use o evento <code>"input"</code> e o <code>nome.value</code>. Rode e digite o seu nome no campo do Resultado.</p>
+<pre class="script" data-file="index.html">&lt;label&gt;Seu nome: &lt;input id="nome"&gt;&lt;/label&gt;
+&lt;p&gt;Olá, &lt;strong id="eco"&gt;&lt;/strong&gt;!&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const nome = document.querySelector("#nome");
+const eco = document.querySelector("#eco");
+
+// quando o campo mudar, copie nome.value para o eco
+</pre>
+<pre class="solucao" data-file="script.js">const nome = document.querySelector("#nome");
+const eco = document.querySelector("#eco");
+
+nome.addEventListener("input", () =&gt; {
+  eco.textContent = nome.value;
+});
+</pre>
+</div>
+
+<h3>Teclas: <code>keydown</code></h3>
+<p>O <code>keydown</code> acontece quando uma tecla desce. Para saber <strong>qual</strong> tecla foi, a função precisa receber o <strong>objeto do evento</strong>, um pacote de informações que o navegador entrega a todo ouvinte. Ele é o assunto da próxima aula, <a href="eventos-objeto.html">O Objeto do Evento</a>; aqui vai só um gostinho, o Enter num campo de busca:</p>
+
+<pre class="file" data-file="script.js">const busca = document.querySelector("#busca");
+
+busca.addEventListener("keydown", (evento) =&gt; {
+  if (evento.key === "Enter") {
+    console.log(`Buscando: ${busca.value}`);
+  }
+});
+</pre>
+
+<p>Digitando <code>pão de queijo</code> e apertando Enter, o Console mostra <code>Buscando: pão de queijo</code>. As outras teclas também disparam o evento, mas o <code>if</code> ignora todas que não sejam o Enter.</p>
+
+<h3>Esperar a página: <code>DOMContentLoaded</code></h3>
+<p>Se o <code>&lt;script&gt;</code> estiver no <code>&lt;head&gt;</code>, ele roda <strong>antes</strong> de o resto do HTML existir, e o <code>querySelector</code> devolve <code>null</code>. Um jeito de resolver é ouvir o evento <code>DOMContentLoaded</code> ("o conteúdo do DOM foi carregado") no <code>document</code>:</p>
+
+<pre class="file" data-file="script.js">document.addEventListener("DOMContentLoaded", () =&gt; {
+  const botao = document.querySelector("#botao");
+  botao.addEventListener("click", () =&gt; {
+    console.log("clicou");
+  });
+});
+</pre>
+
+<p>Hoje o mais comum é pôr o <code>&lt;script&gt;</code> no fim do <code>&lt;body&gt;</code> ou usar <code>&lt;script defer&gt;</code>, e aí esse evento não é necessário (veja <a href="script-na-pagina.html">JavaScript na Página</a>). Mas você vai encontrá-lo muito em código pronto.</p>
+
+<hr>
+
+<h2>4. O mesmo ouvinte em vários elementos</h2>
+<p>O <code>addEventListener</code> liga <strong>um</strong> elemento. Para vários, pegue todos com <code>querySelectorAll</code> e ligue um por um com <a href="foreach.html">forEach</a> (ou <code>for … of</code>). A Ana tem três botões de tamanho de pizza:</p>
+
+<pre class="file" data-file="index.html">&lt;button class="tamanho"&gt;Pequena&lt;/button&gt;
+&lt;button class="tamanho"&gt;Média&lt;/button&gt;
+&lt;button class="tamanho"&gt;Grande&lt;/button&gt;
+&lt;p id="escolha"&gt;Escolha o tamanho.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const botoes = document.querySelectorAll(".tamanho");
+const escolha = document.querySelector("#escolha");
+
+botoes.forEach((botao) =&gt; {
+  botao.addEventListener("click", () =&gt; {
+    escolha.textContent = `Pizza ${botao.textContent}`;
+  });
+});
+</pre>
+
+<p>Cada botão ganha o seu próprio ouvinte, e cada ouvinte "lembra" do seu <code>botao</code> (é um <a href="closures.html">closure</a>). Clicando em Média, aparece <code>Pizza Média</code>.</p>
+
+<div class="warning">
+<strong>A lista não tem <code>addEventListener</code></strong>
+<p><code>document.querySelectorAll(".tamanho").addEventListener(…)</code> dá erro: a lista de elementos não é um elemento. A mensagem está em <a href="#errado">Quando dá errado</a>.</p>
+</div>
+
+<hr>
+
+<h2>5. Tirando um ouvinte</h2>
+<p>Para desfazer o combinado, use <code>removeEventListener</code> ("remover ouvinte"), com <strong>o mesmo evento e a mesma função</strong>. Por isso a função precisa ter nome: uma arrow function escrita de novo é <strong>outra</strong> função, mesmo com o texto igual, e o navegador não a reconhece.</p>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#votar");
+const saida = document.querySelector("#saida");
+
+function votar() {
+  saida.textContent = "Voto registrado. Obrigado!";
+  botao.removeEventListener("click", votar);
+}
+
+botao.addEventListener("click", votar);
+</pre>
+
+<p>No primeiro clique, o voto é registrado e o ouvinte se desliga: os próximos cliques não fazem nada. Como "só uma vez" é muito comum, existe um atalho, a opção <code>once</code> ("uma vez"):</p>
+
+<pre class="file" data-file="script.js">botao.addEventListener("click", () =&gt; {
+  saida.textContent = "Voto registrado. Obrigado!";
+}, { once: true });
+</pre>
+
+<p>O terceiro item entre os parênteses é um objeto de opções. Com <code>{ once: true }</code>, o navegador tira o ouvinte sozinho depois da primeira vez.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Há três jeitos de ligar uma função ao clique. Você vai encontrar os três em código por aí:</p>
+
+<pre class="file" data-file="index.html">&lt;!-- 1. o atributo no HTML (antigo) --&gt;
+&lt;button onclick="cumprimentar()"&gt;Um&lt;/button&gt;
+
+&lt;!-- 2 e 3: no script --&gt;
+&lt;button id="dois"&gt;Dois&lt;/button&gt;
+&lt;button id="tres"&gt;Três&lt;/button&gt;
+</pre>
+
+<pre class="file" data-file="script.js">function cumprimentar() {
+  console.log("Bom dia!");
+}
+
+// 2. a propriedade onclick
+document.querySelector("#dois").onclick = cumprimentar;
+
+// 3. addEventListener (o recomendado)
+document.querySelector("#tres").addEventListener("click", cumprimentar);
+</pre>
+
+<p>Os três mostram <code>Bom dia!</code> no clique. As diferenças:</p>
+<ul>
+  <li><strong>Atributo <code>onclick="…"</code> no HTML:</strong> mistura JavaScript dentro do HTML, o código fica espalhado e difícil de achar, e a função tem de ser global. Muitos sites até bloqueiam esse tipo de código por segurança. Reconheça, mas não use.</li>
+  <li><strong>Propriedade <code>elemento.onclick = função</code>:</strong> cada elemento tem <strong>um</strong> <code>onclick</code> só. Se outra parte do código fizer <code>elemento.onclick = outraFuncao</code>, a primeira é apagada sem aviso. Aqui o nome leva o "on": <code>onclick</code>, <code>oninput</code>.</li>
+  <li><strong><code>addEventListener</code>:</strong> aceita vários ouvintes no mesmo evento, tem opções (<code>once</code>) e pode ser desfeito com <code>removeEventListener</code>. É o padrão moderno.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Qualquer código novo</td><td><code>addEventListener("click", função)</code></td></tr>
+<tr><td>Ação que só pode acontecer uma vez</td><td><code>addEventListener(…, { once: true })</code></td></tr>
+<tr><td>Ligar e desligar o ouvinte várias vezes</td><td>Função com nome + <code>addEventListener</code> / <code>removeEventListener</code></td></tr>
+<tr><td>Ler código antigo</td><td>Reconheça <code>onclick="…"</code> no HTML e <code>el.onclick = …</code>: fazem a mesma coisa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O seletor não achou o botão</strong>
+<pre class="file" data-file="script.js">const botao = document.querySelector("#btn");
+botao.addEventListener("click", () =&gt; {
+  console.log("clicou");
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at script.js:2:7
+</pre>
+<dl class="anatomy">
+  <dt>Uncaught TypeError</dt><dd>Um erro de tipo que ninguém tratou. O script para aqui: nenhuma linha depois desta roda.</dd>
+  <dt>Cannot read properties of null (reading 'addEventListener')</dt><dd>"Não dá para ler propriedades de <code>null</code> (lendo <code>addEventListener</code>)". A variável <code>botao</code> vale <code>null</code>: o <code>querySelector</code> não achou nenhum elemento com <code>id="btn"</code>.</dd>
+  <dt>at script.js:2:7</dt><dd>Arquivo <code>script.js</code>, linha 2, coluna 7.</dd>
+</dl>
+<p>É o erro mais comum com eventos. As causas: o seletor está diferente do HTML (aqui o botão é <code>#botao</code>, não <code>#btn</code>), ou o <code>&lt;script&gt;</code> rodou antes do botão existir. <strong>Como consertar:</strong> confira o seletor; ponha o <code>&lt;script&gt;</code> no fim do <code>&lt;body&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu o nome do método errado</strong>
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+botao.addEventListner("click", () =&gt; {
+  console.log("clicou");
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: botao.addEventListner is not a function
+    at script.js:2:7
+</pre>
+<p>"<code>botao.addEventListner</code> não é uma função". Faltou o <strong>e</strong> de <em>Listener</em>. O nome é comprido e fácil de errar: <code>add</code>·<code>Event</code>·<code>Listener</code>, com as maiúsculas no lugar. <strong>Como consertar:</strong> corrija o nome. (O mesmo erro sai com <code>addeventlistener</code>, tudo minúsculo: o JavaScript diferencia maiúsculas de minúsculas.)</p>
+</div>
+
+<div class="cenario">
+<strong>Ligou o evento na lista inteira</strong>
+<pre class="file" data-file="script.js">const botoes = document.querySelectorAll(".tamanho");
+botoes.addEventListener("click", () =&gt; {
+  console.log("clicou");
+});
+</pre>
+<pre class="devtools">Uncaught TypeError: botoes.addEventListener is not a function
+    at script.js:2:8
+</pre>
+<p>O <code>querySelectorAll</code> devolve uma <strong>lista</strong> (<code>NodeList</code>), e uma lista não tem <code>addEventListener</code>. <strong>Como consertar:</strong> percorra a lista e ligue cada um: <code>botoes.forEach((b) =&gt; b.addEventListener(…))</code> (seção 4).</p>
+</div>
+
+<div class="cenario">
+<strong>Nome do evento errado: nada acontece, e não há erro</strong>
+<pre class="file" data-file="script.js">botao.addEventListener("onclick", () =&gt; {
+  console.log("clicou");
+});
+</pre>
+<p>O Console fica limpo, e clicar não faz nada. O navegador aceita <strong>qualquer</strong> texto como nome de evento (dá para inventar eventos próprios); ele só fica esperando um evento chamado <code>"onclick"</code>, que nunca acontece. O mesmo vale para <code>"Click"</code> com maiúscula ou <code>"clik"</code>. <strong>Como consertar:</strong> o nome é <code>"click"</code>, minúsculo e sem "on".</p>
+</div>
+
+<div class="cenario">
+<strong>A função rodou sozinha quando a página abriu</strong>
+<pre class="file" data-file="script.js">botao.addEventListener("click", cumprimentar());
+</pre>
+<p>Também sem erro. Os parênteses <strong>chamaram</strong> a função na hora (seção 2), e o navegador recebeu o resultado dela, <code>undefined</code>, que não é uma função para rodar no clique. <strong>Como consertar:</strong> tire os parênteses: <code>addEventListener("click", cumprimentar)</code>. Se precisar passar um valor para a função, embrulhe numa arrow function: <code>addEventListener("click", () =&gt; cumprimentar("Ana"))</code>.</p>
+</div>
+
+<div class="tryweb" data-goal="console:Bom dia, Ana!;;semerro" data-acoes="clicar #botao">
+<p class="try-task"><strong>Missão:</strong> este script tem dois problemas: um dá erro no Console, o outro falha em silêncio. Conserte os dois até clicar no botão mostrar <code>Bom dia, Ana!</code> no Console da caixa.</p>
+<pre class="script" data-file="index.html">&lt;button id="botao"&gt;Cumprimentar&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const botao = document.querySelector("#botao");
+
+function cumprimentar() {
+  console.log("Bom dia, Ana!");
+}
+
+botao.addEventListner("onclick", cumprimentar);
+</pre>
+<pre class="solucao" data-file="script.js">const botao = document.querySelector("#botao");
+
+function cumprimentar() {
+  console.log("Bom dia, Ana!");
+}
+
+botao.addEventListener("click", cumprimentar);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>el.addEventListener("click", funcao)</code></td><td>Roda <code>funcao</code> a cada clique em <code>el</code></td></tr>
+<tr><td><code>el.addEventListener("click", () =&gt; { … })</code></td><td>O mesmo, com a função escrita ali</td></tr>
+<tr><td><code>el.addEventListener("click", f, { once: true })</code></td><td>Roda só no primeiro clique</td></tr>
+<tr><td><code>el.removeEventListener("click", funcao)</code></td><td>Tira o ouvinte (mesmo evento e mesma função)</td></tr>
+<tr><td><code>lista.forEach((el) =&gt; el.addEventListener(…))</code></td><td>Liga o evento em vários elementos</td></tr>
+<tr><td><code>document.addEventListener("DOMContentLoaded", f)</code></td><td>Roda <code>f</code> quando o HTML terminar de carregar</td></tr>
+<tr><td><code>el.onclick = funcao</code></td><td>Jeito antigo: um ouvinte só por elemento</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of null (reading 'addEventListener')</code></td><td>O <code>querySelector</code> não achou o elemento</td></tr>
+<tr><td><code>… .addEventListner is not a function</code></td><td>Nome do método escrito errado</td></tr>
+<tr><td><code>botoes.addEventListener is not a function</code></td><td>Tentou ligar o evento numa lista (<code>querySelectorAll</code>)</td></tr>
+<tr><td>Clicar não faz nada, sem erro</td><td>Nome do evento errado (<code>"onclick"</code>, <code>"Click"</code>)</td></tr>
+<tr><td>A ação acontece quando a página abre, e não no clique</td><td>Passou <code>funcao()</code> com parênteses</td></tr>
+<tr><td>O contador volta sempre a 1</td><td>A variável foi criada dentro da função do ouvinte</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o combinado</h3>
+<p>Complete para rodar a função <code>abrir</code> quando clicarem no <code>botao</code>:</p>
+<div class="ex-code">botao.<input data-answer="addEventListener" aria-label="método"> ("<input data-answer="click" aria-label="nome do evento">", <input data-answer="abrir" aria-label="a função">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual evento?</h3>
+<p>Qual evento acontece a <strong>cada letra</strong> digitada ou apagada num campo de texto?</p>
+<div class="ex-code">O evento <input data-answer="input|&quot;input&quot;" aria-label="nome do evento">.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A página tem <code>botao.addEventListener("click", avisar())</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> O aviso aparece a cada clique</label>
+<label><input type="radio" name="q3"> O aviso aparece uma vez quando a página abre, e o clique não faz nada</label>
+<label><input type="radio" name="q3"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q3"> O aviso nunca aparece</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas é uma vantagem do <code>addEventListener</code> sobre o <code>el.onclick = …</code>?</p>
+<label><input type="radio" name="q4"> Ele é mais curto de escrever</label>
+<label><input type="radio" name="q4"> Ele funciona no Node.js</label>
+<label><input type="radio" name="q4"> Ele roda a função antes do clique</label>
+<label><input type="radio" name="q4"> Aceita vários ouvintes no mesmo evento, sem um apagar o outro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Um <code>console.log("A")</code> está fora do ouvinte, e um <code>console.log("B")</code> dentro do ouvinte do clique. A pessoa abre a página e clica duas vezes. O que o Console mostra?</p>
+<label><input type="radio" name="q5"> A, B, B</label>
+<label><input type="radio" name="q5"> B, B, A</label>
+<label><input type="radio" name="q5"> A, B, A, B</label>
+<label><input type="radio" name="q5"> A</label>
+</div>
+
+<h3>Missão final: o placar do jogo</h3>
+
+<div class="tryweb" data-goal="texto:#placar~Casa 2 x 1 Visitante;;semerro" data-acoes="clicar #golCasa;;clicar #golVisitante;;clicar #golCasa">
+<p class="try-task"><strong>Missão:</strong> a Ana está marcando o placar do futebol do bairro. Faça cada botão somar um gol no seu time e atualizar o parágrafo <code>#placar</code> no formato <code>Casa 2 x 1 Visitante</code>. Dica: escreva uma função <code>mostrar()</code> que atualiza o placar e chame-a dentro dos dois ouvintes.</p>
+<pre class="script" data-file="index.html">&lt;p id="placar"&gt;Casa 0 x 0 Visitante&lt;/p&gt;
+&lt;button id="golCasa"&gt;Gol da Casa&lt;/button&gt;
+&lt;button id="golVisitante"&gt;Gol do Visitante&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const placar = document.querySelector("#placar");
+let casa = 0;
+let visitante = 0;
+
+function mostrar() {
+  placar.textContent = `Casa ${casa} x ${visitante} Visitante`;
+}
+
+// ligue os dois botões aqui
+</pre>
+<pre class="solucao" data-file="script.js">const placar = document.querySelector("#placar");
+let casa = 0;
+let visitante = 0;
+
+function mostrar() {
+  placar.textContent = `Casa ${casa} x ${visitante} Visitante`;
+}
+
+document.querySelector("#golCasa").addEventListener("click", () =&gt; {
+  casa += 1;
+  mostrar();
+});
+
+document.querySelector("#golVisitante").addEventListener("click", () =&gt; {
+  visitante += 1;
+  mostrar();
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>evento</strong> é algo que acontece na página: clique, tecla, digitação, mouse. A página fica esperando por eles.</li>
+  <li><code>elemento.addEventListener("evento", função)</code> registra o combinado: a função roda <strong>a cada vez</strong> que o evento acontece, chamada pelo navegador.</li>
+  <li>Entregue a função <strong>sem parênteses</strong> (<code>cumprimentar</code>); com parênteses ela roda na hora, e o clique fica sem ação.</li>
+  <li>Os mais usados: <code>click</code>, <code>input</code>, <code>change</code>, <code>keydown</code>, <code>mouseenter</code>/<code>mouseleave</code>, <code>submit</code>, <code>DOMContentLoaded</code>. O nome vai sem "on".</li>
+  <li>Variáveis que precisam lembrar valores entre um evento e outro ficam <strong>fora</strong> da função.</li>
+  <li>Para vários elementos, <code>querySelectorAll</code> + <code>forEach</code>. Para tirar, <code>removeEventListener</code> com a mesma função, ou <code>{ once: true }</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
