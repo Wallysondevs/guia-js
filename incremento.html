@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Incremento e Decremento — os operadores ++ e -- | Guia JavaScript</title>
+<meta name="description" content="Os operadores ++ e -- do JavaScript para quem nunca programou: somar e tirar 1 de uma variável, contadores, a diferença entre x++ e ++x (o valor que cada um devolve), o ++ no laço for, e os erros reais do Node.js 24 (Assignment to constant variable, Invalid left-hand side expression in postfix operation, pontos = pontos++).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Incremento e Decremento</span></h1>
+
+<p class="intro">Contar é uma das coisas que os programas mais fazem: quantas pessoas visitaram o site, quantas vidas sobram no jogo, em que volta do laço estamos. Contar é somar 1, de novo e de novo. É tão comum que o JavaScript tem dois operadores só para isso: o <code>++</code>, que <strong>soma 1</strong> (o <strong>incremento</strong>), e o <code>--</code>, que <strong>tira 1</strong> (o <strong>decremento</strong>).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que <code>contador++</code> e <code>contador--</code> fazem, e a que eles equivalem.</li>
+  <li>Como usar os dois em contadores do dia a dia: visitas, vidas, senhas.</li>
+  <li>A diferença entre <code>x++</code> (depois) e <code>++x</code> (antes), e quando ela importa.</li>
+  <li>Onde você mais vai ver o <code>++</code>: o laço <code>for</code>.</li>
+  <li>Os erros reais: <code>++</code> numa <code>const</code>, num número escrito, e o <code>pontos = pontos++</code> que não soma nada.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o contador de mão</h2>
+<p>Na porta de uma festa, o segurança segura um <strong>contador de mão</strong>, aquele aparelhinho de metal com um botão. Cada pessoa que entra, ele aperta o botão uma vez: <em>clic</em>, o número sobe 1. Ele não faz conta nenhuma, não precisa saber quantas pessoas já entraram: só aperta. Alguns contadores têm um segundo botão, que <strong>diminui</strong> 1, para quando alguém sai.</p>
+<p>O <code>++</code> é o botão de subir, e o <code>--</code> é o botão de descer. Você só diz <strong>qual variável</strong>, e ela ganha ou perde 1.</p>
+
+<hr>
+
+<h2>1. <code>++</code> soma 1, <code>--</code> tira 1</h2>
+
+<pre class="file" data-file="contador.js">let visitas = 0;
+visitas++;
+console.log(visitas);
+visitas++;
+visitas++;
+console.log(visitas);
+visitas--;
+console.log(visitas);
+</pre>
+
+<dl class="anatomy">
+  <dt>let visitas = 0;</dt><dd>O contador começa em zero. Tem de ser <code>let</code>, porque o valor vai mudar (veja <a href="variaveis.html">Variáveis</a>).</dd>
+  <dt>visitas++;</dt><dd>"Some 1 às visitas". Lê-se "visitas mais mais". Os dois sinais vão <strong>colados</strong> um no outro e na variável.</dd>
+  <dt>visitas++; visitas++;</dt><dd>Mais dois cliques: de 1 para 3.</dd>
+  <dt>visitas--;</dt><dd>"Tire 1 das visitas": de 3 para 2.</dd>
+</dl>
+
+<pre class="term">$ node contador.js
+1
+3
+2
+</pre>
+
+<p>O <code>++</code> faz a mesma coisa que as formas que você viu na aula <a href="atribuicao.html">Atribuição</a>, só que mais curta:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Por extenso</th><th>Com atalho de atribuição</th><th>Com incremento</th></tr>
+<tr><td><code>visitas = visitas + 1;</code></td><td><code>visitas += 1;</code></td><td><code>visitas++;</code></td></tr>
+<tr><td><code>visitas = visitas - 1;</code></td><td><code>visitas -= 1;</code></td><td><code>visitas--;</code></td></tr>
+</table>
+</div>
+
+<p>Repare que o <code>++</code> só serve para <strong>1</strong>. Para somar 2, 5 ou 10, use o <code>+=</code>: <code>pontos += 10;</code>.</p>
+
+<h3>No jogo: as vidas</h3>
+
+<pre class="file" data-file="vidas.js">let vidas = 3;
+console.log(`Vidas: ${vidas}`);
+vidas--;
+console.log(`Perdeu uma! Vidas: ${vidas}`);
+vidas--;
+console.log(`Perdeu outra! Vidas: ${vidas}`);
+vidas++;
+console.log(`Ganhou uma! Vidas: ${vidas}`);
+</pre>
+
+<pre class="term">$ node vidas.js
+Vidas: 3
+Perdeu uma! Vidas: 2
+Perdeu outra! Vidas: 1
+Ganhou uma! Vidas: 2
+</pre>
+
+<div class="tryjs" data-goal="out:Vidas: 0;;src:--">
+<p class="try-task"><strong>Missão:</strong> o personagem começa com 3 vidas. Acrescente as linhas com <code>--</code> que faltam para ele perder <strong>todas</strong> as vidas, e o programa mostrar <code>Vidas: 0</code>.</p>
+<pre class="script" data-file="main.js">let vidas = 3;
+vidas--;
+console.log(`Vidas: ${vidas}`);
+</pre>
+<pre class="solucao" data-file="main.js">let vidas = 3;
+vidas--;
+vidas--;
+vidas--;
+console.log(`Vidas: ${vidas}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Antes ou depois: <code>x++</code> × <code>++x</code></h2>
+<p>O <code>++</code> pode ficar <strong>depois</strong> da variável (<code>x++</code>) ou <strong>antes</strong> (<code>++x</code>). Nos dois casos, a variável ganha 1. A diferença está no <strong>valor que a expressão devolve</strong> naquele instante, e ela só aparece quando você usa o <code>++</code> dentro de outra coisa (uma atribuição, um <code>console.log</code>, uma conta).</p>
+
+<pre class="file" data-file="posicao.js">let a = 5;
+const b = a++;
+console.log(`a = ${a}, b = ${b}`);
+let c = 5;
+const d = ++c;
+console.log(`c = ${c}, d = ${d}`);
+</pre>
+
+<pre class="term">$ node posicao.js
+a = 6, b = 5
+c = 6, d = 6
+</pre>
+
+<dl class="anatomy">
+  <dt>const b = a++;</dt><dd><strong>Pós-incremento</strong> (o <code>++</code> vem depois): "entregue o valor atual de <code>a</code> e <strong>depois</strong> some 1". O <code>b</code> recebeu o 5 antigo; o <code>a</code> virou 6.</dd>
+  <dt>const d = ++c;</dt><dd><strong>Pré-incremento</strong> (o <code>++</code> vem antes): "some 1 <strong>antes</strong> e entregue o valor novo". O <code>c</code> virou 6, e o <code>d</code> recebeu esse 6.</dd>
+</dl>
+
+<p>No modo interativo do Node (veja <a href="repl.html">O Modo Interativo</a>), dá para ver o valor que cada forma devolve, um passo de cada vez:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; let x = 5
+undefined
+&gt; x++
+5
+&gt; x
+6
+&gt; ++x
+7
+&gt; x
+7
+&gt; x--
+7
+&gt; x
+6
+&gt; .exit
+</pre>
+
+<p>O <code>x++</code> respondeu <strong>5</strong> (o valor de antes), mas logo depois o <code>x</code> já valia 6. O <code>++x</code> respondeu <strong>7</strong>, o valor novo, na hora. O <code>--</code> segue a mesma regra: <code>x--</code> respondeu 7 e só depois o <code>x</code> virou 6.</p>
+
+<h3>Um uso do <code>x++</code>: a senha da fila</h3>
+<p>Na padaria, a máquina de senhas entrega o número atual e já avança para o próximo. É exatamente o pós-incremento:</p>
+
+<pre class="file" data-file="senha.js">let senha = 1;
+console.log(`Senha ${senha++}`);
+console.log(`Senha ${senha++}`);
+console.log(`Senha ${senha++}`);
+console.log(`Próxima: ${senha}`);
+</pre>
+
+<pre class="term">$ node senha.js
+Senha 1
+Senha 2
+Senha 3
+Próxima: 4
+</pre>
+
+<p>Funciona e é curto, mas exige que quem lê saiba a regra do "depois". Na dúvida, separe em duas linhas: <code>console.log(`Senha ${senha}`);</code> e <code>senha++;</code>. O resultado é o mesmo, e ninguém precisa pensar.</p>
+
+<div class="tip">
+<strong>A regra prática do guia</strong>
+<p>Use o <code>++</code> e o <code>--</code> <strong>sozinhos na linha</strong> (<code>visitas++;</code>) ou no <code>for</code>. Assim, tanto faz <code>x++</code> ou <code>++x</code>: o resultado é igual, e a diferença desta seção nunca te pega. O costume mais comum é o <code>x++</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:Senha 1\nSenha 2\nSenha 3\nSenha 4\nPróxima: 5">
+<p class="try-task"><strong>Experimente:</strong> este programa usou <code>++senha</code> (antes) e por isso a fila começa na senha 2. Troque para <code>senha++</code> (depois) nas quatro linhas para a fila começar na 1 e a próxima ser a 5.</p>
+<pre class="script" data-file="main.js">let senha = 1;
+console.log(`Senha ${++senha}`);
+console.log(`Senha ${++senha}`);
+console.log(`Senha ${++senha}`);
+console.log(`Senha ${++senha}`);
+console.log(`Próxima: ${senha}`);
+</pre>
+<pre class="solucao" data-file="main.js">let senha = 1;
+console.log(`Senha ${senha++}`);
+console.log(`Senha ${senha++}`);
+console.log(`Senha ${senha++}`);
+console.log(`Senha ${senha++}`);
+console.log(`Próxima: ${senha}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Onde o <code>++</code> mais aparece: o laço <code>for</code></h2>
+<p>O lugar mais famoso do <code>++</code> é o laço <code>for</code>, que repete um bloco de código contando as voltas. O <code>i++</code> no fim da primeira linha é o "aperte o contador" de cada volta. O <code>for</code> tem aula própria (<a href="for.html">for</a>); aqui, repare só no <code>i++</code>:</p>
+
+<pre class="file" data-file="for.js">for (let i = 1; i &lt;= 3; i++) {
+  console.log(`Volta ${i}`);
+}
+</pre>
+
+<pre class="term">$ node for.js
+Volta 1
+Volta 2
+Volta 3
+</pre>
+
+<p>O <code>i</code> começa em 1; depois de cada volta, o <code>i++</code> soma 1; quando ele passa de 3, o laço para. Para contar para trás, o mesmo laço usa <code>i--</code>. O nome <code>i</code> (de "índice") é uma tradição para contadores de laço.</p>
+
+<hr>
+
+<h2>4. Com outros tipos de valor</h2>
+<p>O <code>++</code> funciona com qualquer número, inteiro ou não. E, diferente do <code>+=</code>, ele <strong>sempre converte para número</strong> antes de somar:</p>
+
+<pre class="file" data-file="texto.js">let quantidade = "5";
+quantidade++;
+console.log(quantidade, typeof quantidade);
+let preco = 1.5;
+preco++;
+console.log(preco);
+let nada;
+nada++;
+console.log(nada);
+let nulo = null;
+nulo++;
+console.log(nulo);
+</pre>
+
+<pre class="term">$ node texto.js
+6 number
+2.5
+NaN
+1
+</pre>
+
+<dl class="anatomy">
+  <dt>quantidade++ com "5" → 6, number</dt><dd>O texto <code>"5"</code> virou o número 5 e ganhou 1. Com <code>quantidade += 1</code>, o resultado seria o texto <code>"51"</code> (veja <a href="conversao-automatica.html">Conversão Automática</a>). Mesmo assim, não conte com isso: converta antes, com <code>Number()</code>.</dd>
+  <dt>preco++ com 1.5 → 2.5</dt><dd>Soma 1 a qualquer número, com casas decimais ou não.</dd>
+  <dt>nada++ → NaN</dt><dd>Uma variável sem valor é <code>undefined</code>, e <code>undefined</code> mais 1 é <code>NaN</code>. Contador sempre começa com valor: <code>let nada = 0;</code>.</dd>
+  <dt>nulo++ → 1</dt><dd>O <code>null</code> vira 0 numa conta (veja <a href="null-undefined.html">null e undefined</a>), e 0 + 1 = 1.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>contador++;</code></td><td>Somar 1, sozinho na linha. A forma mais comum</td></tr>
+<tr><td><code>++contador;</code></td><td>Igual ao de cima quando está sozinho na linha. Menos comum</td></tr>
+<tr><td><code>contador += 1;</code></td><td>Igual também; útil se o 1 pode virar outro número depois (<code>+= passo</code>)</td></tr>
+<tr><td><code>contador = contador + 1;</code></td><td>Por extenso. Ótimo para entender; repetitivo no dia a dia</td></tr>
+<tr><td><code>console.log(senha++)</code></td><td>Usar o valor e avançar na mesma linha. Curto, mas exige atenção; prefira duas linhas</td></tr>
+<tr><td><code>for (let i = 0; i &lt; 10; i++)</code></td><td>O passo do laço <code>for</code>: aqui o <code>++</code> é o padrão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>++</code> numa <code>const</code></strong>
+<pre class="file" data-file="constante.js">const contador = 0;
+contador++;
+</pre>
+<pre class="term">$ node constante.js
+/home/ana/constante.js:2
+contador++;
+        ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constante.js:2:9)
+    …  « mais 7 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/constante.js:2</dt><dd>O arquivo e a linha: a 2.</dd>
+  <dt>contador++; e o ^</dt><dd>O <code>^</code> aponta para o <code>++</code>.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Erro de tipo: atribuição a uma variável constante". O <code>++</code> é uma atribuição disfarçada (<code>contador = contador + 1</code>), e uma <code>const</code> não pode receber valor novo (veja <a href="const.html">Constantes</a>).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/constante.js:2:9)</dt><dd>Linha 2, coluna 9: a posição do <code>++</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> contador é sempre <code>let</code>: <code>let contador = 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>++</code> num número escrito</strong>
+<pre class="file" data-file="numero.js">console.log(5++);
+</pre>
+<pre class="term">$ node numero.js
+/home/ana/numero.js:1
+console.log(5++);
+            ^
+
+SyntaxError: Invalid left-hand side expression in postfix operation
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Expressão inválida no lado esquerdo de uma operação pós-fixa" (<em>pós-fixa</em> é a que vem depois, o <code>x++</code>). O <code>++</code> precisa de um lugar onde guardar o resultado, uma variável. O <code>5</code> é só um valor: não dá para "somar 1 no 5 e guardar no 5". Com o <code>++</code> antes (<code>++5</code>), a mensagem fala em <em>prefix operation</em> (operação prefixa). <strong>Como consertar:</strong> para mostrar o número seguinte, faça a conta: <code>console.log(5 + 1);</code>. Para contar, use uma variável.</p>
+</div>
+
+<div class="cenario">
+<strong><code>pontos = pontos++</code>: o incremento que some</strong>
+<pre class="file" data-file="xigual.js">let pontos = 10;
+pontos = pontos++;
+console.log(pontos);
+</pre>
+<pre class="term">$ node xigual.js
+10
+</pre>
+<p>Nenhum erro, e os pontos continuaram 10. Siga a ordem: o <code>pontos++</code> devolve o valor <strong>antigo</strong> (10) e soma 1 (os pontos viram 11); depois, a atribuição guarda aquele 10 devolvido em <code>pontos</code>, apagando o 11. O incremento aconteceu e foi desfeito na mesma linha. <strong>Como consertar:</strong> o <code>++</code> já guarda o resultado sozinho; escreva só <code>pontos++;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>pontos + 1</code> e esperou que mudasse</strong>
+<pre class="file" data-file="maisum.js">let pontos = 10;
+pontos + 1;
+console.log(pontos);
+</pre>
+<pre class="term">$ node maisum.js
+10
+</pre>
+<p>A linha <code>pontos + 1;</code> calcula 11 e joga o resultado fora: não tem <code>=</code> para guardar. Diferente do <code>++</code>, o <code>+</code> sozinho não muda a variável. <strong>Como consertar:</strong> <code>pontos++;</code> ou <code>pontos += 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Separou os dois sinais</strong>
+<pre class="file" data-file="espaco.js">let pontos = 10;
+pontos + +;
+</pre>
+<pre class="term">$ node espaco.js
+/home/ana/espaco.js:2
+pontos + +;
+          ^
+
+SyntaxError: Unexpected token ';'
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Com espaço no meio, já não é o operador <code>++</code>: são dois <code>+</code> separados, e o JavaScript esperava um valor depois do segundo. Encontrou o <code>;</code> ("símbolo <code>;</code> inesperado"). <strong>Como consertar:</strong> os dois sinais colados: <code>pontos++;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>a+++b</code>: o código que confunde</strong>
+<p>O JavaScript aceita <code>a+++b</code>, e lê como <code>(a++) + b</code>. Com <code>a = 2</code> e <code>b = 3</code>, o <code>console.log(a+++b)</code> mostrou <code>5</code> no lab, e o <code>a</code> passou a valer 3. Funciona, mas ninguém consegue ler isso de primeira. <strong>Como consertar:</strong> separe em linhas e use espaços: <code>const soma = a + b;</code> e depois <code>a++;</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Pessoas na festa: 3;;semerro">
+<p class="try-task"><strong>Missão:</strong> o contador da festa tem três problemas: ele dá erro, uma linha "soma" sem guardar, e outra desfaz o próprio incremento. Entraram 4 pessoas e saiu 1. Conserte para mostrar <code>Pessoas na festa: 3</code>.</p>
+<pre class="script" data-file="main.js">const pessoas = 0;
+pessoas++;
+pessoas++;
+pessoas + 1;
+pessoas = pessoas++;
+pessoas--;
+console.log(`Pessoas na festa: ${pessoas}`);
+</pre>
+<pre class="solucao" data-file="main.js">let pessoas = 0;
+pessoas++;
+pessoas++;
+pessoas++;
+pessoas++;
+pessoas--;
+console.log(`Pessoas na festa: ${pessoas}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>A variável fica</th><th>A expressão devolve</th></tr>
+<tr><td><code>x++</code> (com <code>x = 5</code>)</td><td><code>6</code></td><td><code>5</code> (o valor de antes)</td></tr>
+<tr><td><code>++x</code> (com <code>x = 5</code>)</td><td><code>6</code></td><td><code>6</code> (o valor novo)</td></tr>
+<tr><td><code>x--</code> (com <code>x = 5</code>)</td><td><code>4</code></td><td><code>5</code></td></tr>
+<tr><td><code>--x</code> (com <code>x = 5</code>)</td><td><code>4</code></td><td><code>4</code></td></tr>
+<tr><td><code>x++;</code> sozinho na linha</td><td>+1</td><td>(não importa)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td><code>++</code> ou <code>--</code> numa <code>const</code>: use <code>let</code></td></tr>
+<tr><td><code>Invalid left-hand side expression in postfix operation</code></td><td><code>++</code> num valor que não é variável (<code>5++</code>)</td></tr>
+<tr><td><code>Unexpected token</code> perto do <code>+ +</code></td><td>Espaço no meio do <code>++</code></td></tr>
+<tr><td>A variável não muda</td><td><code>x = x++</code>, ou <code>x + 1;</code> sem <code>=</code></td></tr>
+<tr><td><code>NaN</code> no contador</td><td>O contador não tinha valor inicial</td></tr>
+<tr><td>A contagem começa 1 número adiantada</td><td><code>++x</code> onde era para ser <code>x++</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para tirar 1 das vidas:</p>
+<div class="ex-code">vidas<input data-answer="--" aria-label="operador">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale?</h3>
+<p>Quanto vale <code>n</code> no fim? <code>let n = 10;</code> <code>n++;</code> <code>n++;</code> <code>n--;</code></p>
+<div class="ex-code"><input data-answer="11" aria-label="valor de n"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Antes ou depois?</h3>
+<p><code>let a = 3;</code> <code>const b = a++;</code> Quanto vale <code>b</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="valor de b"></div>
+</div>
+
+<div class="exercise">
+<h3>4. E agora?</h3>
+<p><code>let a = 3;</code> <code>const b = ++a;</code> Quanto vale <code>b</code>?</p>
+<div class="ex-code"><input data-answer="4" aria-label="valor de b"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas linhas <strong>não</strong> soma 1 a <code>total</code>?</p>
+<label><input type="radio" name="q5"> <code>total++;</code></label>
+<label><input type="radio" name="q5"> <code>total += 1;</code></label>
+<label><input type="radio" name="q5"> <code>total + 1;</code></label>
+<label><input type="radio" name="q5"> <code>total = total + 1;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Para somar <strong>5</strong> de uma vez a <code>pontos</code>, qual é o certo?</p>
+<label><input type="radio" name="q6"> <code>pontos+++++;</code></label>
+<label><input type="radio" name="q6"> <code>pontos += 5;</code></label>
+<label><input type="radio" name="q6"> <code>pontos++5;</code></label>
+<label><input type="radio" name="q6"> <code>pontos ++ 5;</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. O que <code>let p = 7; p = p++; console.log(p);</code> mostra?</p>
+<label><input type="radio" name="q7"> <code>8</code></label>
+<label><input type="radio" name="q7"> <code>6</code></label>
+<label><input type="radio" name="q7"> Um erro</label>
+<label><input type="radio" name="q7"> <code>7</code></label>
+</div>
+
+<h3>Missão final: a contagem regressiva</h3>
+
+<div class="tryjs" data-goal="outre:3\n2\n1\nJá!;;src:--">
+<p class="try-task"><strong>Missão:</strong> complete a contagem regressiva do lançamento do foguete. Entre cada <code>console.log(contagem)</code>, use o <code>--</code> para diminuir a contagem. O programa deve mostrar <code>3</code>, <code>2</code>, <code>1</code> e <code>Já!</code>, um por linha.</p>
+<pre class="script" data-file="main.js">let contagem = 3;
+console.log(contagem);
+// diminua aqui
+console.log(contagem);
+// e aqui
+console.log(contagem);
+console.log("Já!");
+</pre>
+<pre class="solucao" data-file="main.js">let contagem = 3;
+console.log(contagem);
+contagem--;
+console.log(contagem);
+contagem--;
+console.log(contagem);
+console.log("Já!");
+</pre>
+</div>
+
+<p>Três linhas quase iguais, repetidas: é o tipo de coisa que um laço faz por você. Na aula <a href="for.html">for</a>, a mesma contagem cabe em três linhas, com o <code>--</code> no lugar de sempre: <code>for (let i = 3; i &gt;= 1; i--)</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>x++</code> soma 1 à variável e <code>x--</code> tira 1. É o mesmo que <code>x += 1</code> e <code>x -= 1</code>, mais curto. Para outros valores, use <code>+=</code> e <code>-=</code>.</li>
+  <li>Os dois sinais vão colados e a variável tem de ser <code>let</code> (numa <code>const</code>: <code>Assignment to constant variable.</code>). Num valor solto, como <code>5++</code>, é erro de sintaxe.</li>
+  <li><code>x++</code> devolve o valor <strong>de antes</strong>; <code>++x</code> devolve o valor <strong>novo</strong>. A diferença só aparece quando o <code>++</code> está dentro de outra coisa.</li>
+  <li>Use o <code>++</code> sozinho na linha ou no passo do <code>for</code> (<code>i++</code>), e a diferença nunca vai te pegar. Nunca escreva <code>x = x++</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
