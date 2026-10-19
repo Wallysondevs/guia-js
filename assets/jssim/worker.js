@@ -2101,7 +2101,7 @@
     if (!replBuffer && /^\s*\.\w/.test(l)) {
       var cmd = l.trim().split(/\s+/)[0];
       if (cmd === ".exit") { sair(0); throw SAIR; }
-      if (cmd === ".help") { escrever("out", ".break    Sometimes you get stuck, this gets you out\n.clear    Alias for .break\n.editor   Enter editor mode\n.exit     Exit the REPL\n.help     Print this help message\n.load     Load JS from a file into the REPL session\n.save     Save all evaluated commands in this REPL session to a file\n\nPress Ctrl+C to abort current expression, Ctrl+D to exit the REPL\n"); promptRepl(); return; }
+      if (cmd === ".help") { escrever("out", ".break    Sometimes you get stuck, this gets you out\n.clear    Alias for .break\n.exit     Exit the REPL\n.help     Print this help message\n\nPress Ctrl+C to abort current expression, Ctrl+D to exit the REPL\n"); promptRepl(); return; }
       if (cmd === ".break" || cmd === ".clear") { replBuffer = ""; promptRepl(); return; }
       escrever("out", "Invalid REPL keyword\n"); promptRepl(); return;
     }

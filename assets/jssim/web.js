@@ -161,9 +161,45 @@
     if (this.opc.aoConsole) this.opc.aoConsole(tipo, txt);
   };
   Pagina.prototype.texto = function () { return this.linhas.map(function (l) { return l.txt; }).join("\n"); };
+  // localStorage/sessionStorage do quadro: só as chaves "tryweb:…" do site do guia (um clear() na
+  // caixa não apaga o tema do leitor); os dados ficam guardados entre um Rodar e outro, como num site
+  var PREFIXO = "tryweb:";
+  function armazenamento(win, real) {
+    function chaves() { var r = []; for (var i = 0; i < real.length; i++) { var k = real.key(i); if (k !== null && k.indexOf(PREFIXO) === 0) r.push(k.slice(PREFIXO.length)); } return r; }
+    var metodos = {
+      getItem: function getItem(k) { return real.getItem(PREFIXO + String(k)); },
+      setItem: function setItem(k, v) { real.setItem(PREFIXO + String(k), String(v)); },
+      removeItem: function removeItem(k) { real.removeItem(PREFIXO + String(k)); },
+      clear: function clear() { chaves().forEach(function (k) { real.removeItem(PREFIXO + k); }); },
+      key: function key(i) { var c = chaves(); return i >= 0 && i < c.length ? c[i] : null; },
+    };
+    var alvo = Object.create(win.Storage ? win.Storage.prototype : Object.prototype);
+    return new Proxy(alvo, {
+      get: function (t, k) {
+        if (k === "length") return chaves().length;
+        if (typeof k === "symbol") return k === Symbol.toStringTag ? "Storage" : undefined;
+        if (Object.prototype.hasOwnProperty.call(metodos, k)) return metodos[k];
+        var v = real.getItem(PREFIXO + k);
+        return v === null ? (k in Object.prototype ? Object.prototype[k] : undefined) : v;
+      },
+      set: function (t, k, v) { if (typeof k === "string") real.setItem(PREFIXO + k, String(v)); return true; },
+      deleteProperty: function (t, k) { if (typeof k === "string") real.removeItem(PREFIXO + k); return true; },
+      has: function (t, k) { return typeof k === "string" && (real.getItem(PREFIXO + k) !== null || k in metodos || k === "length"); },
+      ownKeys: function () { return chaves(); },
+      getOwnPropertyDescriptor: function (t, k) { var v = typeof k === "string" ? real.getItem(PREFIXO + k) : null; return v === null ? undefined : { value: v, writable: true, enumerable: true, configurable: true }; },
+    });
+  }
+  function limparArmazenamento() {
+    [window.localStorage, window.sessionStorage].forEach(function (real) {
+      try { for (var i = real.length - 1; i >= 0; i--) { var k = real.key(i); if (k && k.indexOf(PREFIXO) === 0) real.removeItem(k); } } catch (e) {}
+    });
+  }
   Pagina.prototype.ligar = function (win) {
     var self = this;
     this.win = win;
+    ["localStorage", "sessionStorage"].forEach(function (nome) {
+      try { var real = window[nome]; Object.defineProperty(win, nome, { value: armazenamento(win, real), configurable: true, enumerable: true }); } catch (e) {}
+    });
     var c = win.console;
     ["log", "info", "warn", "error", "debug", "dir", "table", "trace", "assert", "count", "group", "groupEnd", "time", "timeEnd"].forEach(function (t) {
       var orig = c[t];
@@ -288,6 +324,7 @@
   // roda as abas numa página escondida, faz as ações e confere as metas
   JsSim.testarWeb = function (abas, opc) {
     opc = opc || {};
+    limparArmazenamento(); // o testador começa cada execução sem dados guardados
     var host = el("div", { style: "position:absolute;left:-10000px;top:0;width:800px;height:600px;overflow:hidden" });
     document.body.appendChild(host);
     var pg = new Pagina(host, abas, { respostas: respostasDe(opc.acoes) });
@@ -377,6 +414,7 @@
         if (qual === "solucao" && solucao) ed.aplicarSolucao(); else ed.restaurar();
         cumprida = false;
         if (status) { status.textContent = "Missão em andamento…"; status.className = "sim-status"; }
+        limparArmazenamento();
         api.testando = true;
         return api.rodar().then(function () {
           return dividirAcoes(acoes).reduce(function (p, a) { return p.then(function () { return executarAcao(pg, a); }); }, Promise.resolve()).then(function () { return esperar(200); }).then(function () {

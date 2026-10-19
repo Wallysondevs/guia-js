@@ -11,7 +11,7 @@
 (function () {
   "use strict";
   var NODE_VERSAO = "v24.22.0";
-  var VERSAO_ARQS = "2026-10-19c"; // MUDE a cada mudança no worker/inspect/web.js (o navegador guarda os arquivos em cache)
+  var VERSAO_ARQS = "2026-10-19e"; // MUDE a cada mudança no worker/inspect/web.js (o navegador guarda os arquivos em cache)
   var TEMPO_MAX = 10000;      // ms rodando sem parar (sem contar a espera pelo teclado)
   var MAX_LINHAS = 3000;      // linhas mostradas no terminal (o resto é resumido)
   var JsSim = { TEMPO_MAX: TEMPO_MAX, NODE: NODE_VERSAO };
