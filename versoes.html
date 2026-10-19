@@ -238,7 +238,7 @@ console.log(`Total: ${total}`);
 </pre>
 </div>
 
-<p>(O editor do guia usa o motor do <strong>seu</strong> navegador: dependendo dele, o <code>Math.sumPrecise</code> pode existir ou não aí. A detecção funciona nos dois casos; por isso a missão usa números que dão o mesmo total nos dois caminhos.)</p>
+<p>(O editor do guia usa o motor do <strong>seu</strong> navegador, mas imita o Node 24: mesmo que o seu Chrome já tenha o <code>Math.sumPrecise</code>, o editor o esconde, e a caixa dá o mesmo <code>TypeError</code> do lab. Fora do editor, num navegador novo, ele pode existir. A detecção funciona nos dois casos; por isso a missão usa números que dão o mesmo total nos dois caminhos.)</p>
 
 <hr>
 
