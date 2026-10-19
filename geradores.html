@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Geradores — function* e yield | Guia JavaScript</title>
+<meta name="description" content="Geradores no JavaScript para quem nunca programou: function* e yield, a função que pausa e continua, o objeto gerador e o next(), um intervalo de números em 3 linhas, a sequência infinita de senhas com break e take, o gerador como Symbol.iterator, yield*, o return do gerador, e os erros reais do Node.js 24 (yield sem a estrela, yield dentro do forEach, arrow function com estrela, o gerador que nunca roda).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Geradores</span></h1>
+
+<p class="intro">Uma função comum roda do começo ao fim de uma vez só, e devolve <strong>um</strong> resultado. Um <strong>gerador</strong> é uma função que sabe <strong>pausar</strong>: entrega um valor, para, espera alguém pedir o próximo, continua de onde parou, entrega outro… Na aula <a href="iteradores.html">Iteradores</a>, você escreveu um <code>next()</code> na mão, com <code>{ value, done }</code> e uma variável para lembrar onde parou. Com um gerador, o JavaScript faz esse trabalho todo por você.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um gerador: <code>function*</code> (com estrela) e <code>yield</code> ("entregar").</li>
+  <li>Por que chamar um gerador <strong>não roda</strong> nada, e como o <code>next()</code> faz ele andar até o próximo <code>yield</code>.</li>
+  <li>Como usar geradores no <code>for … of</code> e no <code>...</code>: um intervalo de números em 3 linhas.</li>
+  <li>Sequências <strong>infinitas</strong> (uma máquina de senhas que nunca acaba) e como pegar só um pedaço delas.</li>
+  <li>O gerador como <code>[Symbol.iterator]</code> de um objeto seu, o <code>yield*</code> e o <code>return</code> do gerador.</li>
+  <li>Os erros reais: o <code>yield</code> sem a estrela, o <code>yield</code> dentro do <code>forEach</code>, a arrow function com estrela e o gerador que nunca roda.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana, com <code>node arquivo.js</code>. Leia antes a aula <a href="iteradores.html">Iteradores</a>: geradores são o jeito fácil de fazer iteradores.</p>
+
+<hr>
+
+<h2>A ideia: o marcador de página</h2>
+<p>A Ana está lendo uma receita comprida em voz alta para a filha, que cozinha. Ela lê um passo e <strong>para</strong>: põe o dedo na linha, espera a filha terminar aquele passo e dizer "próximo!". Aí continua <strong>exatamente de onde o dedo estava</strong>, lê o passo seguinte e para de novo. Quando a receita acaba, ela avisa: "acabou".</p>
+<ul>
+  <li>A receita é a <strong>função geradora</strong>.</li>
+  <li>Cada "leia este passo e pare" é um <code>yield</code>.</li>
+  <li>O dedo na linha é o que o gerador guarda sozinho: <strong>onde parou</strong> e o valor de todas as variáveis.</li>
+  <li>O "próximo!" da filha é o <code>next()</code>.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro gerador: <code>function*</code> e <code>yield</code></h2>
+
+<pre class="file" data-file="primeiro.js">function* cardapio() {
+  yield "Pão de queijo";
+  yield "Café";
+  yield "Bolo de fubá";
+}
+
+const garcom = cardapio();
+console.log(garcom);
+console.log(garcom.next());
+console.log(garcom.next());
+console.log(garcom.next());
+console.log(garcom.next());
+</pre>
+
+<pre class="term">$ node primeiro.js
+Object [Generator] {}
+{ value: 'Pão de queijo', done: false }
+{ value: 'Café', done: false }
+{ value: 'Bolo de fubá', done: false }
+{ value: undefined, done: true }
+</pre>
+
+<dl class="anatomy">
+  <dt>function*</dt><dd>A <strong>estrela</strong> depois de <code>function</code> transforma a função numa <strong>função geradora</strong>. (Também se escreve <code>function *cardapio</code> ou <code>function * cardapio</code>: os espaços não importam, a estrela sim.)</dd>
+  <dt>yield "Pão de queijo"</dt><dd><code>yield</code> quer dizer "entregar", "render". Entrega esse valor para quem pediu e <strong>pausa</strong> a função ali, naquela linha.</dd>
+  <dt>const garcom = cardapio()</dt><dd>Chamar uma função geradora <strong>não roda</strong> o corpo dela. Devolve um <strong>objeto gerador</strong>, que o Node mostra como <code>Object [Generator] {}</code>. É a receita com o dedo posicionado antes da primeira linha.</dd>
+  <dt>garcom.next()</dt><dd>"Próximo!": o gerador roda até o próximo <code>yield</code> e devolve <code>{ value: o que foi entregue, done: false }</code>. É o mesmo formato dos iteradores, porque <strong>o objeto gerador é um iterador</strong>.</dd>
+  <dt>{ value: undefined, done: true }</dt><dd>Na quarta chamada, a função chegou ao fim (o <code>}</code>) sem achar outro <code>yield</code>: acabou.</dd>
+</dl>
+
+<p>Compare com o iterador escrito na mão da aula anterior: aqui não há <code>{ value, done }</code> montado por você, nem variável para lembrar a posição. O <code>yield</code> e a estrela cuidam disso.</p>
+
+<div class="tryjs" data-goal="out:Suco de laranja;;src:yield\s+&quot;Suco de laranja&quot;">
+<p class="try-task"><strong>Missão:</strong> a padaria passou a vender suco. Acrescente um quarto <code>yield</code> no cardápio, com <code>"Suco de laranja"</code>, e mais um <code>console.log(garcom.next());</code> para vê-lo sair.</p>
+<pre class="script" data-file="main.js">function* cardapio() {
+  yield "Pão de queijo";
+  yield "Café";
+  yield "Bolo de fubá";
+}
+
+const garcom = cardapio();
+console.log(garcom.next());
+console.log(garcom.next());
+console.log(garcom.next());
+</pre>
+<pre class="solucao" data-file="main.js">function* cardapio() {
+  yield "Pão de queijo";
+  yield "Café";
+  yield "Bolo de fubá";
+  yield "Suco de laranja";
+}
+
+const garcom = cardapio();
+console.log(garcom.next());
+console.log(garcom.next());
+console.log(garcom.next());
+console.log(garcom.next());
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A função que pausa de verdade</h2>
+<p>O <code>yield</code> não é só um "<code>return</code> repetido". Entre um <code>next()</code> e outro, a função fica <strong>congelada</strong>, e o resto do programa segue a vida. Este gerador escreve mensagens entre os passos, para você ver quando cada pedaço roda:</p>
+
+<pre class="file" data-file="pausa.js">function* receita() {
+  console.log("  (separando os ingredientes)");
+  yield "1. Misture a farinha e o ovo";
+  console.log("  (lavando a tigela)");
+  yield "2. Leve ao forno";
+  console.log("  (desligando o forno)");
+}
+
+const passos = receita();
+console.log("Gerador criado. Nada rodou ainda.");
+console.log(passos.next().value);
+console.log("A cozinheira foi atender o telefone...");
+console.log(passos.next().value);
+console.log(passos.next());
+</pre>
+
+<pre class="term">$ node pausa.js
+Gerador criado. Nada rodou ainda.
+  (separando os ingredientes)
+1. Misture a farinha e o ovo
+A cozinheira foi atender o telefone...
+  (lavando a tigela)
+2. Leve ao forno
+  (desligando o forno)
+{ value: undefined, done: true }
+</pre>
+
+<p>Siga a ordem:</p>
+<ol class="passo">
+  <li><code>receita()</code> criou o gerador, mas o <code>(separando os ingredientes)</code> <strong>não</strong> apareceu: o corpo ainda não rodou.</li>
+  <li>O primeiro <code>next()</code> rodou o corpo até o primeiro <code>yield</code>: mostrou <code>(separando…)</code> e entregou o passo 1.</li>
+  <li>O programa principal fez outra coisa (<code>A cozinheira foi atender o telefone...</code>). O gerador ficou parado esperando.</li>
+  <li>O segundo <code>next()</code> continuou <strong>da linha seguinte ao primeiro <code>yield</code></strong>: <code>(lavando a tigela)</code> e o passo 2.</li>
+  <li>O terceiro <code>next()</code> rodou o resto (<code>(desligando o forno)</code>), chegou ao fim da função e respondeu <code>done: true</code>.</li>
+</ol>
+
+<p>Isso é algo que nenhuma função comum consegue: parar no meio, devolver o controle, e depois continuar com todas as variáveis do jeito que estavam.</p>
+
+<hr>
+
+<h2>3. Geradores no <code>for … of</code></h2>
+<p>Como o objeto gerador é um iterador (e também é iterável), ele funciona direto no <a href="for-of.html">for … of</a>, no <code>...</code> e no <code>Array.from</code>. Lembra do intervalo de 1 a 5 da aula de iteradores, com 15 linhas? Com um gerador:</p>
+
+<pre class="file" data-file="intervalo.js">function* intervalo(de, ate) {
+  for (let n = de; n &lt;= ate; n++) {
+    yield n;
+  }
+}
+
+for (const n of intervalo(1, 5)) {
+  console.log(n);
+}
+console.log([...intervalo(10, 13)]);
+</pre>
+
+<pre class="term">$ node intervalo.js
+1
+2
+3
+4
+5
+[ 10, 11, 12, 13 ]
+</pre>
+
+<p>O <code>yield</code> pode ficar dentro de laços, <code>if</code>s, o que for. A cada volta do <code>for</code> interno, o gerador entrega um número e pausa; o <code>for … of</code> de fora pede o próximo; e assim por diante, até o laço interno terminar. Um gerador também pode receber <strong>parâmetros</strong>, como qualquer função: aqui, <code>de</code> e <code>ate</code>.</p>
+
+<div class="tryjs" data-goal="outre:2\n4\n6\n8\n10;;src:yield;;semerro">
+<p class="try-task"><strong>Missão:</strong> escreva o gerador <code>pares(ate)</code>, que entrega os números pares de 2 até <code>ate</code>. Dica: um <code>for</code> que começa em 2 e anda de 2 em 2 (<code>n += 2</code>), com um <code>yield n</code> dentro.</p>
+<pre class="script" data-file="main.js">function* pares(ate) {
+  // escreva aqui
+}
+
+for (const n of pares(10)) {
+  console.log(n);
+}
+</pre>
+<pre class="solucao" data-file="main.js">function* pares(ate) {
+  for (let n = 2; n &lt;= ate; n += 2) {
+    yield n;
+  }
+}
+
+for (const n of pares(10)) {
+  console.log(n);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Sequências infinitas</h2>
+<p>Como o gerador só calcula o próximo valor <strong>quando alguém pede</strong>, ele pode representar uma sequência que nunca acaba, sem travar o computador. A máquina de senhas do açougue, agora sem fim de rolo:</p>
+
+<pre class="file" data-file="senhas.js">function* senhas() {
+  let numero = 1;
+  while (true) {
+    yield `A${String(numero).padStart(3, "0")}`;
+    numero++;
+  }
+}
+
+const maquina = senhas();
+console.log(maquina.next().value);
+console.log(maquina.next().value);
+console.log(maquina.next().value);
+
+console.log(senhas().take(5).toArray());
+
+for (const s of senhas()) {
+  if (s === "A004") break;
+  console.log(`Chamando ${s}`);
+}
+</pre>
+
+<pre class="term">$ node senhas.js
+A001
+A002
+A003
+[ 'A001', 'A002', 'A003', 'A004', 'A005' ]
+Chamando A001
+Chamando A002
+Chamando A003
+</pre>
+
+<dl class="anatomy">
+  <dt>while (true)</dt><dd>Um laço sem fim de propósito. Numa função comum, isso travaria o programa. No gerador, o <code>yield</code> pausa a cada volta, então ele só anda quando alguém pede.</dd>
+  <dt>String(numero).padStart(3, "0")</dt><dd>Completa o número com zeros à esquerda até ter 3 dígitos: <code>1</code> vira <code>"001"</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+  <dt>senhas().take(5).toArray()</dt><dd>Cada <code>senhas()</code> cria uma máquina <strong>nova</strong>, começando do A001. O <code>take(5)</code> ("pegar 5") é um dos ajudantes de iterador <span class="versao">ES2025</span>: pega só os 5 primeiros, e o <code>toArray()</code> junta num array.</dd>
+  <dt>if (s === "A004") break</dt><dd>No <code>for … of</code>, o <a href="break-continue.html">break</a> é a saída. Quando o laço termina com <code>break</code>, o gerador é encerrado, e a máquina para de verdade.</dd>
+</dl>
+
+<div class="warning">
+<strong>Nunca espalhe um gerador infinito</strong>
+<p><code>[...senhas()]</code> ou <code>Array.from(senhas())</code> tentam pegar <strong>todos</strong> os valores, e "todos" não termina nunca. O programa fica travado, comendo memória. A Ana testou com um limite de 5 segundos (o comando <code>timeout 5</code>):</p>
+<pre class="term">$ timeout 5 node infinito.js; echo "código de saída: $?"
+código de saída: 124
+</pre>
+<p>Nenhuma saída: o <code>timeout</code> teve de matar o programa depois de 5 segundos (o código 124 é o jeito do <code>timeout</code> dizer "eu interrompi"). Com sequências infinitas, use sempre <code>break</code>, <code>take</code> ou chamadas de <code>next()</code> contadas.</p>
+</div>
+
+<hr>
+
+<h2>5. O gerador como <code>[Symbol.iterator]</code></h2>
+<p>O uso mais prático dos geradores é tornar um objeto seu iterável. Basta escrever o método <code>[Symbol.iterator]</code> como gerador, com uma estrela na frente do nome:</p>
+
+<pre class="file" data-file="turma.js">const turma = {
+  nome: "5º ano B",
+  alunos: ["Ana", "Bia", "Caio"],
+  *[Symbol.iterator]() {
+    for (const aluno of this.alunos) {
+      yield aluno;
+    }
+  },
+};
+console.log([...turma]);
+</pre>
+
+<pre class="term">$ node turma.js
+[ 'Ana', 'Bia', 'Caio' ]
+</pre>
+
+<p>O <code>*[Symbol.iterator]() { … }</code> é um método gerador dentro de um objeto (a estrela vem antes do nome). Em classes, é igual: <code>*[Symbol.iterator]() { … }</code> dentro da <a href="classes.html">classe</a>. Ao contrário de devolver o iterador do array (como na missão de <a href="iteradores.html">Iteradores</a>), aqui você controla o que sai: pode filtrar, transformar, juntar listas.</p>
+
+<h3>Entregando outro iterável inteiro: <code>yield*</code></h3>
+<p>O <code>yield*</code> (com estrela) entrega, um por um, todos os itens de outro iterável, como se você escrevesse um <code>for … of</code> com <code>yield</code> dentro:</p>
+
+<pre class="file" data-file="tudo.js">function* tudo() {
+  yield "começo";
+  yield* ["a", "b"];
+  yield* "xy";
+  yield "fim";
+}
+console.log([...tudo()]);
+</pre>
+
+<pre class="term">$ node tudo.js
+[ 'começo', 'a', 'b', 'x', 'y', 'fim' ]
+</pre>
+
+<p>Por isso o método da turma também poderia ser só <code>*[Symbol.iterator]() { yield* this.alunos; }</code>.</p>
+
+<h3>E o <code>return</code> num gerador?</h3>
+<p>Um <code>return</code> termina o gerador. O valor dele aparece no <code>next()</code> que encerrou, junto com <code>done: true</code>, mas o <code>for … of</code> e o <code>...</code> <strong>ignoram</strong> esse valor:</p>
+
+<pre class="file" data-file="retorno.js">function* curto() {
+  yield 1;
+  return "acabou";
+}
+const g = curto();
+console.log(g.next());
+console.log(g.next());
+console.log(g.next());
+console.log([...curto()]);
+</pre>
+
+<pre class="term">$ node retorno.js
+{ value: 1, done: false }
+{ value: 'acabou', done: true }
+{ value: undefined, done: true }
+[ 1 ]
+</pre>
+
+<p>O <code>'acabou'</code> só aparece para quem chama <code>next()</code> na mão; o array ficou só com o <code>1</code>. Na prática, use <code>return</code> sem valor (<code>return;</code>) para encerrar um gerador mais cedo, e <code>yield</code> para tudo o que deve sair.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para produzir a sequência 1, 2, 3, 4, 5, há pelo menos três caminhos:</p>
+
+<pre class="file" data-file="formas.js">// 1. um array pronto: todos os valores existem na memória de uma vez
+const lista = [1, 2, 3, 4, 5];
+
+// 2. um iterador escrito na mão (aula Iteradores): next() e { value, done }
+// 3. um gerador: os valores são calculados um por vez, quando pedidos
+function* umAteCinco() {
+  for (let n = 1; n &lt;= 5; n++) yield n;
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Poucos valores, já conhecidos</td><td>Um array</td></tr>
+<tr><td>Uma sequência calculada (intervalo, pares, datas de um mês)</td><td>Um gerador <code>function*</code></td></tr>
+<tr><td>Uma sequência infinita ou muito grande</td><td>Um gerador, com <code>break</code> ou <code>take</code></td></tr>
+<tr><td>Tornar um objeto seu iterável</td><td><code>*[Symbol.iterator]() { … }</code> com <code>yield</code></td></tr>
+<tr><td>Controle total do protocolo (raro)</td><td>Um iterador na mão, com <code>next()</code></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Geradores e o código assíncrono</strong>
+<p>Antes do <code>async</code>/<code>await</code> existir, geradores eram usados para escrever código que espera (a função pausa no <code>yield</code> e continua quando a resposta chega). Hoje, para isso, use <a href="async-await.html">async e await</a>. Existem também os geradores assíncronos (<code>async function*</code>, percorridos com <code>for await … of</code>), usados para ler dados que chegam aos poucos, como um arquivo grande ou uma resposta da internet.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu a estrela</strong>
+<pre class="file" data-file="sem-estrela.js">function cardapio() {
+  yield "Pão de queijo";
+  yield "Café";
+}
+</pre>
+<pre class="term">$ node sem-estrela.js
+/home/ana/sem-estrela.js:2
+  yield "Pão de queijo";
+        ^^^^^^^^^^^^^^^
+
+SyntaxError: Unexpected string
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    at Module._compile (node:internal/modules/cjs/loader:1903:20)  « mais 6 linhas "at node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/sem-estrela.js:2</dt><dd>O erro está na linha 2, a do primeiro <code>yield</code>.</dd>
+  <dt>^^^^^^^^^^^^^^^</dt><dd>Os <code>^</code> sublinham o texto <code>"Pão de queijo"</code> inteiro.</dd>
+  <dt>SyntaxError: Unexpected string</dt><dd>"Erro de sintaxe: texto inesperado". Numa função <strong>sem</strong> estrela, o <code>yield</code> não é uma palavra especial (fora do modo estrito, ele pode até ser nome de variável). O Node leu <code>yield</code> como um nome solto e não entendeu por que vinha um texto logo depois.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Só linhas internas do Node: é um erro de sintaxe, o programa nem começou a rodar.</dd>
+</dl>
+<p>A mensagem não fala em "estrela" nem em "gerador", e por isso confunde. <strong>Como consertar:</strong> <code>function* cardapio()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs o <code>yield</code> dentro do <code>forEach</code></strong>
+<pre class="file" data-file="callback.js">function* dobros(numeros) {
+  numeros.forEach((n) =&gt; {
+    yield n * 2;
+  });
+}
+</pre>
+<pre class="term">$ node callback.js
+/home/ana/callback.js:3
+    yield n * 2;
+          ^
+
+SyntaxError: Unexpected identifier 'n'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Identificador inesperado <code>'n'</code>". O <code>yield</code> só vale dentro da <strong>própria</strong> função geradora. A arrow function do <code>forEach</code> é <strong>outra</strong> função, comum, sem estrela: lá dentro o <code>yield</code> volta a ser um nome qualquer. <strong>Como consertar:</strong> troque o <code>forEach</code> por um <code>for … of</code>, que não cria função nova: <code>for (const n of numeros) { yield n * 2; }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou fazer uma arrow function geradora</strong>
+<pre class="file" data-file="seta.js">const contar = *() =&gt; {
+  yield 1;
+};
+</pre>
+<pre class="term">$ node seta.js
+/home/ana/seta.js:1
+const contar = *() =&gt; {
+               ^
+
+SyntaxError: Unexpected token '*'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais linhas cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado <code>'*'</code>". Não existe arrow function geradora. <strong>Como consertar:</strong> use <code>function*</code>, mesmo guardando numa variável: <code>const contar = function* () { yield 1; };</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou o gerador e nada aconteceu</strong>
+<pre class="file" data-file="esqueceu.js">function* cardapio() {
+  console.log("preparando o cardápio...");
+  yield "Café";
+}
+cardapio();
+console.log("fim do programa");
+</pre>
+<pre class="term">$ node esqueceu.js
+fim do programa
+</pre>
+<p>O <code>preparando o cardápio...</code> nunca apareceu, e não houve erro. Chamar <code>cardapio()</code> só criou o objeto gerador, que foi jogado fora sem ninguém pedir <code>next()</code>. <strong>Como consertar:</strong> percorra o gerador (<code>for (const item of cardapio())</code>) ou chame <code>next()</code> nele.</p>
+</div>
+
+<div class="cenario">
+<strong>Percorreu o mesmo gerador duas vezes</strong>
+<p>Como todo iterador, o objeto gerador anda só para a frente: <code>const g = intervalo(1, 3); console.log([...g]); console.log([...g]);</code> mostra <code>[ 1, 2, 3 ]</code> e depois <code>[]</code>. <strong>Como consertar:</strong> chame a função geradora de novo (<code>intervalo(1, 3)</code>) para ter um gerador novo, ou guarde os valores num array.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>function* nome() { … }</code></td><td>Declara uma função geradora</td></tr>
+<tr><td><code>yield valor</code></td><td>Entrega um valor e pausa o gerador</td></tr>
+<tr><td><code>const g = nome()</code></td><td>Cria um objeto gerador (não roda o corpo)</td></tr>
+<tr><td><code>g.next()</code></td><td>Roda até o próximo <code>yield</code>; devolve <code>{ value, done }</code></td></tr>
+<tr><td><code>for (const x of nome())</code>, <code>[...nome()]</code></td><td>Percorre todos os valores entregues</td></tr>
+<tr><td><code>yield* iteravel</code></td><td>Entrega todos os itens de outro iterável</td></tr>
+<tr><td><code>return;</code></td><td>Encerra o gerador (<code>done: true</code>)</td></tr>
+<tr><td><code>*[Symbol.iterator]() { … }</code></td><td>Método gerador: torna o objeto iterável</td></tr>
+<tr><td><code>nome().take(n).toArray()</code></td><td>Pega só os <code>n</code> primeiros valores <span class="versao">ES2025</span></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Unexpected string</code> (ou número, ou identificador) na linha do <code>yield</code></td><td>Faltou a estrela: <code>function*</code></td></tr>
+<tr><td>O mesmo erro, com o <code>yield</code> dentro de um <code>forEach</code>/<code>map</code></td><td><code>yield</code> numa função interna: use <code>for … of</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token '*'</code></td><td>Tentou uma arrow function geradora</td></tr>
+<tr><td>O gerador não faz nada</td><td>Foi criado mas ninguém chamou <code>next()</code> nem percorreu</td></tr>
+<tr><td>O programa trava, sem saída</td><td><code>[...gerador]</code> num gerador infinito</td></tr>
+<tr><td>A segunda volta vem vazia</td><td>Reaproveitou um objeto gerador já percorrido</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o gerador</h3>
+<p>Complete para o gerador entregar <code>"sim"</code> e depois <code>"não"</code>:</p>
+<div class="ex-code">function<input data-answer="*" aria-label="o que transforma em gerador"> resposta() {<br>&nbsp;&nbsp;<input data-answer="yield" aria-label="palavra-chave"> "sim";<br>&nbsp;&nbsp;yield "não";<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes?</h3>
+<p>Quantos <code>next()</code> são precisos para o gerador abaixo responder <code>done: true</code> pela primeira vez?</p>
+<pre class="file" data-file="ex.js">function* tres() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+</pre>
+<div class="ex-code"><input data-answer="4" aria-label="número de chamadas"> chamadas</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que acontece na linha <code>const g = cardapio();</code>, sendo <code>cardapio</code> uma <code>function*</code> com um <code>console.log</code> na primeira linha?</p>
+<label><input type="radio" name="q3"> O <code>console.log</code> roda e o primeiro <code>yield</code> é entregue</label>
+<label><input type="radio" name="q3"> Nada roda: só é criado um objeto gerador</label>
+<label><input type="radio" name="q3"> A função roda inteira</label>
+<label><input type="radio" name="q3"> Dá erro, porque faltou o <code>new</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual é o jeito seguro de pegar as 10 primeiras senhas de um gerador infinito <code>senhas()</code>?</p>
+<label><input type="radio" name="q4"> <code>[...senhas()].slice(0, 10)</code></label>
+<label><input type="radio" name="q4"> <code>Array.from(senhas()).length = 10</code></label>
+<label><input type="radio" name="q4"> <code>senhas().length = 10</code></label>
+<label><input type="radio" name="q4"> <code>senhas().take(10).toArray()</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>numeros.forEach((n) =&gt; { yield n; })</code> dá erro dentro de uma <code>function*</code>?</p>
+<label><input type="radio" name="q5"> Porque a arrow function é outra função, sem estrela, e o <code>yield</code> não vale lá dentro</label>
+<label><input type="radio" name="q5"> Porque <code>forEach</code> não funciona com números</label>
+<label><input type="radio" name="q5"> Porque o <code>yield</code> precisa de parênteses</label>
+<label><input type="radio" name="q5"> Não dá erro</label>
+</div>
+
+<h3>Missão final: só os aprovados</h3>
+
+<div class="tryjs" data-goal="outre:Ana\nCaio;;src:\*\s*\[Symbol\.iterator\];;src:yield;;semerro">
+<p class="try-task"><strong>Missão:</strong> a professora quer percorrer a turma e ver só quem passou (nota 6 ou mais). Dê à <code>turma</code> um método gerador <code>*[Symbol.iterator]()</code> que percorra <code>this.alunos</code> e entregue (<code>yield</code>) só o <strong>nome</strong> de quem tem <code>nota &gt;= 6</code>. A saída tem de ser Ana e Caio.</p>
+<pre class="script" data-file="main.js">const turma = {
+  alunos: [
+    { nome: "Ana", nota: 8.5 },
+    { nome: "Bia", nota: 5 },
+    { nome: "Caio", nota: 7 },
+  ],
+};
+
+for (const nome of turma) {
+  console.log(nome);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const turma = {
+  alunos: [
+    { nome: "Ana", nota: 8.5 },
+    { nome: "Bia", nota: 5 },
+    { nome: "Caio", nota: 7 },
+  ],
+  *[Symbol.iterator]() {
+    for (const aluno of this.alunos) {
+      if (aluno.nota &gt;= 6) {
+        yield aluno.nome;
+      }
+    }
+  },
+};
+
+for (const nome of turma) {
+  console.log(nome);
+}
+</pre>
+</div>
+
+<p>Antes de consertar, a caixa mostra o mesmo <code>TypeError: turma is not iterable</code> da aula <a href="iteradores.html">Iteradores</a>. Depois, experimente <code>console.log([...turma].length)</code>: o número de aprovados, sem precisar de <code>filter</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>função geradora</strong> se escreve com estrela, <code>function*</code>, e entrega valores com <code>yield</code>, pausando a cada um.</li>
+  <li>Chamar a função geradora <strong>não roda</strong> o corpo: devolve um objeto gerador. Cada <code>next()</code> roda até o próximo <code>yield</code> e devolve <code>{ value, done }</code>.</li>
+  <li>O objeto gerador é um iterador e um iterável: funciona no <code>for … of</code>, no <code>...</code> e no <code>Array.from</code>.</li>
+  <li>Geradores podem ser infinitos: pegue só um pedaço com <code>break</code> ou <code>take(n)</code>, nunca com <code>[...]</code>.</li>
+  <li><code>*[Symbol.iterator]() { … }</code> torna um objeto seu iterável; <code>yield*</code> entrega todos os itens de outro iterável.</li>
+  <li>O <code>yield</code> só vale dentro da própria <code>function*</code>: nem em arrow functions, nem em callbacks como o do <code>forEach</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
