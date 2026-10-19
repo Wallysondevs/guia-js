@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Closures — funções que lembram de onde vieram | Guia JavaScript</title>
+<meta name="description" content="Closures no JavaScript para quem está começando: uma função que lembra as variáveis do lugar onde nasceu, o contador que não perde a conta, variáveis privadas (o cofrinho), a closure guarda a variável e não uma cópia, fábricas de callbacks, o let e o var no laço com setTimeout, e os enganos comuns, com as saídas reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Closures</span></h1>
+
+<p class="intro">Na aula <a href="escopo.html">Escopo</a> você viu que as variáveis de uma função somem quando ela termina. Quase sempre. Se a função criar <strong>outra função</strong> lá dentro e essa função sair (com <code>return</code>, por exemplo), as variáveis de que ela precisa <strong>continuam vivas</strong>, guardadas junto com ela. Essa dupla, "a função + as variáveis do lugar onde ela nasceu", se chama <strong>closure</strong> (em inglês, "fechamento"; a palavra costuma ficar em inglês). Parece detalhe técnico, mas é o que faz contadores, variáveis privadas e muitos callbacks funcionarem.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma closure, com o exemplo mais simples: uma função que lembra uma saudação.</li>
+  <li>O contador que não perde a conta, e por que dois contadores não se misturam.</li>
+  <li>Como esconder uma variável do resto do programa (o cofrinho com saldo privado).</li>
+  <li>Que a closure guarda a <strong>variável</strong>, não uma cópia do valor.</li>
+  <li>Fábricas de callbacks: <code>precos.filter(acimaDe(10))</code>.</li>
+  <li>O clássico do <code>var</code> no laço com <code>setTimeout</code>, e os enganos mais comuns.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Antes, convém ter visto <a href="escopo.html">Escopo</a> e <a href="funcoes-valores.html">Funções como Valores</a>.</p>
+
+<hr>
+
+<h2>A ideia: a mochila que a função leva</h2>
+<p>A Ana manda o filho à feira. Antes de ele sair, ela põe na mochila dele um bilhete: "compre 2 kg de tomate, no máximo R$ 10". A Ana pode ir trabalhar, sair de casa, esquecer o assunto: o bilhete está <strong>na mochila do filho</strong>, e ele consulta quando precisar.</p>
+<p>Uma closure é isso. Quando uma função é criada dentro de outra, ela leva uma "mochila" com as variáveis de lá de dentro que ela usa. A função de fora pode terminar; a de dentro continua com a mochila, e consulta (e até muda) aquelas variáveis sempre que for chamada.</p>
+
+<hr>
+
+<h2>1. A primeira closure: uma função que lembra</h2>
+
+<pre class="file" data-file="lembrar.js">function criarSaudacao(saudacao) {
+  return (nome) =&gt; `${saudacao}, ${nome}!`;
+}
+
+const manha = criarSaudacao("Bom dia");
+const noite = criarSaudacao("Boa noite");
+console.log(manha("Ana"));
+console.log(noite("Ana"));
+console.log(manha("Bia"));
+</pre>
+
+<dl class="anatomy">
+  <dt>function criarSaudacao(saudacao)</dt><dd>Uma função "fábrica": recebe a saudação…</dd>
+  <dt>return (nome) =&gt; `${saudacao}, ${nome}!`;</dt><dd>…e devolve uma função <strong>nova</strong>, que usa duas variáveis: <code>nome</code> (o parâmetro dela) e <code>saudacao</code> (que é da função de fora). Essa <code>saudacao</code> vai na mochila.</dd>
+  <dt>const manha = criarSaudacao("Bom dia");</dt><dd>A fábrica roda, devolve a função e <strong>termina</strong>. Normalmente a <code>saudacao</code> sumiria aqui. Mas a função guardada em <code>manha</code> ainda precisa dela, então ela fica.</dd>
+  <dt>const noite = criarSaudacao("Boa noite");</dt><dd>Outra chamada, outra função, outra mochila: esta com <code>"Boa noite"</code>.</dd>
+</dl>
+
+<pre class="term">$ node lembrar.js
+Bom dia, Ana!
+Boa noite, Ana!
+Bom dia, Bia!
+</pre>
+
+<p>Na última linha, a <code>criarSaudacao</code> já tinha terminado havia muito tempo, e mesmo assim <code>manha</code> lembrou o <code>"Bom dia"</code>. É a regra do escopo ("de dentro se enxerga para fora") funcionando <strong>mesmo depois</strong> que o "fora" terminou.</p>
+
+<hr>
+
+<h2>2. O contador que não perde a conta</h2>
+<p>A closure não só lê: ela pode <strong>mudar</strong> a variável da mochila, e a mudança fica guardada para a próxima chamada. A máquina de senhas da padaria:</p>
+
+<pre class="file" data-file="contador.js">function criarContador() {
+  let total = 0;
+  return () =&gt; {
+    total = total + 1;
+    return total;
+  };
+}
+
+const senhaPadaria = criarContador();
+console.log(senhaPadaria());
+console.log(senhaPadaria());
+console.log(senhaPadaria());
+
+const senhaFarmacia = criarContador();
+console.log(senhaFarmacia());
+console.log(senhaPadaria());
+</pre>
+
+<pre class="term">$ node contador.js
+1
+2
+3
+1     « a farmácia tem o seu próprio total, começando do zero
+4     « a padaria continuou de onde parou
+</pre>
+
+<p>Siga o <code>total</code>:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que acontece</th><th><code>total</code> da padaria</th><th><code>total</code> da farmácia</th></tr>
+<tr><td><code>criarContador()</code> (padaria)</td><td>Cria um <code>total = 0</code> e a função que o usa</td><td>0</td><td>—</td></tr>
+<tr><td>3 × <code>senhaPadaria()</code></td><td>Cada chamada soma 1 no <strong>mesmo</strong> <code>total</code></td><td>3</td><td>—</td></tr>
+<tr><td><code>criarContador()</code> (farmácia)</td><td>Nova chamada da fábrica: um <code>total</code> <strong>novo</strong>, outra mochila</td><td>3</td><td>0</td></tr>
+<tr><td><code>senhaFarmacia()</code></td><td>Mexe só no total da farmácia</td><td>3</td><td>1</td></tr>
+<tr><td><code>senhaPadaria()</code></td><td>Volta ao da padaria</td><td>4</td><td>1</td></tr>
+</table>
+</div>
+
+<p>Cada chamada de <code>criarContador()</code> cria variáveis novas (lembre: cada chamada de função tem o seu escopo). Por isso os contadores não se misturam.</p>
+
+<h3>Por que não uma variável global?</h3>
+<p>Daria para fazer o contador com uma variável global, como na aula <a href="escopo.html">Escopo</a>. Veja o risco:</p>
+
+<pre class="file" data-file="global.js">let total = 0;
+function proximaSenha() {
+  total = total + 1;
+  return total;
+}
+
+console.log(proximaSenha());
+console.log(proximaSenha());
+total = 100;
+console.log(proximaSenha());
+</pre>
+
+<pre class="term">$ node global.js
+1
+2
+101     « alguém mexeu no total lá de fora
+</pre>
+
+<p>Com a global, qualquer linha do programa pode estragar a contagem, e só dá para ter um contador. Com a closure, o <code>total</code> só pode ser mudado pela função que está com ele.</p>
+
+<div class="tryjs" data-goal="out:Ana: 3 pontos;;out:Bia: 2 pontos;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete <code>criarPlacar</code>: ela deve criar uma variável <code>pontos</code> começando em 0 e devolver uma função que soma 1 em <code>pontos</code> e devolve o texto <code>NOME: N pontos</code>. Cada jogador tem o seu placar.</p>
+<pre class="script" data-file="main.js">function criarPlacar(nome) {
+  // crie a variável pontos e devolva a função aqui
+}
+
+const ana = criarPlacar("Ana");
+const bia = criarPlacar("Bia");
+ana();
+ana();
+console.log(ana());
+bia();
+console.log(bia());
+</pre>
+<pre class="solucao" data-file="main.js">function criarPlacar(nome) {
+  let pontos = 0;
+  return () =&gt; {
+    pontos = pontos + 1;
+    return `${nome}: ${pontos} pontos`;
+  };
+}
+
+const ana = criarPlacar("Ana");
+const bia = criarPlacar("Bia");
+ana();
+ana();
+console.log(ana());
+bia();
+console.log(bia());
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Variáveis privadas: o cofrinho</h2>
+<p>Devolvendo um <strong>objeto</strong> com vários métodos, todos eles dividem a mesma mochila. A variável fica acessível a eles, e a mais ninguém:</p>
+
+<pre class="file" data-file="cofrinho.js">function criarCofrinho(dono) {
+  let saldo = 0;
+
+  return {
+    depositar(valor) {
+      if (valor &lt;= 0) {
+        console.log("Depósito inválido.");
+        return;
+      }
+      saldo = saldo + valor;
+    },
+    sacar(valor) {
+      if (valor &gt; saldo) {
+        console.log(`${dono}, saldo insuficiente.`);
+        return;
+      }
+      saldo = saldo - valor;
+    },
+    verSaldo() {
+      return `Cofrinho de ${dono}: R$ ${saldo}`;
+    },
+  };
+}
+
+const cofreAna = criarCofrinho("Ana");
+cofreAna.depositar(50);
+cofreAna.depositar(-10);
+cofreAna.sacar(80);
+cofreAna.sacar(20);
+console.log(cofreAna.verSaldo());
+console.log(cofreAna.saldo);
+cofreAna.saldo = 1000000;
+console.log(cofreAna.verSaldo());
+</pre>
+
+<pre class="term">$ node cofrinho.js
+Depósito inválido.
+Ana, saldo insuficiente.
+Cofrinho de Ana: R$ 30
+undefined                    « o saldo não é uma propriedade do objeto
+Cofrinho de Ana: R$ 30       « criar cofreAna.saldo não mexeu no saldo de verdade
+</pre>
+
+<p>O <code>saldo</code> de verdade está na mochila dos três métodos, não no objeto. A única forma de mudá-lo é pelos métodos, que conferem as regras (nada de depósito negativo, nada de sacar mais do que tem). A linha <code>cofreAna.saldo = 1000000</code> só criou uma propriedade nova e inútil no objeto. Esconder dados assim se chama <strong>encapsular</strong>. (As classes têm outro jeito de fazer isso, os <a href="campos-privados.html">campos privados (#)</a>.)</p>
+
+<hr>
+
+<h2>4. A closure guarda a variável, não uma foto do valor</h2>
+<p>A mochila não leva uma cópia do valor do momento em que a função nasceu: leva a <strong>própria variável</strong>. Se ela mudar depois, a função vê o valor novo:</p>
+
+<pre class="file" data-file="viva.js">let taxa = 0.1;
+const comTaxa = (preco) =&gt; preco + preco * taxa;
+console.log(comTaxa(100));
+taxa = 0.5;
+console.log(comTaxa(100));
+</pre>
+
+<pre class="term">$ node viva.js
+110
+150     « a função leu a taxa nova
+</pre>
+
+<p>Por isso o contador da seção 2 funciona: cada chamada mexe no mesmo <code>total</code>, e a próxima vê o valor atualizado.</p>
+
+<hr>
+
+<h2>5. Fábricas de callbacks</h2>
+<p>Closures combinam muito com callbacks: uma fábrica cria, sob medida, a função que o <code>filter</code> (ou o <code>map</code>, o <code>sort</code>…) vai chamar:</p>
+
+<pre class="file" data-file="filtro.js">function acimaDe(limite) {
+  return (preco) =&gt; preco &gt; limite;
+}
+
+const precos = [4.5, 12, 0.8, 25, 9];
+console.log(precos.filter(acimaDe(5)));
+console.log(precos.filter(acimaDe(10)));
+</pre>
+
+<pre class="term">$ node filtro.js
+[ 12, 25, 9 ]
+[ 12, 25 ]
+</pre>
+
+<p>Aqui o <code>acimaDe(5)</code> <strong>tem</strong> parênteses, e está certo: ele é chamado na hora e devolve a função que o <code>filter</code> recebe. Essa função lembra o <code>limite</code> enquanto o <code>filter</code> a chama para cada preço. Nas páginas web, o mesmo truque cria funções para botões e eventos que lembram "qual produto é este" (aula <a href="eventos.html">Eventos</a>).</p>
+
+<hr>
+
+<h2>6. Closures em laços: <code>let</code> × <code>var</code></h2>
+<p>Este é um clássico de entrevista de emprego. Os callbacks do <code>setTimeout</code> rodam <strong>depois</strong> que o laço terminou (veja <a href="timers.html">setTimeout e setInterval</a>). O que cada um lembra?</p>
+
+<pre class="file" data-file="lacovar.js">for (var i = 1; i &lt;= 3; i++) {
+  setTimeout(() =&gt; console.log("var:", i), 100);
+}
+for (let j = 1; j &lt;= 3; j++) {
+  setTimeout(() =&gt; console.log("let:", j), 200);
+}
+</pre>
+
+<pre class="term">$ node lacovar.js
+var: 4
+var: 4
+var: 4
+let: 1
+let: 2
+let: 3
+</pre>
+
+<ul>
+  <li>Com <code>var</code>, existe <strong>um</strong> <code>i</code> só para o laço inteiro (o <code>var</code> ignora blocos). As três funções guardam a mesma variável, e quando elas rodam o laço já terminou com <code>i</code> valendo 4.</li>
+  <li>Com <code>let</code>, cada volta do <code>for</code> ganha o seu <strong>próprio</strong> <code>j</code>. Cada função leva na mochila o <code>j</code> da sua volta.</li>
+</ul>
+<p>Mais um motivo para usar <code>let</code> e esquecer o <code>var</code> (veja <a href="var.html">var: o Jeito Antigo</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: closure, global ou objeto?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para guardar um valor entre chamadas…</th><th>Prós</th><th>Contras</th></tr>
+<tr><td>Variável global</td><td>Simples</td><td>Qualquer linha pode mexer; só existe uma</td></tr>
+<tr><td>Propriedade de um objeto (<code>contador.total</code>)</td><td>Fácil de ver e depurar</td><td>Qualquer um pode mudar de fora</td></tr>
+<tr><td><strong>Closure</strong> (fábrica que devolve função/objeto)</td><td>Valor protegido; quantas cópias quiser</td><td>Não dá para "espiar" o valor sem um método</td></tr>
+<tr><td>Classe com campo privado <code>#</code></td><td>Protegido, com a sintaxe de classe</td><td>Assunto do <a href="classes.html">Nível 3</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Closures raramente geram mensagens de erro: os enganos aparecem como <strong>resultados estranhos</strong>. Os mais comuns:</p>
+
+<div class="cenario">
+<strong>Esqueceu de chamar a fábrica</strong>
+<pre class="file" data-file="esqueceu.js">function criarContador() {
+  let total = 0;
+  return () =&gt; {
+    total = total + 1;
+    return total;
+  };
+}
+
+const senha = criarContador;
+console.log(senha());
+</pre>
+<pre class="term">$ node esqueceu.js
+[Function (anonymous)]
+</pre>
+<p>Sem os parênteses em <code>criarContador</code>, <code>senha</code> virou outro nome para a <strong>fábrica</strong>. Então <code>senha()</code> roda a fábrica, que devolve o contador, e o <code>console.log</code> mostra essa função: <code>[Function (anonymous)]</code> ("função anônima", porque a arrow function devolvida não tem nome). <strong>Como consertar:</strong> <code>const senha = criarContador();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou um contador novo a cada vez</strong>
+<pre class="file" data-file="novo.js">function criarContador() {
+  let total = 0;
+  return () =&gt; {
+    total = total + 1;
+    return total;
+  };
+}
+
+console.log(criarContador()());
+console.log(criarContador()());
+console.log(criarContador()());
+</pre>
+<pre class="term">$ node novo.js
+1
+1
+1
+</pre>
+<p><code>criarContador()()</code> cria um contador e o chama uma vez; a linha seguinte cria <strong>outro</strong>, que começa do zero. <strong>Como consertar:</strong> crie o contador uma vez, guarde numa variável e chame essa variável quantas vezes quiser.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs a variável dentro da função errada</strong>
+<pre class="file" data-file="dentro.js">function criarContador() {
+  return () =&gt; {
+    let total = 0;
+    total = total + 1;
+    return total;
+  };
+}
+
+const senha = criarContador();
+console.log(senha());
+console.log(senha());
+</pre>
+<pre class="term">$ node dentro.js
+1
+1
+</pre>
+<p>Aqui o <code>let total = 0</code> está na função <strong>de dentro</strong>, então ele é criado de novo, valendo 0, a cada chamada. Não há nada na mochila. <strong>Como consertar:</strong> a variável que deve durar entre as chamadas fica na função <strong>de fora</strong> (a fábrica); a de dentro só a usa.</p>
+</div>
+
+<div class="cenario">
+<strong><code>var</code> no laço</strong>
+<p>É o <code>var: 4</code> três vezes da seção 6. <strong>Como consertar:</strong> troque <code>var</code> por <code>let</code> no <code>for</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Padrão</th><th>Forma</th></tr>
+<tr><td>Fábrica de função</td><td><code>function criar(x) { return (y) =&gt; … x … y …; }</code></td></tr>
+<tr><td>Contador / estado guardado</td><td><code>function criar() { let n = 0; return () =&gt; ++n; }</code></td></tr>
+<tr><td>Vários métodos com dado privado</td><td><code>function criar() { let dado; return { ler() { … }, mudar(v) { … } }; }</code></td></tr>
+<tr><td>Callback sob medida</td><td><code>lista.filter(acimaDe(10))</code></td></tr>
+<tr><td>Usar a fábrica</td><td><code>const f = criar();</code> uma vez, depois <code>f()</code> quantas vezes quiser</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que aparece?</h3>
+<pre class="file" data-file="ex1.js">function criar() {
+  let n = 10;
+  return () =&gt; {
+    n = n + 5;
+    return n;
+  };
+}
+const f = criar();
+f();
+console.log(f());
+</pre>
+<div class="ex-code">Aparece <input data-answer="20" aria-label="valor mostrado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E com duas fábricas?</h3>
+<p>Com a mesma <code>criar</code>: <code>const a = criar(); const b = criar(); a(); a(); console.log(b());</code></p>
+<div class="ex-code">Aparece <input data-answer="15" aria-label="valor mostrado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. let ou var?</h3>
+<p>Qual palavra usar no <code>for</code> para cada callback do <code>setTimeout</code> lembrar o número da sua volta?</p>
+<div class="ex-code"><input data-answer="let" aria-label="palavra-chave"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que é uma closure?</p>
+<label><input type="radio" name="q4"> Uma função que fecha o programa</label>
+<label><input type="radio" name="q4"> Uma função junto com as variáveis do lugar onde ela foi criada, que continuam vivas para ela</label>
+<label><input type="radio" name="q4"> Uma função sem <code>return</code></label>
+<label><input type="radio" name="q4"> Um objeto congelado com <code>Object.freeze</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. No cofrinho da seção 3, o que acontece com <code>cofreAna.saldo = 1000000</code>?</p>
+<label><input type="radio" name="q5"> O saldo vira um milhão</label>
+<label><input type="radio" name="q5"> Dá <code>TypeError</code></label>
+<label><input type="radio" name="q5"> Cria uma propriedade nova no objeto, mas o saldo de verdade (na closure) não muda</label>
+</div>
+
+<h3>Missão final: o caixa com limite</h3>
+
+<div class="tryjs" data-goal="out:Venda de R$ 30 registrada. Total: R$ 30;;out:Venda de R$ 50 registrada. Total: R$ 80;;out:Limite de R$ 100 atingido!;;out:Total do dia: R$ 80;;semerro">
+<p class="try-task"><strong>Missão:</strong> complete <code>criarCaixa(limite)</code>. Ela guarda um <code>total</code> privado (começando em 0) e devolve um objeto com dois métodos: <code>vender(valor)</code>, que soma no total e mostra <code>Venda de R$ X registrada. Total: R$ Y</code>, mas, se a venda fizer o total passar do limite, mostra <code>Limite de R$ L atingido!</code> e não soma; e <code>fechar()</code>, que devolve <code>Total do dia: R$ Y</code>.</p>
+<pre class="script" data-file="main.js">function criarCaixa(limite) {
+  // crie o total e devolva { vender(valor) { … }, fechar() { … } }
+}
+
+const caixa = criarCaixa(100);
+caixa.vender(30);
+caixa.vender(50);
+caixa.vender(40);
+console.log(caixa.fechar());
+</pre>
+<pre class="solucao" data-file="main.js">function criarCaixa(limite) {
+  let total = 0;
+  return {
+    vender(valor) {
+      if (total + valor &gt; limite) {
+        console.log(`Limite de R$ ${limite} atingido!`);
+        return;
+      }
+      total = total + valor;
+      console.log(`Venda de R$ ${valor} registrada. Total: R$ ${total}`);
+    },
+    fechar() {
+      return `Total do dia: R$ ${total}`;
+    },
+  };
+}
+
+const caixa = criarCaixa(100);
+caixa.vender(30);
+caixa.vender(50);
+caixa.vender(40);
+console.log(caixa.fechar());
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>closure</strong> é uma função junto com as variáveis do escopo onde ela nasceu. Elas continuam vivas enquanto a função existir, mesmo depois que a função de fora terminou.</li>
+  <li>Cada chamada da fábrica cria variáveis novas: dois contadores não se misturam.</li>
+  <li>Devolvendo um objeto com métodos, a variável fica <strong>privada</strong>: só os métodos a leem e mudam.</li>
+  <li>A closure guarda a variável em si, não uma cópia: vê as mudanças.</li>
+  <li>Fábricas de callbacks (<code>acimaDe(10)</code>) e o <code>let</code> nos laços são usos do dia a dia.</li>
+  <li>Enganos comuns: esquecer de chamar a fábrica, criar uma nova a cada vez, pôr a variável na função de dentro, usar <code>var</code> no laço.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
