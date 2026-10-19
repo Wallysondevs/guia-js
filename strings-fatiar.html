@@ -359,7 +359,7 @@ Node.js v24.22.0
 <p><strong>Como consertar:</strong> garanta que a variável tem um texto antes de fatiar (<code>let apelido = "";</code>), ou proteja com <code>apelido?.slice(0, 3)</code> (aula <a href="optional-chaining.html">?. e ??</a>).</p>
 </div>
 
-<div class="tryjs" data-goal="out:Usuário: caio;;semerro;;src:indexOf">
+<div class="tryjs" data-goal="outre:Usuário: caio\n?$;;semerro;;src:indexOf">
 <p class="try-task"><strong>Missão:</strong> o programa devia mostrar o nome de usuário do e-mail, mas usou a posição errada e mostra <code>Usuário: caio@</code>. Use o <code>indexOf</code> para achar a posição do <code>@</code> e corte certo, até aparecer <code>Usuário: caio</code>. Depois, teste com outros e-mails: a sua solução tem de funcionar para qualquer um.</p>
 <pre class="script" data-file="main.js">const email = "caio@email.com";
 const usuario = email.slice(0, 5);
