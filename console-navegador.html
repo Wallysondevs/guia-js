@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Console do Navegador — o F12 | Guia JavaScript</title>
+<meta name="description" content="O Console do navegador (F12) para quem nunca programou: abrir no Chrome, Edge, Firefox e Safari, digitar JavaScript e ver a resposta, as mensagens do console.log de uma página, os erros em vermelho com o arquivo e a linha, mexer na página pelo Console, as diferenças para o Node.js e os erros reais do Chromium explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">O Console do Navegador (F12)</span></h1>
+
+<p class="intro">Todo navegador moderno traz, escondido, um conjunto de ferramentas para quem programa: as <strong>Ferramentas do Desenvolvedor</strong> (em inglês, <em>DevTools</em>). Uma delas é o <strong>Console</strong>: um lugar onde você digita JavaScript e vê a resposta na hora, como no <a href="repl.html">modo interativo do Node</a>, e onde aparecem as mensagens e os erros dos programas das páginas. Você não precisa instalar nada: ele já está no navegador que você está usando agora.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A abrir o Console no Chrome, no Edge, no Firefox e no Safari.</li>
+  <li>A digitar JavaScript no <code>&gt;</code> do Console e ler a resposta.</li>
+  <li>Onde aparecem os <code>console.log</code> de uma página, e o que é o <code>script.js:1</code> do lado.</li>
+  <li>A ler um erro em vermelho: a mensagem, o arquivo e a linha.</li>
+  <li>A mexer na página aberta pelo Console (e por que a mudança some ao recarregar).</li>
+  <li>As diferenças entre o Console do navegador e o Node.js.</li>
+</ul>
+</div>
+
+<p>As saídas de Console desta aula foram colhidas num <strong>Chromium 155</strong> (a base do Google Chrome e do Edge), em português do Brasil, na máquina fictícia da Ana, abrindo uma pagininha da padaria que ela fez. O que você vê nos quadros escuros é o texto que o Console mostrou. Na tela de verdade há cores, ícones e setinhas que aqui não aparecem.</p>
+
+<hr>
+
+<h2>A ideia: a porta dos fundos da página</h2>
+<p>Uma página da internet é como uma loja: o cliente entra pela porta da frente e vê a vitrine (os textos, as imagens, os botões). O Console é a <strong>porta dos fundos</strong>, a da cozinha: lá dentro você vê os bilhetes que o programa deixou (<code>console.log</code>), os avisos de problema (os erros em vermelho), e pode até mexer nas coisas da loja enquanto ela está aberta.</p>
+
+<p>O cliente comum nunca abre essa porta, e nem precisa. Para quem programa, ela é a ferramenta mais usada do dia.</p>
+
+<hr>
+
+<h2>1. Abrindo o Console</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Navegador</th><th>Windows e Linux</th><th>macOS</th></tr>
+<tr><td>Chrome, Edge, Opera, Brave</td><td><kbd>F12</kbd> e depois a aba <strong>Console</strong>; ou direto: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd></td><td><kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd></td></tr>
+<tr><td>Firefox</td><td><kbd>F12</kbd> e a aba <strong>Console</strong>; ou direto: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td><td><kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>K</kbd></td></tr>
+<tr><td>Safari</td><td>—</td><td>Primeiro ligue, nos Ajustes do Safari, a opção de mostrar os recursos para desenvolvedores; depois <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>C</kbd></td></tr>
+</table>
+</div>
+
+<p>Outro jeito, que funciona em quase todos: clique com o botão direito em qualquer lugar da página, escolha <strong>Inspecionar</strong> e, no painel que abrir, clique na aba <strong>Console</strong>. O painel aparece ao lado ou embaixo da página; a mesma tecla (<kbd>F12</kbd>) fecha.</p>
+
+<div class="tip">
+<strong>Experimente agora</strong>
+<p>Aperte <kbd>F12</kbd> nesta página mesmo, abra a aba Console, digite <code>2 + 3</code> e aperte <kbd>Enter</kbd>. (No celular não há Console; use as caixas "Experimente" do guia.)</p>
+</div>
+
+<hr>
+
+<h2>2. Digitando no Console</h2>
+<p>O Console tem um <code>&gt;</code> no pé, esperando você digitar. Funciona como o modo interativo do Node: você digita uma linha de JavaScript, aperta <kbd>Enter</kbd>, e ele mostra o valor. Com a página da padaria aberta, a Ana digitou:</p>
+
+<pre class="devtools">&gt; 2 + 3
+5
+&gt; "Olá, " + "Ana"
+'Olá, Ana'
+&gt; Math.max(3, 9, 4)
+9
+&gt; const nome = "Ana"
+undefined
+&gt; nome
+'Ana'
+&gt; console.log("Bom dia, " + nome)
+Bom dia, Ana
+undefined
+</pre>
+
+<p>Repare que tudo se comporta como no <a href="repl.html">modo interativo do Node</a>:</p>
+<ul>
+  <li>O valor de cada linha aparece sozinho, sem <code>console.log</code>.</li>
+  <li>Textos como <strong>resultado</strong> aparecem com aspas simples (<code>'Olá, Ana'</code>); o que o <code>console.log</code> <strong>escreve</strong> aparece sem aspas (<code>Bom dia, Ana</code>).</li>
+  <li>O <code>undefined</code> depois do <code>const</code> e do <code>console.log</code> não é erro: a linha não tem valor para mostrar.</li>
+</ul>
+
+<p>Para escrever mais de uma linha antes de rodar, aperte <kbd>Shift</kbd>+<kbd>Enter</kbd> no lugar do <kbd>Enter</kbd>: o cursor desce sem executar. As setas para cima e para baixo trazem de volta o que você já digitou, e <kbd>Ctrl</kbd>+<kbd>L</kbd> (ou <code>console.clear()</code>) limpa o Console.</p>
+
+<hr>
+
+<h2>3. As mensagens da página</h2>
+<p>O Console também mostra o que os programas da página escreveram. A página da padaria tem dois arquivos: o <code>index.html</code> (a página) e o <code>script.js</code> (o programa), ligados pela linha <code>&lt;script src="script.js"&gt;&lt;/script&gt;</code>:</p>
+
+<pre class="file" data-file="index.html">&lt;!doctype html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Padaria do Bairro&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p id="aviso"&gt;Pão quentinho às 7h.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">console.log("Página da padaria carregada!");
+console.log("Pães no forno:", 12);
+const produto = { nome: "Pão francês", preco: 0.8 };
+console.log(produto);
+console.log([1, 2, 3]);
+</pre>
+
+<p>A Ana abriu o <code>index.html</code> no navegador (dois cliques no arquivo) e, na página, só viu o título e o aviso. As mensagens estavam no Console:</p>
+
+<pre class="devtools">Página da padaria carregada!
+Pães no forno: 12
+{nome: 'Pão francês', preco: 0.8}
+(3) [1, 2, 3]
+</pre>
+
+<dl class="anatomy">
+  <dt>Página da padaria carregada!</dt><dd>O <code>console.log</code> da linha 1. No Console de verdade, do lado direito de cada mensagem aparece <code>script.js:1</code>: o <strong>arquivo e a linha</strong> que escreveram aquilo. Clicando nesse link, o navegador mostra o código.</dd>
+  <dt>Pães no forno: 12</dt><dd>Dois valores separados por vírgula no <code>console.log</code> saem lado a lado, com um espaço (aula <a href="console-log.html">console.log()</a>). O número aparece numa cor diferente do texto.</dd>
+  <dt>{nome: 'Pão francês', preco: 0.8}</dt><dd>Um <strong>objeto</strong> (aula <a href="objetos.html">Objetos</a>). No navegador ele vem <strong>recolhido</strong>, com uma setinha <code>▶</code> na frente: clicando, ele se abre e mostra cada parte numa linha.</dd>
+  <dt>(3) [1, 2, 3]</dt><dd>Um <strong>array</strong> (lista; aula <a href="arrays.html">Arrays</a>). O <code>(3)</code> na frente é o tamanho: três itens.</dd>
+</dl>
+
+<p>Depois que a página carregou, a Ana pode continuar usando o que o programa criou. A variável <code>produto</code>, criada no <code>script.js</code>, está disponível no Console:</p>
+
+<pre class="devtools">&gt; produto
+{nome: 'Pão francês', preco: 0.8}
+</pre>
+
+<div class="tryweb" data-goal="console:Pães no forno: 24;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria pôs mais pães no forno. Mude o programa para o Console mostrar <code>Pães no forno: 24</code> e clique em Rodar. No editor do guia, o Console aparece embaixo do Resultado.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p id="aviso"&gt;Pão quentinho às 7h.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Página da padaria carregada!");
+console.log("Pães no forno:", 12);
+</pre>
+<pre class="solucao" data-file="script.js">console.log("Página da padaria carregada!");
+console.log("Pães no forno:", 24);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Os erros em vermelho</h2>
+<p>Quando o programa de uma página dá erro, a <strong>página não avisa nada</strong>: ela só fica parada, sem fazer o que devia. Quem conta o que aconteceu é o Console, em vermelho. A Ana escreveu <code>consol</code>, sem o <code>e</code>, na linha 3 de outro <code>script.js</code>:</p>
+
+<pre class="file" data-file="script.js">console.log("Página carregada!");
+const paes = 12;
+consol.log("Pães:", paes);
+console.log("Fim do script");
+</pre>
+
+<pre class="devtools">Página carregada!
+Uncaught ReferenceError: consol is not defined
+    at script.js:3:1
+</pre>
+
+<dl class="anatomy">
+  <dt>Página carregada!</dt><dd>A linha 1 rodou: o navegador também executa o programa de cima para baixo.</dd>
+  <dt>Uncaught ReferenceError: consol is not defined</dt><dd>A mesma mensagem do Node.js: "<code>consol</code> não está definido". O <code>Uncaught</code> ("não capturado") quer dizer que ninguém tratou o erro, e o programa parou ali. No Console de verdade, esta linha vem com fundo vermelho e um ícone <code>✖</code>.</dd>
+  <dt>at script.js:3:1</dt><dd>Onde: arquivo <code>script.js</code>, linha 3, coluna 1. É um link: clicando, o navegador abre o arquivo na linha do erro.</dd>
+</dl>
+
+<p>Repare no que <strong>falta</strong>: o "Fim do script" da linha 4 nunca apareceu. Igual ao Node.js, o erro parou o programa. A diferença é que a página continua aberta, e o que a linha 2 criou ainda existe:</p>
+
+<pre class="devtools">&gt; paes
+12
+&gt; console.log("Pães:", paes)
+Pães: 12
+undefined
+</pre>
+
+<p>Esse é um truque muito usado: quando algo dá errado numa página, abra o Console, leia o erro e teste a linha corrigida ali mesmo, antes de mudar o arquivo.</p>
+
+<div class="tryweb" data-goal="console:Fim do script;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode e veja o erro em vermelho no Console da caixa. Conserte a linha 3 até aparecerem as três mensagens, sem erro.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">console.log("Página carregada!");
+const paes = 12;
+consol.log("Pães:", paes);
+console.log("Fim do script");
+</pre>
+<pre class="solucao" data-file="script.js">console.log("Página carregada!");
+const paes = 12;
+console.log("Pães:", paes);
+console.log("Fim do script");
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Mexendo na página pelo Console</h2>
+<p>Pelo Console, você conversa com a página aberta. O <code>document</code> é a página (aula <a href="dom.html">O que é o DOM</a>):</p>
+
+<pre class="devtools">&gt; document.title
+'Padaria do Bairro'
+&gt; document.querySelector("h1").textContent = "Padaria da Ana"
+'Padaria da Ana'
+</pre>
+
+<p>Na primeira linha, a Ana perguntou o título da aba (o <code>&lt;title&gt;</code> do HTML). Na segunda, trocou o texto do <code>&lt;h1&gt;</code>: na mesma hora, o título grande da página passou a dizer "Padaria da Ana". O Console mostra <code>'Padaria da Ana'</code> porque uma troca com <code>=</code> tem como valor o próprio valor novo.</p>
+
+<div class="warning">
+<strong>A mudança é só sua, e só até recarregar</strong>
+<p>O que você faz pelo Console muda a página <strong>na sua tela</strong>, agora. Não muda o arquivo, não muda o site para ninguém, e some quando você recarrega a página (<kbd>F5</kbd>). Para a mudança ficar, ela tem de ir para o arquivo <code>.js</code>. (É por isso que aquelas "provas" de sites alterados que circulam por aí não provam nada: qualquer um muda a página no próprio navegador.)</p>
+</div>
+
+<div class="warning">
+<strong>Nunca cole no Console um código que alguém mandou</strong>
+<p>Golpistas pedem às pessoas que colem um código no Console "para ganhar um prêmio" ou "liberar um recurso". O código roda com o seu login naquele site e pode roubar a sua conta. Por isso, o Chrome bloqueia a primeira colagem e pede que você digite uma frase confirmando que sabe o que está fazendo. Só cole código que você entende.</p>
+</div>
+
+<hr>
+
+<h2>6. Console do navegador × Node.js</h2>
+<p>A linguagem é a mesma, mas há diferenças que você vai notar (veja também <a href="onde-roda.html">Onde o JavaScript Roda</a>):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Console do navegador</th><th>Node.js (terminal)</th></tr>
+<tr><td>Abrir</td><td><kbd>F12</kbd> → Console</td><td><code>node</code> (modo interativo) ou <code>node arquivo.js</code></td></tr>
+<tr><td>Um objeto</td><td><code>{nome: 'Pão francês', preco: 0.8}</code> (recolhido, abre com um clique)</td><td><code>{ nome: 'Pão francês', preco: 0.8 }</code> (com espaços)</td></tr>
+<tr><td>Um array</td><td><code>(3) [1, 2, 3]</code></td><td><code>[ 1, 2, 3 ]</code></td></tr>
+<tr><td>Uma função sem os <code>()</code></td><td><code>ƒ toUpperCase() { [native code] }</code></td><td><code>[Function: toUpperCase]</code></td></tr>
+<tr><td><code>let</code> de novo no mesmo nome</td><td>Aceita (só no Console)</td><td><code>Identifier 'x' has already been declared</code></td></tr>
+<tr><td><code>document</code>, <code>alert</code></td><td>Existem</td><td>Não existem</td></tr>
+<tr><td><code>process</code>, <code>require</code></td><td>Não existem</td><td>Existem</td></tr>
+<tr><td>Onde ficam as variáveis</td><td>Até recarregar a página</td><td>Até sair do <code>node</code></td></tr>
+</table>
+</div>
+
+<p>Três dessas diferenças, ao vivo no Chromium da Ana:</p>
+
+<pre class="devtools">&gt; "pão".toUpperCase
+ƒ toUpperCase() { [native code] }
+&gt; let x = 1
+undefined
+&gt; let x = 2
+undefined
+&gt; process
+Uncaught ReferenceError: process is not defined
+    at &lt;anonymous&gt;:1:1
+</pre>
+
+<p>O <code>ƒ</code> é o jeito do Chrome de dizer "isto é uma função" (o <code>[native code]</code>, "código nativo", diz que ela vem pronta com o navegador). O <code>let x = 2</code> foi aceito porque o Console do Chrome é mais tolerante, de propósito, para você poder redigitar linhas; num arquivo ou no Node.js, daria erro. E o <code>at &lt;anonymous&gt;:1:1</code> do erro quer dizer "na linha 1 de um código sem nome": o que você digitou no Console.</p>
+
+<p><strong>Neste guia:</strong> nos níveis 1 e 2, as saídas são as do Node.js (<code>{ nome: 'Ana' }</code>, com espaços). Nas aulas do grupo "A Página Web", as do Console do navegador.</p>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente:</strong> rode e compare o jeito como o Console da caixa mostra o objeto e o array com o jeito do Node.js na tabela acima. Depois troque os valores à vontade.</p>
+<pre class="script" data-file="index.html">&lt;p&gt;Veja o Console.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const produto = { nome: "Pão francês", preco: 0.8 };
+console.log(produto);
+console.log([1, 2, 3]);
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de ver o que o JavaScript está fazendo numa página</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>console.log(...)</code> no arquivo</td><td>Para acompanhar o programa: "passou por aqui", "o valor é tal"</td></tr>
+<tr><td>Digitar no <code>&gt;</code> do Console</td><td>Para perguntar o valor de algo agora, ou testar uma linha antes de pôr no arquivo</td></tr>
+<tr><td>Ler os erros em vermelho</td><td>Sempre que a página "não faz nada": o motivo quase sempre está lá</td></tr>
+<tr><td>A caixa <code>.tryweb</code> do guia</td><td>Para praticar: ela mostra o Console embaixo do Resultado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"A página não faz nada" e o Console nem foi aberto</strong>
+<p>O erro mais comum de todos: o programa da página quebrou, mas a página não mostra mensagem nenhuma. Quem não abre o Console fica adivinhando. <strong>Como consertar:</strong> sempre que algo não funcionar numa página, <kbd>F12</kbd> → Console. Se houver uma linha vermelha, ela diz o arquivo e a linha (seção 4).</p>
+</div>
+
+<div class="cenario">
+<strong>Comando do terminal digitado no Console</strong>
+<pre class="devtools">&gt; node ola.js
+Uncaught SyntaxError: Unexpected identifier 'ola'
+</pre>
+<p>"Identificador inesperado <code>ola</code>": a mesma mensagem do modo interativo do Node. O Console do navegador só entende JavaScript; <code>node ola.js</code> é um comando do terminal. <strong>Como consertar:</strong> rode-o no terminal (aula <a href="executar.html">Rodando um Programa</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Código de Node.js no Console</strong>
+<pre class="devtools">&gt; require("node:fs")
+Uncaught ReferenceError: require is not defined
+    at &lt;anonymous&gt;:1:1
+</pre>
+<p>O <code>require</code> e o <code>process</code> são só do Node.js. <strong>Como consertar:</strong> esse código vai num arquivo rodado com <code>node</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um nome que não existe</strong>
+<pre class="devtools">&gt; idade
+Uncaught ReferenceError: idade is not defined
+    at &lt;anonymous&gt;:1:1
+</pre>
+<p>Ninguém criou <code>idade</code>: nem você no Console, nem o programa da página. Lembre que, ao recarregar a página (<kbd>F5</kbd>), tudo o que você criou no Console some. <strong>Como consertar:</strong> crie antes (<code>const idade = 30</code>) ou confira o nome.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>console.log</code> da página e o terminal</strong>
+<p>Quem acabou de aprender o <code>node arquivo.js</code> às vezes procura no terminal as mensagens de uma página. Elas não vão para lá: o <code>console.log</code> de uma página escreve no <strong>Console do navegador</strong>, e o de um programa do Node.js escreve no <strong>terminal</strong>. <strong>Como consertar:</strong> página → <kbd>F12</kbd>; Node.js → terminal.</p>
+</div>
+
+<h3>Missão final: o recado no Console</h3>
+<div class="tryweb" data-goal="console:Bom dia, Ana!;;texto:h1~Padaria da Ana;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça o programa da página fazer duas coisas: escrever <code>Bom dia, Ana!</code> no Console e trocar o título para <code>Padaria da Ana</code> (use a linha da seção 5).</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Padaria do Bairro&lt;/h1&gt;
+&lt;p&gt;Pão quentinho às 7h.&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">// escreva aqui
+</pre>
+<pre class="solucao" data-file="script.js">console.log("Bom dia, Ana!");
+document.querySelector("h1").textContent = "Padaria da Ana";
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O quê</th><th>Como</th></tr>
+<tr><td>Abrir o Console (Chrome, Edge)</td><td><kbd>F12</kbd> → Console; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd>; macOS: <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>J</kbd></td></tr>
+<tr><td>Abrir o Console (Firefox)</td><td><kbd>F12</kbd> → Console; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>; macOS: <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>K</kbd></td></tr>
+<tr><td>Outra forma</td><td>Botão direito na página → Inspecionar → aba Console</td></tr>
+<tr><td>Várias linhas antes de rodar</td><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td></tr>
+<tr><td>Limpar</td><td><kbd>Ctrl</kbd>+<kbd>L</kbd> ou <code>console.clear()</code></td></tr>
+<tr><td><code>script.js:3</code> do lado de uma mensagem</td><td>O arquivo e a linha que a escreveram (clique para ver)</td></tr>
+<tr><td>Linha vermelha <code>Uncaught …</code></td><td>Um erro que parou o programa; o <code>at script.js:3:1</code> diz onde</td></tr>
+<tr><td><code>at &lt;anonymous&gt;:1:1</code></td><td>O erro veio do que você digitou no Console</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A tecla</h3>
+<p>Qual tecla abre as Ferramentas do Desenvolvedor na maioria dos navegadores?</p>
+<div class="ex-code"><input data-answer="F12|f12" aria-label="tecla"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>No Console do Chrome, o que aparece depois de digitar <code>"bolo" + "s"</code>?</p>
+<div class="ex-code">Resposta: <input data-answer="'bolos'" aria-label="resposta"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O <code>console.log</code> de um <code>script.js</code> carregado numa página escreve onde?</p>
+<label><input type="radio" name="q3"> No terminal</label>
+<label><input type="radio" name="q3"> No Console do navegador</label>
+<label><input type="radio" name="q3"> Na própria página, embaixo do título</label>
+<label><input type="radio" name="q3"> Num arquivo de texto</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. A Ana trocou o título da página pelo Console e apertou <kbd>F5</kbd>. O que acontece?</p>
+<label><input type="radio" name="q4"> O título novo fica para sempre</label>
+<label><input type="radio" name="q4"> O título novo aparece para todos os visitantes</label>
+<label><input type="radio" name="q4"> O arquivo <code>index.html</code> é alterado</label>
+<label><input type="radio" name="q4"> A página recarrega e volta ao título original</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que quer dizer <code>at script.js:3:1</code> embaixo de um erro vermelho?</p>
+<label><input type="radio" name="q5"> O erro está no arquivo <code>script.js</code>, linha 3, coluna 1</label>
+<label><input type="radio" name="q5"> O erro aconteceu 3 vezes</label>
+<label><input type="radio" name="q5"> O programa tem 3 arquivos</label>
+<label><input type="radio" name="q5"> O erro é do navegador, não do programa</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Como o Console do Chrome mostra o array <code>[1, 2, 3]</code>?</p>
+<label><input type="radio" name="q6"> <code>[ 1, 2, 3 ]</code></label>
+<label><input type="radio" name="q6"> <code>1 2 3</code></label>
+<label><input type="radio" name="q6"> <code>(3) [1, 2, 3]</code></label>
+<label><input type="radio" name="q6"> <code>Array: 1, 2, 3</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Console faz parte das Ferramentas do Desenvolvedor de todo navegador: <kbd>F12</kbd> → Console (ou <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> no Chrome e no Edge).</li>
+  <li>No <code>&gt;</code> você digita JavaScript e vê o valor na hora, como no modo interativo do Node.</li>
+  <li>Os <code>console.log</code> das páginas aparecem ali, com o arquivo e a linha do lado (<code>script.js:1</code>).</li>
+  <li>Erros aparecem em vermelho, com <code>Uncaught</code>, a mensagem e o <code>at arquivo:linha:coluna</code>. A página em si não avisa nada: abra o Console sempre que algo não funcionar.</li>
+  <li>Pelo Console você mexe na página aberta (<code>document</code>), mas só na sua tela e só até recarregar. Nunca cole código de desconhecidos.</li>
+  <li>Diferenças para o Node.js: objetos e arrays aparecem de outro jeito (<code>{nome: 'Ana'}</code>, <code>(3) [1, 2, 3]</code>), há <code>document</code> e <code>alert</code>, não há <code>process</code> nem <code>require</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
