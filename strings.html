@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Strings — guardando e juntando textos | Guia JavaScript</title>
+<meta name="description" content="Strings (textos) do JavaScript para quem nunca programou: aspas duplas, simples e crase, a string vazia, typeof, o tamanho com .length, juntar textos com + e +=, texto com número (&quot;5&quot; + 3), comparar com ===, pegar uma letra com [0], por que uma string não muda, e os erros reais do Node.js 24 (aspas sem fechar, aspas dentro de aspas, .lenght).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Strings</span></h1>
+
+<p class="intro">Nome de cliente, endereço, mensagem de boas-vindas, a lista de compras: boa parte do que um programa guarda e mostra é <strong>texto</strong>. Em programação, um texto se chama <strong>string</strong> (em inglês, "cordão", "fileira": uma fileira de letras, como contas num colar). Você já usou strings desde o <a href="primeiro-programa.html">primeiro programa</a>, no <code>console.log("Olá, mundo!")</code>. Nesta aula você aprende o que elas são de verdade e o básico para trabalhar com elas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar uma string com aspas duplas <code>"…"</code>, simples <code>'…'</code> ou crase <code>`…`</code>, e qual usar.</li>
+  <li>A string vazia <code>""</code> e o <code>typeof</code> de um texto.</li>
+  <li>Como saber o tamanho de um texto com <code>.length</code>.</li>
+  <li>Como juntar textos com <code>+</code> e <code>+=</code>, e o que acontece quando um dos lados é número.</li>
+  <li>Como comparar textos (<code>===</code>, maiúsculas contam) e pegar uma letra com <code>[0]</code>.</li>
+  <li>Por que uma string <strong>não muda</strong> depois de criada.</li>
+  <li>Os erros reais: aspas sem fechar, aspas dentro de aspas, e o <code>.lenght</code> escrito errado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o colar de contas com letras</h2>
+<p>Pense naqueles colares de contas com letras, que as crianças montam com o próprio nome. Cada conta tem <strong>uma</strong> letra (ou um espaço, ou um sinal), e a ordem importa: <code>A-N-A</code> é um colar, <code>N-A-A</code> é outro. Uma string é isso: uma fileira de caracteres em ordem.</p>
+<ul>
+  <li>O colar tem um <strong>tamanho</strong>: quantas contas tem.</li>
+  <li>Cada conta tem uma <strong>posição</strong>: a primeira, a segunda…</li>
+  <li>Dá para <strong>emendar</strong> dois colares num maior.</li>
+  <li>Um colar pode ter <strong>zero contas</strong>: só o fio. É a string vazia.</li>
+</ul>
+<p>Para o JavaScript saber onde o texto começa e termina, ele vem entre <strong>aspas</strong>. As aspas não fazem parte do texto: são o "fecho" do colar.</p>
+
+<hr>
+
+<h2>1. Criando strings: três tipos de aspas</h2>
+
+<pre class="file" data-file="aspas.js">const nome = "Ana";
+const cidade = 'Recife';
+const bairro = `Boa Viagem`;
+
+console.log(nome);
+console.log(cidade);
+console.log(bairro);
+console.log(typeof nome);
+</pre>
+
+<dl class="anatomy">
+  <dt>"Ana"</dt><dd>Aspas <strong>duplas</strong>. É o jeito que este guia usa (e o mais comum em projetos).</dd>
+  <dt>'Recife'</dt><dd>Aspas <strong>simples</strong> (o apóstrofo). Para o JavaScript, é exatamente o mesmo texto que <code>"Recife"</code>.</dd>
+  <dt>`Boa Viagem`</dt><dd><strong>Crase</strong> (o acento grave, sozinho; no teclado ABNT, <kbd>Shift</kbd> + a tecla à direita do <kbd>P</kbd>, e depois a barra de espaço). Cria um <strong>template string</strong>, que tem poderes extras (encaixar variáveis com <code>${ }</code> e quebrar linha). Eles têm aula própria: <a href="template-strings.html">Template Strings</a>.</dd>
+  <dt>typeof nome</dt><dd>O <a href="typeof.html">typeof</a> diz o tipo do valor: <code>string</code>.</dd>
+</dl>
+
+<pre class="term">$ node aspas.js
+Ana
+Recife
+Boa Viagem
+string
+</pre>
+
+<p>Repare que o <code>console.log</code> mostra o texto <strong>sem</strong> as aspas: elas só servem para o JavaScript ler o código. A única regra é <strong>fechar com o mesmo tipo de aspa que abriu</strong>.</p>
+
+<h3>No modo interativo, as aspas aparecem</h3>
+<p>No <a href="repl.html">modo interativo</a> do Node (o <code>&gt;</code>), quando você digita um texto sozinho, o Node mostra o <strong>valor</strong>, e não o texto impresso. Para deixar claro que é uma string, ele põe aspas simples em volta, mesmo que você tenha escrito com duplas:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Ana"
+'Ana'
+&gt; 'Ana'
+'Ana'
+&gt; console.log("Ana")
+Ana
+undefined
+&gt; "Ana".length
+3
+&gt; .exit
+</pre>
+
+<p>O <code>'Ana'</code> com aspas é o Node dizendo "isto é um texto". O <code>console.log</code> mostra o texto limpo (<code>Ana</code>) e depois o <code>undefined</code>, que é o "resultado" do próprio <code>console.log</code>, que não devolve nada (veja <a href="repl.html">O Modo Interativo</a>).</p>
+
+<h3>A string vazia</h3>
+<p>Duas aspas coladas, <code>""</code>, formam a <strong>string vazia</strong>: um texto com zero caracteres. É o que um campo de formulário tem antes de alguém digitar. Ela é diferente de um texto com um espaço (<code>" "</code>), que tem um caractere, e diferente de "não ter valor" (<code>null</code> e <code>undefined</code>, aula <a href="null-undefined.html">null e undefined</a>).</p>
+
+<hr>
+
+<h2>2. O tamanho: <code>.length</code></h2>
+<p>Toda string sabe quantos caracteres tem. Basta escrever <code>.length</code> ("comprimento") depois dela:</p>
+
+<pre class="file" data-file="tamanho.js">const nome = "Ana";
+const completo = "Ana Souza";
+const vazio = "";
+
+console.log(nome.length);
+console.log(completo.length);
+console.log(vazio.length);
+console.log("Pão de queijo".length);
+</pre>
+
+<pre class="term">$ node tamanho.js
+3
+9
+0
+13
+</pre>
+
+<p>O espaço do meio de <code>"Ana Souza"</code> conta como um caractere (3 + 1 + 5 = 9), e as letras com acento (<code>ã</code>) contam como uma cada. O <code>.length</code> não tem parênteses, porque não é um comando, é uma <strong>propriedade</strong>: uma informação que a string já carrega. Ele também funciona direto num texto, sem variável.</p>
+
+<div class="note">
+<strong>Para que serve o tamanho?</strong>
+<p>Para conferir se o nome não ficou em branco (<code>nome.length === 0</code>), se a senha tem pelo menos 8 caracteres (<code>senha.length &gt;= 8</code>), se o tuíte cabe no limite… Você vai usar muito junto com o <a href="if.html">if</a>.</p>
+</div>
+
+<hr>
+
+<h2>3. Juntando textos: <code>+</code> e <code>+=</code></h2>
+<p>O <code>+</code> entre dois textos <strong>emenda</strong> um no outro (o nome técnico é <strong>concatenar</strong>, "fazer uma corrente"):</p>
+
+<pre class="file" data-file="juntar.js">const nome = "Ana";
+const sobrenome = "Souza";
+
+const completo = nome + " " + sobrenome;
+console.log(completo);
+console.log("Olá, " + nome + "!");
+
+let lista = "Compras:";
+lista += " pão";
+lista += ", leite";
+lista += ", café";
+console.log(lista);
+</pre>
+
+<pre class="term">$ node juntar.js
+Ana Souza
+Olá, Ana!
+Compras: pão, leite, café
+</pre>
+
+<dl class="anatomy">
+  <dt>nome + " " + sobrenome</dt><dd>Três pedaços emendados: <code>"Ana"</code>, um espaço e <code>"Souza"</code>. O <code>+</code> não põe espaço sozinho: sem o <code>" "</code> do meio, sairia <code>AnaSouza</code>.</dd>
+  <dt>"Olá, " + nome + "!"</dt><dd>O espaço depois da vírgula está <strong>dentro</strong> das aspas de <code>"Olá, "</code>. Só o que está dentro das aspas vira texto; os espaços fora delas são só para o código ficar legível.</dd>
+  <dt>let lista = "Compras:"</dt><dd>Aqui é <code>let</code>, não <code>const</code>, porque a variável vai receber textos novos (veja <a href="variaveis.html">Variáveis</a>).</dd>
+  <dt>lista += " pão"</dt><dd>Atalho para <code>lista = lista + " pão"</code>: emenda no fim do que já estava lá (veja <a href="atribuicao.html">Atribuição</a>).</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Ana mora em Recife.;;src:\+">
+<p class="try-task"><strong>Missão:</strong> junte as variáveis com <code>+</code> para o programa mostrar exatamente <code>Ana mora em Recife.</code> (com os espaços e o ponto final). Escreva no lugar do <code>"?"</code>.</p>
+<pre class="script" data-file="main.js">const nome = "Ana";
+const cidade = "Recife";
+const frase = "?";
+console.log(frase);
+</pre>
+<pre class="solucao" data-file="main.js">const nome = "Ana";
+const cidade = "Recife";
+const frase = nome + " mora em " + cidade + ".";
+console.log(frase);
+</pre>
+</div>
+
+<h3>Texto + número = texto</h3>
+<p>Quando um lado do <code>+</code> é texto e o outro é número, o JavaScript transforma o número em texto e emenda. Com os outros operadores (<code>-</code>, <code>*</code>, <code>/</code>) ele faz o contrário: tenta transformar o texto em número.</p>
+
+<pre class="file" data-file="misturar.js">const idade = 30;
+console.log("Idade: " + idade);
+console.log("5" + 3);
+console.log("5" - 3);
+console.log("5" * "2");
+console.log(5 + 3);
+</pre>
+
+<pre class="term">$ node misturar.js
+Idade: 30
+53
+2
+10
+8
+</pre>
+
+<p>A segunda linha é a famosa pegadinha: <code>"5" + 3</code> dá o texto <code>53</code>, e não o número 8. Isso aparece muito quando o número vem do teclado ou de um formulário, que sempre entregam <strong>texto</strong>. O jeito de converter antes de somar (<code>Number("5") + 3</code>) está em <a href="conversao.html">Conversão</a>, e as outras surpresas em <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+
+<hr>
+
+<h2>4. Comparando textos e pegando uma letra</h2>
+
+<pre class="file" data-file="comparar.js">const senha = "Pao123";
+
+console.log(senha === "Pao123");
+console.log(senha === "pao123");
+console.log(senha[0]);
+console.log(senha[1]);
+console.log(senha[senha.length - 1]);
+console.log(senha[50]);
+</pre>
+
+<pre class="term">$ node comparar.js
+true
+false
+P
+a
+3
+undefined
+</pre>
+
+<dl class="anatomy">
+  <dt>senha === "Pao123"</dt><dd>Dois textos são iguais quando têm <strong>os mesmos caracteres, na mesma ordem</strong>.</dd>
+  <dt>senha === "pao123"</dt><dd><code>false</code>: maiúscula e minúscula são caracteres <strong>diferentes</strong>. Para comparar sem ligar para isso, a aula <a href="strings-metodos.html">Métodos de String</a> mostra o <code>toLowerCase()</code>.</dd>
+  <dt>senha[0]</dt><dd>Os colchetes pegam a letra de uma posição. A contagem começa do <strong>zero</strong>: <code>[0]</code> é a primeira letra, <code>[1]</code> a segunda.</dd>
+  <dt>senha[senha.length - 1]</dt><dd>A última letra: o texto tem 6 caracteres, nas posições 0 a 5, então a última é a <code>length - 1</code>. (Há um jeito mais curto, o <code>.at(-1)</code>, na aula <a href="strings-fatiar.html">Pedaços de String</a>.)</dd>
+  <dt>senha[50]</dt><dd>Uma posição que não existe não dá erro: devolve <code>undefined</code> ("indefinido", nada ali).</dd>
+</dl>
+
+<hr>
+
+<h2>5. Uma string não muda</h2>
+<p>Este é um detalhe importante: depois de criada, uma string <strong>não pode ser alterada por dentro</strong>. Os programadores dizem que ela é <strong>imutável</strong>. Olhe a tentativa de trocar a primeira letra:</p>
+
+<pre class="file" data-file="imutavel.js">let nome = "Ana";
+nome[0] = "B";
+console.log(nome);
+
+nome = "Bia";
+console.log(nome);
+</pre>
+
+<pre class="term">$ node imutavel.js
+Ana
+Bia
+</pre>
+
+<p>O <code>nome[0] = "B"</code> não deu erro, mas também não fez nada: o texto continuou <code>Ana</code>. O que dá para fazer é colocar na variável <strong>um texto novo</strong> (<code>nome = "Bia"</code>). Voltando ao colar: você não troca uma conta do colar pronto; você monta outro colar e guarda no lugar do antigo. Por isso, todos os métodos das próximas aulas (<code>toUpperCase()</code>, <code>slice()</code>, <code>replace()</code>…) <strong>devolvem um texto novo</strong> e deixam o original como estava.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque o texto da variável <code>palavra</code> pelo seu nome, ou por uma palavra com acentos e espaços, e veja o tamanho, a primeira e a última letra.</p>
+<pre class="script" data-file="main.js">const palavra = "Pão de queijo";
+console.log("Texto:", palavra);
+console.log("Tamanho:", palavra.length);
+console.log("Primeira letra:", palavra[0]);
+console.log("Última letra:", palavra[palavra.length - 1]);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>As três aspas criam o mesmo tipo de valor. E para montar uma frase com variáveis há mais de um caminho:</p>
+
+<pre class="file" data-file="formas.js">const nome = "Ana";
+const idade = 30;
+
+console.log("Ana" === 'Ana' &amp;&amp; 'Ana' === `Ana`);
+
+console.log("Nome: " + nome + ", idade: " + idade);
+console.log(`Nome: ${nome}, idade: ${idade}`);
+console.log("Nome:", nome + ", idade:", idade);
+</pre>
+
+<pre class="term">$ node formas.js
+true
+Nome: Ana, idade: 30
+Nome: Ana, idade: 30
+Nome: Ana, idade: 30
+</pre>
+
+<p>A última linha usa as <strong>vírgulas</strong> do <code>console.log</code>, que separam os valores com um espaço (veja <a href="console-log.html">console.log()</a>). Isso só funciona para mostrar na tela; para guardar a frase numa variável, use <code>+</code> ou o template string.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto comum</td><td>Aspas duplas: <code>"Bom dia"</code> (padrão deste guia)</td></tr>
+<tr><td>Texto que tem aspas duplas dentro</td><td>Aspas simples por fora: <code>'Ele disse "oi"'</code> (ou o escape <code>\"</code>, aula <a href="strings-escape.html">Caracteres Especiais</a>)</td></tr>
+<tr><td>Texto com variáveis ou contas no meio</td><td>Crase com <code>${ }</code>: <code>`Olá, ${nome}!`</code> (aula <a href="template-strings.html">Template Strings</a>)</td></tr>
+<tr><td>Juntar dois ou três pedaços</td><td><code>+</code> (ou <code>+=</code> para ir emendando no fim)</td></tr>
+<tr><td>Só mostrar vários valores na tela</td><td>Vírgulas no <code>console.log(a, b)</code></td></tr>
+</table>
+</div>
+
+<p>Num mesmo projeto, escolha um tipo de aspa e use sempre o mesmo. Misturar <code>"…"</code> e <code>'…'</code> sem motivo não dá erro, mas deixa o código desarrumado (a aula <a href="estilo.html">Estilo de Código</a> fala das ferramentas que arrumam isso sozinhas).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu de fechar as aspas</strong>
+<pre class="file" data-file="semfechar.js">const nome = "Ana;
+console.log(nome);
+</pre>
+<pre class="term">$ node semfechar.js
+/home/ana/semfechar.js:1
+const nome = "Ana;
+             ^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/semfechar.js:1</dt><dd>O arquivo e a linha do problema: a linha 1.</dd>
+  <dt>const nome = "Ana;</dt><dd>A linha copiada.</dd>
+  <dt>^^^^^</dt><dd>As setinhas começam na aspa que abriu e vão até o fim da linha: é o texto que nunca terminou. Repare que o <code>;</code> entrou no texto: depois de uma aspa aberta, tudo vira letra.</dd>
+  <dt>SyntaxError: Invalid or unexpected token</dt><dd>"Erro de sintaxe: símbolo inválido ou inesperado." O texto chegou ao fim da linha sem a aspa de fechar, e um texto com aspas comuns não pode passar para a linha de baixo.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Caminho por dentro do Node; pode ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>Com erro de sintaxe, o programa não roda nem a primeira linha. <strong>Como consertar:</strong> feche as aspas: <code>"Ana";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Abriu com um tipo de aspa e fechou com outro</strong>
+<pre class="file" data-file="misturou.js">const cidade = "Recife';
+console.log(cidade);
+</pre>
+<pre class="term">$ node misturou.js
+/home/ana/misturou.js:1
+const cidade = "Recife';
+               ^^^^^^^^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A mesma mensagem: para o JavaScript, a aspa simples do fim é só mais uma letra do texto, e a dupla que abriu continua esperando a sua parceira. <strong>Como consertar:</strong> feche com o mesmo tipo que abriu: <code>"Recife"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspas dentro de aspas</strong>
+<pre class="file" data-file="dentro.js">const frase = "Ele disse "oi" para a Ana";
+console.log(frase);
+</pre>
+<pre class="term">$ node dentro.js
+/home/ana/dentro.js:1
+const frase = "Ele disse "oi" para a Ana";
+                          ^^
+
+SyntaxError: Unexpected identifier 'oi'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: nome inesperado <code>oi</code>". O JavaScript leu <code>"Ele disse "</code> como um texto completo (a segunda aspa dupla fechou o que a primeira abriu). Depois encontrou a palavra <code>oi</code> solta, fora de qualquer aspa, e não soube o que fazer com ela. <strong>Como consertar:</strong> use o outro tipo de aspa por fora, <code>'Ele disse "oi" para a Ana'</code>, ou avise que a aspa de dentro é só uma letra com a barra invertida: <code>"Ele disse \"oi\" para a Ana"</code> (aula <a href="strings-escape.html">Caracteres Especiais</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>.lenght</code> (ou <code>.Length</code>)</strong>
+<pre class="file" data-file="lenght.js">const nome = "Ana Souza";
+console.log(nome.lenght);
+console.log(nome.Length);
+console.log(nome.length);
+</pre>
+<pre class="term">$ node lenght.js
+undefined
+undefined
+9
+</pre>
+<p>Nenhuma mensagem de erro: o JavaScript procurou na string uma propriedade chamada <code>lenght</code> (com o "h" trocado de lugar), não achou, e devolveu <code>undefined</code>. O mesmo com <code>Length</code>, com L maiúsculo: no JavaScript, maiúsculas importam também nos nomes. <strong>Como consertar:</strong> <code>length</code>, tudo minúsculo, "l-e-n-g-t-h". Se aparecer <code>undefined</code> onde você esperava um número, confira a grafia.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs a variável entre aspas</strong>
+<pre class="file" data-file="literal.js">const nome = "Ana";
+console.log("Olá, nome!");
+console.log("Olá, " + nome + "!");
+</pre>
+<pre class="term">$ node literal.js
+Olá, nome!
+Olá, Ana!
+</pre>
+<p>Dentro das aspas, tudo é texto ao pé da letra: <code>"nome"</code> é a palavra "nome", não a variável. <strong>Como consertar:</strong> deixe a variável <strong>fora</strong> das aspas e emende com <code>+</code> (ou use <code>`Olá, ${nome}!`</code>).</p>
+</div>
+
+<div class="tryjs" data-goal="out:Bem-vinda, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa nem roda. Leia a mensagem de erro, conserte as aspas, e faça aparecer <code>Bem-vinda, Ana!</code> com o nome vindo da variável.</p>
+<pre class="script" data-file="main.js">const nome = "Ana';
+console.log("Bem-vinda, nome!");
+</pre>
+<pre class="solucao" data-file="main.js">const nome = "Ana";
+console.log("Bem-vinda, " + nome + "!");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>"…"</code> <code>'…'</code> <code>`…`</code></td><td>Cria uma string</td><td><code>"Ana"</code></td></tr>
+<tr><td><code>""</code></td><td>String vazia</td><td><code>"".length</code> → <code>0</code></td></tr>
+<tr><td><code>texto.length</code></td><td>Quantidade de caracteres</td><td><code>"Ana Souza".length</code> → <code>9</code></td></tr>
+<tr><td><code>a + b</code></td><td>Emenda dois textos</td><td><code>"Ana" + " " + "Souza"</code> → <code>Ana Souza</code></td></tr>
+<tr><td><code>texto += b</code></td><td>Emenda no fim da variável</td><td><code>lista += ", café"</code></td></tr>
+<tr><td><code>"5" + 3</code></td><td>Texto + número vira texto</td><td><code>53</code></td></tr>
+<tr><td><code>a === b</code></td><td>Mesmos caracteres na mesma ordem (maiúsculas contam)</td><td><code>"Ana" === "ana"</code> → <code>false</code></td></tr>
+<tr><td><code>texto[0]</code></td><td>O caractere da posição (começa em 0)</td><td><code>"Ana"[0]</code> → <code>A</code></td></tr>
+<tr><td><code>typeof texto</code></td><td>O tipo</td><td><code>string</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td>Aspas sem fechar, ou fechadas com outro tipo</td></tr>
+<tr><td><code>SyntaxError: Unexpected identifier</code> no meio de um texto</td><td>Aspas iguais dentro do texto: troque as de fora ou use <code>\"</code></td></tr>
+<tr><td><code>undefined</code> no lugar do tamanho</td><td><code>.lenght</code> ou <code>.Length</code>: o certo é <code>.length</code></td></tr>
+<tr><td>Saiu o nome da variável em vez do valor</td><td>A variável ficou dentro das aspas</td></tr>
+<tr><td><code>53</code> em vez de <code>8</code></td><td>Um dos lados do <code>+</code> era texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tamanho</h3>
+<p>Quanto vale cada <code>.length</code>?</p>
+<div class="ex-code">"Bia".length → <input data-answer="3" aria-label="tamanho 1"><br>"Bia Lima".length → <input data-answer="8" aria-label="tamanho 2"><br>"".length → <input data-answer="0" aria-label="tamanho 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Juntando</h3>
+<p>O que o programa mostra?</p>
+<pre class="file" data-file="ex2.js">const a = "pão";
+const b = "queijo";
+console.log(a + " de " + b);
+console.log("10" + 5);
+</pre>
+<div class="ex-code">1ª linha: <input data-answer="pão de queijo" aria-label="saída 1"><br>2ª linha: <input data-answer="105" aria-label="saída 2"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A primeira letra</h3>
+<p>Complete para mostrar a primeira letra do nome:</p>
+<div class="ex-code">const nome = "Caio";<br>console.log(nome[<input data-answer="0" aria-label="posição">]);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que mostra <code>console.log("Ana" === "ana")</code>?</p>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>false</code>, porque maiúsculas e minúsculas são diferentes</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Depois de <code>let s = "gato"; s[0] = "p";</code>, quanto vale <code>s</code>?</p>
+<label><input type="radio" name="q5"> <code>"pato"</code></label>
+<label><input type="radio" name="q5"> <code>"p"</code></label>
+<label><input type="radio" name="q5"> <code>"gato"</code>: uma string não pode ser alterada por dentro</label>
+<label><input type="radio" name="q5"> Dá <code>TypeError</code></label>
+</div>
+
+<h3>Missão final: a etiqueta da padaria</h3>
+
+<div class="tryjs" data-goal="out:Pão francês - R$ 0.75 (11 letras);;src:\.length">
+<p class="try-task"><strong>Missão:</strong> monte a etiqueta do produto juntando as variáveis com <code>+</code>, no formato <code>Pão francês - R$ 0.75 (11 letras)</code>. O número de letras tem de vir do <code>.length</code> do <code>produto</code>, não escrito à mão (o espaço também conta).</p>
+<pre class="script" data-file="main.js">const produto = "Pão francês";
+const preco = 0.75;
+const etiqueta = produto;
+console.log(etiqueta);
+</pre>
+<pre class="solucao" data-file="main.js">const produto = "Pão francês";
+const preco = 0.75;
+const etiqueta = produto + " - R$ " + preco + " (" + produto.length + " letras)";
+console.log(etiqueta);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>string</strong> é um texto: uma fileira de caracteres entre aspas. Duplas <code>"…"</code>, simples <code>'…'</code> e crase <code>`…`</code> criam o mesmo tipo (<code>typeof</code> → <code>string</code>); feche com a mesma aspa que abriu.</li>
+  <li><code>""</code> é a string vazia. <code>texto.length</code> dá o número de caracteres (espaços e acentos contam).</li>
+  <li><code>+</code> emenda textos; <code>+=</code> emenda no fim da variável. Texto + número vira texto: <code>"5" + 3</code> → <code>53</code>.</li>
+  <li><code>===</code> compara caractere por caractere, e maiúsculas contam. <code>texto[0]</code> é o primeiro caractere; a contagem começa do zero.</li>
+  <li>Uma string não muda por dentro: para "mudar", crie um texto novo e guarde na variável.</li>
+  <li>Erros comuns: aspas sem fechar (<code>Invalid or unexpected token</code>), aspas iguais dentro do texto, <code>.lenght</code> (dá <code>undefined</code>) e variável dentro das aspas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
