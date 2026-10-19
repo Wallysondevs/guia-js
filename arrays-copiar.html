@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript copiando arrays — spread (…), slice e structuredClone | Guia JavaScript</title>
+<meta name="description" content="Como copiar arrays no JavaScript para quem nunca programou: por que o = não copia, cópia rasa com spread (...), slice e Array.from, copiar e acrescentar de uma vez, o limite da cópia rasa com objetos e arrays dentro, cópia profunda com structuredClone e os erros reais do Node.js 24 (is not iterable, DataCloneError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Copiando Arrays</span></h1>
+
+<p class="intro">A Ana tem a lista de compras da casa e quer dar uma cópia para a Bia, que vai acrescentar umas coisas dela. Parece simples: <code>const daBia = compras</code>. Só que, quando a Bia acrescenta "chocolate", o chocolate aparece também na lista da Ana! Esta aula explica por quê, e mostra os jeitos certos de copiar um array: o <strong>spread</strong> (<code>...</code>), o <code>slice</code> e, quando o array tem coisas dentro de coisas, o <code>structuredClone</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que <code>const b = a</code> <strong>não copia</strong> um array: dá só um segundo nome para o mesmo array.</li>
+  <li>Como fazer uma cópia de verdade: <code>[...a]</code>, <code>a.slice()</code>, <code>Array.from(a)</code>.</li>
+  <li>Como copiar e acrescentar itens de uma vez: <code>[...a, "café"]</code>.</li>
+  <li>O limite da cópia "rasa": objetos e arrays de dentro continuam compartilhados.</li>
+  <li>A cópia "profunda" com <code>structuredClone</code>, e o que ela não consegue copiar.</li>
+  <li>Como comparar se duas cópias têm o mesmo conteúdo.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a caixa e as etiquetas</h2>
+<p>Até aqui você imaginou uma variável como uma caixa com o valor dentro. Para números e textos, essa imagem funciona. Para arrays (e objetos), a imagem certa é outra:</p>
+<ul>
+  <li>O array é uma <strong>caixa</strong> guardada num depósito (a memória do computador).</li>
+  <li>A variável é uma <strong>etiqueta</strong> com o endereço da caixa.</li>
+</ul>
+<p>Quando você escreve <code>const daBia = compras</code>, o JavaScript <strong>não faz uma caixa nova</strong>: ele cola uma segunda etiqueta na <strong>mesma caixa</strong>. Mexer na caixa pela etiqueta <code>daBia</code> é mexer na caixa da Ana. Para a Bia ter a própria lista, é preciso <strong>outra caixa</strong>, com os mesmos itens dentro: isso é copiar. (A aula <a href="objetos-referencia.html">Objetos são Referências</a> aprofunda essa ideia.)</p>
+
+<hr>
+
+<h2>1. O <code>=</code> não copia</h2>
+
+<pre class="file" data-file="igual.js">const compras = ["pão", "leite"];
+const daBia = compras;
+daBia.push("chocolate");
+console.log("compras:", compras);
+console.log("daBia:  ", daBia);
+console.log(compras === daBia);
+</pre>
+
+<pre class="term">$ node igual.js
+compras: [ 'pão', 'leite', 'chocolate' ]
+daBia:   [ 'pão', 'leite', 'chocolate' ]
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>const daBia = compras;</dt><dd>Não cria array nenhum. A variável <code>daBia</code> passa a apontar para o <strong>mesmo</strong> array que <code>compras</code>.</dd>
+  <dt>daBia.push("chocolate")</dt><dd>Acrescenta o chocolate no array, que é um só. Por isso ele aparece nos dois <code>console.log</code>.</dd>
+  <dt>compras === daBia → true</dt><dd>Para arrays, o <code>===</code> não compara o conteúdo: pergunta "<strong>é a mesma caixa?</strong>". Aqui é.</dd>
+</dl>
+
+<p>Com números isso não acontece: <code>let x = 5; let y = x; y = 6;</code> deixa o <code>x</code> em 5. Números e textos são copiados de verdade no <code>=</code>; arrays e objetos, não.</p>
+
+<hr>
+
+<h2>2. A cópia de verdade: spread (<code>...</code>)</h2>
+
+<pre class="file" data-file="spread.js">const compras = ["pão", "leite"];
+const daBia = [...compras];
+daBia.push("chocolate");
+console.log("compras:", compras);
+console.log("daBia:  ", daBia);
+console.log(compras === daBia);
+</pre>
+
+<pre class="term">$ node spread.js
+compras: [ 'pão', 'leite' ]
+daBia:   [ 'pão', 'leite', 'chocolate' ]
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>[ … ]</dt><dd>Os colchetes criam um array <strong>novo</strong> (uma caixa nova).</dd>
+  <dt>...compras</dt><dd>Os três pontinhos são o <strong>spread</strong> (em inglês, "espalhar"): pegam cada item de <code>compras</code> e os espalham dentro do array novo, como se você tivesse escrito <code>["pão", "leite"]</code> à mão. A aula <a href="spread-rest.html">Spread e Rest</a> mostra outros usos.</dd>
+  <dt>false</dt><dd>Agora são <strong>duas caixas</strong>: o chocolate só entrou na da Bia.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:Original: [ 'pão', 'leite' ];;src:\[\s*\.\.\.original\s*\]|\.slice\(\s*\)|Array\.from\(\s*original\s*\)|structuredClone\(\s*original\s*\)">
+<p class="try-task"><strong>Missão:</strong> este programa estraga o original sem querer: o "bolo" aparece nas duas listas. Troque a linha da <code>copia</code> para fazer uma cópia de verdade, e o original deve continuar <code>[ 'pão', 'leite' ]</code>.</p>
+<pre class="script" data-file="main.js">const original = ["pão", "leite"];
+const copia = original;
+copia.push("bolo");
+console.log("Original:", original);
+console.log("Cópia:", copia);
+</pre>
+<pre class="solucao" data-file="main.js">const original = ["pão", "leite"];
+const copia = [...original];
+copia.push("bolo");
+console.log("Original:", original);
+console.log("Cópia:", copia);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Outros jeitos de copiar</h2>
+<p>O spread é o mais usado hoje, mas você vai encontrar outros em código pronto. Todos fazem uma caixa nova:</p>
+
+<pre class="file" data-file="formas.js">const original = [3, 1, 2];
+const a = [...original];
+const b = original.slice();
+const c = Array.from(original);
+const d = original.concat();
+a.push("a");
+b.push("b");
+c.push("c");
+d.push("d");
+console.log(original, a, b, c, d);
+</pre>
+
+<pre class="term">$ node formas.js
+[ 3, 1, 2 ] [ 3, 1, 2, 'a' ] [ 3, 1, 2, 'b' ] [ 3, 1, 2, 'c' ] [ 3, 1, 2, 'd' ]
+</pre>
+
+<p>O original ficou intacto e cada cópia ganhou o seu item. O <code>slice()</code> sem números "fatia" o array do começo ao fim (aula <a href="arrays-splice.html">splice e slice</a>); o <code>Array.from</code> cria um array a partir de outro (aula <a href="arrays-outros.html">some, every, join, flat e Outros</a>); o <code>concat()</code> sem nada para juntar devolve só a cópia.</p>
+
+<h3>Copiar e mudar de uma vez</h3>
+<p>Muitas vezes você copia para, em seguida, acrescentar ou trocar alguma coisa. O spread faz as duas coisas numa linha, e os métodos "<code>to…</code>" <span class="versao">ES2023</span> devolvem a cópia já mudada:</p>
+
+<pre class="file" data-file="mais.js">const compras = ["pão", "leite"];
+console.log([...compras, "café"]);
+console.log(["café", ...compras]);
+console.log([...compras, ...["ovos", "queijo"]]);
+console.log(compras.toSpliced(1, 1, "manteiga"));
+console.log(compras);
+</pre>
+
+<pre class="term">$ node mais.js
+[ 'pão', 'leite', 'café' ]
+[ 'café', 'pão', 'leite' ]
+[ 'pão', 'leite', 'ovos', 'queijo' ]
+[ 'pão', 'manteiga' ]
+[ 'pão', 'leite' ]
+</pre>
+
+<ul>
+  <li><code>[...compras, "café"]</code>: cópia com um item no fim (o <code>push</code> sem estragar o original).</li>
+  <li><code>["café", ...compras]</code>: cópia com um item no começo (o <code>unshift</code> sem estragar).</li>
+  <li><code>[...a, ...b]</code>: dois arrays juntos num novo.</li>
+  <li><code>toSpliced(1, 1, "manteiga")</code>: o mesmo que o <code>splice</code>, mas numa cópia. Junto com <code>toSorted</code>, <code>toReversed</code> (aula <a href="sort.html">Ordenando</a>) e <code>with</code>, forma a família que não mexe no original.</li>
+</ul>
+<p>A última linha confirma: depois de tudo isso, <code>compras</code> continua <code>[ 'pão', 'leite' ]</code>.</p>
+
+<hr>
+
+<h2>4. O limite: a cópia rasa</h2>
+<p>Todos os jeitos acima fazem uma cópia <strong>rasa</strong> (em inglês, <em>shallow copy</em>): a caixa de fora é nova, mas o que está <strong>dentro</strong> dela é copiado com <code>=</code>. Para números e textos, tudo bem. Mas, se os itens forem <strong>objetos</strong> ou <strong>arrays</strong>, a cópia ganha etiquetas para os mesmos objetos de dentro.</p>
+<p>A professora da Ana quer simular "e se a Ana tirasse 10?" sem mexer nas notas de verdade:</p>
+
+<pre class="file" data-file="rasa.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 8 },
+];
+const copia = [...turma];
+copia[0].nota = 10;
+copia.push({ nome: "Caio", nota: 6 });
+console.log("turma:", turma);
+console.log("copia:", copia);
+</pre>
+
+<pre class="term">$ node rasa.js
+turma: [ { nome: 'Ana', nota: 10 }, { nome: 'Bia', nota: 8 } ]
+copia: [
+  { nome: 'Ana', nota: 10 },
+  { nome: 'Bia', nota: 8 },
+  { nome: 'Caio', nota: 6 }
+]
+</pre>
+
+<p>Olhe com atenção:</p>
+<ul>
+  <li>O <strong>Caio</strong> só entrou na cópia: o array de fora é novo. Até aqui, a cópia funcionou.</li>
+  <li>A <strong>nota 10 da Ana</strong> apareceu também na turma original. O objeto <code>{ nome: "Ana", … }</code> não foi copiado: as duas listas apontam para o <strong>mesmo</strong> objeto da Ana.</li>
+</ul>
+
+<p>Com arrays dentro de arrays acontece o mesmo. Um jogo da velha copiado com spread:</p>
+
+<pre class="file" data-file="rasa2.js">const tabuleiro = [["X", " "], [" ", "O"]];
+const copia = [...tabuleiro];
+copia[0][1] = "O";
+console.log(tabuleiro);
+console.log(copia[0] === tabuleiro[0]);
+</pre>
+
+<pre class="term">$ node rasa2.js
+[ [ 'X', 'O' ], [ ' ', 'O' ] ]
+true
+</pre>
+
+<p>A jogada feita na cópia apareceu no tabuleiro original, e o <code>true</code> mostra que a primeira linha das duas é a <strong>mesma</strong> caixa. (Arrays de arrays têm aula própria: <a href="arrays-matriz.html">Matrizes</a>.)</p>
+
+<hr>
+
+<h2>5. A cópia profunda: <code>structuredClone</code></h2>
+<p>Para copiar <strong>tudo</strong>, a caixa de fora e todas as caixas de dentro, em qualquer profundidade, existe o <code>structuredClone</code> ("clone estruturado"). Ele é uma função global: existe no Node.js (desde a versão 17) e em todos os navegadores atuais, sem precisar de <code>import</code>.</p>
+
+<pre class="file" data-file="clone.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 8 },
+];
+const copia = structuredClone(turma);
+copia[0].nota = 10;
+console.log("turma:", turma);
+console.log("copia:", copia);
+console.log(copia[0] === turma[0]);
+</pre>
+
+<pre class="term">$ node clone.js
+turma: [ { nome: 'Ana', nota: 7 }, { nome: 'Bia', nota: 8 } ]
+copia: [ { nome: 'Ana', nota: 10 }, { nome: 'Bia', nota: 8 } ]
+false
+</pre>
+
+<p>Agora a turma de verdade continua com o 7. O <code>false</code> mostra que o objeto da Ana na cópia é <strong>outro</strong> objeto, com o mesmo conteúdo. Isso é uma cópia <strong>profunda</strong> (em inglês, <em>deep copy</em>).</p>
+
+<h3>O jeito antigo: <code>JSON.parse(JSON.stringify(…))</code></h3>
+<p>Antes do <code>structuredClone</code>, o truque era transformar o array em texto JSON e de volta (aula <a href="json.html">JSON</a>). Funciona para números, textos e booleanos, mas estraga outros valores:</p>
+
+<pre class="file" data-file="json.js">const dados = [1, undefined, new Date(0)];
+console.log(structuredClone(dados));
+console.log(JSON.parse(JSON.stringify(dados)));
+</pre>
+
+<pre class="term">$ node json.js
+[ 1, undefined, 1970-01-01T00:00:00.000Z ]
+[ 1, null, '1970-01-01T00:00:00.000Z' ]
+</pre>
+
+<p>O <code>structuredClone</code> manteve o <code>undefined</code> e a data (<a href="date.html">Date</a>). Pelo JSON, o <code>undefined</code> virou <code>null</code> e a data virou um <strong>texto</strong> (repare nas aspas). Em código novo, use o <code>structuredClone</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Array de números, textos, booleanos (o caso comum)</td><td><code>[...lista]</code></td></tr>
+<tr><td>Código antigo / quer deixar claro "uma fatia inteira"</td><td><code>lista.slice()</code></td></tr>
+<tr><td>Copiar e acrescentar</td><td><code>[...lista, novo]</code> / <code>[novo, ...lista]</code></td></tr>
+<tr><td>Copiar e ordenar / inverter / trocar / tirar</td><td><code>toSorted</code> / <code>toReversed</code> / <code>with</code> / <code>toSpliced</code></td></tr>
+<tr><td>Array com objetos ou arrays dentro, que você vai mudar</td><td><code>structuredClone(lista)</code></td></tr>
+<tr><td>Só quer dar outro nome, sem copiar</td><td><code>const outro = lista</code> (de propósito!)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Achou que o <code>=</code> copiava</strong>
+<p>Sem mensagem de erro: o original muda "sozinho" (seção 1). Se um array mudou e você não se lembra de mexer nele, procure um <code>outro = esteArray</code> no caminho. <strong>Como consertar:</strong> <code>const outro = [...esteArray]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Cópia rasa de objetos</strong>
+<p>Também sem erro: você copiou com spread, mudou um objeto de dentro da cópia, e o original mudou junto (seção 4). <strong>Como consertar:</strong> <code>structuredClone(lista)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Copiar o que não existe: <code>is not iterable</code></strong>
+<pre class="file" data-file="spread-undefined.js">let compras;
+const copia = [...compras];
+console.log(copia);
+</pre>
+<pre class="term">$ node spread-undefined.js
+/home/ana/spread-undefined.js:2
+const copia = [...compras];
+                  ^
+
+TypeError: compras is not iterable
+    at Object.&lt;anonymous&gt; (/home/ana/spread-undefined.js:2:19)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/spread-undefined.js:2</dt><dd>Arquivo e linha do erro.</dd>
+  <dt>const copia = [...compras]; e o <code>^</code></dt><dd>A linha do código; o <code>^</code> aponta para o <code>compras</code> que está sendo espalhado.</dd>
+  <dt>TypeError: compras is not iterable</dt><dd>"<code>compras</code> não é iterável": não é algo que dê para percorrer item por item (aula <a href="iteradores.html">Iteradores</a>). O <code>let compras;</code> deixou a variável com <code>undefined</code>, e <code>undefined</code> não tem itens para espalhar.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:2:19)</dt><dd>O seu programa, linha 2, coluna 19. O resto da pilha é do Node.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira se a variável tem mesmo um array (ela foi preenchida? o nome está certo?). Se ela puder faltar, comece com um array vazio: <code>let compras = [];</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>structuredClone</code> com uma função dentro</strong>
+<pre class="file" data-file="clone-funcao.js">const tarefas = [
+  { nome: "lavar louça", feita: false, avisar: () =&gt; console.log("feito!") },
+];
+const copia = structuredClone(tarefas);
+console.log(copia);
+</pre>
+<pre class="term">$ node clone-funcao.js
+node:internal/worker/js_transferable:127
+  const serializedData = nativeStructuredClone(value, idlOptions);
+                         ^
+
+DOMException [DataCloneError]: () =&gt; console.log("feito!") could not be cloned.
+    at new DOMException (node:internal/per_context/domexception:76:18)
+    at structuredClone (node:internal/worker/js_transferable:127:26)
+    at Object.&lt;anonymous&gt; (/home/ana/clone-funcao.js:4:15)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Esta mensagem assusta, porque começa apontando para um arquivo que não é seu:</p>
+<dl class="anatomy">
+  <dt>node:internal/worker/js_transferable:127 e a linha de baixo</dt><dd>O erro estourou <strong>dentro do código do próprio Node</strong> (tudo que começa com <code>node:internal</code> é do Node), por isso aparece uma linha que você não escreveu.</dd>
+  <dt>DOMException [DataCloneError]: … could not be cloned.</dt><dd>"Erro de clonagem de dados: <code>() =&gt; console.log("feito!")</code> não pôde ser clonado". O <code>structuredClone</code> copia dados (números, textos, arrays, objetos, datas…), mas <strong>não copia funções</strong>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/clone-funcao.js:4:15)</dt><dd>A primeira linha da pilha com <code>/home/ana</code>: é <strong>aqui</strong> que está o seu código, linha 4, a do <code>structuredClone</code>. Quando a mensagem começar no código do Node, procure na pilha a primeira linha com o nome do seu arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> copie só os dados (as funções podem ficar fora do array, ou ser postas de volta depois). Objetos com métodos (aula <a href="objetos-metodos.html">Métodos e this</a>) não combinam com <code>structuredClone</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparou duas cópias com <code>===</code></strong>
+<pre class="file" data-file="comparar.js">const a = [1, 2, 3];
+const b = [...a];
+console.log(a === b);
+console.log(a.length === b.length &amp;&amp; a.every((item, i) =&gt; item === b[i]));
+console.log(JSON.stringify(a) === JSON.stringify(b));
+</pre>
+<pre class="term">$ node comparar.js
+false
+true
+true
+</pre>
+<p>Mesmo conteúdo, mas <code>a === b</code> dá <code>false</code>: são duas caixas. O <code>===</code> nunca compara o conteúdo de arrays. <strong>Como consertar:</strong> compare o tamanho e cada item (com <code>every</code>, aula <a href="arrays-outros.html">some, every…</a>) ou, para arrays simples, compare as versões em texto JSON.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Tipo de cópia</th></tr>
+<tr><td><code>const b = a</code></td><td>Outro nome para o <strong>mesmo</strong> array</td><td>Nenhuma</td></tr>
+<tr><td><code>[...a]</code></td><td>Array novo com os itens de <code>a</code></td><td>Rasa</td></tr>
+<tr><td><code>a.slice()</code></td><td>Idem</td><td>Rasa</td></tr>
+<tr><td><code>Array.from(a)</code></td><td>Idem</td><td>Rasa</td></tr>
+<tr><td><code>a.concat()</code></td><td>Idem</td><td>Rasa</td></tr>
+<tr><td><code>[...a, x]</code> / <code>[x, ...a]</code></td><td>Cópia com <code>x</code> no fim / no começo</td><td>Rasa</td></tr>
+<tr><td><code>a.toSorted()</code>, <code>toReversed()</code>, <code>with()</code>, <code>toSpliced()</code></td><td>Cópia já ordenada / invertida / trocada / cortada</td><td>Rasa</td></tr>
+<tr><td><code>structuredClone(a)</code></td><td>Copia tudo, em qualquer profundidade (não copia funções)</td><td>Profunda</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a cópia</h3>
+<p>Complete para <code>copia</code> ser um array novo com os itens de <code>lista</code>:</p>
+<div class="ex-code">const copia = [<input data-answer="...lista" aria-label="spread da lista">];</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. <code>const a = [1, 2]; const b = a; b.push(3);</code> Quanto vale <code>a</code>?</p>
+<label><input type="radio" name="q2"> <code>[ 1, 2 ]</code></label>
+<label><input type="radio" name="q2"> <code>[ 1, 2, 3 ]</code></label>
+<label><input type="radio" name="q2"> <code>[ 3 ]</code></label>
+<label><input type="radio" name="q2"> Dá erro, porque <code>a</code> é <code>const</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>[1, 2] === [1, 2]</code> dá…</p>
+<label><input type="radio" name="q3"> <code>true</code>, porque o conteúdo é igual</label>
+<label><input type="radio" name="q3"> Erro</label>
+<label><input type="radio" name="q3"> <code>false</code>, porque são dois arrays diferentes</label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Um array tem objetos dentro, e você quer mudar os objetos da cópia sem afetar o original. O que usar?</p>
+<label><input type="radio" name="q4"> <code>structuredClone(lista)</code></label>
+<label><input type="radio" name="q4"> <code>[...lista]</code></label>
+<label><input type="radio" name="q4"> <code>lista.slice()</code></label>
+<label><input type="radio" name="q4"> <code>const copia = lista</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que o <code>structuredClone</code> <strong>não</strong> consegue copiar?</p>
+<label><input type="radio" name="q5"> Arrays dentro de arrays</label>
+<label><input type="radio" name="q5"> Datas (<code>Date</code>)</label>
+<label><input type="radio" name="q5"> O valor <code>undefined</code></label>
+<label><input type="radio" name="q5"> Funções</label>
+</div>
+
+<h3>Missão final: a simulação de notas</h3>
+
+<div class="tryjs" data-goal="out:Nota real da Ana: 7;;out:Nota simulada da Ana: 10">
+<p class="try-task"><strong>Missão:</strong> a professora simula "e se a Ana tirasse 10?", mas a nota real da Ana também está mudando. Troque a cópia rasa por uma cópia profunda, para aparecer <code>Nota real da Ana: 7</code> e <code>Nota simulada da Ana: 10</code>.</p>
+<pre class="script" data-file="main.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 8 },
+];
+const simulacao = [...turma];
+simulacao[0].nota = 10;
+console.log(`Nota real da Ana: ${turma[0].nota}`);
+console.log(`Nota simulada da Ana: ${simulacao[0].nota}`);
+</pre>
+<pre class="solucao" data-file="main.js">const turma = [
+  { nome: "Ana", nota: 7 },
+  { nome: "Bia", nota: 8 },
+];
+const simulacao = structuredClone(turma);
+simulacao[0].nota = 10;
+console.log(`Nota real da Ana: ${turma[0].nota}`);
+console.log(`Nota simulada da Ana: ${simulacao[0].nota}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Nota real da Ana: 7</code> e <code>Nota simulada da Ana: 10</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma variável de array é uma <strong>etiqueta</strong> para uma caixa. <code>const b = a</code> cola outra etiqueta na <strong>mesma</strong> caixa: não copia nada.</li>
+  <li>Para copiar: <code>[...a]</code> (o mais comum), <code>a.slice()</code>, <code>Array.from(a)</code>. Para copiar e acrescentar: <code>[...a, novo]</code>.</li>
+  <li>Essas cópias são <strong>rasas</strong>: objetos e arrays de dentro continuam compartilhados.</li>
+  <li><code>structuredClone(a)</code> faz a cópia <strong>profunda</strong>, de tudo, mas não copia funções (<code>DataCloneError</code>).</li>
+  <li><code>===</code> entre arrays pergunta "é a mesma caixa?", e não "têm o mesmo conteúdo?".</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
