@@ -145,7 +145,7 @@ timeout 60 node ~/guia-js/tools/sim.js main.js [contas.js dados.txt] [--stdin "A
 timeout 60 node ~/guia-js/tools/sim.js -e 'console.log([1, 2, 3])'
 timeout 60 node ~/guia-js/tools/sim.js --repl --digitar "1 + 1\nlet x = 10\nx * 2"
 ```
-O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/jssim/worker.js`) num **Chromium headless de verdade** (motor V8, o mesmo do Node). `--nativo` roda também no Node.js v24.22.0 do lab e anota as diferenças em `tools/DIFERENCAS.md`. Com `data-digitar`, o lab roda num terminal de verdade (o eco do que foi digitado aparece, como na caixa).
+O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/jssim/worker.js`) num **Chromium headless de verdade** (motor V8, o mesmo do Node). `--nativo` roda também no Node.js v24.22.0 do lab e anota as diferenças em `tools/DIFERENCAS-AUTO.md` (fora do git; o resumo das conhecidas fica em `tools/DIFERENCAS.md`). Com `data-digitar`, o lab roda num terminal de verdade (o eco do que foi digitado aparece, como na caixa).
 
 ### O que a caixa `.tryjs` faz
 - **Rodar** abre um Web Worker novo (cada Rodar parte do zero) e roda `main.js` como o `node main.js` do lab: `/home/ana/main.js`, `process.argv = ['/usr/local/bin/node', '/home/ana/main.js', …data-args]`, `process.cwd()` = `/home/ana`, `process.platform` = `'linux'`, `process.version` = `'v24.22.0'`, `process.env` da Ana (`HOME`, `USER=ana`, `LANG=pt_BR.UTF-8`, `TZ=America/Sao_Paulo`…), `os.hostname()` = `'notebook'`.
@@ -175,6 +175,9 @@ O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/js
 |---|---|---|
 | Mensagens de erro | iguais no Chrome/Edge (mesmo motor V8); **no Firefox/Safari o texto do erro muda** (a caixa avisa) | as do V8 |
 | `Math.random()`, `new Date()`, `Date.now()`, `console.time` | outros valores a cada Rodar | idem |
+| Fuso horário | o do computador do leitor | `America/Sao_Paulo` |
+| Idioma (`toLocaleString`, `Intl`, nome do fuso em `String(new Date())`) | pt-BR, como o lab (mesmo que o navegador esteja em outro idioma) | pt-BR |
+| Estouro de pilha (`Maximum call stack size exceeded`) | a coluna do `^` pode ser outra (V8 mais novo) | a do Node 24 |
 | `console.log(promessa)` | sabe o estado só das criadas com `new Promise`/`Promise.resolve`/`Promise.reject`; as de `async function` aparecem `Promise { <pending> }` | `Promise { 1 }` se já resolvida |
 | `fetch` | o do navegador (CORS) | sem internet no lab |
 | `os.cpus()`, memória, `uptime` | valores fixos de mentira | os da máquina |

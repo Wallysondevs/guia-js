@@ -1,0 +1,1 @@
+const f = (a, b) => { return a + b };}

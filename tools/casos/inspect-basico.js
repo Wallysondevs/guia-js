@@ -1,0 +1,12 @@
+console.log({ nome: "Ana", idade: 30 }, [1, 2, 3], "texto", 42, true, null, undefined);
+console.log(["a", "b"], [["x"]], { a: "it's" }, ["it's"], ['diz "oi"'], "solta");
+console.log({ a: { b: { c: { d: 1 } } } });
+console.log([[1, [2, [3, [4, [5]]]]]]);
+console.log(Array.from({ length: 120 }, (_, i) => i));
+console.log(Array.from({ length: 30 }, (_, i) => "item" + i));
+console.log({ uma: "chave bem comprida aqui", outra: "mais um texto bem comprido", terceira: 12345, quarta: [1, 2, 3] });
+console.log(new Map([["a", 1], ["b", { x: 2 }]]), new Set([1, "dois", [3]]), new Map(), new Set());
+console.log(function soma(a, b) { return a + b; }, () => 1, class Pessoa {}, class extends Array {}, async function f() {}, function* g() {});
+console.log(Symbol("s"), Symbol.iterator, 10n, -0, 0.1 + 0.2, NaN, Infinity, 1e21, 1e-7);
+console.log([1, , 3], [undefined, null], new Array(5), [1, 2, 3].keys());
+console.log({ [Symbol("k")]: 1, "com espaço": 2, "dígito1": 3, 1: "um", valido_1: 4 });

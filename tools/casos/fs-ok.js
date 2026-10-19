@@ -1,0 +1,12 @@
+const fs = require("fs");
+fs.writeFileSync("a.txt", "um\n");
+fs.appendFileSync("a.txt", "dois\n");
+console.log(fs.readFileSync("a.txt", "utf8"));
+console.log(fs.existsSync("a.txt"), fs.existsSync("b.txt"));
+fs.mkdirSync("pasta/sub", { recursive: true });
+console.log(fs.readdirSync("."));
+console.log(fs.statSync("a.txt").size, fs.statSync("pasta").isDirectory());
+fs.renameSync("a.txt", "c.txt");
+console.log(fs.readdirSync(".", { withFileTypes: true }).map((d) => d.name + (d.isDirectory() ? "/" : "")));
+fs.unlinkSync("c.txt");
+console.log(fs.readdirSync("."));

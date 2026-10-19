@@ -97,29 +97,31 @@
     var col2 = l === 1 ? col - info.linha1 : col;
     var loc = info.mostrar + ":" + l + ":" + col2;
     s = s.split(arq + ":" + l + ":" + col).join(loc);
-    // o topo de um módulo CommonJS: o Node chama a função do módulo com this = module.exports
-    if (info.cjs && s === loc) s = "Object.<anonymous> (" + loc + ")";
     return s;
   }
   function framesDe(err, cs) {
     var m = marcas.get(err) || {};
     var r = (m.topo || []).slice();
-    var usuario = 0;
+    var usuario = 0, viuUsuario = !m.topo;
     for (var i = 0; i < cs.length; i++) {
       var c = cs[i];
       var arq = c.getFileName ? c.getFileName() : null;
       if (arq && arquivosInfo[arq]) {
         if (m.semUsuario) continue;
-        r.push(frameV8(c)); usuario++;
+        r.push(frameV8(c)); usuario++; viuUsuario = true;
         continue;
       }
       if (arq && ehInterno(arq)) {
         var fn = c.getFunctionName && c.getFunctionName();
-        if (fn && CONTEXTOS[fn] && !m.semUsuario) r = r.concat(CONTEXTOS[fn]);
+        if (fn && CONTEXTOS[fn] && !m.semUsuario && viuUsuario) r = r.concat(CONTEXTOS[fn]);
         if (fn === "jsNodeEmit" && !m.semUsuario) r.push((c.getTypeName() || "EventEmitter") + ".emit (node:events:508:28)");
         continue;
       }
-      if (!arq) { if (!m.semUsuario) r.push(frameV8(c)); continue; }
+      if (!arq) {
+        var su = c.getScriptNameOrSourceURL && c.getScriptNameOrSourceURL();
+        if (su && /^REPL\d+$/.test(su)) { var s0 = String(c).replace(/^eval at [^,]*, /, "").replace(/\(eval at [^)]*\), /, "("); r.push(c.getFunctionName() && c.getFunctionName() !== "eval" ? c.getFunctionName() + " (" + su + ":" + c.getLineNumber() + ":" + c.getColumnNumber() + ")" : su + ":" + c.getLineNumber() + ":" + c.getColumnNumber()); continue; }
+        if (!m.semUsuario) r.push(frameV8(c)); continue;
+      }
     }
     // módulo ES: o corpo do módulo (sem await no topo) roda dentro do carregador do Node
     if (!m.semUsuario && cs.length) {
@@ -141,7 +143,8 @@
   if (ehV8) {
     Error.prepareStackTrace = function (err, cs) {
       var fr = framesDe(err, cs);
-      return cabecalhoErro(err) + fr.map(function (f) { return "\n    at " + f; }).join("");
+      var mm = marcas.get(err);
+      return (mm && mm.nomeStack ? mm.nomeStack + ": " + err.message : cabecalhoErro(err)) + fr.map(function (f) { return "\n    at " + f; }).join("");
     };
   }
   // Firefox/Safari: "f@blob:…:3:5" → "    at f (/home/ana/main.js:3:5)"
@@ -232,7 +235,11 @@
         Object.defineProperty(e, "stack", { value: corpo, configurable: true, writable: true });
       } catch (x) {}
     }
-    if (ehErro) return cab + inspecionarErro(e) + "\n\nNode.js " + NODE_VERSAO + "\n";
+    if (ehErro) {
+      var emit = "";
+      if (m && m.emitido) { try { emit = "\nEmitted 'error' event at:\n" + String(m.emitido.stack).split("\n").slice(1).join("\n"); } catch (x) {} }
+      return cab + inspecionarErro(e) + emit + "\n\nNode.js " + NODE_VERSAO + "\n";
+    }
     if (comoRejeicao) {
       var desc;
       try { desc = typeof e === "string" ? e : U.inspect(e); } catch (x) { desc = String(e); }
@@ -247,7 +254,7 @@
     var achou = acharThrow();
     if (achou) cab2 = "\n" + achou.info.mostrar + ":" + achou.linha + "\n" + achou.texto + "\n" + espacos(achou.coluna - 1) + "^\n";
     var txt;
-    try { txt = U.inspect(e); } catch (x) { txt = String(e); }
+    try { txt = typeof e === "string" ? e : U.inspect(e); } catch (x) { txt = String(e); }
     return cab2 + txt + "\n(Use `node --trace-uncaught ...` to show where the exception was thrown)\n\nNode.js " + NODE_VERSAO + "\n";
   }
   function acharThrow() {
@@ -613,8 +620,8 @@
   function erroFs(codigo, syscall, p, destino) {
     var MSG = { ENOENT: [-2, "no such file or directory"], EEXIST: [-17, "file already exists"], EISDIR: [-21, "illegal operation on a directory"], ENOTDIR: [-20, "not a directory"], ENOTEMPTY: [-39, "directory not empty"], EACCES: [-13, "permission denied"], EBADF: [-9, "bad file descriptor"] };
     var m = MSG[codigo];
-    var e = new Error(codigo + ": " + m[1] + ", " + syscall + " '" + p + "'" + (destino !== undefined ? " -> '" + destino + "'" : ""));
-    e.errno = m[0]; e.code = codigo; e.syscall = syscall; e.path = p;
+    var e = new Error(codigo + ": " + m[1] + ", " + syscall + (p === undefined ? "" : " '" + p + "'") + (destino !== undefined ? " -> '" + destino + "'" : ""));
+    e.errno = m[0]; e.code = codigo; e.syscall = syscall; if (p !== undefined) e.path = p;
     if (destino !== undefined) e.dest = destino;
     return e;
   }
@@ -628,7 +635,7 @@
       var cod = opcCod(o);
       if (p === 0 || p === "/dev/stdin") return saidaCod(stdinTudo(), cod);
       var a = abs(p);
-      if (vfs.dir[a]) throw marcar(erroFs("EISDIR", "read", undefined), ["Object.readFileSync (node:fs:441:20)"], "node:fs:441\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\n");
+      if (vfs.dir[a]) throw marcar(erroFs("EISDIR", "read"), ["Object.readFileSync (node:fs:483:20)"], "node:fs:483\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\n");
       if (!vfs.arq[a]) {
         var e = erroFs("ENOENT", "open", String(p));
         if (cod && /^utf-?8$/i.test(cod)) throw marcar(e, ["Object.readFileSync (node:fs:483:20)"], "node:fs:483\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\n");
@@ -640,7 +647,8 @@
       if (p === 1 || p === 2) { escrever(p === 1 ? "out" : "err", texto(bytes(d))); return; }
       var a = abs(p);
       if (vfs.dir[a]) throw marcar(erroFs("EISDIR", "open", String(p)), ["Object.openSync (node:fs:621:18)", "Object.writeFileSync (node:fs:2392:35)"], "node:fs:621\n  return binding.open(\n                 ^\n\n");
-      if (!paiExiste(a)) throw marcar(erroFs("ENOENT", "open", String(p)), ["Object.openSync (node:fs:621:18)", "Object.writeFileSync (node:fs:2392:35)"], "node:fs:621\n  return binding.open(\n                 ^\n\n");
+      if (!paiExiste(a) && typeof d === "string") throw marcar(erroFs("ENOENT", "open", String(p)), ["Object.writeFileSync (node:fs:2482:20)"], "node:fs:2482\n    return binding.writeFileUtf8(\n                   ^\n\n");
+      if (!paiExiste(a)) throw marcar(erroFs("ENOENT", "open", String(p)), ["Object.openSync (node:fs:621:18)", "Object.writeFileSync (node:fs:2492:35)"], "node:fs:621\n  return binding.open(\n                 ^\n\n");
       var flag = o && o.flag;
       if (flag === "a") return fsSync.appendFileSync(p, d);
       if (flag === "wx" && vfs.arq[a]) throw erroFs("EEXIST", "open", String(p));
@@ -654,9 +662,9 @@
     },
     mkdirSync: function (p, o) {
       var a = abs(p), rec = o && (o === true || o.recursive);
-      if (vfs.dir[a] || vfs.arq[a]) { if (rec && vfs.dir[a]) return undefined; throw marcar(erroFs("EEXIST", "mkdir", String(p)), ["Object.mkdirSync (node:fs:1349:26)"], "node:fs:1349\n  const result = binding.mkdir(\n                         ^\n\n"); }
+      if (vfs.dir[a] || vfs.arq[a]) { if (rec && vfs.dir[a]) return undefined; throw marcar(erroFs("EEXIST", "mkdir", String(p)), ["Object.mkdirSync (node:fs:1410:26)"], "node:fs:1410\n  const result = binding.mkdir(\n                         ^\n\n"); }
       if (!vfs.dir[path.dirname(a)]) {
-        if (!rec) throw marcar(erroFs("ENOENT", "mkdir", String(p)), ["Object.mkdirSync (node:fs:1349:26)"], "node:fs:1349\n  const result = binding.mkdir(\n                         ^\n\n");
+        if (!rec) throw marcar(erroFs("ENOENT", "mkdir", String(p)), ["Object.mkdirSync (node:fs:1410:26)"], "node:fs:1410\n  const result = binding.mkdir(\n                         ^\n\n");
         var primeiro = null, cam = "";
         a.split("/").filter(Boolean).forEach(function (s) { cam += "/" + s; if (!vfs.dir[cam]) { vfs.dir[cam] = true; if (!primeiro) primeiro = cam; } });
         return primeiro;
@@ -667,8 +675,8 @@
     readdirSync: function (p, o) {
       var a = abs(p);
       if (!vfs.dir[a]) {
-        if (vfs.arq[a]) throw marcar(erroFs("ENOTDIR", "scandir", String(p)), ["Object.readdirSync (node:fs:1585:26)"], "node:fs:1585\n  const result = binding.readdir(\n                         ^\n\n");
-        throw marcar(erroFs("ENOENT", "scandir", String(p)), ["Object.readdirSync (node:fs:1585:26)"], "node:fs:1585\n  const result = binding.readdir(\n                         ^\n\n");
+        if (vfs.arq[a]) throw marcar(erroFs("ENOTDIR", "scandir", String(p)), ["Object.readdirSync (node:fs:1630:26)"], "node:fs:1630\n  const result = binding.readdir(\n                         ^\n\n");
+        throw marcar(erroFs("ENOENT", "scandir", String(p)), ["Object.readdirSync (node:fs:1630:26)"], "node:fs:1630\n  const result = binding.readdir(\n                         ^\n\n");
       }
       var pre = a === "/" ? "/" : a + "/", nomes = {};
       Object.keys(vfs.arq).concat(Object.keys(vfs.dir)).forEach(function (x) { if (x.indexOf(pre) === 0 && x !== a) { var resto = x.slice(pre.length); if (resto && resto.indexOf("/") < 0) nomes[resto] = !!vfs.dir[x]; } });
@@ -678,13 +686,13 @@
     },
     statSync: function (p, o) {
       var a = abs(p);
-      if (!vfs.arq[a] && !vfs.dir[a]) { if (o && o.throwIfNoEntry === false) return undefined; throw marcar(erroFs("ENOENT", "stat", String(p)), ["Object.statSync (node:fs:1661:25)"], "node:fs:1661\n  const stats = binding.stat(\n                        ^\n\n"); }
+      if (!vfs.arq[a] && !vfs.dir[a]) { if (o && o.throwIfNoEntry === false) return undefined; throw marcar(erroFs("ENOENT", "stat", String(p)), ["Object.statSync (node:fs:1794:25)"], "node:fs:1794\n  const stats = binding.stat(\n                        ^\n\n"); }
       return new Stats(a);
     },
     unlinkSync: function (p) {
       var a = abs(p);
       if (vfs.dir[a]) throw erroFs("EISDIR", "unlink", String(p));
-      if (!vfs.arq[a]) throw marcar(erroFs("ENOENT", "unlink", String(p)), ["Object.unlinkSync (node:fs:1915:11)"], "node:fs:1915\n  binding.unlink(\n          ^\n\n");
+      if (!vfs.arq[a]) throw marcar(erroFs("ENOENT", "unlink", String(p)), ["Object.unlinkSync (node:fs:2000:11)"], "node:fs:2000\n  binding.unlink(getValidatedPath(path));\n          ^\n\n");
       delete vfs.arq[a];
     },
     rmSync: function (p, o) {
@@ -776,7 +784,8 @@
           soltar();
           try { ok(sinc.apply(null, a)); }
           catch (e) {
-            if (k === "readFile" && e.code === "ENOENT") marcar(e, ["async open (node:internal/fs/promises:1345:25)", "async Object.readFile (node:internal/fs/promises:2003:14)"], "node:internal/fs/promises:1345\n  return new FileHandle(await PromisePrototypeThen(\n                        ^\n\n", true);
+            var linhaP = { readFile: 2003, writeFile: 1972, appendFile: 1990 }[k];
+            if (linhaP && e.syscall === "open") marcar(e, ["async open (node:internal/fs/promises:1345:25)", "async Object." + k + " (node:internal/fs/promises:" + linhaP + ":14)"], "node:internal/fs/promises:1345\n  return new FileHandle(await PromisePrototypeThen(\n                        ^\n\n", true);
             else marcas.set(e, { semUsuario: true });
             falha(e);
           }
@@ -869,9 +878,9 @@
     if (!interativo) {
       nSetTimeout(function () {
         if (encerrado || !self._fluindo) return;
-        if (stdinBuf) { var t = stdinBuf; stdinBuf = ""; self._chegou(t); }
+        if (stdinBuf) { var t = stdinBuf; stdinBuf = ""; try { self._chegou(t); } catch (e) { if (e !== SAIR) naoTratado(e, false); return; } }
         if (!stdinFim) { stdinFim = true; }
-        self._acabou();
+        nSetTimeout(function () { if (!encerrado) { try { self._acabou(); } catch (e) { if (e !== SAIR) naoTratado(e, false); } talvezFim(); } }, 0);
       }, 0);
     } else pedirEntrada();
     return this;
@@ -1005,6 +1014,7 @@
   Timeout.prototype[Symbol.toPrimitive] = function () { return this._numero; };
   var proxNumeroTimer = 1, porNumero = {};
   function armar(t) {
+    t._quando = Date.now() + t._idleTimeout;
     t._id = nSetTimeout(function () { jsNodeTimer(t); }, t._idleTimeout);
   }
   function jsNodeTimer(t) {
@@ -1032,7 +1042,8 @@
   }
   function setTimeout_(f, ms) { return novoTimer(f, ms, Array.prototype.slice.call(arguments, 2), false); }
   function setInterval_(f, ms) { return novoTimer(f, ms, Array.prototype.slice.call(arguments, 2), true); }
-  function Immediate(f, args) { this._onImmediate = f; this._argv = args; this._destroyed = false; this[kRef] = true; }
+  var cbImediato = new WeakMap();
+  function Immediate(f, args) { cbImediato.set(this, f); this._onImmediate = null; this._argv = args; this._destroyed = false; this[kRef] = true; }
   Object.defineProperty(Immediate, "name", { value: "Immediate" });
   Immediate.prototype.ref = function () { return this; };
   Immediate.prototype.unref = function () { if (this[kRef]) { this[kRef] = false; soltar(); } return this; };
@@ -1041,13 +1052,27 @@
     if (typeof f !== "function") throw tipoErrado("callback", "function", f);
     var im = new Immediate(f, Array.prototype.slice.call(arguments, 1));
     segurar();
-    nSetTimeout(function () { jsNodeImmediate(im); }, 0);
+    filaImediata.push(im);
+    if (filaImediata.length === 1) canal.port2.postMessage(0);
     return im;
+  }
+  // a fase "check" do laço do Node: antes, os timers que já venceram (setTimeout 0 sai antes do setImmediate)
+  var filaImediata = [], canal = new MessageChannel();
+  canal.port1.onmessage = function () {
+    timersVencidos();
+    var lista = filaImediata; filaImediata = [];
+    for (var i = 0; i < lista.length && !encerrado; i++) jsNodeImmediate(lista[i]);
+  };
+  function timersVencidos() {
+    var agora = Date.now();
+    var v = Object.keys(porNumero).map(function (k) { return porNumero[k]; }).filter(function (t) { return !t._destroyed && t._quando <= agora + 1; });
+    v.sort(function (a, b) { return a._quando - b._quando || a._numero - b._numero; });
+    v.forEach(function (t) { if (!t._destroyed && !encerrado) { nClearTimeout(t._id); jsNodeTimer(t); } });
   }
   function jsNodeImmediate(im) {
     if (encerrado || im._destroyed) return;
     im._destroyed = true;
-    var f = im._onImmediate;
+    var f = cbImediato.get(im);
     try { f.apply(im, im._argv); } catch (e) { if (e !== SAIR) naoTratado(e, false); return; }
     if (im[kRef]) { im[kRef] = false; soltar(); }
   }
@@ -1239,6 +1264,7 @@
   Object.defineProperty(InterfacePromessa, "name", { value: "Interface" });
   InterfacePromessa.prototype.question = function (q, opc) {
     var self = this;
+    if (ehV8) { var onde = {}; Error.captureStackTrace(onde); try { void onde.stack; var cs = posicoes.get(onde); if (cs) for (var i = 0; i < cs.length; i++) { var f = cs[i].getFileName(); if (f && arquivosInfo[f] && arquivosInfo[f] === principalInfo) { var l = cs[i].getLineNumber(), tx = linhaDoFonte(principalInfo, l), c = cs[i].getColumnNumber() - (l === 1 ? principalInfo.linha1 : 0), a = tx.lastIndexOf("await", c - 1); awaitVisto = { info: principalInfo, linha: l, coluna: a >= 0 ? a + 1 : c, texto: tx }; break; } } } catch (x) {} }
     return new NativePromise(function (ok, falha) {
       if (self.closed) { var e = new Error("readline was closed"); e.code = "ERR_USE_AFTER_CLOSE"; falha(e); return; }
       Interface.prototype.question.call(self, q, opc, ok);
@@ -1302,13 +1328,35 @@
     var e = new Error(o.message);
     Object.setPrototypeOf(e, AssertionError.prototype);
     e.generatedMessage = !o.usuario; e.code = "ERR_ASSERTION"; e.actual = o.actual; e.expected = o.expected; e.operator = o.operator;
+    e.diff = "simple";
+    marcas.set(e, { cab: "node:assert:152\n  throw new AssertionError(obj);\n  ^\n\n", nomeStack: "AssertionError [ERR_ASSERTION]" });
     if (ehV8) Error.captureStackTrace(e, o.inicio || AssertionError);
     return e;
   }
   AssertionError.prototype = Object.create(Error.prototype, { constructor: { value: AssertionError, writable: true, configurable: true }, name: { value: "AssertionError", writable: true, configurable: true } });
-  function falhaAssert(msg, padrao, actual, expected, op, inicio) {
+  function falhaAssert(msg, padrao, actual, expected, op, inicio, ehOk) {
     if (msg instanceof Error) throw msg;
-    throw new AssertionError({ message: msg !== undefined ? msg : padrao, usuario: msg !== undefined, actual: actual, expected: expected, operator: op, inicio: inicio });
+    var e = new AssertionError({ message: msg !== undefined ? msg : padrao, usuario: msg !== undefined, actual: actual, expected: expected, operator: op, inicio: inicio });
+    if (ehOk) marcas.get(e).cab = "node:internal/assert/utils:77\n    throw err;\n    ^\n\n";
+    throw e;
+  }
+  // o texto da chamada assert(...) no código do leitor (o Node mostra a expressão que deu falso)
+  function textoChamada(inicio, nome) {
+    try {
+      var o = {}; Error.captureStackTrace(o, inicio); void o.stack;
+      var cs = posicoes.get(o);
+      for (var i = 0; cs && i < cs.length; i++) {
+        var f = cs[i].getFileName(), info = f && arquivosInfo[f];
+        if (!info) continue;
+        var l = cs[i].getLineNumber(), linhas = (fontes[info.caminho] || "").split("\n"), col = cs[i].getColumnNumber() - (l === 1 ? info.linha1 : 0);
+        var resto = linhas.slice(l - 1).join("\n"), ini = resto.split("\n")[0].lastIndexOf("assert", col - 1);
+        if (ini < 0) return null;
+        var t = resto.slice(ini), p = t.indexOf("("), prof = 0;
+        for (var k = p; k < t.length; k++) { if (t[k] === "(") prof++; else if (t[k] === ")" && --prof === 0) return t.slice(0, k + 1); }
+        return null;
+      }
+    } catch (e) {}
+    return null;
   }
   function igualProfundo(a, b, estrito) {
     if (estrito ? Object.is(a, b) : (a == b || (a !== a && b !== b))) return true; // eslint-disable-line eqeqeq
@@ -1325,19 +1373,27 @@
     return true;
   }
   function insp(v) { return U.inspect(v); }
-  function diffSimples(a, b) {
-    var la = insp(a).split("\n"), lb = insp(b).split("\n");
-    if (la.length === 1 && lb.length === 1 && (typeof a !== "object" || a === null) && (typeof b !== "object" || b === null)) return "Expected values to be strictly equal:\n\n" + la[0] + " !== " + lb[0] + "\n";
-    var r = "Expected values to be strictly deep-equal:\n+ actual - expected\n\n";
-    var n = Math.max(la.length, lb.length);
-    for (var i = 0; i < n; i++) {
-      if (la[i] === lb[i]) r += "  " + la[i] + "\n";
-      else { if (la[i] !== undefined) r += "+ " + la[i] + "\n"; if (lb[i] !== undefined) r += "- " + lb[i] + "\n"; }
+  function diffLinhas(A, B) {
+    var n = A.length, m = B.length, L = [];
+    for (var i = 0; i <= n; i++) L.push(new Int32Array(m + 1));
+    for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    var r = []; i = 0; j = 0;
+    while (i < n || j < m) {
+      if (i < n && j < m && A[i] === B[j]) { r.push("  " + A[i]); i++; j++; }
+      else if (i < n && (j >= m || L[i + 1][j] >= L[i][j + 1])) { r.push("+ " + A[i]); i++; }
+      else { r.push("- " + B[j]); j++; }
     }
     return r;
   }
-  function assert(v, msg) { if (!v) falhaAssert(msg, arguments.length === 0 ? "No value argument passed to `assert.ok()`" : "The expression evaluated to a falsy value:\n\n  assert(" + insp(v) + ")\n", v, true, "==", assert); }
-  assert.ok = function ok(v, msg) { if (!v) falhaAssert(msg, "The expression evaluated to a falsy value:\n\n  assert.ok(" + insp(v) + ")\n", v, true, "==", ok); };
+  function diffSimples(a, b) {
+    var la = insp(a).split("\n"), lb = insp(b).split("\n");
+    if (la.length === 1 && lb.length === 1 && (typeof a !== "object" || a === null) && (typeof b !== "object" || b === null)) return "Expected values to be strictly equal:\n\n" + la[0] + " !== " + lb[0] + "\n";
+    var op = { compact: false, customInspect: false, depth: 1000, maxArrayLength: Infinity, sorted: true, getters: true };
+    la = U.inspect(a, op).split("\n"); lb = U.inspect(b, op).split("\n");
+    return "Expected values to be strictly deep-equal:\n+ actual - expected\n\n" + diffLinhas(la, lb).join("\n") + "\n";
+  }
+  function assert(v, msg) { if (!v) falhaAssert(msg, arguments.length === 0 ? "No value argument passed to `assert.ok()`" : "The expression evaluated to a falsy value:\n\n  " + (msg === undefined ? textoChamada(assert) || "assert(" + insp(v) + ")" : "") + "\n", v, true, "==", assert, true); }
+  assert.ok = function ok(v, msg) { if (!v) falhaAssert(msg, "The expression evaluated to a falsy value:\n\n  " + (msg === undefined ? textoChamada(ok) || "assert.ok(" + insp(v) + ")" : "") + "\n", v, true, "==", ok, true); };
   assert.equal = function equal(a, b, msg) { if (!(a == b || (a !== a && b !== b))) falhaAssert(msg, insp(a) + " == " + insp(b), a, b, "==", equal); }; // eslint-disable-line eqeqeq
   assert.notEqual = function notEqual(a, b, msg) { if (a == b) falhaAssert(msg, insp(a) + " != " + insp(b), a, b, "!=", notEqual); }; // eslint-disable-line eqeqeq
   assert.strictEqual = function strictEqual(a, b, msg) { if (!Object.is(a, b)) falhaAssert(msg, diffSimples(a, b), a, b, "strictEqual", strictEqual); };
@@ -1523,7 +1579,6 @@
     if (alvo) {
       e = new Error("Cannot find module '" + alvo + "' imported from " + de);
       e.code = "ERR_MODULE_NOT_FOUND"; e.url = "file://" + alvo;
-      Object.defineProperty(e, "name", { value: "Error", configurable: true, writable: true });
       marcar(e, ["finalizeResolution (node:internal/modules/esm/resolve:272:11)", "moduleResolve (node:internal/modules/esm/resolve:879:10)", "defaultResolve (node:internal/modules/esm/resolve:1006:11)", "#cachedDefaultResolve (node:internal/modules/esm/loader:705:20)", "#resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)", "ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)", "#resolve (node:internal/modules/esm/loader:687:17)", "ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)", "ModuleJob.syncLink (node:internal/modules/esm/module_job:276:33)", "ModuleJob.link (node:internal/modules/esm/module_job:381:17)"],
         "node:internal/modules/esm/resolve:272\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\n");
     } else {
@@ -1532,7 +1587,7 @@
       marcar(e, ["packageResolve (node:internal/modules/esm/resolve:767:9)", "moduleResolve (node:internal/modules/esm/resolve:853:18)", "defaultResolve (node:internal/modules/esm/resolve:1006:11)", "#cachedDefaultResolve (node:internal/modules/esm/loader:705:20)", "#resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)", "ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)", "#resolve (node:internal/modules/esm/loader:687:17)", "ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)", "ModuleJob.syncLink (node:internal/modules/esm/module_job:276:33)", "ModuleJob.link (node:internal/modules/esm/module_job:381:17)"],
         "node:internal/modules/package_json_reader:316\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\n");
     }
-    e.jsNodeCodigoErro = true;
+    marcas.get(e).nomeStack = "Error [ERR_MODULE_NOT_FOUND]";
     // o Node escreve "Error [ERR_MODULE_NOT_FOUND]: …"
     return e;
   }
@@ -1618,7 +1673,10 @@
           // o erro caiu no "})" do embrulho: o arquivo terminou antes da hora
           msg = "Unexpected end of input";
           lin = linhas.length; col = linhas[lin - 1].length + 1; n = 0;
-        } else n = tamanhoToken(linhas[lin - 1], col);
+        } else if (/has already been declared$/.test(msg)) n = 1;
+        else if (!esm && msg === "missing ) after argument list" && linhas[lin - 1].charAt(col - 1) === "}") { msg = "Unexpected token '}'"; n = 1; }
+        else if (msg === "Invalid or unexpected token") n = /^["']/.test(linhas[lin - 1].slice(col - 1)) ? linhas[lin - 1].length - col + 1 : 1;
+        else n = tamanhoToken(linhas[lin - 1], col);
         if (!esm && msg !== e.message) { try { e.message = msg; } catch (x) {} }
       }
       var cab = lin ? mostrar + ":" + lin + "\n" + linhas[lin - 1] + "\n" + espacos(col - 1) + setas(n) + "\n\n" : "";
@@ -1647,7 +1705,7 @@
   }
   var arqPrincipalESM = null, carregandoESM = false;
   G.__jsNodeInicioESM = function () { if (carregandoESM) { carregandoESM = false; soltar(); } };
-  function rodarESM(arq) {
+  function rodarESM(arq, erroCJS) {
     modoExec = "esm";
     arqPrincipalESM = arq;
     carregandoESM = true; segurar();
@@ -1661,6 +1719,8 @@
       principalPendente = false;
       if (carregandoESM) { carregandoESM = false; ativos--; }
       if (e && e.name === "SyntaxError" && !(e instanceof Error && posicoes.has(e) && framesUsuario(e))) {
+        segurar();
+        if (erroCJS) { erroSintaxe(erroCJS, arq, false).then(terminarComSintaxe); return; }
         var qual = acharArquivoComErroSintaxe(e);
         erroSintaxe(e, qual || arq, true).then(terminarComSintaxe);
         return;
@@ -1721,7 +1781,8 @@
     } catch (e) {
       if (e === SAIR) return;
       if (e && e.name === "SyntaxError" && e.jsNodeArquivo) {
-        if (e.jsNodeArquivo === principal && t === "auto" && ESM_ERROS.test(e.message)) { detectados[principal] = "esm"; delete cacheCJS[principal]; rodarESM(principal); return; }
+        if (e.jsNodeArquivo === principal && t === "auto" && ESM_ERROS.test(e.message)) { detectados[principal] = "esm"; delete cacheCJS[principal]; rodarESM(principal, /^await is only valid/.test(e.message) ? e : null); return; }
+        segurar();
         erroSintaxe(e, e.jsNodeArquivo, false).then(terminarComSintaxe);
         return;
       }
@@ -1729,6 +1790,72 @@
       return;
     }
     talvezFim();
+  }
+
+  // posição do 1º erro num texto JSON (onde o V8 para), ou null se o texto é válido
+  function posErroJson(s) {
+    var i = 0;
+    function ws() { while (i < s.length && " \t\n\r".indexOf(s[i]) >= 0) i++; }
+    function falha() { throw { pos: i }; }
+    function str() {
+      i++;
+      while (i < s.length && s[i] !== '"') { if (s[i] === "\\") i++; else if (s.charCodeAt(i) < 32) falha(); i++; }
+      if (i >= s.length) falha();
+      i++;
+    }
+    function valor() {
+      ws();
+      var c = s[i];
+      if (c === "{") {
+        i++; ws(); if (s[i] === "}") { i++; return; }
+        for (;;) { ws(); if (s[i] !== '"') falha(); str(); ws(); if (s[i] !== ":") falha(); i++; valor(); ws(); if (s[i] === ",") { i++; continue; } if (s[i] === "}") { i++; return; } falha(); }
+      }
+      if (c === "[") {
+        i++; ws(); if (s[i] === "]") { i++; return; }
+        for (;;) { valor(); ws(); if (s[i] === ",") { i++; continue; } if (s[i] === "]") { i++; return; } falha(); }
+      }
+      if (c === '"') { str(); return; }
+      var re = /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/y; re.lastIndex = i;
+      if ((c === "-" || (c >= "0" && c <= "9")) && re.exec(s)) { i = re.lastIndex; return; }
+      var ps = ["true", "false", "null"];
+      for (var k = 0; k < ps.length; k++) if (s.substr(i, ps[k].length) === ps[k]) { i += ps[k].length; return; }
+      falha();
+    }
+    try { valor(); ws(); if (i < s.length) falha(); return null; } catch (e) { return e && typeof e.pos === "number" ? e.pos : null; }
+  }
+
+  /* ------------------------------------------------------------ idioma da Ana (pt-BR) */
+  // O lab roda com LANG=pt_BR.UTF-8: o Node usa pt-BR quando o programa não diz o idioma.
+  // O navegador do leitor pode estar em outro idioma: aqui o padrão vira pt-BR, como no lab.
+  var IDIOMA = "pt-BR";
+  function instalarIdioma() {
+    try { if (new Intl.DateTimeFormat().resolvedOptions().locale === IDIOMA) return; } catch (e) { return; }
+    ["DateTimeFormat", "NumberFormat", "Collator", "PluralRules", "RelativeTimeFormat", "ListFormat", "DisplayNames", "Segmenter"].forEach(function (k) {
+      var C = Intl[k];
+      if (typeof C !== "function") return;
+      var P = new Proxy(C, {
+        construct: function (alvo, args, novo) { args = Array.prototype.slice.call(args); if (args[0] === undefined) args[0] = IDIOMA; return Reflect.construct(alvo, args, novo === P ? alvo : novo); },
+        apply: function (alvo, este, args) { args = Array.prototype.slice.call(args); if (args[0] === undefined) args[0] = IDIOMA; return Reflect.apply(alvo, este, args); },
+      });
+      try { Object.defineProperty(Intl, k, { value: P, writable: true, configurable: true, enumerable: false }); } catch (e) {}
+    });
+    function trocar(proto, nome) {
+      var orig = proto[nome];
+      if (typeof orig !== "function") return;
+      var f = { [nome]: function (loc) { var a = Array.prototype.slice.call(arguments); if (a[0] === undefined) a[0] = IDIOMA; return orig.apply(this, a); } }[nome];
+      try { Object.defineProperty(proto, nome, { value: f, writable: true, configurable: true, enumerable: false }); } catch (e) {}
+    }
+    trocar(Date.prototype, "toLocaleString"); trocar(Date.prototype, "toLocaleDateString"); trocar(Date.prototype, "toLocaleTimeString");
+    trocar(Number.prototype, "toLocaleString"); trocar(BigInt.prototype, "toLocaleString"); trocar(Array.prototype, "toLocaleString");
+    trocar(String.prototype, "toLocaleUpperCase"); trocar(String.prototype, "toLocaleLowerCase");
+    var lc = String.prototype.localeCompare;
+    Object.defineProperty(String.prototype, "localeCompare", { value: function localeCompare(o, loc, opc) { return lc.call(this, o, loc === undefined ? IDIOMA : loc, opc); }, writable: true, configurable: true, enumerable: false });
+    // "GMT-0300 (Brasilia Standard Time)" → "GMT-0300 (Horário Padrão de Brasília)"
+    var ts = Date.prototype.toString;
+    function nomeFuso(d) { try { var p = new Intl.DateTimeFormat(IDIOMA, { timeZoneName: "long" }).formatToParts(d); for (var i = 0; i < p.length; i++) if (p[i].type === "timeZoneName") return p[i].value; } catch (e) {} return null; }
+    Object.defineProperty(Date.prototype, "toString", { value: function toString() { var s = ts.call(this); var n = nomeFuso(this); return n ? s.replace(/\([^()]*\)$/, "(" + n + ")") : s; }, writable: true, configurable: true, enumerable: false });
+    var tts = Date.prototype.toTimeString;
+    Object.defineProperty(Date.prototype, "toTimeString", { value: function toTimeString() { var s = tts.call(this); var n = nomeFuso(this); return n ? s.replace(/\([^()]*\)$/, "(" + n + ")") : s; }, writable: true, configurable: true, enumerable: false });
   }
 
   /* ------------------------------------------------------------ globais do Node */
@@ -1753,6 +1880,25 @@
     };
     Object.keys(defs).forEach(function (k) { try { Object.defineProperty(G, k, { value: defs[k], configurable: true, writable: true, enumerable: k === "global" ? false : false }); } catch (e) { G[k] = defs[k]; } });
     try { Object.defineProperty(G, "self", { value: undefined, configurable: true, writable: true, enumerable: false }); } catch (e) {}
+    instalarIdioma();
+    // JSON.parse com erro: o Node mostra a linha do TEXTO JSON (<anonymous_script>:1) no cabeçalho
+    var nParse = JSON.parse;
+    var parse = function parse(t, rev) {
+      try { return arguments.length > 1 ? nParse.call(JSON, t, rev) : nParse.call(JSON, t); }
+      catch (e) {
+        if (e instanceof SyntaxError) {
+          try {
+            var txt = String(t), pos = posErroJson(txt);
+            if (pos === null) pos = 0;
+            var antes = txt.slice(0, pos).split("\n"), lin = antes.length, col = antes[antes.length - 1].length + 1;
+            var linha = txt.split("\n")[lin - 1] || "";
+            marcas.set(e, { cab: "<anonymous_script>:" + lin + "\n" + linha + "\n" + (col <= linha.length ? espacos(col - 1) + "^\n" : "") + "\n" });
+          } catch (x) {}
+        }
+        throw e;
+      }
+    };
+    try { Object.defineProperty(JSON, "parse", { value: parse, writable: true, configurable: true, enumerable: false }); } catch (e) {}
     // o estado das Promises (para o console.log(promessa): Promise { 5 } / Promise { <pending> })
     var estados = new WeakMap();
     G.__jsNodePromessa = function (p) { return estados.get(p) || null; };
@@ -1768,12 +1914,11 @@
       construct: function (alvo, args, novo) {
         var ex = args[0];
         if (typeof ex !== "function") return Reflect.construct(alvo, args, novo);
-        var p;
+        var p, adiado = null;
         p = Reflect.construct(alvo, [function (ok, falha) {
           return ex(function (v) { if (p && !estados.has(p) && !(v && typeof v.then === "function")) estados.set(p, [1, v]); else if (!p) adiado = [1, v]; ok(v); },
                     function (e) { if (p && !estados.has(p)) estados.set(p, [2, e]); else if (!p) adiado = [2, e]; falha(e); });
         }], novo);
-        var adiado = null;
         if (adiado) estados.set(p, adiado);
         return p;
       },
@@ -1782,68 +1927,119 @@
   }
 
   /* ------------------------------------------------------------ REPL (node sem arquivo) */
-  var replEstado = null;
+  // Cada entrada vira um "arquivo" REPL1, REPL2… (como no Node). let/const/class do topo
+  // ficam no escopo global (um script de verdade, via importScripts); o resto é avaliado com
+  // eval indireto (que devolve o valor da última expressão, como o REPL mostra).
+  var replN = 0, replBuffer = "", replRl = null;
   function iniciarRepl(r) {
     modoExec = "repl";
-    var prefixoRepl = "";
-    replEstado = { buffer: "" };
-    process.stdin = new Stdin();
+    escrever("out", "Welcome to Node.js " + NODE_VERSAO + ".\nType \".help\" for more information.\n");
     if (r.repl !== "so" && r.arquivos && r.arquivos.length && r.arquivos[0].codigo.trim()) {
-      // node -i main.js não roda o arquivo; o editor carrega com ".load main.js"
-      escrever("out", "> ");
-      escrever("out", ".load " + r.arquivos[0].nome + "\n");
+      // node não roda um arquivo e fica no "> ": o editor faz ".load main.js"
       var cod = r.arquivos[0].codigo;
+      escrever("out", "> .load " + r.arquivos[0].nome + "\n");
       cod.replace(/\n$/, "").split("\n").forEach(function (l, i) { escrever("out", (i ? "| " : "") + l + "\n"); });
-      avaliarRepl(cod, true);
-    } else escrever("out", "Welcome to Node.js " + NODE_VERSAO + ".\nType \".help\" for more information.\n");
+      var v = avaliarRepl(cod, true);
+      if (v !== "continua") mostrarValor(v);
+    }
     promptRepl();
-    var rl = readline.createInterface({ input: process.stdin, output: null });
-    rl.on("line", function (l) { linhaRepl(l); });
-    rl.on("close", function () { escrever("out", "\n"); sair(0); });
+    replRl = readline.createInterface({ input: process.stdin, output: null });
+    replRl.on("line", function (l) { linhaRepl(l); });
+    replRl.on("close", function () { escrever("out", "\n"); sair(0); });
   }
-  var replBuffer = "";
   function promptRepl() { escrever("out", replBuffer ? "| " : "> "); }
   function linhaRepl(l) {
-    if (!replBuffer && /^\s*\./.test(l)) {
+    if (!replBuffer && /^\s*\.\w/.test(l)) {
       var cmd = l.trim().split(/\s+/)[0];
       if (cmd === ".exit") { sair(0); throw SAIR; }
-      if (cmd === ".help") { escrever("out", ".break     Sometimes you get stuck, this gets you out\n.clear     Alias for .break\n.editor    Enter editor mode\n.exit      Exit the REPL\n.help      Print this help message\n.load     Load JS from a file into the REPL session\n.save      Save all evaluated commands in this REPL session to a file\n\nPress Ctrl+C to abort current expression, Ctrl+D to exit the REPL\n"); promptRepl(); return; }
+      if (cmd === ".help") { escrever("out", ".break    Sometimes you get stuck, this gets you out\n.clear    Alias for .break\n.editor   Enter editor mode\n.exit     Exit the REPL\n.help     Print this help message\n.load     Load JS from a file into the REPL session\n.save     Save all evaluated commands in this REPL session to a file\n\nPress Ctrl+C to abort current expression, Ctrl+D to exit the REPL\n"); promptRepl(); return; }
       if (cmd === ".break" || cmd === ".clear") { replBuffer = ""; promptRepl(); return; }
       escrever("out", "Invalid REPL keyword\n"); promptRepl(); return;
     }
+    if (replBuffer && /^\s*\.break\s*$/.test(l)) { replBuffer = ""; promptRepl(); return; }
     var cod = replBuffer + l;
-    var r = avaliarRepl(cod, false);
-    if (r === "continua") { replBuffer = cod + "\n"; promptRepl(); return; }
+    if (!cod.trim()) { replBuffer = ""; promptRepl(); return; }
+    var v = avaliarRepl(cod, false);
+    if (v === "continua") { replBuffer = cod + "\n"; promptRepl(); return; }
     replBuffer = "";
-    if (r && typeof r.then === "function") r.then(promptRepl); else promptRepl();
+    if (v && v.assincrono) {
+      v.promessa.then(function (x) { mostrarValor(x); promptRepl(); });
+      return;
+    }
+    mostrarValor(v);
+    promptRepl();
   }
-  var replN = 0;
+  function mostrarValor(v) {
+    if (!v || v.erro) return;
+    try { G._ = v.valor; } catch (e) {}
+    escrever("out", U.inspect(v.valor) + "\n");
+  }
+  function mostrarErroRepl(e) {
+    if (e === SAIR) throw e;
+    var txt;
+    if (e instanceof Error || (e && typeof e === "object" && typeof e.stack === "string")) {
+      var linhas = String(e.stack).split("\n"), cab = [], fr = [];
+      for (var i = 0; i < linhas.length; i++) {
+        if (/^\s+at /.test(linhas[i])) { if (/\(REPL\d+:\d+:\d+\)$/.test(linhas[i])) fr.push(linhas[i]); else if (/^\s+at REPL\d+:/.test(linhas[i])) break; }
+        else if (!fr.length) cab.push(linhas[i]);
+      }
+      var corpo = cab.join("\n") + (fr.length ? "\n" + fr.join("\n") : "");
+      try {
+        var resto = U.inspect(e).replace(String(e.stack), "");
+        txt = "Uncaught " + corpo + (resto.indexOf("{") === 1 ? resto : "");
+      } catch (x) { txt = "Uncaught " + corpo; }
+    } else txt = "Uncaught " + U.inspect(e);
+    escrever("err", txt + "\n");
+  }
+  function msgSintaxe(e) { return String(e && e.message || "").replace(/^Failed to execute 'importScripts' on 'WorkerGlobalScope': /, ""); }
   function avaliarRepl(cod, silencioso) {
-    // declarações no topo viram globais (como no REPL do Node): let/const/class → var-like via script global
-    var src = cod;
-    var url = urlDe(src + "\n//# sourceURL=REPL" + (++replN));
-    arquivosInfo[url] = { caminho: "REPL" + replN, mostrar: "REPL" + replN, linha1: 0, repl: true, fonte: src };
-    fontes["REPL" + replN] = src;
-    var resultado, ok = true;
+    var nome = "REPL" + (++replN);
+    var lexico = /(^|[;\n])\s*(let|const|class)\s/.test(cod) && !/^\s*\{/.test(cod);
+    var temAwait = /\bawait\b/.test(cod);
+    // { a: 1 } é um objeto no REPL (o Node tenta primeiro com parênteses)
+    if (/^\s*\{/.test(cod) && !/;\s*$/.test(cod)) {
+      try { new Function("return (" + cod + "\n)"); return rodarEval("(" + cod + "\n)", nome); } catch (e) { if (!(e instanceof SyntaxError)) return rodarEval("(" + cod + "\n)", nome); }
+    }
+    if (temAwait && !lexico) {
+      try { new Function("return async () => (" + cod + "\n)"); }
+      catch (e) {
+        try { new Function("return async () => {" + cod + "\n}"); } catch (e2) { return erroSintaxeRepl(e2, cod); }
+        return { assincrono: true, promessa: rodarEval("(async () => {" + cod + "\n})()", nome).valor.then(function () { return { valor: undefined }; }, function (x) { mostrarErroRepl(x); return { erro: true }; }) };
+      }
+      var r0 = rodarEval("(async () => (" + cod + "\n))()", nome);
+      if (r0.erro) return r0;
+      return { assincrono: true, promessa: r0.valor.then(function (v) { return { valor: v }; }, function (x) { mostrarErroRepl(x); return { erro: true }; }) };
+    }
+    if (lexico) {
+      var url = urlDe(cod + "\n//# sourceURL=" + nome);
+      arquivosInfo[url] = { caminho: nome, mostrar: nome, linha1: 0, repl: true, fonte: cod };
+      try { nImportScripts(url); }
+      catch (e) {
+        if (e === SAIR) throw e;
+        if (e && e.name === "SyntaxError") return erroSintaxeRepl(e, cod);
+        mostrarErroRepl(e); return { erro: true };
+      }
+      return { valor: undefined };
+    }
+    return rodarEval(cod, nome);
+  }
+  function erroSintaxeRepl(e, cod) {
+    var msg = msgSintaxe(e);
+    if (/^(Unexpected end of input|Unterminated template literal|missing \) after argument list|Unterminated string constant)$/.test(msg) && /[\[{(,=+\-*/`]\s*$|^[^"'`]*`[^`]*$/.test(cod.replace(/\s+$/, "") + (msg === "Unexpected end of input" ? "," : ""))) return "continua";
+    escrever("err", "Uncaught SyntaxError: " + msg + "\n");
+    return { erro: true };
+  }
+  function rodarEval(cod, nome) {
+    fontes[nome] = cod;
     try {
-      // usa eval indireto para obter o valor da última expressão
-      resultado = (0, eval)(src + "\n//# sourceURL=REPL" + replN);
+      var v = (0, eval)(cod + "\n//# sourceURL=" + nome);
+      return { valor: v };
     } catch (e) {
       if (e === SAIR) throw e;
-      if (e && e.name === "SyntaxError" && /Unexpected end of input|Unterminated template|missing \) after argument list/.test(e.message) && !silencioso) return "continua";
-      ok = false;
-      if (!silencioso || true) {
-        var txt;
-        if (e instanceof Error) {
-          var st = String(e.stack || e).split("\n");
-          txt = "Uncaught " + (e.name === "SyntaxError" ? e.name + ": " + e.message : st.filter(function (x) { return !/^\s+at /.test(x) || /REPL\d+/.test(x); }).join("\n").replace(/REPL\d+:\d+:\d+/g, function (m) { return m; }).split("\n")[0]);
-        } else txt = "Uncaught " + U.inspect(e);
-        escrever("err", txt + "\n");
-      }
-      return null;
+      if (e && e.name === "SyntaxError" && !(posicoes.has(e) && framesUsuario(e))) return erroSintaxeRepl(e, cod);
+      mostrarErroRepl(e);
+      return { erro: true };
     }
-    if (!silencioso && ok) escrever("out", U.inspect(resultado) + "\n");
-    return null;
   }
 
   /* ------------------------------------------------------------ eventos do worker */

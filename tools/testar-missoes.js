@@ -19,7 +19,7 @@
 //   - todo <pre>: "<" e "&" escapados (&lt; &amp;);
 //   - links internos só para páginas da NIVEIS (aviso); nada da máquina real (FALHA).
 // --nativo: roda o inicial e a solução das .tryjs também no node do lab (~/guia-js-lab/lab)
-//   e registra as diferenças de saída/código de saída em tools/DIFERENCAS.md.
+//   e registra as diferenças de saída/código de saída em tools/DIFERENCAS-AUTO.md (fora do git).
 // Código de saída: 0 = tudo ok; 1 = alguma FALHA; 2 = uso errado / página inexistente.
 "use strict";
 const fs = require("fs");
@@ -27,7 +27,9 @@ const path = require("path");
 const JsSim = require("../assets/jssim.js");
 
 const RAIZ = path.join(__dirname, "..");
-const DIFERENCAS = path.join(RAIZ, "tools/DIFERENCAS.md");
+// o registro automático fica FORA do git (tools/DIFERENCAS-AUTO.md está no .gitignore);
+// o tools/DIFERENCAS.md (no git) é o resumo escrito à mão pelo agente do simulador
+const DIFERENCAS = path.join(RAIZ, "tools/DIFERENCAS-AUTO.md");
 
 /* ------------------------------------------------------------------ args */
 const args = process.argv.slice(2);
@@ -154,7 +156,7 @@ function analisarHtml(html) {
 }
 
 /* --------------------------------------------------------- DIFERENCAS.md */
-const CABECALHO_DIF = `# Diferenças: editor do guia (navegador) × node do lab
+const CABECALHO_DIF = `# Diferenças encontradas: editor do guia (navegador) × node do lab (registro automático, fora do git)
 
 Mantido pelo \`tools/testar-missoes.js --nativo\`. O editor roda o JavaScript **do navegador do
 leitor** (no testador: Chromium headless, motor V8 como o do Node) num ambiente que imita o
@@ -163,7 +165,7 @@ oficial** no Ubuntu 26.04. O testador roda o código inicial e a solução de ca
 com o mesmo stdin e os mesmos argumentos, e compara a saída (stdout + stderr) e o código de saída.
 
 ## Diferenças conhecidas (esperadas)
-Estão na §4 do \`CONTRIBUINDO.md\`: \`Math.random\`, data/hora e tempos medidos, rede (\`fetch\`),
+Estão na §4 do \`CONTRIBUINDO.md\` e no \`tools/DIFERENCAS.md\`: \`Math.random\`, data/hora e tempos medidos, rede (\`fetch\`),
 dados da máquina (\`node:os\`), o estado de Promises no \`console.log\`.
 Uma diferença que **não** está lá é um achado: avise o agente do simulador.
 
@@ -248,7 +250,7 @@ async function testarPagina(arq, motor, lab) {
       const d = lab.comparar(ed, n, req.arquivos.map((a) => a.codigo).join("\n"));
       if (d) {
         difs.push({ onde: onde.nome + " (linha " + onde.linha + ")", codigo: req.arquivos[0].codigo.replace(/\n$/, ""), editor: ed, lab: n, motivo: d.motivo, esperado: d.esperado });
-        itens.push({ grav: d.esperado.length ? "ok" : "aviso", linha: onde.linha, msg: onde.nome + ": diferença com o node do lab (" + d.motivo + ")" + (d.esperado.length ? " — esperada: " + d.esperado.join("; ") : " — veja tools/DIFERENCAS.md") });
+        itens.push({ grav: d.esperado.length ? "ok" : "aviso", linha: onde.linha, msg: onde.nome + ": diferença com o node do lab (" + d.motivo + ")" + (d.esperado.length ? " — esperada: " + d.esperado.join("; ") : " — veja tools/DIFERENCAS-AUTO.md") });
       }
     }
     return r;
@@ -396,7 +398,7 @@ function achar(p) {
   if (paginas.length > 1)
     console.log("\nTOTAL: " + paginas.length + " página(s), " + totOk + " ok, " + totFalha + " FALHA, " + totAviso + " aviso" +
       (lab ? ", " + totDif + " diferença(s) com o lab" : "") + (ruins.length ? "\ncom FALHA: " + ruins.join(" ") : ""));
-  if (lab && totDif) console.log("diferenças registradas em tools/DIFERENCAS.md");
+  if (lab && totDif) console.log("diferenças registradas em tools/DIFERENCAS-AUTO.md (fora do git)");
   console.log("(editor: Chromium " + motor.info.chromium + ", Node imitado " + motor.info.node + ")");
   process.exitCode = faltando ? 2 : totFalha ? 1 : 0;
 })().catch((e) => { console.error("erro do testador: " + (e.stack || e)); process.exitCode = 2; });
