@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript fetch — buscando dados da internet | Guia JavaScript</title>
+<meta name="description" content="O fetch do JavaScript para quem nunca programou: pedido e resposta, buscar um CEP na API pública ViaCEP, os dois await (fetch e json), o objeto Response (status, ok, headers), text × json, conferir resposta.ok, tratar a internet fora do ar com try/catch, enviar dados com POST, várias buscas com Promise.all, URLs data: para treinar sem internet, fetch no navegador, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">fetch</span></h1>
+
+<p class="intro">Até aqui, todos os dados dos seus programas estavam <strong>dentro</strong> do próprio programa (ou num arquivo do computador). Mas muita informação útil está em outros computadores: o endereço de um CEP, a previsão do tempo, a cotação do dólar. Para pedir esses dados pela internet, o JavaScript tem a função <code>fetch</code> (em inglês, "buscar", "ir pegar"). Ela devolve uma <a href="promises.html">Promise</a>, então tudo o que você aprendeu sobre <a href="async-await.html">async e await</a> vale aqui.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma <strong>API</strong>, um <strong>pedido</strong> e uma <strong>resposta</strong>, e como o <code>fetch</code> faz o pedido.</li>
+  <li>Como buscar o endereço de um CEP na API pública <strong>ViaCEP</strong>, com os dois <code>await</code> (o do <code>fetch</code> e o do <code>.json()</code>).</li>
+  <li>O que tem dentro da resposta: <code>status</code>, <code>ok</code>, <code>headers</code>; e a diferença entre <code>.text()</code> e <code>.json()</code>.</li>
+  <li>Como conferir se o pedido deu certo (<code>resposta.ok</code>) e como tratar a internet fora do ar (<code>try … catch</code>).</li>
+  <li>Como <strong>enviar</strong> dados (<code>POST</code>), como fazer várias buscas juntas e como treinar sem internet com uma URL <code>data:</code>.</li>
+  <li>Os erros reais mais comuns: o <code>await</code> esquecido, o JSON que era HTML, a resposta lida duas vezes e o endereço incompleto.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), <strong>com internet</strong>, buscando dados de verdade. O <code>fetch</code> existe no Node sem precisar instalar nada (segundo a <a href="https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch">documentação do Node</a>, ele é parte do Node desde a versão 18 e é estável desde a 21) e existe também em todos os navegadores modernos, com o mesmo jeito de usar.</p>
+
+<hr>
+
+<h2>A ideia: o pedido no balcão</h2>
+<p>A Ana quer saber o endereço do CEP <code>01001-000</code>. Ela não tem essa informação, mas sabe quem tem: um <strong>serviço</strong> na internet que responde perguntas sobre CEPs. É como pedir no balcão de uma loja:</p>
+<ol class="passo">
+  <li>Ela faz o <strong>pedido</strong> (em inglês, <em>request</em>) para um <strong>endereço</strong> certo: "quero os dados do CEP 01001000".</li>
+  <li>Espera. A resposta pode demorar um pouco (a internet é lenta perto do computador): por isso o <code>fetch</code> devolve uma Promise.</li>
+  <li>Recebe a <strong>resposta</strong> (<em>response</em>): um <strong>código</strong> dizendo se deu certo (200 = "tudo bem") e um <strong>pacote</strong> com o conteúdo.</li>
+  <li>Abre o pacote. O conteúdo vem como <strong>texto</strong> no formato <a href="json.html">JSON</a>, e é preciso transformá-lo num objeto do JavaScript.</li>
+</ol>
+<p>Um serviço feito para programas conversarem assim se chama <strong>API</strong> (do inglês <em>Application Programming Interface</em>, "interface de programação"). Nesta aula, a Ana usa a <strong>ViaCEP</strong> (<a href="https://viacep.com.br">viacep.com.br</a>), uma API brasileira gratuita, que não pede cadastro nem senha (as APIs que pedem dão uma "chave" de acesso; esta não precisa).</p>
+
+<hr>
+
+<h2>1. O primeiro <code>fetch</code>: o endereço de um CEP</h2>
+<p>A ViaCEP responde no endereço <code>https://viacep.com.br/ws/CEP/json/</code>, com o CEP só com números no lugar de <code>CEP</code>:</p>
+
+<pre class="file" data-file="cep.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+const dados = await resposta.json();
+console.log(dados);
+console.log(`${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`);
+</pre>
+
+<pre class="term">$ node cep.js
+{
+  cep: '01001-000',
+  logradouro: 'Praça da Sé',
+  complemento: 'lado ímpar',
+  unidade: '',
+  bairro: 'Sé',
+  localidade: 'São Paulo',
+  uf: 'SP',
+  estado: 'São Paulo',
+  regiao: 'Sudeste',
+  ibge: '3550308',
+  gia: '1004',
+  ddd: '11',
+  siafi: '7107'
+}
+Praça da Sé, Sé - São Paulo/SP
+</pre>
+
+<p>Quatro linhas, e o programa buscou um endereço de verdade num computador do outro lado da internet. Peça por peça:</p>
+
+<dl class="anatomy">
+  <dt>fetch("https://viacep.com.br/ws/01001000/json/")</dt><dd>Faz o pedido para esse endereço (a <strong>URL</strong>) e devolve <strong>na hora</strong> uma Promise. O programa não trava esperando a internet.</dd>
+  <dt>const resposta = await …</dt><dd><strong>Primeiro <code>await</code>:</strong> espera chegar a <strong>resposta</strong>. A <code>resposta</code> é um objeto <code>Response</code> com o código de situação e os cabeçalhos; o conteúdo ainda está "fechado".</dd>
+  <dt>resposta.json()</dt><dd>Lê o conteúdo inteiro e o transforma de texto JSON em objeto do JavaScript, como o <code>JSON.parse</code>. O conteúdo pode chegar aos poucos, então o <code>.json()</code> <strong>também</strong> devolve uma Promise.</dd>
+  <dt>const dados = await …</dt><dd><strong>Segundo <code>await</code>:</strong> espera o conteúdo terminar de chegar e ser convertido. Agora <code>dados</code> é um objeto comum.</dd>
+  <dt>dados.localidade, dados.uf…</dt><dd>As propriedades do objeto, como em qualquer <a href="objetos.html">objeto</a>. Os nomes (<code>logradouro</code>, <code>localidade</code>, <code>uf</code>) foram escolhidos pela ViaCEP; cada API tem os seus, explicados na documentação dela.</dd>
+</dl>
+
+<div class="tip">
+<strong>Os dois <code>await</code></strong>
+<p>Quase todo <code>fetch</code> tem dois <code>await</code>: um para a resposta chegar (<code>await fetch(…)</code>) e um para o conteúdo ser lido (<code>await resposta.json()</code>). Esquecer qualquer um dos dois é o erro mais comum desta aula (veja <a href="#errado">Quando dá errado</a>).</p>
+</div>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente (precisa de internet):</strong> esta caixa faz um pedido de verdade à ViaCEP. Troque o CEP pelo da sua rua (só os 8 números) e rode. Se estiver sem internet, a caixa mostra um erro; a seção 4 explica qual.</p>
+<pre class="script" data-file="main.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+const dados = await resposta.json();
+console.log(`${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O que vem na resposta</h2>
+<p>Antes de abrir o conteúdo, a <code>resposta</code> já conta várias coisas sobre o pedido:</p>
+
+<pre class="file" data-file="resposta.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+console.log(resposta.status);
+console.log(resposta.ok);
+console.log(resposta.statusText);
+console.log(resposta.headers.get("content-type"));
+console.log(resposta.url);
+</pre>
+
+<pre class="term">$ node resposta.js
+200
+true
+OK
+application/json; charset=utf-8
+https://viacep.com.br/ws/01001000/json/
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>Neste exemplo</th><th>O que é</th></tr>
+<tr><td><code>resposta.status</code></td><td><code>200</code></td><td>O <strong>código de situação</strong> (status HTTP), um número de 3 dígitos</td></tr>
+<tr><td><code>resposta.ok</code></td><td><code>true</code></td><td><code>true</code> se o código está entre 200 e 299 ("deu certo"); <code>false</code> nos outros</td></tr>
+<tr><td><code>resposta.statusText</code></td><td><code>OK</code></td><td>O nome do código, em inglês</td></tr>
+<tr><td><code>resposta.headers.get("content-type")</code></td><td><code>application/json; charset=utf-8</code></td><td>Um <strong>cabeçalho</strong>: informação extra sobre a resposta. O <code>content-type</code> diz o tipo do conteúdo: aqui, JSON em UTF-8</td></tr>
+<tr><td><code>resposta.url</code></td><td>o endereço</td><td>A URL de onde a resposta veio</td></tr>
+</table>
+</div>
+
+<p>Os códigos mais comuns que você vai encontrar:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Nome</th><th>Quer dizer</th></tr>
+<tr><td><code>200</code></td><td>OK</td><td>Deu certo; o conteúdo está na resposta</td></tr>
+<tr><td><code>201</code></td><td>Created</td><td>Deu certo e algo foi <strong>criado</strong> (seção 5)</td></tr>
+<tr><td><code>400</code></td><td>Bad Request</td><td>"Pedido mal feito": o servidor não entendeu o que você pediu</td></tr>
+<tr><td><code>404</code></td><td>Not Found</td><td>"Não encontrado": esse endereço não existe</td></tr>
+<tr><td><code>500</code></td><td>Internal Server Error</td><td>O problema foi <strong>no servidor</strong>, não no seu pedido</td></tr>
+</table>
+</div>
+<p>Regra prática: começa com <strong>2</strong>, deu certo; com <strong>4</strong>, o erro foi do pedido; com <strong>5</strong>, do servidor.</p>
+
+<h3><code>.json()</code> ou <code>.text()</code></h3>
+<p>O conteúdo pode ser lido de mais de um jeito. O <code>.text()</code> entrega o texto cru, sem converter:</p>
+
+<pre class="file" data-file="texto.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+const texto = await resposta.text();
+console.log(typeof texto);
+console.log(texto);
+</pre>
+
+<pre class="term">$ node texto.js
+string
+{
+  "cep": "01001-000",
+  "logradouro": "Praça da Sé",
+  "complemento": "lado ímpar",
+  "unidade": "",
+  "bairro": "Sé",
+  "localidade": "São Paulo",
+  "uf": "SP",
+  "estado": "São Paulo",
+  "regiao": "Sudeste",
+  "ibge": "3550308",
+  "gia": "1004",
+  "ddd": "11",
+  "siafi": "7107"
+}
+</pre>
+
+<p>Compare com a saída da seção 1. Aqui é uma <strong>string</strong> (o <code>typeof</code> confirma), com aspas duplas nos nomes: é o JSON exatamente como viajou pela internet. Lá era um <strong>objeto</strong>, que o Node mostra com aspas simples. Use <code>.json()</code> quando a API responde JSON (o caso mais comum) e <code>.text()</code> para texto comum, HTML ou CSV. O <code>.json()</code> é o mesmo que <code>JSON.parse(await resposta.text())</code>.</p>
+
+<hr>
+
+<h2>3. Conferindo se deu certo: <code>resposta.ok</code></h2>
+<p>Uma surpresa para quem começa: <strong>o <code>fetch</code> não dá erro quando o servidor responde 400 ou 404</strong>. Para ele, o pedido foi e a resposta voltou: missão cumprida. Quem tem de olhar o código é você. Um CEP com o formato errado, só 3 números:</p>
+
+<pre class="file" data-file="cep-invalido.js">const resposta = await fetch("https://viacep.com.br/ws/123/json/");
+console.log(resposta.status, resposta.ok);
+</pre>
+
+<pre class="term">$ node cep-invalido.js
+400 false
+</pre>
+
+<p>Nenhum erro, só o <code>400</code> e o <code>ok</code> falso. E cada API tem seu jeito de dizer "não achei". A ViaCEP, para um CEP com 8 números que não existe, responde <strong>200</strong> com um objeto que avisa o erro:</p>
+
+<pre class="file" data-file="cep-inexistente.js">const resposta = await fetch("https://viacep.com.br/ws/99999999/json/");
+console.log(resposta.status, resposta.ok);
+console.log(await resposta.json());
+</pre>
+
+<pre class="term">$ node cep-inexistente.js
+200 true
+{ erro: 'true' }
+</pre>
+
+<p>Por isso, um programa cuidadoso confere as duas coisas. A Ana escreveu uma função <code>buscarCep</code> que lança um erro (com <a href="throw.html">throw</a>) em cada caso, e testou três CEPs:</p>
+
+<pre class="file" data-file="buscar-cep.js">async function buscarCep(cep) {
+  const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+  if (!resposta.ok) {
+    throw new Error(`O servidor respondeu ${resposta.status}`);
+  }
+  const dados = await resposta.json();
+  if (dados.erro) {
+    throw new Error(`CEP ${cep} não existe`);
+  }
+  return dados;
+}
+
+for (const cep of ["01001000", "123", "99999999"]) {
+  try {
+    const endereco = await buscarCep(cep);
+    console.log(`${cep}: ${endereco.localidade}/${endereco.uf}`);
+  } catch (erro) {
+    console.log(`${cep}: ${erro.message}`);
+  }
+}
+</pre>
+
+<pre class="term">$ node buscar-cep.js
+01001000: São Paulo/SP
+123: O servidor respondeu 400
+99999999: CEP 99999999 não existe
+</pre>
+
+<dl class="anatomy">
+  <dt>if (!resposta.ok) { throw … }</dt><dd>"Se a resposta <strong>não</strong> deu certo, lance um erro." Assim, um 400 ou um 404 vira um erro de verdade, que o <code>catch</code> pega.</dd>
+  <dt>if (dados.erro) { throw … }</dt><dd>O jeito da ViaCEP de dizer "CEP não encontrado". Esta parte é <strong>só desta API</strong>; outra API diria de outro jeito.</dd>
+  <dt>return dados;</dt><dd>Se passou pelas duas conferências, devolve o endereço.</dd>
+  <dt>try { … } catch (erro) { … }</dt><dd>Quem chama trata os erros num lugar só, como em <a href="async-await.html">async e await</a>.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Quando a internet não ajuda: <code>try … catch</code></h2>
+<p>Às vezes o pedido nem chega ao servidor: o Wi-Fi caiu, o endereço está errado, o servidor saiu do ar. Aí, sim, a Promise do <code>fetch</code> é <strong>rejeitada</strong>. A Ana rodou o programa abaixo com o computador <strong>desconectado</strong> da internet:</p>
+
+<pre class="file" data-file="semrede.js">try {
+  const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+  console.log(await resposta.json());
+} catch (erro) {
+  console.log(`Não deu para buscar: ${erro.message}`);
+  console.log(erro.cause);
+}
+</pre>
+
+<pre class="term">$ node semrede.js
+Não deu para buscar: fetch failed
+Error: getaddrinfo EAI_AGAIN viacep.com.br
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:123:26) {
+  errno: -3001,
+  code: 'EAI_AGAIN',
+  syscall: 'getaddrinfo',
+  hostname: 'viacep.com.br'
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>fetch failed</dt><dd>"O fetch falhou." É a mensagem do erro (um <code>TypeError</code>) no Node, sempre a mesma, seja qual for o motivo.</dd>
+  <dt>erro.cause</dt><dd>A <strong>causa</strong>: o erro de baixo nível que provocou a falha. Aqui, <code>getaddrinfo EAI_AGAIN viacep.com.br</code>.</dd>
+  <dt>getaddrinfo</dt><dd>A função do sistema que traduz o nome <code>viacep.com.br</code> para o endereço numérico do servidor (o "DNS"). Sem internet, ela não conseguiu.</dd>
+  <dt>EAI_AGAIN</dt><dd>"Tente de novo mais tarde": o código do sistema para "não consegui consultar o DNS agora". Com internet, mas com um nome de site que não existe, o código é outro: no lab, <code>fetch("https://padaria-da-ana-nao-existe.com.br/")</code> deu <code>fetch failed</code> com a causa <code>ENOTFOUND</code> ("não encontrado").</dd>
+</dl>
+
+<p>Repare na diferença com a seção 3: um <strong>400</strong> ou um <strong>404</strong> não rejeita a Promise (o servidor respondeu); <strong>sem resposta nenhuma</strong>, ela é rejeitada. Um programa que busca dados na internet precisa tratar os dois casos.</p>
+
+<div class="note">
+<strong>No navegador, a mensagem é outra</strong>
+<p>No Chrome, o mesmo erro aparece como <code>TypeError: Failed to fetch</code> ("falhou ao buscar"), e o motivo vai para uma linha separada do Console, como <code>net::ERR_INTERNET_DISCONNECTED</code> (ilustrativo; cada navegador escreve do seu jeito). Por isso, não compare o texto da mensagem: só trate o erro no <code>catch</code>.</p>
+</div>
+
+<hr>
+
+<h2>5. Enviando dados: <code>POST</code></h2>
+<p>Até aqui, o <code>fetch</code> só <strong>pediu</strong> dados (um pedido do tipo <code>GET</code>, "pegar", que é o padrão). Para <strong>mandar</strong> dados para um servidor (cadastrar uma receita, enviar um formulário), passe um segundo argumento com as opções do pedido. A Ana testou no <a href="https://jsonplaceholder.typicode.com">JSONPlaceholder</a>, uma API pública <strong>de mentirinha</strong>, feita para treinar: ela responde como se tivesse guardado o dado, mas não guarda nada.</p>
+
+<pre class="file" data-file="post.js">const novoPost = {
+  title: "Bolo de cenoura",
+  body: "Receita da vó da Ana",
+  userId: 1,
+};
+
+const resposta = await fetch("https://jsonplaceholder.typicode.com/posts", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(novoPost),
+});
+console.log(resposta.status, resposta.statusText);
+console.log(await resposta.json());
+</pre>
+
+<pre class="term">$ node post.js
+201 Created
+{
+  title: 'Bolo de cenoura',
+  body: 'Receita da vó da Ana',
+  userId: 1,
+  id: 101
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>method: "POST"</dt><dd>O <strong>tipo</strong> do pedido. <code>POST</code> ("postar", enviar) é o de mandar dados novos. Sem essa opção, o <code>fetch</code> faz um <code>GET</code>.</dd>
+  <dt>headers: { "Content-Type": "application/json" }</dt><dd>Um cabeçalho do <strong>pedido</strong>, avisando ao servidor: "o que vai no pacote é JSON".</dd>
+  <dt>body: JSON.stringify(novoPost)</dt><dd>O conteúdo (o "corpo") do pedido. Pela internet só viaja texto, então o objeto vira texto JSON com o <code>JSON.stringify</code> (veja <a href="json.html">JSON</a>).</dd>
+  <dt>201 Created</dt><dd>"Criado": o servidor diz que aceitou e criou o post.</dd>
+  <dt>id: 101</dt><dd>O servidor devolveu o que recebeu, mais o número que deu ao post novo.</dd>
+</dl>
+
+<hr>
+
+<h2>6. Várias buscas ao mesmo tempo</h2>
+<p>Buscar três CEPs, um depois do outro, soma o tempo das três esperas. Como as buscas não dependem umas das outras, dá para fazê-las juntas com <code>Promise.all</code> (aula <a href="promise-all.html">Várias Promises</a>):</p>
+
+<pre class="file" data-file="dois-ceps.js">const ceps = ["01001000", "20040002", "70040010"];
+const respostas = await Promise.all(
+  ceps.map((cep) =&gt; fetch(`https://viacep.com.br/ws/${cep}/json/`)),
+);
+const enderecos = await Promise.all(respostas.map((r) =&gt; r.json()));
+for (const e of enderecos) {
+  console.log(`${e.cep}: ${e.localidade}/${e.uf}`);
+}
+</pre>
+
+<pre class="term">$ node dois-ceps.js
+01001-000: São Paulo/SP
+20040-002: Rio de Janeiro/RJ
+70040-010: Brasília/DF
+</pre>
+
+<p>Os dois <code>await</code> continuam lá, cada um com o seu <code>Promise.all</code>: um espera as três respostas chegarem; o outro, os três conteúdos serem lidos.</p>
+
+<div class="warning">
+<strong>Não exagere</strong>
+<p>APIs gratuitas, como a ViaCEP, limitam quantos pedidos cada pessoa pode fazer. Três juntos não incomodam ninguém; trezentos de uma vez podem fazer o servidor bloquear você por um tempo. Busque só o que precisa.</p>
+</div>
+
+<hr>
+
+<h2>7. Treinando sem internet: a URL <code>data:</code></h2>
+<p>Uma URL que começa com <code>data:</code> traz o conteúdo <strong>dentro dela mesma</strong>: o <code>fetch</code> não precisa sair do computador. É ótima para treinar e para testar um programa sem depender de um servidor. Depois de <code>data:</code> vem o tipo (<code>application/json</code>), uma vírgula e o conteúdo:</p>
+
+<pre class="file" data-file="dataurl.js">const url = 'data:application/json,{"produto":"pão de queijo","preco":4.5}';
+const resposta = await fetch(url);
+console.log(resposta.status, resposta.ok);
+const dados = await resposta.json();
+console.log(dados);
+</pre>
+
+<pre class="term">$ node dataurl.js
+200 true
+{ produto: 'pão de queijo', preco: 4.5 }
+</pre>
+
+<p>O resto do programa é igual ao de um <code>fetch</code> pela internet: <code>await</code>, <code>status</code>, <code>ok</code>, <code>.json()</code>. (O texto da URL usa aspas simples por fora porque o JSON de dentro tem aspas duplas.) As missões desta aula usam URLs <code>data:</code> para funcionar mesmo sem internet.</p>
+
+<div class="tryjs" data-goal="out:coxinha: R$ 6.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>undefined</code> no lugar do produto. Falta um <code>await</code>: descubra onde, conserte e faça aparecer <code>coxinha: R$ 6.5</code>.</p>
+<pre class="script" data-file="main.js">const url = 'data:application/json,{"produto":"coxinha","preco":6.5}';
+const resposta = await fetch(url);
+const dados = resposta.json();
+console.log(`${dados.produto}: R$ ${dados.preco}`);
+</pre>
+<pre class="solucao" data-file="main.js">const url = 'data:application/json,{"produto":"coxinha","preco":6.5}';
+const resposta = await fetch(url);
+const dados = await resposta.json();
+console.log(`${dados.produto}: R$ ${dados.preco}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>8. <code>fetch</code> no navegador</h2>
+<p>O <code>fetch</code> nasceu no navegador e funciona lá do mesmo jeito. A diferença é o que você faz com os dados: em vez de <code>console.log</code>, você os coloca na página (o assunto do grupo <a href="dom.html">A Página Web</a>). No Chromium da Ana, uma página com este <code>script.js</code> mostrou no Console:</p>
+
+<pre class="file" data-file="script.js">async function mostrarCep() {
+  const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+  const dados = await resposta.json();
+  console.log(dados);
+  document.querySelector("#saida").textContent = `${dados.localidade}/${dados.uf}`;
+}
+mostrarCep();
+</pre>
+
+<pre class="devtools">{cep: '01001-000', logradouro: 'Praça da Sé', complemento: 'lado ímpar', unidade: '', bairro: 'Sé', …}
+</pre>
+
+<p>e o parágrafo <code>#saida</code> passou de <code>Buscando...</code> para <code>São Paulo/SP</code>. Repare que o Console do navegador mostra o objeto <strong>recolhido</strong>, numa linha só, com <code>…</code> no fim (clicando nele, abre); o Node mostra o objeto inteiro.</p>
+
+<div class="tryweb">
+<p class="try-task"><strong>Experimente (precisa de internet):</strong> digite um CEP (só números) e clique em Buscar.</p>
+<pre class="script" data-file="index.html">&lt;input id="cep" value="01001000" maxlength="8"&gt;
+&lt;button id="buscar"&gt;Buscar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const saida = document.querySelector("#saida");
+
+document.querySelector("#buscar").addEventListener("click", async () =&gt; {
+  const cep = document.querySelector("#cep").value;
+  saida.textContent = "Buscando...";
+  try {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!resposta.ok) {
+      throw new Error(`o servidor respondeu ${resposta.status}`);
+    }
+    const dados = await resposta.json();
+    if (dados.erro) {
+      saida.textContent = "CEP não encontrado.";
+    } else {
+      saida.textContent = `${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`;
+    }
+  } catch (erro) {
+    saida.textContent = `Não deu para buscar: ${erro.message}`;
+  }
+});
+</pre>
+</div>
+
+<div class="note">
+<strong>CORS: quando o navegador não deixa</strong>
+<p>No navegador existe uma proteção que o Node não tem: uma página só consegue ler a resposta de <strong>outro site</strong> se esse site permitir (a regra se chama <strong>CORS</strong>). A ViaCEP permite, por isso o exemplo funciona. Com uma API que não permite, o Console mostra um erro com <code>blocked by CORS policy</code> e o <code>fetch</code> falha com <code>TypeError: Failed to fetch</code>. O mesmo acontece ao abrir a página com dois cliques no arquivo e tentar buscar um arquivo da própria pasta (<code>fetch("dados.json")</code>): o navegador bloqueia, e é preciso abrir a página por um servidor (como o Live Server do VS Code).</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O <code>fetch</code> também pode ser usado com <code>.then()</code>, como era comum antes do <code>await</code>:</p>
+
+<pre class="file" data-file="then.js">fetch("https://viacep.com.br/ws/01001000/json/")
+  .then((resposta) =&gt; resposta.json())
+  .then((dados) =&gt; console.log(`${dados.localidade}/${dados.uf}`))
+  .catch((erro) =&gt; console.log(`Erro: ${erro.message}`));
+</pre>
+
+<pre class="term">$ node then.js
+São Paulo/SP
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Como fazer</th></tr>
+<tr><td>Buscar e usar o resultado (código novo)</td><td><code>const dados = await (await fetch(url)).json();</code> ou em duas linhas, como na seção 1 (mais fácil de ler)</td></tr>
+<tr><td>Código antigo, ou fora de uma função <code>async</code></td><td><code>fetch(url).then((r) =&gt; r.json()).then((dados) =&gt; …)</code></td></tr>
+<tr><td>Conteúdo em JSON</td><td><code>await resposta.json()</code></td></tr>
+<tr><td>Conteúdo em texto, HTML ou CSV</td><td><code>await resposta.text()</code></td></tr>
+<tr><td>Enviar dados</td><td><code>fetch(url, { method: "POST", headers: …, body: JSON.stringify(obj) })</code></td></tr>
+<tr><td>Várias buscas independentes</td><td><code>await Promise.all(urls.map((u) =&gt; fetch(u)))</code></td></tr>
+<tr><td>Treinar ou testar sem internet</td><td>Uma URL <code>data:application/json,…</code></td></tr>
+</table>
+</div>
+
+<p>Em projetos maiores, você também vai ver bibliotecas como o <code>axios</code> (instalado com o <a href="npm.html">npm</a>). Elas fazem a mesma coisa com outros nomes; o <code>fetch</code> já vem pronto no Node e no navegador.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code> do <code>fetch</code></strong>
+<pre class="file" data-file="esqueceu-fetch.js">const resposta = fetch("https://viacep.com.br/ws/01001000/json/");
+const dados = await resposta.json();
+console.log(dados.localidade);
+</pre>
+<pre class="term">$ node esqueceu-fetch.js
+file:///home/ana/esqueceu-fetch.js:2
+const dados = await resposta.json();
+                             ^
+
+TypeError: resposta.json is not a function
+    at file:///home/ana/esqueceu-fetch.js:2:30
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>file:///home/ana/esqueceu-fetch.js:2</dt><dd>O problema está na linha 2 (o <code>file://</code> aparece porque o <code>await</code> no topo fez o Node rodar o arquivo como módulo).</dd>
+  <dt>O ^ embaixo de json</dt><dd>A parte que falhou: o <code>.json</code>.</dd>
+  <dt>TypeError: resposta.json is not a function</dt><dd>"<code>resposta.json</code> não é uma função." Sem o <code>await</code>, <code>resposta</code> é a <strong>Promise</strong> do <code>fetch</code>, e não a resposta; Promises não têm o método <code>.json</code>.</dd>
+  <dt>at file:///home/ana/esqueceu-fetch.js:2:30</dt><dd>Linha 2, coluna 30 do seu arquivo. As outras linhas <code>at</code> são do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>const resposta = await fetch(…);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code> do <code>.json()</code></strong>
+<pre class="file" data-file="esqueceu-json.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+const dados = resposta.json();
+console.log(dados);
+console.log(dados.localidade);
+</pre>
+<pre class="term">$ node esqueceu-json.js
+Promise { &lt;pending&gt; }
+undefined
+</pre>
+<p>Sem erro, mas sem dados: <code>dados</code> é a Promise do <code>.json()</code>, ainda pendente, e <code>dados.localidade</code> não existe. <strong>Como consertar:</strong> <code>const dados = await resposta.json();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu JSON e veio HTML</strong>
+<pre class="file" data-file="html-json.js">const resposta = await fetch("https://viacep.com.br/ws/123/json/");
+const dados = await resposta.json();
+console.log(dados);
+</pre>
+<pre class="term">$ node html-json.js
+&lt;anonymous_script&gt;:1
+&lt;!DOCTYPE HTML&gt;
+^
+
+SyntaxError: Unexpected token '&lt;', "&lt;!DOCTYPE "... is not valid JSON
+    at JSON.parse (&lt;anonymous&gt;)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:4394:19)
+    at successSteps (node:internal/deps/undici/undici:7048:27)
+    at readAllBytes (node:internal/deps/undici/undici:5965:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.22.0
+</pre>
+<p>Para o CEP <code>123</code>, a ViaCEP respondeu <code>400</code> com uma <strong>página HTML</strong> de erro, e não com JSON. O <code>.json()</code> tentou converter e tropeçou logo no primeiro caractere:</p>
+<ul>
+  <li><code>&lt;anonymous_script&gt;:1</code> e <code>&lt;!DOCTYPE HTML&gt;</code>: o "arquivo" que deu erro não é o seu, é o texto que chegou; a linha 1 dele começa com <code>&lt;!DOCTYPE HTML&gt;</code>, o começo de toda página HTML.</li>
+  <li><code>SyntaxError: Unexpected token '&lt;', "&lt;!DOCTYPE "... is not valid JSON</code>: "Símbolo inesperado <code>&lt;</code>: isso não é JSON válido."</li>
+  <li><code>at JSON.parse</code> e <code>undici</code>: o erro aconteceu dentro do <code>JSON.parse</code> que o <code>.json()</code> usa (<code>undici</code> é o nome da parte do Node que implementa o <code>fetch</code>). Nenhuma linha aponta para o seu arquivo.</li>
+</ul>
+<p><strong>Como consertar:</strong> confira <code>resposta.ok</code> <strong>antes</strong> de chamar <code>.json()</code>, como na função <code>buscarCep</code> da seção 3.</p>
+</div>
+
+<div class="cenario">
+<strong>Leu a resposta duas vezes</strong>
+<pre class="file" data-file="duas-vezes.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+console.log(await resposta.text());
+const dados = await resposta.json();
+console.log(dados);
+</pre>
+<pre class="term">$ node duas-vezes.js
+{
+  "cep": "01001-000",
+  «  … o JSON inteiro, como na seção 2 (cortado aqui) …
+  "siafi": "7107"
+}
+node:internal/deps/undici/undici:7042
+        return Promise.reject(new TypeError("Body is unusable: Body has already been read"));
+                              ^
+
+TypeError: Body is unusable: Body has already been read
+    at consumeBody (node:internal/deps/undici/undici:7042:31)
+    at _Response.json (node:internal/deps/undici/undici:6993:18)
+    at file:///home/ana/duas-vezes.js:3:30
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.22.0
+</pre>
+<p>"O corpo não pode ser usado: ele já foi lido." O conteúdo de uma resposta é como um pacote: depois de aberto (com <code>.text()</code>), não dá para abrir de novo (com <code>.json()</code>). A linha <code>at file:///home/ana/duas-vezes.js:3:30</code> aponta a segunda leitura. <strong>Como consertar:</strong> leia uma vez só e guarde numa variável. Se precisar do texto e do objeto, leia o texto e converta você mesmo: <code>const dados = JSON.parse(texto);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Endereço incompleto no Node</strong>
+<pre class="file" data-file="relativo.js">const resposta = await fetch("dados.json");
+console.log(await resposta.json());
+</pre>
+<pre class="term">$ node relativo.js
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: Failed to parse URL from dados.json] {
+  [cause]: TypeError: Invalid URL
+      at new URL (node:internal/url:895:25)
+      «  … mais 8 linhas "at" internas do Node (cortadas aqui)
+    code: 'ERR_INVALID_URL',
+    input: 'dados.json'
+  }
+}
+
+Node.js v24.22.0
+</pre>
+<p>"Não deu para entender a URL <code>dados.json</code>." No navegador, <code>fetch("dados.json")</code> busca o arquivo ao lado da página. No Node não existe "página": a URL precisa ser <strong>completa</strong>, com <code>https://</code>. A causa (<code>[cause]</code>) é <code>Invalid URL</code>, código <code>ERR_INVALID_URL</code>, com o texto que você passou em <code>input</code>. <strong>Como consertar:</strong> no Node, para ler um arquivo do computador, use o <code>fs</code> (aula <a href="fs-ler.html">Lendo Arquivos</a>), e não o <code>fetch</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Sem internet e sem <code>try … catch</code></strong>
+<pre class="file" data-file="semrede-cru.js">const resposta = await fetch("https://viacep.com.br/ws/01001000/json/");
+console.log(await resposta.json());
+</pre>
+<pre class="term">$ node semrede-cru.js
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo EAI_AGAIN viacep.com.br
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:123:26) {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'viacep.com.br'
+  }
+}
+
+Node.js v24.22.0
+</pre>
+<p>Rodado com o computador desconectado: <code>TypeError: fetch failed</code>, com a causa embaixo. Nenhuma linha aponta para o seu arquivo, porque o erro nasceu dentro do Node. <strong>Como consertar:</strong> o <code>try … catch</code> da seção 4.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>const resposta = await fetch(url);</code></td><td>Faz o pedido (<code>GET</code>) e espera a resposta</td></tr>
+<tr><td><code>await resposta.json()</code></td><td>Lê o conteúdo e converte de JSON para objeto</td></tr>
+<tr><td><code>await resposta.text()</code></td><td>Lê o conteúdo como texto</td></tr>
+<tr><td><code>resposta.status</code> / <code>resposta.ok</code></td><td>O código (200, 404…) / <code>true</code> se for de 200 a 299</td></tr>
+<tr><td><code>resposta.headers.get("content-type")</code></td><td>Lê um cabeçalho da resposta</td></tr>
+<tr><td><code>if (!resposta.ok) throw new Error(…)</code></td><td>Transforma um 4xx/5xx em erro</td></tr>
+<tr><td><code>fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) })</code></td><td>Envia um objeto como JSON</td></tr>
+<tr><td><code>try { … } catch (erro) { … }</code></td><td>Trata a falha de rede (<code>fetch failed</code> no Node, <code>Failed to fetch</code> no navegador)</td></tr>
+<tr><td><code>'data:application/json,{"a":1}'</code></td><td>URL com o conteúdo dentro, sem internet</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: resposta.json is not a function</code></td><td>Faltou o <code>await</code> do <code>fetch</code></td></tr>
+<tr><td><code>Promise { &lt;pending&gt; }</code> ou <code>undefined</code></td><td>Faltou o <code>await</code> do <code>.json()</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token '&lt;', "&lt;!DOCTYPE "... is not valid JSON</code></td><td>A resposta era HTML (geralmente uma página de erro): confira <code>resposta.ok</code></td></tr>
+<tr><td><code>TypeError: Body is unusable: Body has already been read</code></td><td>Leu o conteúdo duas vezes</td></tr>
+<tr><td><code>TypeError: Failed to parse URL from …</code></td><td>No Node, a URL precisa ser completa (<code>https://…</code>)</td></tr>
+<tr><td><code>TypeError: fetch failed</code> (<code>EAI_AGAIN</code>, <code>ENOTFOUND</code>)</td><td>Sem internet ou nome de site errado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete os dois <code>await</code></h3>
+<div class="ex-code">const resposta = <input data-answer="await" aria-label="palavra antes do fetch"> fetch(url);<br>const dados = await resposta.<input data-answer="json" aria-label="método que lê JSON">();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Deu certo?</h3>
+<p>Uma resposta veio com <code>status</code> 404. Quanto vale <code>resposta.ok</code>?</p>
+<div class="ex-code"><input data-answer="false" aria-label="valor de resposta.ok"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O servidor respondeu <code>404 Not Found</code>. O que acontece com a Promise do <code>fetch</code>?</p>
+<label><input type="radio" name="q3"> É rejeitada, e o <code>catch</code> pega</label>
+<label><input type="radio" name="q3"> Se resolve normalmente, com <code>resposta.ok</code> valendo <code>false</code></label>
+<label><input type="radio" name="q3"> Nunca se resolve</label>
+<label><input type="radio" name="q3"> O programa para com <code>404</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Para enviar o objeto <code>receita</code> para uma API, o que vai no <code>body</code>?</p>
+<label><input type="radio" name="q4"> <code>receita</code></label>
+<label><input type="radio" name="q4"> <code>JSON.parse(receita)</code></label>
+<label><input type="radio" name="q4"> <code>receita.json()</code></label>
+<label><input type="radio" name="q4"> <code>JSON.stringify(receita)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que o <code>.json()</code> também precisa de <code>await</code>?</p>
+<label><input type="radio" name="q5"> Porque o conteúdo pode ainda estar chegando: o <code>.json()</code> devolve uma Promise</label>
+<label><input type="radio" name="q5"> Porque o <code>JSON</code> é lento para converter</label>
+<label><input type="radio" name="q5"> Não precisa: é só costume</label>
+<label><input type="radio" name="q5"> Porque o <code>fetch</code> não pode ser usado sem dois <code>await</code></label>
+</div>
+
+<h3>Missão final: o total da lista de compras</h3>
+
+<div class="tryjs" data-goal="out:Total: R$ 23.40;;src:\bfetch\(;;src:\.json\(\)">
+<p class="try-task"><strong>Missão:</strong> a lista de compras da Ana está numa URL <code>data:</code> (funciona sem internet). Busque a lista com <code>fetch</code>, leia com <code>.json()</code> e, no lugar do comentário, some os preços (com <code>reduce</code> ou com um <code>for … of</code>) para mostrar <code>Total: R$ 23.40</code> (use <code>total.toFixed(2)</code>).</p>
+<pre class="script" data-file="main.js">const url = 'data:application/json,[{"item":"arroz","preco":6.5},{"item":"cafe","preco":12.9},{"item":"leite","preco":4}]';
+
+// busque a lista e some os preços aqui
+
+</pre>
+<pre class="solucao" data-file="main.js">const url = 'data:application/json,[{"item":"arroz","preco":6.5},{"item":"cafe","preco":12.9},{"item":"leite","preco":4}]';
+
+const resposta = await fetch(url);
+const lista = await resposta.json();
+const total = lista.reduce((soma, produto) =&gt; soma + produto.preco, 0);
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>fetch(url)</code> faz um pedido pela internet e devolve uma Promise da <strong>resposta</strong>. Funciona no Node (sem instalar nada) e no navegador.</li>
+  <li>São dois <code>await</code>: <code>const resposta = await fetch(url)</code> e <code>const dados = await resposta.json()</code> (ou <code>.text()</code>).</li>
+  <li>A resposta traz <code>status</code> (200, 404, 500…), <code>ok</code> (<code>true</code> de 200 a 299) e <code>headers</code>. Um 404 <strong>não</strong> é erro para o <code>fetch</code>: confira <code>resposta.ok</code>.</li>
+  <li>Sem internet, a Promise é rejeitada (<code>TypeError: fetch failed</code> no Node): use <code>try … catch</code>.</li>
+  <li>Para enviar dados: <code>method: "POST"</code>, o cabeçalho <code>Content-Type</code> e <code>body: JSON.stringify(obj)</code>.</li>
+  <li>Várias buscas independentes andam juntas com <code>Promise.all</code>; para treinar sem internet, use uma URL <code>data:</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
