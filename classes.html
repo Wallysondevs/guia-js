@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Classes — moldes para criar objetos (class, constructor, new, this) | Guia JavaScript</title>
+<meta name="description" content="Classes em JavaScript para quem nunca programou: o molde e os objetos, class, constructor, new, this, métodos, campos de classe, instâncias independentes, instanceof, arrays de objetos, a função fábrica e a função construtora antiga, e os erros reais (cannot be invoked without 'new', Cannot access before initialization, nome is not defined, this perdido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Classes</span></h1>
+
+<p class="intro">Na aula <a href="objetos.html">Objetos</a>, cada produto da padaria era escrito à mão: <code>{ nome: "sonho", preco: 3.5 }</code>. Para três produtos, tudo bem. Para trezentos, com os mesmos campos e as mesmas funções em todos, escrever um por um é pedir para errar. A <strong>classe</strong> é um <strong>molde</strong>: você descreve uma vez como é um produto e o que ele sabe fazer, e depois cria quantos quiser com <code>new</code>. Classes existem no JavaScript desde 2015 (ES6) e funcionam igual no Node e no navegador.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A ideia de molde (a classe) e de objetos feitos com ele (as <strong>instâncias</strong>).</li>
+  <li>Como escrever uma classe: <code>class</code>, <code>constructor</code>, <code>this</code> e os <strong>métodos</strong>.</li>
+  <li>Como criar objetos com <code>new</code> e por que cada um tem os seus próprios dados.</li>
+  <li>Os <strong>campos de classe</strong> (<code>estoque = 0;</code>) e os métodos que mudam o objeto.</li>
+  <li>Como conferir de que classe é um objeto com <code>instanceof</code>.</li>
+  <li>Os outros jeitos de fazer o mesmo (a função fábrica e a função construtora antiga) e quando usar cada um.</li>
+  <li>Os erros reais: esquecer o <code>new</code>, usar a classe antes de criá-la, esquecer o <code>this</code>, a vírgula entre métodos, o <code>this</code> perdido.</li>
+</ul>
+</div>
+
+<p>Todos os programas rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta <code>/home/ana/classes</code>.</p>
+
+<hr>
+
+<h2>A ideia: a forma de bolo</h2>
+<p>A padaria tem uma <strong>forma</strong> de bolo. A forma não é um bolo: ninguém come a forma. Ela é o <strong>molde</strong> que diz o formato. Com ela, a Ana faz um bolo de chocolate, um de fubá, um de cenoura: todos com o mesmo formato, cada um com o seu sabor. Comer o de fubá não mexe no de chocolate.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na padaria</th><th>No JavaScript</th></tr>
+<tr><td>A forma (o molde)</td><td>A <strong>classe</strong>: <code>class Produto { … }</code></td></tr>
+<tr><td>Fazer um bolo com a forma</td><td>Criar um objeto: <code>new Produto("sonho", 3.5)</code></td></tr>
+<tr><td>Cada bolo pronto</td><td>Uma <strong>instância</strong> (um objeto feito pela classe)</td></tr>
+<tr><td>O sabor de cada bolo</td><td>As <strong>propriedades</strong> de cada instância: <code>nome</code>, <code>preco</code></td></tr>
+<tr><td>O que todo bolo "sabe fazer" (ser fatiado)</td><td>Os <strong>métodos</strong>: funções que todas as instâncias têm, como <code>descricao()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. A primeira classe</h2>
+
+<pre class="file" data-file="produto.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+const broa = new Produto("broa", 2);
+
+console.log(sonho);
+console.log(broa.nome);
+console.log(sonho.descricao());
+console.log(broa.descricao());
+</pre>
+
+<dl class="anatomy">
+  <dt>class Produto { … }</dt><dd>Cria a classe (o molde) chamada <code>Produto</code>. Por tradição, nomes de classe começam com <strong>letra maiúscula</strong> (<code>Produto</code>, <code>ContaBancaria</code>), para não confundir com variáveis comuns (<code>produto</code>).</dd>
+  <dt>constructor(nome, preco) { … }</dt><dd>O <strong>construtor</strong>: uma função especial que roda <strong>uma vez</strong>, sozinha, cada vez que alguém faz <code>new Produto(…)</code>. Os parâmetros recebem o que foi passado entre parênteses. É ali que o objeto novo ganha os seus dados.</dd>
+  <dt>this.nome = nome;</dt><dd><code>this</code> ("este") é <strong>o objeto que está sendo criado</strong>. A linha quer dizer: "este produto novo ganha a propriedade <code>nome</code>, com o valor do parâmetro <code>nome</code>". Os dois nomes iguais são só costume: o da esquerda é a propriedade do objeto; o da direita, o parâmetro.</dd>
+  <dt>descricao() { … }</dt><dd>Um <strong>método</strong>: uma função que mora dentro da classe. Escreve-se sem a palavra <code>function</code> e <strong>sem vírgula</strong> entre um método e outro. Dentro dele, <code>this</code> é o objeto que chamou o método (<code>sonho.descricao()</code> → <code>this</code> é o <code>sonho</code>).</dd>
+  <dt>new Produto("sonho", 3.5)</dt><dd><code>new</code> ("novo") cria um objeto vazio, roda o <code>constructor</code> com ele como <code>this</code> e devolve o objeto pronto. É a "forma indo ao forno".</dd>
+  <dt>sonho.descricao()</dt><dd>Chama o método no objeto <code>sonho</code>, com ponto e parênteses, como os métodos que você já conhece (<code>texto.toUpperCase()</code>).</dd>
+</dl>
+
+<pre class="term">$ node produto.js
+Produto { nome: 'sonho', preco: 3.5 }
+broa
+sonho: R$ 3.50
+broa: R$ 2.00
+</pre>
+
+<p>Repare na primeira linha: o Node mostra o <strong>nome da classe</strong> antes das chaves, <code>Produto { … }</code>. É assim que você sabe que o objeto foi feito por um molde, e qual. O método <code>descricao</code> não aparece ali: ele fica guardado na classe, não em cada objeto (você vai ver onde em <a href="prototipos.html">Protótipos</a>).</p>
+
+<div class="tryjs" data-goal="out:rosca: R$ 6.00;;src:new\s+Produto\(\s*&quot;rosca&quot;">
+<p class="try-task"><strong>Missão:</strong> use o molde para criar mais um produto, a <code>rosca</code>, que custa 6, e mostre a descrição dela (<code>rosca: R$ 6.00</code>).</p>
+<pre class="script" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho.descricao());
+</pre>
+<pre class="solucao" data-file="main.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho.descricao());
+const rosca = new Produto("rosca", 6);
+console.log(rosca.descricao());
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Cada instância é independente</h2>
+
+<pre class="file" data-file="tipo.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+const broa = new Produto("broa", 2);
+console.log(typeof Produto);
+console.log(Produto);
+console.log(sonho instanceof Produto);
+console.log({ nome: "sonho" } instanceof Produto);
+console.log(sonho.descricao === broa.descricao);
+console.log(Object.keys(sonho));
+sonho.preco = 4;
+console.log(sonho.descricao(), "|", broa.descricao());
+</pre>
+
+<pre class="term">$ node tipo.js
+function
+[class Produto]
+true
+false
+true
+[ 'nome', 'preco' ]
+sonho: R$ 4.00 | broa: R$ 2.00
+</pre>
+
+<dl class="anatomy">
+  <dt>typeof Produto → function</dt><dd>Por dentro, uma classe é um tipo especial de função (a que monta objetos). O <code>console.log</code> mostra <code>[class Produto]</code> para deixar claro que é uma classe.</dd>
+  <dt>sonho instanceof Produto → true</dt><dd><code>instanceof</code> ("é instância de") pergunta se o objeto foi feito por aquela classe. Um objeto escrito à mão, mesmo com os mesmos campos, dá <code>false</code>.</dd>
+  <dt>sonho.descricao === broa.descricao → true</dt><dd>Os dois objetos usam <strong>a mesma</strong> função <code>descricao</code>: ela existe uma vez só, na classe. Mil produtos não guardam mil cópias do método.</dd>
+  <dt>Object.keys(sonho) → [ 'nome', 'preco' ]</dt><dd>As propriedades próprias do objeto são só os dados (veja <a href="objetos-percorrer.html">Percorrendo Objetos</a>).</dd>
+  <dt>sonho.preco = 4</dt><dd>Mudar o sonho não mexe na broa: cada instância tem os <strong>seus</strong> dados. O método, que é de todos, usa o <code>this</code> de quem o chamou.</dd>
+</dl>
+
+<h3>Uma lista de instâncias</h3>
+<p>Instâncias são objetos comuns: vão para arrays, passam por <code>for … of</code>, por <code>map</code>, <code>filter</code>…</p>
+
+<pre class="file" data-file="vitrine.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const vitrine = [
+  new Produto("sonho", 3.5),
+  new Produto("broa", 2),
+  new Produto("rosca", 6),
+];
+
+for (const produto of vitrine) {
+  console.log(produto.descricao());
+}
+console.log(vitrine);
+</pre>
+
+<pre class="term">$ node vitrine.js
+sonho: R$ 3.50
+broa: R$ 2.00
+rosca: R$ 6.00
+[
+  Produto { nome: 'sonho', preco: 3.5 },
+  Produto { nome: 'broa', preco: 2 },
+  Produto { nome: 'rosca', preco: 6 }
+]
+</pre>
+
+<hr>
+
+<h2>3. Métodos que mudam o objeto, e campos de classe</h2>
+<p>Um produto da padaria tem estoque, que começa em zero, sobe quando chega mercadoria e desce quando se vende. Os métodos podem <strong>mudar</strong> as propriedades do próprio objeto pelo <code>this</code>:</p>
+
+<pre class="file" data-file="estoque.js">class Produto {
+  estoque = 0;
+
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  repor(quantidade) {
+    this.estoque += quantidade;
+    console.log(`Chegaram ${quantidade} ${this.nome}(s). Estoque: ${this.estoque}`);
+  }
+
+  vender(quantidade) {
+    if (quantidade &gt; this.estoque) {
+      console.log(`Não dá: só há ${this.estoque} ${this.nome}(s).`);
+      return 0;
+    }
+    this.estoque -= quantidade;
+    const total = quantidade * this.preco;
+    console.log(`Vendi ${quantidade} ${this.nome}(s) por R$ ${total.toFixed(2)}. Estoque: ${this.estoque}`);
+    return total;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho);
+sonho.repor(10);
+sonho.vender(4);
+sonho.vender(8);
+console.log(sonho);
+</pre>
+
+<dl class="anatomy">
+  <dt>estoque = 0;</dt><dd>Um <strong>campo de classe</strong> <span class="versao">ES2022</span>: toda instância nasce com <code>estoque</code> valendo 0, sem precisar passar nada no <code>new</code>. Fica fora do <code>constructor</code>, sem <code>this</code> e sem <code>let</code>/<code>const</code>. Use para valores iniciais que são iguais para todos.</dd>
+  <dt>repor(quantidade)</dt><dd>Soma ao <code>this.estoque</code> deste produto.</dd>
+  <dt>vender(quantidade)</dt><dd>Confere se há o bastante, desconta e <strong>devolve</strong> (<code>return</code>) o valor da venda. Um método pode mudar o objeto e também devolver um valor.</dd>
+</dl>
+
+<pre class="term">$ node estoque.js
+Produto { estoque: 0, nome: 'sonho', preco: 3.5 }
+Chegaram 10 sonho(s). Estoque: 10
+Vendi 4 sonho(s) por R$ 14.00. Estoque: 6
+Não dá: só há 6 sonho(s).
+Produto { estoque: 6, nome: 'sonho', preco: 3.5 }
+</pre>
+
+<p>O <code>estoque</code> aparece <strong>antes</strong> do <code>nome</code>: os campos de classe são criados antes de o <code>constructor</code> rodar. O objeto guardou o estado entre uma chamada e outra: 10, depois 6, e a venda de 8 foi recusada.</p>
+
+<div class="tip">
+<strong>Dados e comportamento juntos</strong>
+<p>É essa a vantagem de uma classe: o <code>estoque</code> e as regras para mexer nele (<code>repor</code>, <code>vender</code>) moram juntos. Quem usa o produto chama <code>sonho.vender(4)</code> e não precisa lembrar de conferir o estoque antes. Nas próximas aulas você vai proteger ainda mais esses dados com <a href="getters-setters.html">get e set</a> e <a href="campos-privados.html">campos privados (#)</a>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<p>Classes não são o único jeito de fabricar objetos parecidos. Você vai encontrar mais dois em código por aí.</p>
+
+<h3>A função fábrica</h3>
+<p>Uma função comum que devolve um objeto (veja <a href="objetos-metodos.html">Métodos e this</a>):</p>
+
+<pre class="file" data-file="fabrica.js">function criarProduto(nome, preco) {
+  return {
+    nome,
+    preco,
+    descricao() {
+      return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+    },
+  };
+}
+
+const sonho = criarProduto("sonho", 3.5);
+console.log(sonho);
+console.log(sonho.descricao());
+</pre>
+
+<pre class="term">$ node fabrica.js
+{ nome: 'sonho', preco: 3.5, descricao: [Function: descricao] }
+sonho: R$ 3.50
+</pre>
+
+<p>Funciona, sem <code>new</code>. Mas repare: o objeto não tem nome de classe, cada um carrega a <strong>sua própria cópia</strong> do método <code>descricao</code> (ela aparece dentro das chaves), e <code>instanceof</code> não serve para nada aqui.</p>
+
+<h3>A função construtora (o jeito antigo)</h3>
+<p>Antes de 2015 não existia <code>class</code>. O mesmo molde se escrevia com uma <code>function</code> e o <code>prototype</code>:</p>
+
+<pre class="file" data-file="antigo.js">function Produto(nome, preco) {
+  this.nome = nome;
+  this.preco = preco;
+}
+Produto.prototype.descricao = function () {
+  return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+};
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho);
+console.log(sonho.descricao());
+</pre>
+
+<pre class="term">$ node antigo.js
+Produto { nome: 'sonho', preco: 3.5 }
+sonho: R$ 3.50
+</pre>
+
+<p>O resultado é o mesmo da classe: a <code>class</code> é, por baixo, um jeito mais claro de escrever isto (os detalhes estão em <a href="prototipos.html">Protótipos</a>). Reconheça em código antigo, mas escreva com <code>class</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Quando usar</th></tr>
+<tr><td>Objeto literal <code>{ … }</code></td><td>Um objeto só, ou dados simples (vindos de um JSON, por exemplo)</td></tr>
+<tr><td>Função fábrica</td><td>Objetos simples, sem precisar de <code>instanceof</code> nem de herança</td></tr>
+<tr><td><strong><code>class</code></strong></td><td>Muitos objetos com os mesmos dados e comportamentos; quando haverá herança (<a href="heranca.html">extends</a>), campos privados, <code>static</code>. O jeito moderno.</td></tr>
+<tr><td>Função construtora + <code>prototype</code></td><td>Só para ler código antigo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. Esqueceu o <code>new</code></h3>
+<pre class="file" data-file="semnew.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+const sonho = Produto("sonho", 3.5);
+</pre>
+<pre class="term">$ node semnew.js
+/home/ana/classes/semnew.js:8
+const sonho = Produto("sonho", 3.5);
+              ^
+
+TypeError: Class constructor Produto cannot be invoked without 'new'
+    at Object.&lt;anonymous&gt; (/home/ana/classes/semnew.js:8:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/classes/semnew.js:8</dt><dd>O arquivo e a linha: 8.</dd>
+  <dt>a linha do código e o ^</dt><dd>O <code>^</code> aponta para o <code>Produto(</code>, na coluna 15.</dd>
+  <dt>TypeError: Class constructor Produto cannot be invoked without 'new'</dt><dd>"Erro de tipo: o construtor da classe Produto não pode ser chamado sem <code>new</code>". Classe não é chamada como função comum.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…/semnew.js:8:15)</dt><dd>De novo o lugar exato: linha 8, coluna 15. As outras linhas <code>at</code> são de dentro do Node.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Conserto:</strong> <code>new Produto("sonho", 3.5)</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>2. Usou a classe antes de criá-la</h3>
+<pre class="file" data-file="antes.js">const sonho = new Produto("sonho", 3.5);
+
+class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+</pre>
+<pre class="term">$ node antes.js
+/home/ana/classes/antes.js:1
+const sonho = new Produto("sonho", 3.5);
+              ^
+
+ReferenceError: Cannot access 'Produto' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/classes/antes.js:1:15)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para acessar 'Produto' antes da inicialização". Diferente de uma <code>function</code> comum, que pode ser chamada antes da linha em que foi escrita (veja <a href="hoisting.html">Hoisting</a>), a classe só existe <strong>depois</strong> da linha do <code>class</code>, como uma variável <code>const</code>. <strong>Conserto:</strong> escreva a classe no começo do arquivo (ou num módulo próprio, importado no topo).</p>
+</div>
+
+<div class="cenario">
+<h3>3. Esqueceu o <code>this</code> dentro do método</h3>
+<pre class="file" data-file="semthis.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${nome}: R$ ${preco}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+console.log(sonho.descricao());
+</pre>
+<pre class="term">$ node semthis.js
+/home/ana/classes/semthis.js:8
+    return `${nome}: R$ ${preco}`;
+    ^
+
+ReferenceError: nome is not defined
+    at Produto.descricao (/home/ana/classes/semthis.js:8:5)
+    at Object.&lt;anonymous&gt; (/home/ana/classes/semthis.js:13:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<p>"<code>nome</code> não está definido". Os parâmetros do <code>constructor</code> só existem dentro dele; nos outros métodos, os dados do objeto se alcançam <strong>pelo <code>this</code></strong>. Repare nas duas linhas <code>at</code>: o erro aconteceu em <code>Produto.descricao</code> (linha 8), que foi chamado pela linha 13. <strong>Conserto:</strong> <code>${this.nome}</code> e <code>${this.preco}</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>4. Vírgula entre os métodos</h3>
+<pre class="file" data-file="virgula.js">class Produto {
+  constructor(nome) {
+    this.nome = nome;
+  },
+
+  descricao() {
+    return this.nome;
+  }
+}
+</pre>
+<pre class="term">$ node virgula.js
+/home/ana/classes/virgula.js:4
+  },
+   ^
+
+SyntaxError: Unexpected token ','
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «… mais 7 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado: ','". Num objeto literal, os métodos se separam com vírgula; numa classe, <strong>não</strong>. É o hábito do objeto atrapalhando. <strong>Conserto:</strong> tire a vírgula depois do <code>}</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>5. Faltou um argumento no <code>new</code></h3>
+<pre class="file" data-file="bolo.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const bolo = new Produto("bolo");
+console.log(bolo);
+console.log(bolo.descricao());
+</pre>
+<pre class="term">$ node bolo.js
+Produto { nome: 'bolo', preco: undefined }
+/home/ana/classes/bolo.js:8
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+                                          ^
+
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+    at Produto.descricao (/home/ana/classes/bolo.js:8:43)
+    at Object.&lt;anonymous&gt; (/home/ana/classes/bolo.js:14:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<p>O <code>new</code> não reclamou: o objeto nasceu com <code>preco: undefined</code>. O erro só apareceu depois, no método. <strong>Conserto:</strong> passar todos os argumentos, dar um valor padrão no construtor (<code>constructor(nome, preco = 0)</code>; veja <a href="parametros-padrao.html">Parâmetros Padrão</a>) ou conferir os valores no construtor e lançar um erro claro (<a href="throw.html">throw</a>).</p>
+</div>
+
+<div class="cenario">
+<h3>6. O <code>this</code> perdido: método separado do objeto</h3>
+<pre class="file" data-file="solto.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descricao() {
+    return `${this.nome}: R$ ${this.preco}`;
+  }
+}
+
+const sonho = new Produto("sonho", 3.5);
+const funcao = sonho.descricao;
+console.log(funcao());
+</pre>
+<pre class="term">$ node solto.js
+/home/ana/classes/solto.js:8
+    return `${this.nome}: R$ ${this.preco}`;
+                   ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at descricao (/home/ana/classes/solto.js:8:20)
+    at Object.&lt;anonymous&gt; (/home/ana/classes/solto.js:14:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<p>O <code>this</code> de um método é "quem está antes do ponto" <strong>na hora da chamada</strong>. Em <code>funcao()</code> não há ponto nem objeto, e dentro de uma classe o <code>this</code> fica <code>undefined</code>. Isso acontece ao passar um método como callback (<code>setTimeout(sonho.descricao, 1000)</code>, <code>botao.addEventListener("click", sonho.descricao)</code>). <strong>Conserto:</strong> chame pelo objeto (<code>sonho.descricao()</code>) ou embrulhe numa arrow function: <code>() =&gt; sonho.descricao()</code>. O assunto completo está em <a href="this.html">this, call, apply e bind</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class Nome { … }</code></td><td>Cria a classe (o molde). Nome com maiúscula.</td></tr>
+<tr><td><code>constructor(a, b) { this.a = a; }</code></td><td>Roda em cada <code>new</code>; põe os dados no objeto novo</td></tr>
+<tr><td><code>campo = valor;</code></td><td>Campo de classe: valor inicial de toda instância <span class="versao">ES2022</span></td></tr>
+<tr><td><code>metodo() { … }</code></td><td>Método: função de todas as instâncias (sem <code>function</code>, sem vírgula)</td></tr>
+<tr><td><code>this</code></td><td>Dentro da classe: o objeto (o que está sendo criado, ou o que chamou o método)</td></tr>
+<tr><td><code>new Nome(…)</code></td><td>Cria uma instância</td></tr>
+<tr><td><code>obj.metodo()</code></td><td>Chama um método da instância</td></tr>
+<tr><td><code>obj instanceof Nome</code></td><td><code>true</code> se o objeto foi feito por essa classe</td></tr>
+<tr><td><code>typeof Nome</code></td><td><code>"function"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a classe</h3>
+<p>Complete para criar a classe <code>Cliente</code> com o nome e um objeto da Bia:</p>
+<div class="ex-code"><input data-answer="class" aria-label="palavra-chave"> Cliente {<br>&nbsp;&nbsp;<input data-answer="constructor" aria-label="nome do construtor">(nome) {<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="this" aria-label="o objeto">.nome = nome;<br>&nbsp;&nbsp;}<br>}<br>const bia = <input data-answer="new" aria-label="operador de criação"> Cliente("Bia");</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Depois do código acima, o que <code>console.log(bia instanceof Cliente)</code> mostra?</p>
+<div class="ex-code"><input data-answer="true" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Dentro de um método, como se lê a propriedade <code>preco</code> do próprio objeto?</p>
+<label><input type="radio" name="q3"> <code>preco</code></label>
+<label><input type="radio" name="q3"> <code>this.preco</code></label>
+<label><input type="radio" name="q3"> <code>Produto.preco</code></label>
+<label><input type="radio" name="q3"> <code>new.preco</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>const a = new Produto("sonho", 3);</code> e <code>const b = new Produto("broa", 2);</code>. Depois de <code>a.preco = 10;</code>, quanto vale <code>b.preco</code>?</p>
+<label><input type="radio" name="q4"> 10</label>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> 2: cada instância tem os seus dados</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual erro aparece com <code>const p = Produto("sonho", 3);</code> (sem <code>new</code>)?</p>
+<label><input type="radio" name="q5"> <code>TypeError: Class constructor Produto cannot be invoked without 'new'</code></label>
+<label><input type="radio" name="q5"> <code>ReferenceError: Produto is not defined</code></label>
+<label><input type="radio" name="q5"> Nenhum: <code>p</code> fica <code>undefined</code></label>
+<label><input type="radio" name="q5"> <code>SyntaxError: Unexpected token</code></label>
+</div>
+
+<h3>Missão final: a comanda</h3>
+
+<div class="tryjs" data-goal="out:Comanda da Bia: R$ 9.50;;src:class\s+Comanda">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Comanda</code> guarda o cliente e uma lista de itens, mas ainda não sabe fazer nada. Escreva os dois métodos: <code>adicionar(nome, preco)</code>, que põe <code>{ nome, preco }</code> em <code>this.itens</code>, e <code>total()</code>, que devolve a soma dos preços. O programa deve mostrar <code>Comanda da Bia: R$ 9.50</code>.</p>
+<pre class="script" data-file="main.js">class Comanda {
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.itens = [];
+  }
+
+  // escreva aqui os métodos adicionar(nome, preco) e total()
+}
+
+const comanda = new Comanda("Bia");
+comanda.adicionar("sonho", 3.5);
+comanda.adicionar("café", 6);
+console.log(`Comanda da ${comanda.cliente}: R$ ${comanda.total().toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">class Comanda {
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.itens = [];
+  }
+
+  adicionar(nome, preco) {
+    this.itens.push({ nome, preco });
+  }
+
+  total() {
+    let soma = 0;
+    for (const item of this.itens) {
+      soma += item.preco;
+    }
+    return soma;
+  }
+}
+
+const comanda = new Comanda("Bia");
+comanda.adicionar("sonho", 3.5);
+comanda.adicionar("café", 6);
+console.log(`Comanda da ${comanda.cliente}: R$ ${comanda.total().toFixed(2)}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Comanda da Bia: R$ 9.50</code>. Rodando o código inicial, sem os métodos, o erro é <code>TypeError: comanda.adicionar is not a function</code>: o objeto não tem esse método.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>classe</strong> é um molde; <code>new Classe(…)</code> cria uma <strong>instância</strong> (um objeto feito com ele). Nome de classe começa com maiúscula.</li>
+  <li>O <code>constructor</code> roda em cada <code>new</code> e guarda os dados no objeto com <code>this.propriedade = valor</code>. Campos de classe (<code>estoque = 0;</code>) dão valores iniciais.</li>
+  <li><strong>Métodos</strong> são funções da classe, escritas sem <code>function</code> e sem vírgula entre elas. Dentro deles, <code>this</code> é o objeto que chamou.</li>
+  <li>Cada instância tem os seus próprios dados; os métodos são um só, compartilhados. <code>instanceof</code> diz de que classe é um objeto.</li>
+  <li>Erros comuns: sem <code>new</code> (<code>cannot be invoked without 'new'</code>), classe usada antes de criada (<code>before initialization</code>), sem <code>this</code> (<code>is not defined</code>), vírgula entre métodos, método separado do objeto (<code>this</code> <code>undefined</code>).</li>
+  <li>Próximos passos: <a href="getters-setters.html">get e set</a>, <a href="heranca.html">herança</a>, <a href="static.html">static</a> e <a href="campos-privados.html">campos privados</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
