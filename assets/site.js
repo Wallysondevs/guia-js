@@ -510,8 +510,8 @@ var NIVEIS = [
         cmds[cmds.length - 1] += "\n" + mc[1];
         return;
       }
-      // o prompt do modo interativo do Node ("> ") e a continuação dele ("... "), só depois de "$ node"
-      var ms = modoNode && /^(>|\.\.\.)(?: (.*)|())$/.exec(l);
+      // o prompt do modo interativo do Node ("> ") e a continuação dele ("| " no Node 24; "... " nos antigos), só depois de "$ node"
+      var ms = modoNode && /^(>|\||\.\.\.)(?: (.*)|())$/.exec(l);
       if (ms) {
         var cs = ms[2] || "", ns = "", is = cs.indexOf("«");
         if (is !== -1) { ns = '<span class="t-a">← ' + esc(cs.slice(is + 1).trim()) + "</span>"; cs = cs.slice(0, is).replace(/\s+$/, ""); }
