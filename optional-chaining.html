@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript ?. e ?? — valores que podem faltar | Guia JavaScript</title>
+<meta name="description" content="Optional chaining (?.) e nullish coalescing (??) no JavaScript para quem está começando: evitar o erro Cannot read properties of undefined, ?.[ ] e ?.(), valor reserva com ??, a diferença entre ?? e ||, ??= e ||=, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">?. e ??</span> (Valores que Podem Faltar)</h1>
+
+<p class="intro">Dados do mundo real vêm incompletos: o cliente que não informou o endereço, o produto sem foto, a configuração que a pessoa nunca mexeu. Tentar ler uma propriedade de algo que não existe derruba o programa com o erro mais comum do JavaScript: <code>Cannot read properties of undefined</code>. Dois operadores modernos resolvem isso: o <code>?.</code> ("<strong>se existir</strong>", chamado <em>optional chaining</em>, encadeamento opcional) e o <code>??</code> ("<strong>senão, use este</strong>", chamado <em>nullish coalescing</em>). Os dois existem desde o <span class="versao">ES2020</span>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que <code>bia.endereco.cidade</code> dá erro quando a Bia não tem endereço.</li>
+  <li>O <code>?.</code> com propriedades, com colchetes (<code>?.[0]</code>) e com métodos (<code>?.()</code>).</li>
+  <li>O <code>??</code> para dar um valor reserva, e por que ele é diferente do <code>||</code> com <code>0</code> e <code>""</code>.</li>
+  <li>Os dois juntos, e os atalhos <code>??=</code> e <code>||=</code>.</li>
+  <li>Os erros reais: os que o <code>?.</code> não evita e o <code>??</code> misturado com <code>||</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>.</p>
+
+<hr>
+
+<h2>A ideia: "se tiver, me passa; se não tiver, use este"</h2>
+<p>A Ana pede ao filho: "vê na gaveta se tem a chave do portão, e se tiver, me traz". Se a gaveta estiver vazia, ele volta de mãos vazias, e tudo bem. Isso é o <code>?.</code>: "se o que está antes existir, continue; se não, pare e responda <code>undefined</code>, sem erro".</p>
+<p>Ela completa: "se não tiver, traz a chave reserva do prego". Isso é o <code>??</code>: "se o valor da esquerda estiver faltando (<code>null</code> ou <code>undefined</code>), use o da direita".</p>
+
+<hr>
+
+<h2>1. O problema: ler propriedade de algo que não existe</h2>
+
+<pre class="file" data-file="problema.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const bia = { nome: "Bia" };
+console.log(ana.endereco.cidade);
+console.log(bia.endereco);
+console.log(bia.endereco.cidade);
+</pre>
+
+<pre class="term">$ node problema.js
+Recife
+undefined
+/home/ana/problema.js:5
+console.log(bia.endereco.cidade);
+                         ^
+
+TypeError: Cannot read properties of undefined (reading 'cidade')
+    at Object.&lt;anonymous&gt; (/home/ana/problema.js:5:26)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)    « (mais 6 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>Recife</dt><dd>A Ana tem endereço: tudo certo.</dd>
+  <dt>undefined</dt><dd>Ler uma propriedade que não existe (<code>bia.endereco</code>) <strong>não</strong> é erro: dá <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>).</dd>
+  <dt>/home/ana/problema.js:5 e o ^</dt><dd>O erro está na linha 5, e o <code>^</code> aponta o <code>.cidade</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'cidade')</dt><dd>"Não é possível ler propriedades de <code>undefined</code> (lendo <code>cidade</code>)." O que dá erro é o <strong>segundo</strong> passo: tentar entrar em <code>undefined</code> para pegar a <code>cidade</code>. <code>undefined</code> não é um objeto; não tem nada dentro.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/problema.js:5:26)</dt><dd>Linha 5, coluna 26 do seu arquivo. O resto é interno do Node.</dd>
+</dl>
+
+<p>Se o valor for <code>null</code> em vez de faltar, a mensagem muda só no nome: <code>Cannot read properties of null (reading 'cidade')</code>.</p>
+
+<hr>
+
+<h2>2. O <code>?.</code>: "se existir, continue"</h2>
+
+<pre class="file" data-file="interrogacao.js">const ana = { nome: "Ana", endereco: { cidade: "Recife" } };
+const bia = { nome: "Bia" };
+console.log(ana.endereco?.cidade);
+console.log(bia.endereco?.cidade);
+console.log("O programa continua.");
+</pre>
+
+<dl class="anatomy">
+  <dt>ana.endereco</dt><dd>O JavaScript lê o endereço normalmente.</dd>
+  <dt>?.</dt><dd>Olha o que veio antes. Se for <code>null</code> ou <code>undefined</code>, <strong>para tudo</strong> e a expressão inteira vale <code>undefined</code>. Se for qualquer outra coisa, funciona como um ponto comum.</dd>
+  <dt>cidade</dt><dd>Só é lida se o endereço existir.</dd>
+</dl>
+
+<pre class="term">$ node interrogacao.js
+Recife
+undefined
+O programa continua.
+</pre>
+
+<p>Antes do <code>?.</code>, isso se escrevia com <code>&amp;&amp;</code> (veja <a href="operadores-logicos.html">Operadores Lógicos</a>): <code>bia.endereco &amp;&amp; bia.endereco.cidade</code>, que no lab também deu <code>undefined</code>. Funciona, mas repete o caminho, e fica enorme com vários níveis.</p>
+
+<h3>Vários níveis</h3>
+<p>Ponha um <code>?.</code> em cada passo que pode faltar:</p>
+
+<pre class="file" data-file="cadeia.js">const pedidos = {
+  ana: { entrega: { endereco: { rua: "Rua das Flores" } } },
+};
+console.log(pedidos.ana?.entrega?.endereco?.rua);
+console.log(pedidos.bia?.entrega?.endereco?.rua);
+</pre>
+
+<pre class="term">$ node cadeia.js
+Rua das Flores
+undefined
+</pre>
+
+<p>No segundo, <code>pedidos.bia</code> é <code>undefined</code>; o primeiro <code>?.</code> já para tudo, e o resto da linha nem é avaliado.</p>
+
+<h3>Com colchetes: <code>?.[ ]</code></h3>
+<p>Para posições de array e nomes guardados em variáveis, o ponto de interrogação vem antes dos colchetes, <strong>com</strong> o ponto: <code>?.[</code>.</p>
+
+<pre class="file" data-file="colchetes.js">const turmas = { manha: ["Ana", "Bia"] };
+console.log(turmas.manha?.[0]);
+console.log(turmas.noite?.[0]);
+const campo = "manha";
+console.log(turmas?.[campo]?.length);
+</pre>
+
+<pre class="term">$ node colchetes.js
+Ana
+undefined
+2
+</pre>
+
+<h3>Com métodos: <code>?.()</code></h3>
+<p>Para chamar um método (veja <a href="objetos-metodos.html">Métodos e this</a>) só se ele existir:</p>
+
+<pre class="file" data-file="metodo.js">const loja = {
+  nome: "Lojinha",
+  saudar() {
+    return "Bem-vindo!";
+  },
+};
+console.log(loja.saudar?.());
+console.log(loja.despedir?.());
+console.log(loja.despedir());
+</pre>
+
+<pre class="term">$ node metodo.js
+Bem-vindo!
+undefined
+/home/ana/metodo.js:9
+console.log(loja.despedir());
+                 ^
+
+TypeError: loja.despedir is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/metodo.js:9:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>Com <code>?.()</code>, o método que não existe deu <code>undefined</code>. Sem ele, a linha 9 tentou chamar <code>undefined</code> como função: <code>loja.despedir is not a function</code> ("<code>loja.despedir</code> não é uma função").</p>
+
+<div class="tryjs" data-goal="out:Caio: sem telefone;;semerro;;src:\?\.">
+<p class="try-task"><strong>Missão:</strong> o Caio não tem <code>contato</code>, e o programa quebra na vez dele. Use <code>?.</code> para que a linha do Caio mostre <code>undefined</code> em vez de erro, e complete com <code>if</code> para escrever <code>Caio: sem telefone</code>. (Na seção 3 você vai ver um jeito mais curto.)</p>
+<pre class="script" data-file="main.js">const clientes = [
+  { nome: "Ana", contato: { telefone: "9999-1111" } },
+  { nome: "Caio" },
+];
+for (const cliente of clientes) {
+  const telefone = cliente.contato.telefone;
+  console.log(`${cliente.nome}: ${telefone}`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const clientes = [
+  { nome: "Ana", contato: { telefone: "9999-1111" } },
+  { nome: "Caio" },
+];
+for (const cliente of clientes) {
+  const telefone = cliente.contato?.telefone;
+  if (telefone === undefined) {
+    console.log(`${cliente.nome}: sem telefone`);
+  } else {
+    console.log(`${cliente.nome}: ${telefone}`);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O <code>??</code>: "se estiver faltando, use este"</h2>
+<p><code>a ?? b</code> devolve <code>a</code>, a não ser que <code>a</code> seja <code>null</code> ou <code>undefined</code>; aí devolve <code>b</code>. Só esses dois valores contam como "faltando" (em inglês, <em>nullish</em>, "nulos").</p>
+
+<pre class="file" data-file="nullish.js">const config = { tema: null, fonte: 0, nome: "" };
+console.log(config.tema ?? "claro");
+console.log(config.cor ?? "azul");
+console.log(config.fonte ?? 16);
+console.log(config.nome ?? "Visitante");
+</pre>
+
+<pre class="term">$ node nullish.js
+claro      « tema era null: usou a reserva
+azul       « cor não existe (undefined): usou a reserva
+0          « fonte é 0, um valor de verdade: ficou com ele
+           « nome é "" (texto vazio): também ficou (por isso a linha em branco)
+</pre>
+
+<h3><code>??</code> × <code>||</code></h3>
+<p>Em código mais antigo, o valor reserva se escreve com <code>||</code> ("ou"). A diferença: o <code>||</code> troca qualquer valor <strong>falsy</strong> (veja <a href="truthy-falsy.html">Truthy e Falsy</a>): <code>0</code>, <code>""</code>, <code>false</code>, <code>NaN</code>, <code>null</code>, <code>undefined</code>. O mesmo objeto, com <code>||</code>:</p>
+
+<pre class="file" data-file="ou.js">const config = { tema: null, fonte: 0, nome: "" };
+console.log(config.tema || "claro");
+console.log(config.fonte || 16);
+console.log(config.nome || "Visitante");
+</pre>
+
+<pre class="term">$ node ou.js
+claro
+16          « a fonte 0 virou 16!
+Visitante
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor da esquerda</th><th><code>valor ?? "reserva"</code></th><th><code>valor || "reserva"</code></th></tr>
+<tr><td><code>undefined</code></td><td>"reserva"</td><td>"reserva"</td></tr>
+<tr><td><code>null</code></td><td>"reserva"</td><td>"reserva"</td></tr>
+<tr><td><code>0</code></td><td><code>0</code></td><td>"reserva"</td></tr>
+<tr><td><code>""</code></td><td><code>""</code></td><td>"reserva"</td></tr>
+<tr><td><code>false</code></td><td><code>false</code></td><td>"reserva"</td></tr>
+<tr><td><code>"Ana"</code>, <code>42</code></td><td>o próprio valor</td><td>o próprio valor</td></tr>
+</table>
+</div>
+
+<p><strong>Qual usar?</strong> Quando <code>0</code>, <code>""</code> ou <code>false</code> são respostas válidas (quantidade zero, desconto zero, "não quero som"), use <code>??</code>. Quando você quer trocar também o texto vazio (um nome que a pessoa deixou em branco vira "Visitante"), o <code>||</code> é o certo.</p>
+
+<hr>
+
+<h2>4. Os dois juntos</h2>
+<p>A combinação mais comum do JavaScript moderno: <code>?.</code> para chegar ao valor sem erro, <code>??</code> para trocar o <code>undefined</code> por algo que faça sentido.</p>
+
+<pre class="file" data-file="juntos.js">const clientes = [
+  { nome: "Ana", endereco: { cidade: "Recife" } },
+  { nome: "Bia" },
+  { nome: "Caio", endereco: { cidade: null } },
+];
+for (const cliente of clientes) {
+  const cidade = cliente.endereco?.cidade ?? "cidade não informada";
+  console.log(`${cliente.nome}: ${cidade}`);
+}
+</pre>
+
+<pre class="term">$ node juntos.js
+Ana: Recife
+Bia: cidade não informada       « sem endereço: o ?. deu undefined
+Caio: cidade não informada      « com endereço, mas cidade null
+</pre>
+
+<h3>Atalhos de atribuição: <code>??=</code> e <code>||=</code> <span class="versao">ES2021</span></h3>
+<p><code>x ??= valor</code> quer dizer "se <code>x</code> estiver faltando, dê a ele este valor" (é o mesmo que <code>x = x ?? valor</code>). O <code>||=</code> faz o mesmo com a regra do <code>||</code>.</p>
+
+<pre class="file" data-file="atribuir.js">const config = { tema: "escuro", fonte: 0 };
+config.tema ??= "claro";
+config.som ??= true;
+config.fonte ||= 16;
+console.log(config);
+</pre>
+
+<pre class="term">$ node atribuir.js
+{ tema: 'escuro', fonte: 16, som: true }
+</pre>
+
+<p>O <code>tema</code> já tinha valor e ficou; o <code>som</code> não existia e ganhou <code>true</code>; a <code>fonte</code> era <code>0</code>, que para o <code>||=</code> conta como falso, e virou 16.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Objetivo</th><th>Moderno</th><th>Antigo</th></tr>
+<tr><td>Ler <code>a.b.c</code> sem quebrar se <code>a.b</code> faltar</td><td><code>a.b?.c</code></td><td><code>a.b &amp;&amp; a.b.c</code> ou um <code>if</code></td></tr>
+<tr><td>Valor reserva só para <code>null</code>/<code>undefined</code></td><td><code>x ?? "padrão"</code></td><td><code>x !== null &amp;&amp; x !== undefined ? x : "padrão"</code></td></tr>
+<tr><td>Valor reserva para qualquer falsy</td><td><code>x || "padrão"</code></td><td>(o mesmo)</td></tr>
+<tr><td>Preencher só se faltar</td><td><code>x ??= "padrão"</code></td><td><code>if (x === undefined || x === null) x = "padrão";</code></td></tr>
+<tr><td>Valor reserva num parâmetro</td><td><code>function f(x = "padrão")</code></td><td>Aula <a href="parametros-padrao.html">Parâmetros Padrão</a></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Não espalhe <code>?.</code> por tudo</strong>
+<p>Use <code>?.</code> só onde faltar é <strong>normal</strong> (o endereço é opcional no cadastro). Se um valor <strong>tem</strong> de existir, um <code>?.</code> ali só esconde o problema: o programa segue com <code>undefined</code> e quebra mais adiante, longe da causa. Um erro na hora certa é mais fácil de achar.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>?.</code> numa variável que nem foi criada</strong>
+<pre class="file" data-file="naodeclarada.js">console.log(cliente?.nome);
+</pre>
+<pre class="term">$ node naodeclarada.js
+/home/ana/naodeclarada.js:1
+console.log(cliente?.nome);
+            ^
+
+ReferenceError: cliente is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/naodeclarada.js:1:13)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>cliente</code> não está definida". O <code>?.</code> protege contra um <strong>valor</strong> <code>undefined</code>, não contra uma variável que <strong>não existe</strong> (não foi criada com <code>const</code>/<code>let</code>). É outro tipo de erro, <code>ReferenceError</code>, e quase sempre é um nome digitado errado. <strong>Como consertar:</strong> crie a variável, ou confira a grafia.</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou <code>??</code> com <code>||</code> sem parênteses</strong>
+<pre class="file" data-file="misturar3.js">const apelido = null;
+const nome = "";
+const exibir = apelido ?? nome || "Visitante";
+console.log(exibir);
+</pre>
+<pre class="term">$ node misturar3.js
+/home/ana/misturar3.js:3
+const exibir = apelido ?? nome || "Visitante";
+                               ^^
+
+SyntaxError: Unexpected token '||'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo <code>||</code> inesperado". A linguagem <strong>proíbe</strong> juntar <code>??</code> com <code>||</code> ou <code>&amp;&amp;</code> sem parênteses, para ninguém ter de adivinhar qual vem primeiro. Se a mesma mistura estiver dentro de um <code>console.log(…)</code>, a mensagem engana: no lab saiu <code>SyntaxError: missing ) after argument list</code> ("falta <code>)</code> depois da lista de argumentos"). <strong>Como consertar:</strong> diga a ordem com parênteses: <code>(apelido ?? nome) || "Visitante"</code> (no lab, <code>Visitante</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>?.</code> do lado esquerdo do <code>=</code></strong>
+<pre class="file" data-file="esquerda.js">const cliente = {};
+cliente.endereco?.cidade = "Recife";
+</pre>
+<pre class="term">$ node esquerda.js
+/home/ana/esquerda.js:2
+cliente.endereco?.cidade = "Recife";
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+SyntaxError: Invalid left-hand side in assignment
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Lado esquerdo inválido na atribuição". O <code>?.</code> serve para <strong>ler</strong>; não dá para guardar algo "se existir". <strong>Como consertar:</strong> crie o objeto que falta antes: <code>cliente.endereco ??= {};</code> e depois <code>cliente.endereco.cidade = "Recife";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>?.()</code> em algo que existe, mas não é função</strong>
+<pre class="file" data-file="naofuncao.js">const loja = { nome: "Lojinha", saudar: "Olá" };
+console.log(loja.saudar?.());
+</pre>
+<pre class="term">$ node naofuncao.js
+/home/ana/naofuncao.js:2
+console.log(loja.saudar?.());
+                         ^
+
+TypeError: loja.saudar is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/naofuncao.js:2:26)    « (mais 7 linhas node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O <code>?.()</code> só pula a chamada quando o valor é <code>null</code>/<code>undefined</code>. Aqui <code>saudar</code> existe, só que é um texto, e um texto não pode ser chamado. <strong>Como consertar:</strong> confira o tipo com <code>typeof loja.saudar === "function"</code> (veja <a href="typeof.html">typeof</a>), ou corrija o objeto.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>a?.b</code></td><td><code>a.b</code>, ou <code>undefined</code> se <code>a</code> for <code>null</code>/<code>undefined</code></td></tr>
+<tr><td><code>a?.[i]</code></td><td><code>a[i]</code>, ou <code>undefined</code></td></tr>
+<tr><td><code>a.m?.()</code></td><td>Chama <code>a.m()</code> se <code>a.m</code> existir; senão, <code>undefined</code></td></tr>
+<tr><td><code>a ?? b</code></td><td><code>a</code>, a não ser que seja <code>null</code>/<code>undefined</code>: aí <code>b</code></td></tr>
+<tr><td><code>a || b</code></td><td><code>a</code>, a não ser que seja falsy (<code>0</code>, <code>""</code>, <code>false</code>…): aí <code>b</code></td></tr>
+<tr><td><code>a ??= b</code> / <code>a ||= b</code></td><td>Atribui <code>b</code> a <code>a</code> se <code>a</code> estiver faltando / for falsy</td></tr>
+<tr><td><code>(a ?? b) || c</code></td><td>Misturar exige parênteses</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Cannot read properties of undefined (reading 'x')</code></td><td>O que vem antes do <code>.x</code> não existe: talvez precise de <code>?.</code></td></tr>
+<tr><td><code>… is not defined</code></td><td>Variável não criada (o <code>?.</code> não ajuda)</td></tr>
+<tr><td><code>Unexpected token '||'</code></td><td><code>??</code> misturado com <code>||</code>/<code>&amp;&amp;</code> sem parênteses</td></tr>
+<tr><td><code>Invalid left-hand side in assignment</code></td><td><code>?.</code> antes de um <code>=</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Leia a cidade sem erro, mesmo que <code>endereco</code> falte:</p>
+<div class="ex-code">cliente.endereco<input data-answer="?." aria-label="operador">cidade</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o resultado?</h3>
+<p>O que mostra <code>console.log(0 ?? 10);</code>?</p>
+<div class="ex-code"><input data-answer="0" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E com <code>||</code>?</h3>
+<p>O que mostra <code>console.log(0 || 10);</code>?</p>
+<div class="ex-code"><input data-answer="10" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>const p = { estoque: { pao: 0 } };</code> Qual linha mostra <code>0</code>?</p>
+<label><input type="radio" name="q4"> <code>console.log(p.estoque?.pao || "sem dado");</code></label>
+<label><input type="radio" name="q4"> <code>console.log(p.estoque?.pao ?? "sem dado");</code></label>
+<label><input type="radio" name="q4"> <code>console.log(p.deposito.pao ?? "sem dado");</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. <code>console.log(x?.nome);</code>, sem nenhuma variável <code>x</code> no programa. O que acontece?</p>
+<label><input type="radio" name="q5"> Mostra <code>undefined</code></label>
+<label><input type="radio" name="q5"> Mostra <code>null</code></label>
+<label><input type="radio" name="q5"> <code>ReferenceError: x is not defined</code></label>
+<label><input type="radio" name="q5"> <code>TypeError: Cannot read properties of undefined</code></label>
+</div>
+
+<h3>Missão final: o carrinho da lojinha</h3>
+
+<div class="tryjs" data-goal="out:Pão: 10 un. (sem desconto);;out:Leite: 0 un. (desconto de 5%);;out:Café: 1 un. (sem desconto);;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa quebra no Café (que não tem <code>promo</code>) e mostra a quantidade errada no Leite (o <code>0</code> virou 1). Use <code>?.</code> e troque o <code>||</code> certo por <code>??</code> para sair: <code>Pão: 10 un. (sem desconto)</code>, <code>Leite: 0 un. (desconto de 5%)</code> e <code>Café: 1 un. (sem desconto)</code>.</p>
+<pre class="script" data-file="main.js">const carrinho = [
+  { nome: "Pão", quantidade: 10, promo: { desconto: null } },
+  { nome: "Leite", quantidade: 0, promo: { desconto: 5 } },
+  { nome: "Café" },
+];
+for (const item of carrinho) {
+  const quantidade = item.quantidade || 1;
+  const desconto = item.promo.desconto;
+  const texto = desconto ? `desconto de ${desconto}%` : "sem desconto";
+  console.log(`${item.nome}: ${quantidade} un. (${texto})`);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const carrinho = [
+  { nome: "Pão", quantidade: 10, promo: { desconto: null } },
+  { nome: "Leite", quantidade: 0, promo: { desconto: 5 } },
+  { nome: "Café" },
+];
+for (const item of carrinho) {
+  const quantidade = item.quantidade ?? 1;
+  const desconto = item.promo?.desconto;
+  const texto = desconto ? `desconto de ${desconto}%` : "sem desconto";
+  console.log(`${item.nome}: ${quantidade} un. (${texto})`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Ler uma propriedade de <code>undefined</code> ou <code>null</code> dá <code>TypeError: Cannot read properties of undefined</code>.</li>
+  <li><code>a?.b</code> lê <code>b</code> só se <code>a</code> existir; senão, a expressão inteira vale <code>undefined</code>. Também há <code>?.[i]</code> e <code>?.()</code>.</li>
+  <li><code>a ?? b</code> usa <code>b</code> só quando <code>a</code> é <code>null</code> ou <code>undefined</code>; <code>a || b</code> usa <code>b</code> para qualquer falsy, inclusive <code>0</code> e <code>""</code>.</li>
+  <li><code>valor?.caminho ?? "reserva"</code> é a dupla do dia a dia. <code>??=</code> preenche só o que falta.</li>
+  <li><code>?.</code> não salva de variável inexistente, não serve antes de <code>=</code>, e <code>??</code> com <code>||</code> exige parênteses.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
