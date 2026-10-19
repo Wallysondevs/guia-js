@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript npm — instalando pacotes prontos no Node.js | Guia JavaScript</title>
+<meta name="description" content="O npm do Node.js para quem nunca programou: o que é um pacote, npm init -y, npm install lodash, a pasta node_modules, o package-lock.json, usar o pacote com require e import, reinstalar com npm install, versões (npm ls, outdated, audit, update), npm uninstall, npx e os erros reais (Cannot find module, E404, ENOVERSIONS) no Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">npm</span></h1>
+
+<p class="intro">Você não precisa escrever tudo do zero. Milhões de programadores já resolveram problemas comuns (formatar datas, embaralhar listas, colorir o terminal, criar um servidor) e publicaram a solução como um <strong>pacote</strong>: um conjunto de arquivos JavaScript prontos para outros usarem. O <strong>npm</strong> é o programa que busca esses pacotes na internet e os coloca no seu projeto. Ele vem junto com o Node.js. Esta aula é <strong>só do Node</strong>: o npm roda no terminal, não no navegador.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que são <strong>pacote</strong>, <strong>registro</strong> e <strong>npm</strong>, e onde eles entram no seu programa.</li>
+  <li>Como preparar uma pasta de projeto com <code>npm init -y</code> e instalar um pacote com <code>npm install</code>.</li>
+  <li>O que aparece na pasta depois: <code>node_modules</code>, <code>package-lock.json</code> e a lista de dependências.</li>
+  <li>Como usar o pacote no código, com <code>require</code> e com <code>import</code>.</li>
+  <li>Por que a pasta <code>node_modules</code> não se copia, e como o <code>npm install</code> a refaz.</li>
+  <li>Versões e segurança: <code>npm ls</code>, <code>npm outdated</code>, <code>npm audit</code> e <code>npm update</code>.</li>
+  <li>Como remover um pacote (<code>npm uninstall</code>) e rodar um programa sem instalar (<code>npx</code>).</li>
+  <li>Os erros reais: <code>Cannot find module</code>, <code>E404</code> e <code>ENOVERSIONS</code>.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Node.js v24.22.0</strong> com o <strong>npm 11.19.1</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), ligada à internet. Os comandos são digitados no terminal (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: a padaria não fabrica o próprio fermento</h2>
+<p>A padaria do bairro faz pão, sonho e broa. Mas ela não planta o trigo, não fabrica o fermento nem monta o forno: compra tudo isso pronto, de fornecedores. Assim ela gasta o tempo no que interessa, que é o pão.</p>
+<p>Com programas é igual:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na padaria</th><th>No JavaScript</th></tr>
+<tr><td>O fermento comprado pronto</td><td>Um <strong>pacote</strong> (em inglês, <em>package</em>): código pronto, escrito por outra pessoa</td></tr>
+<tr><td>O catálogo do atacadista, com milhões de produtos</td><td>O <strong>registro do npm</strong> (<code>registry.npmjs.org</code>), onde os pacotes ficam publicados</td></tr>
+<tr><td>O entregador que traz o pedido</td><td>O programa <strong>npm</strong>, que baixa o pacote para a sua pasta</td></tr>
+<tr><td>A despensa da padaria</td><td>A pasta <code>node_modules</code>, onde os pacotes baixados ficam</td></tr>
+<tr><td>A lista de compras pregada na parede</td><td>O arquivo <code>package.json</code>, que anota quais pacotes o projeto usa</td></tr>
+</table>
+</div>
+<p>Um pacote que o seu projeto usa se chama <strong>dependência</strong> (o seu projeto "depende" dele para funcionar). O nome <strong>npm</strong> vem de <em>Node Package Manager</em>, "gerenciador de pacotes do Node".</p>
+
+<hr>
+
+<h2>1. O npm já veio com o Node</h2>
+<p>Quem instalou o Node.js (veja <a href="instalar.html">Instalar o Node.js</a>) já tem o npm. Confira as duas versões com <code>-v</code> (de <em>version</em>, "versão"):</p>
+
+<pre class="term">$ node -v
+v24.22.0
+$ npm -v
+11.19.1
+</pre>
+
+<p>São dois programas diferentes, com números diferentes: o <code>node</code> <strong>roda</strong> o seu JavaScript; o <code>npm</code> <strong>cuida dos pacotes</strong>. Na sua máquina os números podem ser outros; tudo bem, desde que o Node seja 24 ou mais novo.</p>
+
+<hr>
+
+<h2>2. Uma pasta para o projeto: <code>npm init -y</code></h2>
+<p>O npm trabalha com <strong>projetos</strong>: uma pasta com os seus arquivos e um <code>package.json</code>, a "lista de compras" do projeto. A Ana vai fazer um programa para a vitrine da padaria. Ela cria a pasta, entra nela e pede ao npm para criar o <code>package.json</code>:</p>
+
+<pre class="term">$ mkdir padaria
+$ cd padaria
+$ ls
+$ npm init -y
+Wrote to /home/ana/padaria/package.json:
+
+{
+  "name": "padaria",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+
+
+$ ls
+package.json
+</pre>
+
+<dl class="anatomy">
+  <dt>mkdir padaria / cd padaria</dt><dd>Cria a pasta <code>padaria</code> e entra nela. O primeiro <code>ls</code> não mostra nada: a pasta está vazia.</dd>
+  <dt>npm init</dt><dd>"Iniciar": transforma a pasta num projeto do npm, criando o <code>package.json</code>.</dd>
+  <dt>-y</dt><dd>De <em>yes</em>, "sim": aceita todas as respostas padrão sem perguntar nada. Sem o <code>-y</code>, o npm faz perguntas uma a uma (nome, versão, descrição…).</dd>
+  <dt>Wrote to /home/ana/padaria/package.json:</dt><dd>"Escrevi em …": o npm avisa onde criou o arquivo e mostra o conteúdo dele, em <a href="json.html">JSON</a>. Repare que o <code>name</code> (nome) veio do nome da pasta.</dd>
+</dl>
+
+<p>Cada campo desse arquivo tem a sua aula: <a href="package-json.html">O package.json</a>. Por enquanto basta saber que é ali que o npm anota os pacotes que você instalar.</p>
+
+<hr>
+
+<h2>3. Instalando um pacote: <code>npm install</code></h2>
+<p>A Ana vai usar o <strong>lodash</strong>, um dos pacotes mais usados do mundo: uma caixa de ferramentas com centenas de funções para listas, textos e objetos. Dentro da pasta do projeto:</p>
+
+<pre class="term">$ npm install lodash
+
+added 1 package, and audited 2 packages in 521ms
+
+found 0 vulnerabilities
+</pre>
+
+<dl class="anatomy">
+  <dt>npm install lodash</dt><dd>"npm, instale o lodash". O npm procura o nome <code>lodash</code> no registro, baixa a versão mais nova e guarda no projeto. Dá para abreviar: <code>npm i lodash</code>.</dd>
+  <dt>added 1 package</dt><dd>"Adicionei 1 pacote". O lodash não depende de nenhum outro pacote, então veio só ele. Um pacote que usa outros traz todos juntos, e aí aparece <code>added 25 packages</code>, por exemplo.</dd>
+  <dt>audited 2 packages in 521ms</dt><dd>"Conferi 2 pacotes em 521 milissegundos": o npm consultou uma lista de falhas de segurança conhecidas. O tempo <strong>muda a cada vez</strong> (depende da internet); na segunda vez, no lab, deu <code>427ms</code>.</dd>
+  <dt>found 0 vulnerabilities</dt><dd>"Encontrei 0 vulnerabilidades": nenhuma falha de segurança conhecida nessas versões. Na <a href="#versoes">seção 6</a> você vê o que aparece quando há uma.</dd>
+</dl>
+
+<p>Três coisas mudaram na pasta:</p>
+
+<pre class="term">$ ls
+node_modules
+package-lock.json
+package.json
+$ ls node_modules
+lodash
+</pre>
+
+<h3>A pasta <code>node_modules</code>: a despensa</h3>
+<p>É ali que ficam os arquivos dos pacotes (<em>node modules</em>, "módulos do Node"). O lodash é uma pasta cheia de arquivos <code>.js</code>, como qualquer programa seu:</p>
+
+<pre class="term">$ ls node_modules/lodash | head -5
+LICENSE
+README.md
+_DataView.js
+_Hash.js
+_LazyWrapper.js
+$ ls node_modules/lodash | wc -l
+637
+$ du -sh node_modules
+4,9M	node_modules
+</pre>
+
+<p>São 637 arquivos e quase 5 MB, só para um pacote. Projetos grandes chegam a centenas de megabytes de <code>node_modules</code>. Você <strong>nunca edita</strong> nada lá dentro: é o npm que cuida dessa pasta.</p>
+
+<h3>O <code>package.json</code> ganhou uma linha</h3>
+
+<pre class="term">$ cat package.json
+{
+  "name": "padaria",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "lodash": "^4.18.1"
+  }
+}
+</pre>
+
+<p>O campo <code>"dependencies"</code> ("dependências") é a lista de compras: o projeto precisa do <code>lodash</code>, versão <code>4.18.1</code> ou mais nova dentro da 4 (é isso que o <code>^</code> quer dizer; os detalhes estão em <a href="package-json.html">O package.json</a>). Quando você ler esta aula, a versão mais nova do lodash pode ser outra.</p>
+
+<h3>O <code>package-lock.json</code>: a nota fiscal</h3>
+<p>O <code>package.json</code> diz "quero o lodash 4 ou mais novo". O <code>package-lock.json</code> (<em>lock</em> = "trava") anota <strong>exatamente</strong> o que foi instalado, como uma nota fiscal:</p>
+
+<pre class="term">$ head -20 package-lock.json
+{
+  "name": "padaria",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "padaria",
+      "version": "1.0.0",
+      "license": "ISC",
+      "dependencies": {
+        "lodash": "^4.18.1"
+      }
+    },
+    "node_modules/lodash": {
+      "version": "4.18.1",
+      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz",
+      "integrity": "sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==",
+      "license": "MIT"
+    }
+</pre>
+
+<p>Ele guarda a versão exata (<code>4.18.1</code>), de onde o arquivo veio (<code>resolved</code>) e uma "impressão digital" do conteúdo (<code>integrity</code>), para o npm perceber se alguém trocou o pacote no caminho. Assim, quem instalar o projeto depois recebe <strong>as mesmas versões</strong> que a Ana. Esse arquivo também é do npm: não se edita à mão.</p>
+
+<hr>
+
+<h2>4. Usando o pacote no seu código</h2>
+<p>Com o pacote na despensa, o programa pede por ele <strong>pelo nome</strong>. O projeto da Ana é do tipo <code>"commonjs"</code> (está no <code>package.json</code>), então o jeito padrão é o <code>require</code> (veja <a href="modulos-commonjs.html">require e module.exports</a>):</p>
+
+<pre class="file" data-file="vitrine.js">const _ = require("lodash");
+
+const paes = ["pão francês", "sonho", "broa", "pão de queijo", "rosca"];
+console.log(_.capitalize("pão de queijo"));
+console.log(_.chunk(paes, 2));
+console.log(_.sum([4.5, 12.9, 3.25]));
+console.log(_.shuffle([1, 2, 3, 4, 5]));
+</pre>
+
+<dl class="anatomy">
+  <dt>const _ = require("lodash");</dt><dd>"Requerer o lodash": o Node procura uma pasta <code>lodash</code> dentro de <code>node_modules</code> e entrega o que o pacote exporta. Repare: <strong>só o nome</strong>, sem <code>./</code> nem <code>.js</code>. O <code>_</code> (sublinhado) é só o nome da variável; é a tradição para o lodash (o nome vem de "low dash", "traço baixo"). Poderia ser <code>const lodash = require("lodash");</code>.</dd>
+  <dt>_.capitalize(texto)</dt><dd>Primeira letra maiúscula, o resto minúsculo.</dd>
+  <dt>_.chunk(lista, 2)</dt><dd>"Pedaço": corta a lista em grupos de 2 (as prateleiras da vitrine).</dd>
+  <dt>_.sum(lista)</dt><dd>Soma os números da lista.</dd>
+  <dt>_.shuffle(lista)</dt><dd>"Embaralhar": devolve uma cópia da lista em ordem aleatória.</dd>
+</dl>
+
+<pre class="term">$ node vitrine.js
+Pão de queijo
+[
+  [ 'pão francês', 'sonho' ],
+  [ 'broa', 'pão de queijo' ],
+  [ 'rosca' ]
+]
+20.65
+[ 2, 5, 3, 4, 1 ]
+</pre>
+
+<p>A última linha muda a cada execução, porque é sorteada. Rodando de novo, no lab saiu <code>[ 3, 4, 2, 5, 1 ]</code>.</p>
+
+<h3>Com <code>import</code></h3>
+<p>Num arquivo de módulo (<code>.mjs</code>, ou num projeto com <code>"type": "module"</code>; veja <a href="modulos.html">Módulos</a>), o mesmo pacote entra com <code>import</code>, também só pelo nome:</p>
+
+<pre class="file" data-file="estoque.mjs">import _ from "lodash";
+
+const estoque = [
+  { nome: "sonho", tipo: "doce", qtd: 12 },
+  { nome: "broa", tipo: "salgado", qtd: 7 },
+  { nome: "rosca", tipo: "doce", qtd: 3 },
+];
+console.log(_.groupBy(estoque, "tipo"));
+console.log(_.sumBy(estoque, "qtd"));
+</pre>
+
+<pre class="term">$ node estoque.mjs
+{
+  doce: [
+    { nome: 'sonho', tipo: 'doce', qtd: 12 },
+    { nome: 'rosca', tipo: 'doce', qtd: 3 }
+  ],
+  salgado: [ { nome: 'broa', tipo: 'salgado', qtd: 7 } ]
+}
+22
+</pre>
+
+<p><code>_.groupBy</code> separou o estoque por tipo e <code>_.sumBy</code> somou as quantidades (12 + 7 + 3 = 22).</p>
+
+<h3>Nome sozinho × caminho com <code>./</code></h3>
+<p>Esta é a regra que mais confunde no começo:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreve</th><th>O Node procura</th></tr>
+<tr><td><code>require("lodash")</code></td><td>Um <strong>pacote</strong> chamado <code>lodash</code>, na pasta <code>node_modules</code></td></tr>
+<tr><td><code>require("./utilidades.js")</code></td><td>Um <strong>arquivo seu</strong>, <code>utilidades.js</code>, na mesma pasta do programa</td></tr>
+<tr><td><code>require("node:fs")</code></td><td>Um módulo que <strong>já vem dentro do Node</strong> (veja <a href="fs-ler.html">Lendo Arquivos</a>); não precisa instalar</td></tr>
+</table>
+</div>
+<p>Esquecer o <code>./</code> de um arquivo seu faz o Node procurar um pacote com esse nome, e ele não acha. No lab:</p>
+
+<pre class="term">$ node main.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module 'utilidades'
+Require stack:
+- /home/ana/teste-erro/main.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    «… mais 7 linhas at node:internal/… cortadas …»
+    at Object.&lt;anonymous&gt; (/home/ana/teste-erro/main.js:1:25)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/ana/teste-erro/main.js' ]
+}
+
+Node.js v24.22.0
+</pre>
+
+<p>A mensagem <code>Cannot find module 'utilidades'</code> ("não consigo achar o módulo 'utilidades'") está explicada linha por linha em <a href="#errado">Quando dá errado</a>.</p>
+
+<div class="note">
+<strong>E no editor do guia?</strong>
+<p>O editor "Experimente" roda o seu código no navegador e <strong>não instala pacotes</strong>: não existe <code>npm install</code> lá dentro, então <code>require("lodash")</code> não funciona nele. Tudo o que envolve o npm, nesta aula, foi mostrado no terminal da Ana. O que o editor faz é ler <strong>os arquivos das abas</strong>, com <code>./</code>, como na missão abaixo.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Pão de queijo;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana escreveu a sua própria função <code>capitalizar</code> na aba <code>utilidades.js</code>, mas o <code>main.js</code> pede por ela como se fosse um pacote. Rode para ver o erro e conserte o <code>require</code> para que ele ache o <strong>arquivo</strong> da aba (e mostre <code>Pão de queijo</code>).</p>
+<pre class="script" data-file="main.js">const { capitalizar } = require("utilidades");
+
+console.log(capitalizar("pão de queijo"));
+</pre>
+<pre class="script" data-file="utilidades.js">function capitalizar(texto) {
+  return texto[0].toUpperCase() + texto.slice(1).toLowerCase();
+}
+
+module.exports = { capitalizar };
+</pre>
+<pre class="solucao" data-file="main.js">const { capitalizar } = require("./utilidades.js");
+
+console.log(capitalizar("pão de queijo"));
+</pre>
+</div>
+
+<p>No lab, com o <code>./utilidades.js</code>, a saída foi <code>Pão de queijo</code>.</p>
+
+<hr>
+
+<h2>5. A <code>node_modules</code> não se copia: o <code>npm install</code> refaz</h2>
+<p>A Ana quer mandar o projeto para a prima, que também trabalha com a padaria. Mandar 5 MB de <code>node_modules</code> (ou 500 MB, num projeto grande) seria desperdício: a lista de compras basta. Para ver isso na prática, ela apaga a despensa:</p>
+
+<pre class="term">$ rm -rf node_modules
+$ ls
+estoque.mjs
+package-lock.json
+package.json
+vitrine.js
+$ node vitrine.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module 'lodash'
+Require stack:
+- /home/ana/padaria/vitrine.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    «… mais 7 linhas at node:internal/… cortadas …»
+    at Object.&lt;anonymous&gt; (/home/ana/padaria/vitrine.js:1:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/ana/padaria/vitrine.js' ]
+}
+
+Node.js v24.22.0
+</pre>
+
+<p>Sem a pasta, o programa não acha o lodash. Agora, o pulo do gato: <code>npm install</code> <strong>sem nome de pacote</strong> lê o <code>package.json</code> e o <code>package-lock.json</code> e baixa tudo de novo, nas mesmas versões:</p>
+
+<pre class="term">$ npm install
+
+added 1 package, and audited 2 packages in 427ms
+
+found 0 vulnerabilities
+$ ls node_modules
+lodash
+$ node vitrine.js
+Pão de queijo
+[
+  [ 'pão francês', 'sonho' ],
+  [ 'broa', 'pão de queijo' ],
+  [ 'rosca' ]
+]
+20.65
+[ 3, 4, 2, 5, 1 ]
+</pre>
+
+<p>Por isso, ao copiar um projeto, ao mandar para alguém ou ao guardar no Git, vão só os seus arquivos, o <code>package.json</code> e o <code>package-lock.json</code>. Quem recebe roda <code>npm install</code> uma vez e pronto. (No Git, a <code>node_modules</code> costuma ser listada num arquivo <code>.gitignore</code>, "ignorar no Git", para nunca ir junto.)</p>
+
+<hr>
+
+<h2 id="versoes">6. Versões e segurança: <code>ls</code>, <code>outdated</code>, <code>audit</code>, <code>update</code></h2>
+<p>Pacotes mudam: os autores corrigem defeitos e falhas de segurança e publicam versões novas. Para escolher uma versão, ponha <code>@</code> e o número depois do nome. A Ana instalou de propósito uma versão antiga do lodash, a <code>4.17.21</code>:</p>
+
+<pre class="term">$ npm install lodash@4.17.21
+
+added 1 package, and audited 2 packages in 506ms
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+</pre>
+
+<p>O resumo mudou: <code>1 high severity vulnerability</code>, "1 vulnerabilidade de gravidade alta". O npm sugere rodar <code>npm audit</code> ("auditoria") para ver os detalhes. Antes, ela confere o que está instalado e o que está atrasado:</p>
+
+<pre class="term">$ npm ls
+padaria@1.0.0 /home/ana/padaria
+└── lodash@4.17.21
+
+$ npm outdated
+Package  Current  Wanted  Latest  Location             Depended by
+lodash   4.17.21  4.18.1  4.18.1  node_modules/lodash  padaria
+</pre>
+
+<dl class="anatomy">
+  <dt>npm ls</dt><dd>De <em>list</em>, "listar": mostra a árvore de pacotes do projeto, com a versão de cada um.</dd>
+  <dt>npm outdated</dt><dd>"Desatualizado": a tabela dos pacotes que têm versão mais nova. <code>Current</code> é a que está instalada; <code>Wanted</code>, a mais nova que o <code>package.json</code> aceita; <code>Latest</code>, a mais nova que existe. Se tudo estiver em dia, o comando não mostra nada.</dd>
+</dl>
+
+<pre class="term">$ npm audit
+# npm audit report
+
+lodash  &lt;=4.17.23
+Severity: high
+lodash vulnerable to Code Injection via `_.template` imports key names - https://github.com/advisories/GHSA-r5fr-rjxr-66jc
+lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit` - https://github.com/advisories/GHSA-f23m-r3pf-42rh
+Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions - https://github.com/advisories/GHSA-xxjr-mmjv-4gpg
+fix available via `npm audit fix`
+node_modules/lodash
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+</pre>
+
+<p>O relatório diz que as versões do lodash até a <code>4.17.23</code> (<code>&lt;=</code>, "menor ou igual") têm falhas conhecidas, cada uma com um link para a explicação, e que existe correção. A lista de falhas <strong>muda com o tempo</strong>: o que hoje dá "0 vulnerabilities" pode ganhar um aviso amanhã, quando alguém descobrir um problema. Para atualizar dentro do que o <code>package.json</code> permite:</p>
+
+<pre class="term">$ npm update
+
+changed 1 package, and audited 2 packages in 483ms
+
+found 0 vulnerabilities
+$ npm ls
+padaria@1.0.0 /home/ana/padaria
+└── lodash@4.18.1
+
+</pre>
+
+<p><code>changed 1 package</code>, "troquei 1 pacote": o lodash foi para a <code>4.18.1</code>, e as vulnerabilidades sumiram. (O <code>npm audit fix</code>, sugerido pelo próprio npm, faria a mesma correção.)</p>
+
+<div class="warning">
+<strong>Cuidado com o <code>--force</code></strong>
+<p><code>npm audit fix --force</code> ("forçar") pode pular para uma versão <strong>principal</strong> nova do pacote (de 4 para 5, por exemplo), e versões principais novas costumam mudar o jeito de usar o pacote. Prefira <code>npm update</code> ou <code>npm audit fix</code>, sem o <code>--force</code>, e rode o seu programa depois para conferir.</p>
+</div>
+
+<hr>
+
+<h2>7. Removendo um pacote: <code>npm uninstall</code></h2>
+<p>Se o projeto não precisa mais de um pacote, não apague a pasta dele à mão: peça ao npm, que tira o pacote da <code>node_modules</code> <strong>e</strong> da lista do <code>package.json</code>:</p>
+
+<pre class="term">$ npm uninstall lodash
+
+removed 1 package, and audited 1 package in 229ms
+
+found 0 vulnerabilities
+$ cat package.json
+{
+  "name": "padaria",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+$ ls node_modules
+</pre>
+
+<p>O campo <code>"dependencies"</code> sumiu e a <code>node_modules</code> ficou vazia. (Os programas que usavam o lodash, claro, voltam a dar <code>Cannot find module 'lodash'</code>.)</p>
+
+<hr>
+
+<h2>8. Rodar sem instalar: <code>npx</code></h2>
+<p>Alguns pacotes não são para usar no código, e sim <strong>programas</strong> de terminal. Para experimentar um deles sem colocá-lo no projeto, existe o <code>npx</code> (de <em>npm execute</em>, "executar"), que também veio com o Node. O <code>cowsay</code> é um programa de brincadeira: uma vaca que fala o que você mandar.</p>
+
+<pre class="term">$ npx cowsay "Bom dia, Ana!"
+Need to install the following packages:
+cowsay@1.6.0
+Ok to proceed? (y) y
+ _______________
+&lt; Bom dia, Ana! &gt;
+ ---------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+</pre>
+
+<dl class="anatomy">
+  <dt>Need to install the following packages: cowsay@1.6.0</dt><dd>"Preciso instalar os seguintes pacotes": o <code>npx</code> não achou o <code>cowsay</code> no projeto e avisa qual versão vai baixar.</dd>
+  <dt>Ok to proceed? (y) y</dt><dd>"Posso continuar?". A Ana digitou <code>y</code> (<em>yes</em>) e Enter. O pacote vai para um esconderijo do npm (o cache), <strong>não</strong> para a <code>node_modules</code> do projeto nem para o <code>package.json</code>.</dd>
+  <dt>a vaca</dt><dd>É a saída do próprio <code>cowsay</code>, rodando.</dd>
+</dl>
+
+<p>Quando o <code>npx</code> roda dentro de um script (sem ninguém para responder à pergunta), ele não pergunta: só avisa e segue. No lab, assim:</p>
+
+<pre class="term">$ npx cowsay "Pão quentinho!"
+npm warn exec The following package was not found and will be installed: cowsay@1.6.0
+ ________________
+&lt; Pão quentinho! &gt;
+ ----------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+</pre>
+
+<div class="note">
+<strong>E o <code>npm install -g</code>?</strong>
+<p>O <code>-g</code> (de <em>global</em>) instala um pacote para o computador inteiro, em vez de na pasta do projeto. Ele costuma precisar de permissão de administrador, depende de como o Node foi instalado, e mistura os pacotes de todos os projetos. Para quem está começando, a regra é simples: <strong>pacote para usar no código → <code>npm install</code> na pasta do projeto; programa para rodar de vez em quando → <code>npx</code></strong>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Comando</th><th>O que acontece</th></tr>
+<tr><td>Usar um pacote no meu código</td><td><code>npm install nome</code> (ou <code>npm i nome</code>)</td><td>Baixa para a <code>node_modules</code> e anota no <code>package.json</code></td></tr>
+<tr><td>Uma versão específica</td><td><code>npm install nome@4.17.21</code></td><td>Instala exatamente aquela versão</td></tr>
+<tr><td>Montar a <code>node_modules</code> de um projeto que recebi</td><td><code>npm install</code> (sem nome)</td><td>Instala tudo o que o <code>package.json</code> e o <code>package-lock.json</code> pedem</td></tr>
+<tr><td>Rodar um programa de terminal uma vez</td><td><code>npx nome</code></td><td>Baixa para o cache e roda, sem mexer no projeto</td></tr>
+<tr><td>Tirar um pacote do projeto</td><td><code>npm uninstall nome</code></td><td>Remove da <code>node_modules</code> e do <code>package.json</code></td></tr>
+<tr><td>Atualizar com segurança</td><td><code>npm outdated</code>, depois <code>npm update</code></td><td>Mostra o que está atrasado e atualiza dentro do permitido</td></tr>
+</table>
+</div>
+
+<p>E, antes de instalar, uma pergunta vale ouro: <strong>preciso mesmo de um pacote?</strong> Cada pacote é código de outra pessoa entrando no seu projeto. Muita coisa que o lodash faz o próprio JavaScript já faz: a soma <code>_.sum([4.5, 12.9, 3.25])</code>, por exemplo, sai com um <a href="for-of.html">for … of</a> ou com o <a href="reduce.html">reduce</a>, e o agrupamento <code>_.groupBy</code> tem um primo pronto na linguagem, o <code>Object.groupBy</code> <span class="versao">ES2024</span>. A missão final é exatamente isso.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>Cannot find module 'lodash'</code>: o pacote não está na <code>node_modules</code></h3>
+<p>Foi o que aconteceu quando a Ana apagou a <code>node_modules</code> (seção 5):</p>
+<pre class="term">$ node vitrine.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module 'lodash'
+Require stack:
+- /home/ana/padaria/vitrine.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+    «… mais 7 linhas at node:internal/… cortadas …»
+    at Object.&lt;anonymous&gt; (/home/ana/padaria/vitrine.js:1:11)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/ana/padaria/vitrine.js' ]
+}
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>node:internal/modules/cjs/loader:1568</dt><dd>Diferente dos erros comuns, a primeira linha <strong>não</strong> aponta para o seu arquivo: aponta para dentro do próprio Node (<code>node:internal/…</code>), para o "carregador de módulos" (<em>loader</em>), que foi quem desistiu.</dd>
+  <dt>throw err; e o ^</dt><dd>A linha do carregador que lançou o erro, com o <code>^</code> embaixo. Não é código seu; pode pular.</dd>
+  <dt>Error: Cannot find module 'lodash'</dt><dd>O que importa: "Erro: não consigo achar o módulo 'lodash'".</dd>
+  <dt>Require stack: - /home/ana/padaria/vitrine.js</dt><dd>"Pilha de requires": <strong>quem</strong> pediu o lodash. Foi o seu <code>vitrine.js</code>.</dd>
+  <dt>at …</dt><dd>O caminho que o Node fez até desistir. Quase todas as linhas são internas (<code>node:internal/…</code>, cortadas aqui); a que interessa é <code>at Object.&lt;anonymous&gt; (/home/ana/padaria/vitrine.js:1:11)</code>: linha 1, coluna 11 do seu arquivo, onde está o <code>require</code>.</dd>
+  <dt>{ code: 'MODULE_NOT_FOUND', … }</dt><dd>O código do erro, "módulo não encontrado", útil para pesquisar na internet.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p><strong>Causas e conserto:</strong> você não rodou o <code>npm install</code> (rode, na pasta do projeto); rodou o <code>node</code> numa pasta diferente da do projeto (entre na pasta com <code>cd</code>); ou errou o nome no <code>require</code> (é <code>"lodash"</code>, minúsculo, exatamente como foi instalado). Se o nome for de um arquivo seu, faltou o <code>./</code> (seção 4).</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>E404</code>: esse pacote não existe</h3>
+<pre class="term">$ npm install pacote-da-padaria-da-ana-que-nao-existe
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/pacote-da-padaria-da-ana-que-nao-existe - Not found
+npm error 404
+npm error 404  The requested resource 'pacote-da-padaria-da-ana-que-nao-existe@*' could not be found or you do not have permission to access it.
+npm error 404
+npm error 404 Note that you can also install from a
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: /home/ana/.npm/_logs/2026-10-19T14_05_26_957Z-debug-0.log
+</pre>
+<dl class="anatomy">
+  <dt>npm error code E404</dt><dd>O código 404 é o "página não encontrada" da internet: o registro respondeu que não tem nada com esse nome.</dd>
+  <dt>404 Not Found - GET https://registry.npmjs.org/…</dt><dd>O endereço que o npm consultou, e a resposta: "não encontrado".</dd>
+  <dt>could not be found or you do not have permission to access it</dt><dd>"Não foi encontrado, ou você não tem permissão para acessá-lo" (existem pacotes particulares, de empresas).</dd>
+  <dt>Note that you can also install from a tarball, folder…</dt><dd>Uma dica para quem sabe o que está fazendo: dá para instalar de um arquivo, de uma pasta ou do Git. Pode ignorar.</dd>
+  <dt>A complete log of this run can be found in: …</dt><dd>"Um registro completo desta execução está em…": um arquivo com todos os detalhes. O nome tem a data e a hora, então muda a cada vez.</dd>
+</dl>
+<p><strong>Conserto:</strong> confira o nome do pacote no site <code>npmjs.com</code>, na página dele, onde aparece o comando certo de instalação.</p>
+</div>
+
+<div class="cenario">
+<h3>3. <code>ENOVERSIONS</code>: um erro de digitação que caiu num nome abandonado</h3>
+<p>A Ana digitou <code>lodsh</code> em vez de <code>lodash</code>:</p>
+<pre class="term">$ npm install lodsh
+npm error code ENOVERSIONS
+npm error No versions available for lodsh
+npm error A complete log of this run can be found in: /home/ana/.npm/_logs/2026-10-19T14_05_26_445Z-debug-0.log
+</pre>
+<p>"Nenhuma versão disponível para lodsh": o nome existe no registro, mas sem nenhuma versão para instalar (o pacote foi retirado). Desta vez a Ana teve sorte. <strong>Erros de digitação são perigosos</strong> no npm: há gente mal-intencionada que publica pacotes com nomes parecidos com os famosos, esperando alguém errar uma letra. Copie o nome da página oficial do pacote e confira o que o <code>npm install</code> respondeu.</p>
+</div>
+
+<div class="cenario">
+<h3>4. Rodou o <code>npm install</code> fora da pasta do projeto</h3>
+<p>O npm instala na pasta em que você está (ou na primeira pasta acima dela que tenha um <code>package.json</code>). Se você esquecer o <code>cd padaria</code>, a <code>node_modules</code> vai parar em outro lugar, e o programa do projeto continua sem achar o pacote. Antes de instalar, confira onde está com <code>pwd</code> ("mostrar a pasta atual") e se o <code>ls</code> mostra o <code>package.json</code> certo.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>npm -v</code></td><td>Mostra a versão do npm</td></tr>
+<tr><td><code>npm init -y</code></td><td>Cria o <code>package.json</code> com as respostas padrão</td></tr>
+<tr><td><code>npm install nome</code> / <code>npm i nome</code></td><td>Instala o pacote no projeto e anota em <code>"dependencies"</code></td></tr>
+<tr><td><code>npm install nome@versão</code></td><td>Instala uma versão exata</td></tr>
+<tr><td><code>npm install</code></td><td>Instala tudo o que o projeto pede (refaz a <code>node_modules</code>)</td></tr>
+<tr><td><code>npm uninstall nome</code></td><td>Remove o pacote do projeto</td></tr>
+<tr><td><code>npm ls</code></td><td>Lista os pacotes instalados e as versões</td></tr>
+<tr><td><code>npm outdated</code></td><td>Mostra os pacotes com versão mais nova</td></tr>
+<tr><td><code>npm update</code></td><td>Atualiza dentro do que o <code>package.json</code> permite</td></tr>
+<tr><td><code>npm audit</code> / <code>npm audit fix</code></td><td>Lista as falhas de segurança conhecidas / corrige as que der</td></tr>
+<tr><td><code>npx nome</code></td><td>Roda um pacote-programa sem instalá-lo no projeto</td></tr>
+<tr><td><code>require("nome")</code> / <code>import x from "nome"</code></td><td>Usa um pacote da <code>node_modules</code> no código (sem <code>./</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Arquivo ou pasta</th><th>Quem escreve</th><th>Vai junto ao copiar o projeto?</th></tr>
+<tr><td><code>package.json</code></td><td>Você e o npm</td><td>Sim</td></tr>
+<tr><td><code>package-lock.json</code></td><td>Só o npm</td><td>Sim</td></tr>
+<tr><td><code>node_modules/</code></td><td>Só o npm</td><td>Não: o <code>npm install</code> refaz</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Complete o comando que instala o pacote <code>dayjs</code> no projeto:</p>
+<div class="ex-code">$ npm <input data-answer="install|i" aria-label="subcomando do npm"> dayjs</div>
+</div>
+
+<div class="exercise">
+<h3>2. Como pedir o pacote?</h3>
+<p>Depois do <code>npm install lodash</code>, complete a linha do programa (projeto <code>commonjs</code>):</p>
+<div class="ex-code">const _ = <input data-answer="require" aria-label="função que carrega módulos">("<input data-answer="lodash" aria-label="nome do pacote">");</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. A Ana recebeu da prima uma pasta de projeto com <code>package.json</code> e <code>package-lock.json</code>, mas sem <code>node_modules</code>. O que ela roda antes de usar o programa?</p>
+<label><input type="radio" name="q3"> <code>npm init -y</code></label>
+<label><input type="radio" name="q3"> <code>npx node_modules</code></label>
+<label><input type="radio" name="q3"> <code>npm install</code>, sem nome de pacote</label>
+<label><input type="radio" name="q3"> Nada: o <code>node</code> baixa os pacotes sozinho</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas linhas carrega um <strong>arquivo seu</strong>, <code>contas.js</code>, que está na mesma pasta?</p>
+<label><input type="radio" name="q4"> <code>require("contas")</code></label>
+<label><input type="radio" name="q4"> <code>require("./contas.js")</code></label>
+<label><input type="radio" name="q4"> <code>npm install contas.js</code></label>
+<label><input type="radio" name="q4"> <code>require("node:contas")</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para que serve o <code>package-lock.json</code>?</p>
+<label><input type="radio" name="q5"> Anota as versões <strong>exatas</strong> que foram instaladas, para todo mundo receber as mesmas</label>
+<label><input type="radio" name="q5"> Tranca o projeto com senha</label>
+<label><input type="radio" name="q5"> Guarda o código dos pacotes</label>
+<label><input type="radio" name="q5"> É a mesma coisa que a <code>node_modules</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. A Ana quer só ver a vaquinha do <code>cowsay</code> uma vez, sem colocar nada no projeto. O que ela usa?</p>
+<label><input type="radio" name="q6"> <code>npm install cowsay</code></label>
+<label><input type="radio" name="q6"> <code>require("cowsay")</code></label>
+<label><input type="radio" name="q6"> <code>npm init cowsay</code></label>
+<label><input type="radio" name="q6"> <code>npx cowsay "Oi"</code></label>
+</div>
+
+<h3>Missão final: sem pacote nenhum</h3>
+
+<div class="tryjs" data-goal="out:20.65;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa usa o lodash só para somar três preços. O editor não tem pacotes, então ele dá erro. Tire a linha do <code>require</code> e troque o <code>_.sum(precos)</code> por uma soma feita com um <code>for … of</code> (ou com o <code>reduce</code>), até aparecer <code>Total: R$ 20.65</code>.</p>
+<pre class="script" data-file="main.js">const _ = require("lodash");
+
+const precos = [4.5, 12.9, 3.25];
+const total = _.sum(precos);
+console.log(`Total: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [4.5, 12.9, 3.25];
+let total = 0;
+for (const preco of precos) {
+  total += preco;
+}
+console.log(`Total: R$ ${total}`);
+</pre>
+</div>
+
+<p>No lab, a soma com <code>for … of</code> deu <code>20.65</code>, o mesmo número do <code>_.sum</code>. Um pacote a menos para baixar, atualizar e auditar.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>pacote</strong> é código pronto publicado no registro do npm. O <strong>npm</strong> vem com o Node e roda no terminal; é só do Node.</li>
+  <li><code>npm init -y</code> cria o <code>package.json</code>; <code>npm install nome</code> baixa o pacote para a <code>node_modules</code>, anota em <code>"dependencies"</code> e grava as versões exatas no <code>package-lock.json</code>.</li>
+  <li>No código, o pacote entra <strong>pelo nome</strong>: <code>require("lodash")</code> ou <code>import _ from "lodash"</code>. Arquivos seus levam <code>./</code>.</li>
+  <li>A <code>node_modules</code> não se copia nem se edita: <code>npm install</code>, sem nome, refaz tudo a partir do <code>package.json</code> e do <code>package-lock.json</code>.</li>
+  <li><code>npm ls</code>, <code>npm outdated</code>, <code>npm audit</code> e <code>npm update</code> cuidam das versões e da segurança; <code>npm uninstall</code> remove; <code>npx</code> roda sem instalar.</li>
+  <li><code>Cannot find module 'x'</code> = o pacote não está na <code>node_modules</code> (ou faltou o <code>./</code>); <code>E404</code> = o nome não existe no registro. Confira sempre o nome antes de instalar.</li>
+  <li>O editor do guia não instala pacotes: tudo do npm se faz no terminal.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
