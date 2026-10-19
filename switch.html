@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript switch — escolhendo pelo valor exato | Guia JavaScript</title>
+<meta name="description" content="O switch do JavaScript para quem nunca programou: switch, case, break e default, a comparação estrita (===) que separa &quot;1&quot; de 1, o break esquecido que faz o código escorregar para o próximo case, vários case juntos, switch × else if × objeto, o switch (true) e os erros reais do Node.js 24 (const repetida em dois case, dois default, case com ||).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">switch</span></h1>
+
+<p class="intro">Quando uma decisão depende de <strong>um único valor</strong> que pode ser uma entre várias opções exatas (o dia da semana, a opção do menu, a forma de pagamento), uma cadeia de <code>else if</code> fica repetitiva: <code>if (dia === "sábado") … else if (dia === "domingo") … else if (dia === "segunda") …</code>. O <code>switch</code> (em inglês, "chave seletora", como a de um painel) organiza isso: você diz <strong>qual valor</strong> olhar, e lista os <strong>casos</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes do <code>switch</code>: <code>case</code> ("caso"), <code>break</code> ("interromper") e <code>default</code> ("padrão").</li>
+  <li>Que o <code>switch</code> compara com <code>===</code>: o texto <code>"1"</code> não casa com o número <code>1</code>.</li>
+  <li>O que acontece quando você esquece o <code>break</code>, e como usar isso a seu favor para juntar casos.</li>
+  <li>Quando usar <code>switch</code>, <code>else if</code> ou um objeto como tabela.</li>
+  <li>Os erros reais: <code>const</code> repetida em dois <code>case</code>, dois <code>default</code> e o <code>case</code> com <code>||</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o atendimento por telefone</h2>
+<p>A Ana liga para a operadora do celular e ouve: <em>"Digite 1 para segunda via da conta. Digite 2 para falar sobre a internet. Digite 3 para cancelar. Para outros assuntos, aguarde."</em></p>
+<ul>
+  <li>Tudo depende de <strong>um valor só</strong>: a tecla que ela apertou.</li>
+  <li>Cada tecla leva a um <strong>caso</strong> diferente.</li>
+  <li>Se ela apertar uma tecla que não está no menu (o 7, por exemplo), cai no atendimento <strong>padrão</strong>.</li>
+</ul>
+<p>O <code>switch</code> é esse menu.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>switch</code></h2>
+
+<pre class="file" data-file="menu.js">const opcao = 2;
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via da conta.");
+    break;
+  case 2:
+    console.log("Falar sobre a internet.");
+    break;
+  case 3:
+    console.log("Cancelamento.");
+    break;
+  default:
+    console.log("Aguarde um atendente.");
+}
+
+console.log("Obrigado por ligar.");
+</pre>
+
+<dl class="anatomy">
+  <dt>switch (opcao)</dt><dd>O valor que vai ser olhado, entre parênteses. Pode ser uma variável ou uma expressão qualquer.</dd>
+  <dt>{ … }</dt><dd>Todos os casos ficam dentro de um par de chaves.</dd>
+  <dt>case 1:</dt><dd>"Caso seja 1". Repare nos <strong>dois-pontos</strong> no fim. As linhas depois dele, até o <code>break</code>, são o que acontece nesse caso.</dd>
+  <dt>break;</dt><dd>"Interromper": sai do <code>switch</code> e continua depois da <code>}</code>. Sem ele, acontece uma surpresa (seção 3).</dd>
+  <dt>default:</dt><dd>"Padrão": o caso de quem não casou com nenhum <code>case</code>. É opcional e costuma ir no fim, onde não precisa de <code>break</code>.</dd>
+</dl>
+
+<pre class="term">$ node menu.js
+Falar sobre a internet.
+Obrigado por ligar.
+</pre>
+
+<p>O que o Node fez: comparou <code>opcao</code> com o <code>1</code> (não é), com o <code>2</code> (é!), rodou as linhas desse caso, encontrou o <code>break</code> e saiu. O <code>case 3</code> e o <code>default</code> nem foram olhados. Com <code>opcao</code> valendo 7, nenhum <code>case</code> casaria, e apareceria <code>Aguarde um atendente.</code>.</p>
+
+<p>A mesma coisa com <code>else if</code>, para comparar:</p>
+
+<pre class="file" data-file="menu-if.js">const opcao = 2;
+
+if (opcao === 1) {
+  console.log("Segunda via da conta.");
+} else if (opcao === 2) {
+  console.log("Falar sobre a internet.");
+} else if (opcao === 3) {
+  console.log("Cancelamento.");
+} else {
+  console.log("Aguarde um atendente.");
+}
+</pre>
+
+<pre class="term">$ node menu-if.js
+Falar sobre a internet.
+</pre>
+
+<p>Mesma saída. O <code>switch</code> evita repetir <code>opcao ===</code> em cada linha, e deixa claro, logo no começo, que <strong>tudo</strong> depende de <code>opcao</code>.</p>
+
+<div class="tryjs" data-goal="out:Cancelamento.;;src:\bswitch\b">
+<p class="try-task"><strong>Missão:</strong> faça a Ana escolher o cancelamento: mude a opção para que apareça <code>Cancelamento.</code>. Depois experimente uma opção que não existe, como 9.</p>
+<pre class="script" data-file="main.js">const opcao = 2;
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via da conta.");
+    break;
+  case 2:
+    console.log("Falar sobre a internet.");
+    break;
+  case 3:
+    console.log("Cancelamento.");
+    break;
+  default:
+    console.log("Aguarde um atendente.");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const opcao = 3;
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via da conta.");
+    break;
+  case 2:
+    console.log("Falar sobre a internet.");
+    break;
+  case 3:
+    console.log("Cancelamento.");
+    break;
+  default:
+    console.log("Aguarde um atendente.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O <code>switch</code> compara com <code>===</code></h2>
+<p>A comparação de cada <code>case</code> é a <strong>estrita</strong>, o <code>===</code> (veja <a href="operadores-comparacao.html">Comparação</a>): o valor e o tipo têm de ser iguais. Isso pega quem recebe a opção como <strong>texto</strong> (do teclado, de um formulário) e escreve os casos com números:</p>
+
+<pre class="file" data-file="texto.js">const opcao = "2";
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via da conta.");
+    break;
+  case 2:
+    console.log("Falar sobre a internet.");
+    break;
+  default:
+    console.log("Aguarde um atendente.");
+}
+</pre>
+
+<pre class="term">$ node texto.js
+Aguarde um atendente.
+</pre>
+
+<p>O texto <code>"2"</code> não é <code>===</code> ao número <code>2</code>, então caiu no <code>default</code>. <strong>Como consertar:</strong> deixe os dois do mesmo tipo. Ou converta antes, com <code>switch (Number(opcao))</code> (veja <a href="conversao.html">Conversão</a>), ou escreva os casos como texto: <code>case "2":</code>.</p>
+
+<p>Com textos, valem as mesmas regras do <code>===</code>: maiúsculas importam, e um espaço a mais faz diferença. Um truque comum é padronizar o valor antes: <code>switch (resposta.trim().toLowerCase())</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</p>
+
+<hr>
+
+<h2>3. O <code>break</code> esquecido: o código "escorrega"</h2>
+<p>Quando um <code>case</code> casa, o Node começa a rodar dali para baixo e <strong>só para no <code>break</code></strong> (ou no fim do <code>switch</code>). Ele não para no próximo <code>case</code>! Veja o que acontece sem os <code>break</code>:</p>
+
+<pre class="file" data-file="sembreak.js">const opcao = 1;
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via da conta.");
+  case 2:
+    console.log("Falar sobre a internet.");
+  case 3:
+    console.log("Cancelamento.");
+  default:
+    console.log("Aguarde um atendente.");
+}
+</pre>
+
+<pre class="term">$ node sembreak.js
+Segunda via da conta.
+Falar sobre a internet.
+Cancelamento.
+Aguarde um atendente.
+</pre>
+
+<p>A Ana pediu a segunda via e, de quebra, recebeu o cancelamento! Uma vez dentro do <code>case 1</code>, o Node continuou descendo pelos outros casos <strong>sem testar mais nada</strong>, até o fim. Em inglês, isso se chama <em>fall-through</em> ("cair através"). Não há mensagem de erro: o JavaScript acha que você fez de propósito.</p>
+
+<div class="warning">
+<strong>Regra prática</strong>
+<p>Todo <code>case</code> termina com <code>break</code>, a não ser que você <strong>queira</strong> juntar casos, como na próxima seção. Quando o Node chega ao <code>default</code> no fim, o <code>switch</code> acaba de qualquer jeito; muita gente põe <code>break</code> nele também, por costume, e não faz mal.</p>
+</div>
+
+<hr>
+
+<h2>4. Vários casos, uma resposta</h2>
+<p>O "escorregão" vira recurso quando vários valores têm a <strong>mesma</strong> resposta. A padaria abre em horários diferentes no fim de semana:</p>
+
+<pre class="file" data-file="horario.js">const dia = "domingo";
+
+switch (dia) {
+  case "sábado":
+  case "domingo":
+    console.log("Abrimos das 7h às 13h.");
+    break;
+  case "segunda":
+    console.log("Fechado para descanso.");
+    break;
+  default:
+    console.log("Abrimos das 6h às 20h.");
+}
+</pre>
+
+<pre class="term">$ node horario.js
+Abrimos das 7h às 13h.
+</pre>
+
+<p>O <code>case "sábado":</code> não tem nada embaixo dele. Se o dia fosse sábado, o Node entraria ali, escorregaria para o <code>case "domingo":</code>, mostraria o horário e pararia no <code>break</code>. Os dois casos empilhados se leem como "sábado <strong>ou</strong> domingo".</p>
+
+<div class="tryjs" data-goal="out:Abrimos das 7h às 13h.;;src:case &quot;feriado&quot;:">
+<p class="try-task"><strong>Missão:</strong> nos feriados, a padaria abre no horário do fim de semana. Acrescente um <code>case "feriado":</code> no lugar certo, para o programa mostrar <code>Abrimos das 7h às 13h.</code> com <code>dia</code> valendo <code>"feriado"</code>.</p>
+<pre class="script" data-file="main.js">const dia = "feriado";
+
+switch (dia) {
+  case "sábado":
+  case "domingo":
+    console.log("Abrimos das 7h às 13h.");
+    break;
+  case "segunda":
+    console.log("Fechado para descanso.");
+    break;
+  default:
+    console.log("Abrimos das 6h às 20h.");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const dia = "feriado";
+
+switch (dia) {
+  case "sábado":
+  case "domingo":
+  case "feriado":
+    console.log("Abrimos das 7h às 13h.");
+    break;
+  case "segunda":
+    console.log("Fechado para descanso.");
+    break;
+  default:
+    console.log("Abrimos das 6h às 20h.");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Faixas de valores: o <code>switch (true)</code></h2>
+<p>O <code>case</code> compara com <code>===</code>, então não serve diretamente para faixas como "nota de 7 a 8,9". Existe um truque que você vai encontrar em código dos outros: <code>switch (true)</code>, com uma comparação em cada <code>case</code>:</p>
+
+<pre class="file" data-file="switchtrue.js">const nota = 7.5;
+
+switch (true) {
+  case nota &gt;= 9:
+    console.log("Conceito A");
+    break;
+  case nota &gt;= 7:
+    console.log("Conceito B");
+    break;
+  default:
+    console.log("Conceito C ou D");
+}
+</pre>
+
+<pre class="term">$ node switchtrue.js
+Conceito B
+</pre>
+
+<p>Funciona porque <code>nota &gt;= 7</code> vale <code>true</code>, e <code>true === true</code>. Mas é um truque: quem lê precisa parar para entender. Para faixas, a cadeia de <code>else if</code> da aula <a href="if-else.html">else e else if</a> é mais clara.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quando cada caso só escolhe um <strong>valor</strong> (e não faz ações diferentes), existe uma terceira forma: um <strong>objeto</strong> usado como tabela (objetos têm aula própria: <a href="objetos.html">Objetos</a>; aqui, só olhe a ideia):</p>
+
+<pre class="file" data-file="tabela.js">const frete = {
+  norte: 35,
+  nordeste: 30,
+  sudeste: 15,
+  sul: 20,
+};
+
+const regiao = "sul";
+console.log(`Frete: R$ ${frete[regiao] ?? 25}`);
+</pre>
+
+<pre class="term">$ node tabela.js
+Frete: R$ 20
+</pre>
+
+<p>O <code>frete[regiao]</code> procura a região na tabela; se ela não estiver lá, o <code>?? 25</code> faz o papel do <code>default</code> (veja <a href="optional-chaining.html">?. e ??</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um valor, várias opções <strong>exatas</strong>, cada uma com ações diferentes</td><td><code>switch</code></td></tr>
+<tr><td>Faixas (<code>&gt;=</code>, <code>&lt;</code>) ou condições que olham coisas diferentes</td><td><code>if … else if</code></td></tr>
+<tr><td>Cada opção só escolhe um valor (preço, texto, cor)</td><td>Objeto como tabela</td></tr>
+<tr><td>Só duas opções</td><td><code>if … else</code> ou o ternário (aula <a href="ternario.html">O Operador Ternário</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A mesma <code>const</code> em dois <code>case</code></strong>
+<pre class="file" data-file="constrepetida.js">const forma = "pix";
+
+switch (forma) {
+  case "pix":
+    const mensagem = "Pago na hora.";
+    console.log(mensagem);
+    break;
+  case "boleto":
+    const mensagem = "Aguardando compensação.";
+    console.log(mensagem);
+    break;
+}
+</pre>
+<pre class="term">$ node constrepetida.js
+/home/ana/constrepetida.js:9
+    const mensagem = "Aguardando compensação.";
+          ^
+
+SyntaxError: Identifier 'mensagem' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/constrepetida.js:9</dt><dd>O problema foi percebido na linha 9, a da segunda <code>const mensagem</code>.</dd>
+  <dt>const mensagem = "Aguardando compensação.";</dt><dd>A linha 9, com a setinha embaixo do nome repetido.</dd>
+  <dt>SyntaxError: Identifier 'mensagem' has already been declared</dt><dd>"O nome <code>'mensagem'</code> já foi declarado". Os <code>case</code> <strong>não</strong> são blocos separados: todos dividem as mesmas chaves do <code>switch</code>. Para o Node, é como criar duas constantes com o mesmo nome no mesmo lugar.</dd>
+</dl>
+<p>Com erro de sintaxe, o programa nem começa. <strong>Como consertar:</strong> dê a cada <code>case</code> o seu próprio bloco, com chaves: <code>case "pix": { const mensagem = …; console.log(mensagem); break; }</code>. Ou crie a variável uma vez, antes do <code>switch</code>, com <code>let</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois <code>default</code></strong>
+<pre class="file" data-file="doisdefault.js">const opcao = 5;
+
+switch (opcao) {
+  case 1:
+    console.log("Segunda via.");
+    break;
+  default:
+    console.log("Opção inválida.");
+    break;
+  default:
+    console.log("Aguarde.");
+}
+</pre>
+<pre class="term">$ node doisdefault.js
+/home/ana/doisdefault.js:10
+  default:
+  ^^^^^^^
+
+SyntaxError: More than one default clause in switch statement
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas at node:internal/…, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Mais de uma cláusula <code>default</code> no <code>switch</code>", apontando o segundo <code>default</code>, na linha 10. Só pode haver um "padrão". <strong>Como consertar:</strong> junte o que estava nos dois num <code>default</code> só.</p>
+</div>
+
+<div class="cenario">
+<strong><code>case</code> com <code>||</code></strong>
+<p>Este não dá erro. A Ana tentou escrever "sábado ou domingo" num <code>case</code> só:</p>
+<pre class="file" data-file="caseou.js">const dia = "domingo";
+
+switch (dia) {
+  case "sábado" || "domingo":
+    console.log("Fim de semana!");
+    break;
+  default:
+    console.log("Dia útil.");
+}
+</pre>
+<pre class="term">$ node caseou.js
+Dia útil.
+</pre>
+<p>Domingo virou dia útil! O <code>"sábado" || "domingo"</code> é calculado <strong>antes</strong> da comparação, e vale <code>"sábado"</code> (o primeiro valor truthy; veja <a href="truthy-falsy.html">Truthy e Falsy</a>). Então esse <code>case</code> é só <code>case "sábado":</code>. <strong>Como consertar:</strong> empilhe os casos, como na seção 4: <code>case "sábado":</code> numa linha e <code>case "domingo":</code> na outra.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:^Sabor: chocolate\n$">
+<p class="try-task"><strong>Missão:</strong> o pedido é de bolo de chocolate, mas o programa mostra três sabores. Conserte para aparecer só <code>Sabor: chocolate</code>.</p>
+<pre class="script" data-file="main.js">const pedido = 2;
+
+switch (pedido) {
+  case 1:
+    console.log("Sabor: cenoura");
+  case 2:
+    console.log("Sabor: chocolate");
+  case 3:
+    console.log("Sabor: fubá");
+  default:
+    console.log("Sabor: o do dia");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const pedido = 2;
+
+switch (pedido) {
+  case 1:
+    console.log("Sabor: cenoura");
+    break;
+  case 2:
+    console.log("Sabor: chocolate");
+    break;
+  case 3:
+    console.log("Sabor: fubá");
+    break;
+  default:
+    console.log("Sabor: o do dia");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>switch (valor) { … }</code></td><td>Compara <code>valor</code> com cada <code>case</code>, de cima para baixo</td></tr>
+<tr><td><code>case X:</code></td><td>Começa a rodar aqui se <code>valor === X</code></td></tr>
+<tr><td><code>break;</code></td><td>Sai do <code>switch</code></td></tr>
+<tr><td><code>default:</code></td><td>Roda se nenhum <code>case</code> casar (opcional, só um)</td></tr>
+<tr><td><code>case "a":</code> <code>case "b":</code> empilhados</td><td>"a" ou "b" com a mesma resposta</td></tr>
+<tr><td><code>case X: { … break; }</code></td><td>Um bloco próprio para o caso (permite <code>const</code> com nomes repetidos)</td></tr>
+<tr><td><code>switch (true)</code></td><td>Truque para faixas; prefira <code>else if</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Rodaram vários casos seguidos</td><td>Faltou <code>break</code></td></tr>
+<tr><td>Sempre cai no <code>default</code></td><td>Tipos diferentes (<code>"2"</code> × <code>2</code>), maiúsculas ou espaços</td></tr>
+<tr><td><code>SyntaxError: Identifier '…' has already been declared</code></td><td>Mesma <code>const</code>/<code>let</code> em dois <code>case</code>: use chaves</td></tr>
+<tr><td><code>SyntaxError: More than one default clause in switch statement</code></td><td>Dois <code>default</code></td></tr>
+<tr><td>Um dos valores de <code>case a || b</code> nunca casa</td><td><code>||</code> no <code>case</code>: empilhe os casos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code"><input data-answer="switch" aria-label="palavra-chave"> (cor) {<br>&nbsp;&nbsp;<input data-answer="case" aria-label="palavra-chave do caso"> "verde":<br>&nbsp;&nbsp;&nbsp;&nbsp;console.log("Siga");<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="break" aria-label="palavra-chave para sair">;<br>&nbsp;&nbsp;<input data-answer="default" aria-label="palavra-chave do padrão">:<br>&nbsp;&nbsp;&nbsp;&nbsp;console.log("Pare");<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas linhas?</h3>
+<p>Quantas linhas este programa mostra?</p>
+<pre class="file" data-file="ex2.js">const n = 2;
+switch (n) {
+  case 1:
+    console.log("um");
+  case 2:
+    console.log("dois");
+  case 3:
+    console.log("três");
+    break;
+  case 4:
+    console.log("quatro");
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="2" aria-label="número de linhas"> linhas.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>const tecla = "1";</code>, em qual caso o <code>switch (tecla)</code> entra?</p>
+<label><input type="radio" name="q3"> <code>case 1:</code></label>
+<label><input type="radio" name="q3"> Nos dois, <code>case 1:</code> e <code>case "1":</code></label>
+<label><input type="radio" name="q3"> <code>case "1":</code></label>
+<label><input type="radio" name="q3"> Sempre no <code>default</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Para que serve o <code>break</code> dentro de um <code>case</code>?</p>
+<label><input type="radio" name="q4"> Para sair do <code>switch</code> e não rodar os casos de baixo</label>
+<label><input type="radio" name="q4"> Para pular para o <code>default</code></label>
+<label><input type="radio" name="q4"> Para parar o programa inteiro</label>
+<label><input type="radio" name="q4"> Para testar o próximo <code>case</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual situação combina mais com <code>switch</code>?</p>
+<label><input type="radio" name="q5"> Desconto para compras acima de R$ 100</label>
+<label><input type="radio" name="q5"> Conceito A, B, C ou D a partir de uma nota de 0 a 10</label>
+<label><input type="radio" name="q5"> Saber se um texto está vazio</label>
+<label><input type="radio" name="q5"> Uma mensagem diferente para cada forma de pagamento: pix, cartão, boleto, dinheiro</label>
+</div>
+
+<h3>Missão final: o mês por extenso</h3>
+
+<div class="tryjs" data-goal="out:Mês 3: março;;src:\bswitch\b;;src:\bdefault\b">
+<p class="try-task"><strong>Missão:</strong> escreva um <code>switch</code> que guarde em <code>nome</code> o nome do mês para os números 1, 2 e 3 (<code>"janeiro"</code>, <code>"fevereiro"</code>, <code>"março"</code>), com um <code>default</code> que guarde <code>"outro mês"</code>. Com <code>mes</code> valendo 3, deve aparecer <code>Mês 3: março</code>. Não esqueça os <code>break</code>!</p>
+<pre class="script" data-file="main.js">const mes = 3;
+let nome;
+
+// escreva o switch aqui
+
+console.log(`Mês ${mes}: ${nome}`);
+</pre>
+<pre class="solucao" data-file="main.js">const mes = 3;
+let nome;
+
+switch (mes) {
+  case 1:
+    nome = "janeiro";
+    break;
+  case 2:
+    nome = "fevereiro";
+    break;
+  case 3:
+    nome = "março";
+    break;
+  default:
+    nome = "outro mês";
+}
+
+console.log(`Mês ${mes}: ${nome}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>switch (valor)</code> compara um único valor com vários <code>case</code>, de cima para baixo, usando <code>===</code> (valor e tipo iguais).</li>
+  <li>Quando um <code>case</code> casa, o Node roda dali para baixo até o <code>break</code>; sem <code>break</code>, ele escorrega para os casos seguintes.</li>
+  <li><code>default</code> pega o que não casou com nenhum <code>case</code>; é opcional e só pode haver um.</li>
+  <li>Casos empilhados (<code>case "sábado":</code> <code>case "domingo":</code>) dividem a mesma resposta. <code>case a || b</code> não funciona.</li>
+  <li>Os <code>case</code> dividem o mesmo bloco: para criar <code>const</code> dentro de um caso, use chaves.</li>
+  <li>Para faixas, prefira <code>else if</code>; para só escolher valores, um objeto como tabela.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
