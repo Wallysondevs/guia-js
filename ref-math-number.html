@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Math e Number — referência com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida de Math e Number no JavaScript: arredondar (round, floor, ceil, trunc), abs, max, min, sqrt, potência, PI, random, Number(), parseInt, parseFloat, isInteger, isNaN, toFixed, toLocaleString, Intl.NumberFormat em reais, a precisão do 0.1 + 0.2 e BigInt, com resultado real do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Math e Number</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida das contas prontas do JavaScript. O <strong><code>Math</code></strong> é uma caixa de ferramentas matemáticas (arredondar, raiz quadrada, maior e menor, sorteio). O <strong><code>Number</code></strong> converte textos em números e responde perguntas sobre eles ("é inteiro?", "é <code>NaN</code>?"). E os métodos dos números formatam o resultado para gente ler: duas casas decimais, vírgula brasileira, <code>R$</code>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana. Textos aparecem entre aspas simples (<code>'3.14'</code>): repare que <code>toFixed</code> e <code>toLocaleString</code> devolvem <strong>texto</strong>, não número.</li>
+  <li>Um número logo antes de um ponto precisa de parênteses: <code>(3.14159).toFixed(2)</code>. Com uma variável, não: <code>preco.toFixed(2)</code>.</li>
+  <li>O JavaScript escreve a casa decimal com <strong>ponto</strong> (<code>3.5</code>). A vírgula brasileira só aparece quando você formata com <code>"pt-BR"</code>.</li>
+</ul>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#arredondar">Arredondar</a>: <code>Math.round</code> <code>floor</code> <code>ceil</code> <code>trunc</code></li>
+  <li><a href="#math">Outras contas do Math</a>: <code>abs</code> <code>sign</code> <code>max</code> <code>min</code> <code>pow</code> <code>sqrt</code> <code>cbrt</code> <code>hypot</code> <code>log</code> <code>sin</code> <code>PI</code> <code>random</code></li>
+  <li><a href="#converter">Texto → número</a>: <code>Number()</code> <code>parseInt</code> <code>parseFloat</code> <code>+x</code></li>
+  <li><a href="#perguntar">Perguntas e limites</a>: <code>Number.isInteger</code> <code>isNaN</code> <code>isFinite</code> <code>MAX_SAFE_INTEGER</code> <code>EPSILON</code></li>
+  <li><a href="#formatar">Formatar</a>: <code>toFixed</code> <code>toPrecision</code> <code>toString</code> <code>toLocaleString</code> <code>Intl.NumberFormat</code></li>
+  <li><a href="#bigint">BigInt</a></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="arredondar">Arredondar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Math.round(x)</code></td><td>arredonda para o inteiro mais perto; o <code>.5</code> sobe</td><td><code>Math.round(2.5)</code>, <code>Math.round(2.4)</code></td><td><code>3</code>, <code>2</code></td><td><a href="math.html">Math</a></td></tr>
+<tr><td></td><td>cuidado com negativos: o <code>.5</code> sempre vai para o lado do <strong>+</strong> (o que, nos negativos, é em direção ao zero)</td><td><code>Math.round(-2.5)</code></td><td><code>-2</code></td><td></td></tr>
+<tr><td></td><td>arredondar para 2 casas (e continuar número)</td><td><code>Math.round(12.3456 * 100) / 100</code></td><td><code>12.35</code></td><td></td></tr>
+<tr><td><code>Math.floor(x)</code></td><td>"piso": sempre para baixo</td><td><code>Math.floor(2.9)</code>, <code>Math.floor(-2.1)</code></td><td><code>2</code>, <code>-3</code></td><td><a href="math.html">Math</a></td></tr>
+<tr><td><code>Math.ceil(x)</code></td><td>"teto": sempre para cima</td><td><code>Math.ceil(2.1)</code></td><td><code>3</code></td><td></td></tr>
+<tr><td><code>Math.trunc(x)</code></td><td>corta a parte decimal (nos negativos, é diferente do <code>floor</code>)</td><td><code>Math.trunc(-2.9)</code></td><td><code>-2</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Caixas: 3;;src:Math\.ceil">
+<p class="try-task"><strong>Missão:</strong> a Ana tem 25 ovos e cada caixa leva 12. O programa diz que ela precisa de 2 caixas, mas aí sobra 1 ovo fora! Troque o <code>Math.floor</code> pela função que arredonda <strong>para cima</strong>, para que saia <code>Caixas: 3</code>.</p>
+<pre class="script" data-file="main.js">const ovos = 25;
+const porCaixa = 12;
+
+const caixas = Math.floor(ovos / porCaixa);
+console.log(`Caixas: ${caixas}`);
+</pre>
+<pre class="solucao" data-file="main.js">const ovos = 25;
+const porCaixa = 12;
+
+const caixas = Math.ceil(ovos / porCaixa);
+console.log(`Caixas: ${caixas}`);
+</pre>
+</div>
+
+<p>No lab, com <code>Math.floor</code> saiu <code>Caixas: 2</code>; com <code>Math.ceil</code>, <code>Caixas: 3</code>.</p>
+
+<hr>
+
+<h2 id="math">Outras contas do <code>Math</code></h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Math.abs(x)</code></td><td>valor absoluto (tira o sinal)</td><td><code>Math.abs(-7)</code></td><td><code>7</code></td><td><a href="math.html">Math</a></td></tr>
+<tr><td><code>Math.sign(x)</code></td><td><code>-1</code>, <code>0</code> ou <code>1</code>, conforme o sinal</td><td><code>Math.sign(-7)</code></td><td><code>-1</code></td><td></td></tr>
+<tr><td><code>Math.max(…)</code></td><td>o maior</td><td><code>Math.max(3, 9, 4)</code></td><td><code>9</code></td><td><a href="math.html">Math</a></td></tr>
+<tr><td><code>Math.min(…)</code></td><td>o menor</td><td><code>Math.min(3, 9, 4)</code></td><td><code>3</code></td><td></td></tr>
+<tr><td></td><td>de um array: com spread. Array vazio dá <code>-Infinity</code></td><td><code>Math.max(...[])</code></td><td><code>-Infinity</code></td><td><a href="spread-rest.html">Spread e Rest</a></td></tr>
+<tr><td><code>Math.pow(b, e)</code></td><td>potência (o mesmo que <code>b ** e</code>)</td><td><code>Math.pow(2, 10)</code></td><td><code>1024</code></td><td><a href="operadores-aritmeticos.html">Operadores Aritméticos</a></td></tr>
+<tr><td><code>Math.sqrt(x)</code></td><td>raiz quadrada; de negativo, <code>NaN</code></td><td><code>Math.sqrt(16)</code>, <code>Math.sqrt(-1)</code></td><td><code>4</code>, <code>NaN</code></td><td></td></tr>
+<tr><td><code>Math.cbrt(x)</code></td><td>raiz cúbica</td><td><code>Math.cbrt(27)</code></td><td><code>3</code></td><td></td></tr>
+<tr><td><code>Math.hypot(a, b)</code></td><td>hipotenusa: <code>√(a² + b²)</code> (distância entre dois pontos)</td><td><code>Math.hypot(3, 4)</code></td><td><code>5</code></td><td></td></tr>
+<tr><td><code>Math.PI</code>, <code>Math.E</code></td><td>as constantes π e e</td><td><code>Math.PI</code>, <code>Math.E</code></td><td><code>3.141592653589793</code>, <code>2.718281828459045</code></td><td></td></tr>
+<tr><td><code>Math.log(x)</code></td><td>logaritmo natural (base e); há também <code>log10</code> e <code>log2</code></td><td><code>Math.log(Math.E)</code>, <code>Math.log10(1000)</code>, <code>Math.log2(8)</code></td><td><code>1</code>, <code>3</code>, <code>3</code></td><td></td></tr>
+<tr><td><code>Math.sin(r)</code>, <code>cos</code>, <code>tan</code></td><td>trigonometria, com o ângulo em <strong>radianos</strong> (graus × π / 180)</td><td><code>Math.sin(Math.PI / 2)</code>, <code>Math.cos(Math.PI)</code></td><td><code>1</code>, <code>-1</code></td><td></td></tr>
+<tr><td><code>Math.random()</code></td><td>um número sorteado de <code>0</code> (inclusive) até <code>1</code> (exclusive); muda a cada vez</td><td><code>typeof Math.random()</code></td><td><code>'number'</code></td><td><a href="math-random.html">Números Aleatórios</a></td></tr>
+<tr><td></td><td>um dado de 1 a 6</td><td><code>Math.floor(Math.random() * 6) + 1</code></td><td>um inteiro de 1 a 6 (a cada vez um)</td><td><a href="math-random.html">Números Aleatórios</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="converter">Texto → número</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Number(x)</code></td><td>converte o texto <strong>inteiro</strong>; se sobrar qualquer letra, <code>NaN</code></td><td><code>Number("42")</code>, <code>Number("3.5")</code>, <code>Number("12abc")</code></td><td><code>42</code>, <code>3.5</code>, <code>NaN</code></td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td></td><td>espaços nas pontas são ignorados; texto vazio vira <code>0</code></td><td><code>Number(" 7 ")</code>, <code>Number("")</code></td><td><code>7</code>, <code>0</code></td><td></td></tr>
+<tr><td></td><td>vírgula decimal <strong>não</strong> funciona</td><td><code>Number("1,5")</code></td><td><code>NaN</code> (troque antes: <code>"1,5".replace(",", ".")</code>)</td><td><a href="strings-substituir.html">Substituindo</a></td></tr>
+<tr><td></td><td>outros tipos</td><td><code>Number(true)</code>, <code>Number(null)</code>, <code>Number(undefined)</code></td><td><code>1</code>, <code>0</code>, <code>NaN</code></td><td><a href="conversao-automatica.html">Conversão Automática</a></td></tr>
+<tr><td><code>parseInt(t)</code></td><td>lê um inteiro do <strong>começo</strong> do texto e para no que não é número</td><td><code>parseInt("42px")</code>, <code>parseInt("3.9")</code>, <code>parseInt("abc")</code></td><td><code>42</code>, <code>3</code>, <code>NaN</code></td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>parseInt(t, base)</code></td><td>em outra base (16 = hexadecimal, 2 = binário)</td><td><code>parseInt("ff", 16)</code>, <code>parseInt("101", 2)</code></td><td><code>255</code>, <code>5</code></td><td></td></tr>
+<tr><td><code>parseFloat(t)</code></td><td>como o <code>parseInt</code>, mas aceita casas decimais (com ponto)</td><td><code>parseFloat("3.14abc")</code>, <code>parseFloat("1,5")</code></td><td><code>3.14</code>, <code>1</code> (parou na vírgula)</td><td></td></tr>
+<tr><td><code>+x</code></td><td>o atalho do <code>Number(x)</code></td><td colspan="2">veja <a href="ref-operadores.html#texto">a referência de operadores</a></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="perguntar">Perguntas e limites</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Função ou constante</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Number.isInteger(x)</code></td><td>é um número inteiro?</td><td><code>Number.isInteger(5)</code>, <code>Number.isInteger(5.5)</code></td><td><code>true</code>, <code>false</code></td><td><a href="numeros.html">Números</a></td></tr>
+<tr><td><code>Number.isNaN(x)</code></td><td>é exatamente o valor <code>NaN</code>?</td><td><code>Number.isNaN(NaN)</code>, <code>Number.isNaN("abc")</code></td><td><code>true</code>, <code>false</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td><code>isNaN(x)</code></td><td>a versão antiga: converte antes de perguntar (por isso um texto dá <code>true</code>)</td><td><code>isNaN("abc")</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>Number.isFinite(x)</code></td><td>é um número de verdade (nem <code>Infinity</code>, nem <code>NaN</code>)?</td><td><code>Number.isFinite(1 / 0)</code></td><td><code>false</code></td><td></td></tr>
+<tr><td><code>Number.MAX_SAFE_INTEGER</code></td><td>o maior inteiro guardado sem erro (2<sup>53</sup> − 1); passou disso, as contas erram</td><td><code>Number.MAX_SAFE_INTEGER</code>, <code>2 ** 53 + 1</code></td><td><code>9007199254740991</code>, <code>9007199254740992</code> (errado: deveria terminar em 3)</td><td><a href="bigint.html">BigInt</a></td></tr>
+<tr><td><code>Number.MIN_SAFE_INTEGER</code></td><td>o menor</td><td><code>Number.MIN_SAFE_INTEGER</code></td><td><code>-9007199254740991</code></td><td></td></tr>
+<tr><td><code>Number.isSafeInteger(x)</code></td><td>está dentro desse limite?</td><td><code>Number.isSafeInteger(2 ** 53)</code></td><td><code>false</code></td><td></td></tr>
+<tr><td><code>Number.MAX_VALUE</code></td><td>o maior número possível (acima, vira <code>Infinity</code>)</td><td><code>Number.MAX_VALUE</code></td><td><code>1.7976931348623157e+308</code></td><td></td></tr>
+<tr><td><code>Number.EPSILON</code></td><td>a menor diferença entre <code>1</code> e o número seguinte; serve de "margem" para comparar decimais</td><td><code>Number.EPSILON</code></td><td><code>2.220446049250313e-16</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td></td><td>a famosa imprecisão das casas decimais</td><td><code>0.1 + 0.2</code>, <code>0.1 + 0.2 === 0.3</code></td><td><code>0.30000000000000004</code>, <code>false</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td></td><td>compare com uma margem</td><td><code>Math.abs(0.1 + 0.2 - 0.3) &lt; Number.EPSILON</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>1_000_000</code></td><td>o <code>_</code> separa os milhares no código, só para ler melhor <span class="versao">ES2021</span></td><td><code>1_000_000</code></td><td><code>1000000</code></td><td><a href="numeros.html">Números</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formatar">Formatar para mostrar</h2>
+
+<p>Todos devolvem <strong>texto</strong>. Faça as contas com o número e formate só na hora de mostrar.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>toFixed(n)</code></td><td>exatamente <code>n</code> casas decimais (arredonda ou completa com zeros)</td><td><code>(3.14159).toFixed(2)</code>, <code>(10).toFixed(2)</code>, <code>(2.5).toFixed(0)</code></td><td><code>'3.14'</code>, <code>'10.00'</code>, <code>'3'</code></td><td><a href="numeros-formatar.html">Formatando Números</a></td></tr>
+<tr><td></td><td>a imprecisão aparece aqui também: <code>1.005</code> é guardado como <code>1.0049999999999998934…</code> (<code>(1.005).toPrecision(20)</code> no lab)</td><td><code>(1.005).toFixed(2)</code></td><td><code>'1.00'</code></td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td><code>toPrecision(n)</code></td><td><code>n</code> algarismos no total</td><td><code>(1234.5678).toPrecision(6)</code></td><td><code>'1234.57'</code></td><td></td></tr>
+<tr><td><code>toString(base)</code></td><td>o número em outra base</td><td><code>(255).toString(2)</code></td><td><code>'11111111'</code></td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>toLocaleString("pt-BR")</code></td><td>com o ponto de milhar e a vírgula brasileiros</td><td><code>(1234567.891).toLocaleString("pt-BR")</code></td><td><code>'1.234.567,891'</code></td><td><a href="numeros-formatar.html">Formatando Números</a></td></tr>
+<tr><td></td><td>em reais</td><td><code>(19.9).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code></td><td><code>'R$ 19,90'</code></td><td></td></tr>
+<tr><td><code>Intl.NumberFormat</code></td><td>o formatador completo (bom para formatar muitos números do mesmo jeito)</td><td><code>new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(1234.5)</code></td><td><code>'R$ 1.234,50'</code></td><td><a href="numeros-formatar.html">Formatando Números</a></td></tr>
+<tr><td></td><td>porcentagem</td><td><code>new Intl.NumberFormat("pt-BR", { style: "percent" }).format(0.25)</code></td><td><code>'25%'</code></td><td></td></tr>
+<tr><td></td><td>no máximo 1 casa</td><td><code>new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(3.456)</code></td><td><code>'3,5'</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>O espaço do <code>R$</code> não é um espaço comum</strong>
+<p>Entre o <code>R$</code> e o número, o formatador põe um <strong>espaço que não quebra</strong> (o caractere de código 160, e não o espaço comum, de código 32), para o <code>R$</code> nunca ficar sozinho no fim de uma linha. Na tela é igual, mas na comparação não: no lab, <code>(19.9).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) === "R$ 19,90"</code> (digitado com espaço comum) deu <code>false</code>. Leve isso em conta se for comparar ou testar textos formatados.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: R$ 59.70;;src:toFixed\(2\)">
+<p class="try-task"><strong>Missão:</strong> 3 cadernos de R$ 19,90 deram um total cheio de casas: <code>Total: R$ 59.699999999999996</code>. Use <code>toFixed(2)</code> dentro do <code>${ }</code> para mostrar <code>Total: R$ 59.70</code>.</p>
+<pre class="script" data-file="main.js">const preco = 19.9;
+const quantidade = 3;
+
+const total = preco * quantidade;
+console.log(`Total: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = 19.9;
+const quantidade = 3;
+
+const total = preco * quantidade;
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<pre class="term">$ node total.js
+Total: R$ 59.699999999999996
+$ node total2.js
+Total: R$ 59.70
+</pre>
+
+<p>Para o formato brasileiro completo (<code>R$ 59,70</code>, com vírgula), troque o <code>toFixed(2)</code> pelo <code>toLocaleString</code> da tabela acima.</p>
+
+<hr>
+
+<h2 id="bigint">BigInt</h2>
+
+<p>Inteiros de qualquer tamanho, sem o limite do <code>MAX_SAFE_INTEGER</code>. Escreve-se com um <code>n</code> no fim. Aula completa: <a href="bigint.html">BigInt: Inteiros Gigantes</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>10n</code></td><td>um BigInt</td><td><code>2n ** 64n</code>, <code>typeof 10n</code></td><td><code>18446744073709551616n</code>, <code>'bigint'</code></td></tr>
+<tr><td><code>BigInt(x)</code></td><td>converte um número inteiro</td><td><code>BigInt(10) + 1n</code></td><td><code>11n</code></td></tr>
+<tr><td><code>/</code></td><td>divisão de BigInt corta as casas</td><td><code>7n / 2n</code></td><td><code>3n</code></td></tr>
+<tr><td></td><td>não se mistura com número comum</td><td><code>10n + 1</code></td><td><code>TypeError: Cannot mix BigInt and other types, use explicit conversions</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<p>A maioria das contas erradas <strong>não dá erro</strong>: dá <code>NaN</code> ou <code>Infinity</code> e o programa segue. Quando aparecer <code>NaN</code>, procure o valor que não era número (veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Os erros de verdade mais comuns:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem do Node</th><th>O que aconteceu</th></tr>
+<tr><td><code>Math.sqr(9)</code></td><td><code>TypeError: Math.sqr is not a function</code></td><td>Nome errado: é <code>Math.sqrt</code> (<em>square root</em>, "raiz quadrada").</td></tr>
+<tr><td><code>(5).toUpperCase()</code></td><td><code>TypeError: 5.toUpperCase is not a function</code></td><td>Método de texto usado num número. Converta antes: <code>String(5)</code>.</td></tr>
+<tr><td><code>(3.14).toFixed(101)</code></td><td><code>RangeError: toFixed() digits argument must be between 0 and 100</code></td><td>"O número de casas precisa ficar entre 0 e 100".</td></tr>
+<tr><td><code>10n + 1</code></td><td><code>TypeError: Cannot mix BigInt and other types, use explicit conversions</code></td><td>"Não dá para misturar BigInt com outros tipos": converta um dos dois (<code>10n + 1n</code> ou <code>Number(10n) + 1</code>).</td></tr>
+</table>
+</div>
+
+<p>Mais mensagens em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Arredondar: <code>Math.round</code> (mais perto), <code>Math.floor</code> (para baixo), <code>Math.ceil</code> (para cima), <code>Math.trunc</code> (corta).</li>
+  <li><code>Math.max</code>/<code>min</code> (com <code>...</code> para arrays), <code>Math.abs</code>, <code>Math.sqrt</code>, <code>Math.PI</code>; sorteio: <code>Math.floor(Math.random() * n) + 1</code>.</li>
+  <li>Texto → número: <code>Number</code> (o texto todo), <code>parseInt</code>/<code>parseFloat</code> (o começo do texto). Vírgula decimal não funciona.</li>
+  <li>Perguntas: <code>Number.isInteger</code>, <code>Number.isNaN</code> (não o <code>isNaN</code> antigo), <code>Number.isFinite</code>.</li>
+  <li><code>0.1 + 0.2</code> não é exatamente <code>0.3</code>: compare com margem e formate só na hora de mostrar.</li>
+  <li>Formatar (devolvem texto): <code>toFixed(2)</code>; em reais, <code>toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code> ou <code>Intl.NumberFormat</code>.</li>
+  <li>Inteiros gigantes: <code>BigInt</code> (<code>10n</code>), sem misturar com números comuns.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
