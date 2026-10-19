@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Booleanos — true e false, o sim e o não do programa | Guia JavaScript</title>
+<meta name="description" content="Os booleanos do JavaScript para quem nunca programou: os valores true e false, typeof boolean, o resultado de uma comparação, nomes de variáveis que soam como pergunta (lojaAberta, temEstoque), virar o valor com !, true × &quot;true&quot;, Boolean() e os erros reais do Node.js 24 (True is not defined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Booleanos</span></h1>
+
+<p class="intro">A loja está aberta? O aluno passou? Tem pão de queijo no estoque? Muitas perguntas que um programa faz têm só <strong>duas respostas possíveis</strong>: sim ou não. Para guardar essas respostas, o JavaScript tem um tipo de valor próprio, o <strong>booleano</strong> (em inglês, <em>boolean</em>), que só tem dois valores: <code>true</code> ("verdadeiro") e <code>false</code> ("falso"). Ele é a base de todas as decisões que o seu programa vai tomar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um booleano e os seus dois únicos valores: <code>true</code> e <code>false</code>.</li>
+  <li>Como guardar um booleano numa variável, e como dar a ela um nome que soa como pergunta.</li>
+  <li>Que toda <strong>comparação</strong> (<code>idade &gt;= 18</code>) produz um booleano.</li>
+  <li>Como virar o valor ao contrário com o <code>!</code>.</li>
+  <li>A diferença entre <code>true</code> e <code>"true"</code> (com aspas), e o que o <code>Boolean()</code> faz.</li>
+  <li>Os erros mais comuns: <code>True</code> com letra maiúscula, <code>verdadeiro</code> em português e o texto <code>"false"</code> que vale como verdadeiro.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o interruptor de luz</h2>
+<p>Um interruptor de luz tem só duas posições: <strong>ligado</strong> ou <strong>desligado</strong>. Não existe "meio ligado", nem "ligado 37%". O booleano é exatamente isso: um interruptor dentro do programa.</p>
+<ul>
+  <li><code>true</code> é a posição "ligado": sim, verdadeiro, está aberto, tem estoque.</li>
+  <li><code>false</code> é a posição "desligado": não, falso, está fechado, acabou.</li>
+</ul>
+<p>O nome vem do matemático inglês <strong>George Boole</strong>, que no século XIX estudou uma álgebra feita só de "verdadeiro" e "falso". É dela que saem as condições de todos os programas de computador.</p>
+
+<hr>
+
+<h2>1. Os dois valores: <code>true</code> e <code>false</code></h2>
+
+<pre class="file" data-file="loja.js">const lojaAberta = true;
+const temPaoDeQueijo = false;
+console.log(lojaAberta);
+console.log(temPaoDeQueijo);
+console.log(typeof lojaAberta);
+</pre>
+
+<dl class="anatomy">
+  <dt>const lojaAberta = true;</dt><dd>Cria a constante <code>lojaAberta</code> (veja <a href="const.html">Constantes</a>) com o valor <code>true</code>. Repare: <strong>sem aspas</strong>. <code>true</code> é uma palavra da própria linguagem, e não um texto.</dd>
+  <dt>const temPaoDeQueijo = false;</dt><dd>O outro valor possível: <code>false</code>. Também sem aspas, e em <strong>letras minúsculas</strong>.</dd>
+  <dt>console.log(lojaAberta);</dt><dd>Mostra o valor guardado (veja <a href="console-log.html">console.log()</a>).</dd>
+  <dt>typeof lojaAberta</dt><dd>Pergunta o tipo do valor (veja <a href="typeof.html">Descobrindo o Tipo</a>). A resposta é <code>boolean</code>.</dd>
+</dl>
+
+<pre class="term">$ node loja.js
+true
+false
+boolean
+</pre>
+
+<p>Só existem esses dois valores booleanos. Qualquer variável booleana guarda <strong>um dos dois</strong>, sempre.</p>
+
+<div class="tip">
+<strong>Dê ao booleano um nome que soa como pergunta</strong>
+<p>Uma boa variável booleana se lê como uma pergunta de sim ou não: <code>lojaAberta</code> ("a loja está aberta?"), <code>temEstoque</code> ("tem estoque?"), <code>alunoAprovado</code>, <code>estaChovendo</code>, <code>podeEntrar</code>. Quando você ler <code>if (temEstoque)</code> lá na frente, o código vai parecer uma frase. Evite nomes vagos como <code>status</code> ou <code>flag</code>, que não dizem o que <code>true</code> quer dizer.</p>
+</div>
+
+<hr>
+
+<h2>2. Toda comparação dá um booleano</h2>
+<p>Você raramente vai escrever <code>true</code> ou <code>false</code> à mão. Na maior parte das vezes, o booleano <strong>nasce de uma pergunta</strong> que o programa faz, uma <strong>comparação</strong>: "a idade é maior ou igual a 18?". A resposta dessa pergunta é sempre <code>true</code> ou <code>false</code>.</p>
+
+<pre class="file" data-file="comparar.js">const idade = 17;
+const maiorDeIdade = idade &gt;= 18;
+console.log(maiorDeIdade);
+console.log(10 &gt; 3);
+console.log(5 === 5);
+console.log("Ana" === "ana");
+console.log(typeof (10 &gt; 3));
+</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 18</dt><dd>"A idade é maior ou igual a 18?". Como a idade é 17, a resposta é <code>false</code>, e esse <code>false</code> é guardado em <code>maiorDeIdade</code>.</dd>
+  <dt>10 &gt; 3</dt><dd>"10 é maior que 3?" Sim: <code>true</code>.</dd>
+  <dt>5 === 5</dt><dd>"5 é igual a 5?" O <code>===</code> (três sinais de igual) é a pergunta "é igual?". Sim: <code>true</code>.</dd>
+  <dt>"Ana" === "ana"</dt><dd>"O texto <code>Ana</code> é igual ao texto <code>ana</code>?" Não: para o computador, a letra maiúscula faz diferença. <code>false</code>.</dd>
+  <dt>typeof (10 &gt; 3)</dt><dd>O tipo do resultado da comparação: <code>boolean</code>.</dd>
+</dl>
+
+<pre class="term">$ node comparar.js
+false
+true
+true
+false
+boolean
+</pre>
+
+<p>Os sinais de comparação (<code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>===</code>, <code>!==</code>) têm uma aula só para eles: <a href="operadores-comparacao.html">Comparação</a>. Por enquanto, guarde a ideia: <strong>comparação entra, booleano sai</strong>.</p>
+
+<div class="tryjs" data-goal="out:true;;src:idade\s*=\s*(1[89]|[2-9]\d|\d{3,})\s*;">
+<p class="try-task"><strong>Missão:</strong> a Bia tem 17 anos, e o programa diz <code>false</code>. Troque a idade para um valor que faça o programa mostrar <code>true</code> (uma pessoa de 18 anos ou mais).</p>
+<pre class="script" data-file="main.js">const idade = 17;
+const maiorDeIdade = idade &gt;= 18;
+console.log(maiorDeIdade);
+</pre>
+<pre class="solucao" data-file="main.js">const idade = 18;
+const maiorDeIdade = idade &gt;= 18;
+console.log(maiorDeIdade);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Para que serve: decidir</h2>
+<p>O grande trabalho do booleano é <strong>escolher o caminho</strong> do programa. O <code>if</code> (em inglês, "se") recebe um booleano entre parênteses e só roda o bloco quando ele é <code>true</code>. O <code>if</code> tem aula própria (<a href="if.html">if</a>); aqui, veja só como o booleano manda nele:</p>
+
+<pre class="file" data-file="if.js">const lojaAberta = true;
+if (lojaAberta) {
+  console.log("Pode entrar!");
+}
+const chovendo = false;
+if (chovendo) {
+  console.log("Leve o guarda-chuva.");
+}
+console.log("Fim.");
+</pre>
+
+<pre class="term">$ node if.js
+Pode entrar!
+Fim.
+</pre>
+
+<p><code>lojaAberta</code> era <code>true</code>: o <code>Pode entrar!</code> apareceu. <code>chovendo</code> era <code>false</code>: o <code>Leve o guarda-chuva.</code> foi pulado. Repare como os nomes ajudam: <code>if (lojaAberta)</code> se lê "se a loja está aberta".</p>
+
+<hr>
+
+<h2>4. Mudando o valor e virando ao contrário com <code>!</code></h2>
+<p>Um booleano guardado com <code>let</code> (veja <a href="variaveis.html">Variáveis</a>) pode mudar ao longo do programa, como o interruptor que alguém aperta. E o sinal <code>!</code> (lê-se "não") <strong>inverte</strong> um booleano: <code>!true</code> é <code>false</code>, e <code>!false</code> é <code>true</code>.</p>
+
+<pre class="file" data-file="muda.js">let luzAcesa = false;
+console.log(luzAcesa);
+luzAcesa = true;
+console.log(luzAcesa);
+luzAcesa = !luzAcesa;
+console.log(luzAcesa);
+</pre>
+
+<dl class="anatomy">
+  <dt>let luzAcesa = false;</dt><dd>Começa com a luz apagada. É <code>let</code>, e não <code>const</code>, porque o valor vai mudar.</dd>
+  <dt>luzAcesa = true;</dt><dd>Alguém acendeu a luz: o valor passa a ser <code>true</code>.</dd>
+  <dt>luzAcesa = !luzAcesa;</dt><dd>"A luz passa a ser o contrário do que é agora". Como era <code>true</code>, vira <code>false</code>. É o jeito de escrever "aperte o interruptor", sem precisar saber em que posição ele está.</dd>
+</dl>
+
+<pre class="term">$ node muda.js
+false
+true
+false
+</pre>
+
+<p>O <code>!</code> e os seus parceiros <code>&amp;&amp;</code> ("e") e <code>||</code> ("ou") estão na aula <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+
+<div class="tryjs" data-goal="outre:false\ntrue\nfalse\ntrue;;src:!\s*luzAcesa">
+<p class="try-task"><strong>Experimente:</strong> o programa aperta o interruptor uma vez. Copie as duas últimas linhas (a que inverte e a que mostra) mais <strong>duas vezes</strong>, para a luz piscar: apagada, acesa, apagada, acesa.</p>
+<pre class="script" data-file="main.js">let luzAcesa = false;
+console.log(luzAcesa);
+luzAcesa = !luzAcesa;
+console.log(luzAcesa);
+</pre>
+<pre class="solucao" data-file="main.js">let luzAcesa = false;
+console.log(luzAcesa);
+luzAcesa = !luzAcesa;
+console.log(luzAcesa);
+luzAcesa = !luzAcesa;
+console.log(luzAcesa);
+luzAcesa = !luzAcesa;
+console.log(luzAcesa);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Booleano junto com texto</h2>
+<p>Quando um booleano entra numa frase, ele aparece escrito como <code>true</code> ou <code>false</code>:</p>
+
+<pre class="file" data-file="texto.js">const lojaAberta = true;
+console.log("A loja está aberta? " + lojaAberta);
+console.log(`A loja está aberta? ${lojaAberta}`);
+console.log("Aberta:", lojaAberta);
+console.log(String(false));
+</pre>
+
+<pre class="term">$ node texto.js
+A loja está aberta? true
+A loja está aberta? true
+Aberta: true
+false
+</pre>
+
+<p>Os três primeiros jeitos dão o mesmo resultado: juntar com <code>+</code>, a template string com <code>${}</code> (veja <a href="template-strings.html">Template Strings</a>) e a vírgula do <code>console.log</code>. O <code>String(false)</code> transforma o booleano no texto <code>"false"</code> (veja <a href="conversao.html">Conversão</a>). Para mostrar "sim" e "não" em vez de <code>true</code> e <code>false</code>, você vai usar o <code>if</code> ou o <a href="ternario.html">operador ternário</a>.</p>
+
+<p>Dentro de objetos e arrays, o Node mostra os booleanos do mesmo jeito, sem aspas:</p>
+
+<pre class="file" data-file="objeto.js">const produto = { nome: "Pão de queijo", disponivel: true };
+console.log(produto);
+console.log([true, false, true]);
+</pre>
+
+<pre class="term">$ node objeto.js
+{ nome: 'Pão de queijo', disponivel: true }
+[ true, false, true ]
+</pre>
+
+<p>Repare: o texto <code>'Pão de queijo'</code> aparece entre aspas; o booleano <code>true</code>, não. É assim que você distingue um do outro na saída do Node.</p>
+
+<hr>
+
+<h2>6. <code>true</code> não é <code>"true"</code></h2>
+<p>Com aspas, <code>"true"</code> é um <strong>texto</strong> de quatro letras, que só por acaso se parece com o booleano. Para o JavaScript, são coisas completamente diferentes:</p>
+
+<pre class="file" data-file="aspas.js">const comAspas = "true";
+const semAspas = true;
+console.log(comAspas);
+console.log(semAspas);
+console.log(typeof comAspas);
+console.log(typeof semAspas);
+console.log(comAspas === semAspas);
+console.log(["true", true]);
+</pre>
+
+<pre class="term">$ node aspas.js
+true
+true
+string
+boolean
+false
+[ 'true', true ]
+</pre>
+
+<p>Mostrados sozinhos, os dois aparecem como <code>true</code> e enganam. O <code>typeof</code> desmascara: um é <code>string</code> (texto), o outro é <code>boolean</code>. A comparação <code>===</code> diz que não são iguais. E dentro de um array o Node mostra as aspas do texto (<code>'true'</code>), o que ajuda a perceber a diferença.</p>
+
+<div class="warning">
+<strong>De onde vem o <code>"true"</code> com aspas</strong>
+<p>Tudo o que a pessoa digita no teclado, tudo o que vem de um arquivo ou de um formulário chega como <strong>texto</strong>. Se a pessoa digitar <code>true</code>, o programa recebe <code>"true"</code>, com aspas. Para ter o booleano, compare: <code>const resposta = digitado === "true";</code>.</p>
+</div>
+
+<hr>
+
+<h2>7. Transformando outros valores em booleano: <code>Boolean()</code></h2>
+<p>A função <code>Boolean()</code> responde a uma pergunta curiosa: "este valor conta como verdadeiro ou como falso?". Números e textos também têm essa resposta:</p>
+
+<pre class="file" data-file="boolean.js">console.log(Boolean(1));
+console.log(Boolean(0));
+console.log(Boolean("Ana"));
+console.log(Boolean(""));
+console.log(Boolean("false"));
+</pre>
+
+<pre class="term">$ node boolean.js
+true
+false
+true
+false
+true
+</pre>
+
+<p>O <code>0</code> e o texto vazio <code>""</code> contam como falso; o <code>1</code> e o texto <code>"Ana"</code> contam como verdadeiro. E a pegadinha: <code>Boolean("false")</code> dá <code>true</code>, porque <code>"false"</code> é um texto <strong>com letras dentro</strong>, e todo texto que não está vazio conta como verdadeiro. O <code>Boolean()</code> não lê a palavra; ele só olha se tem alguma coisa ali.</p>
+<p>A lista completa do que conta como falso (os valores <em>falsy</em>) está na aula <a href="truthy-falsy.html">Truthy e Falsy</a>.</p>
+
+<div class="note">
+<strong>E o contrário: booleano virando número</strong>
+<p>Numa conta, <code>true</code> vale 1 e <code>false</code> vale 0. No lab, <code>Number(true)</code> deu <code>1</code>, <code>Number(false)</code> deu <code>0</code> e <code>true + true</code> deu <code>2</code>. Funciona, mas é confuso de ler; é uma das conversões automáticas da aula <a href="conversao-automatica.html">Conversão Automática</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para guardar se um aluno passou (nota 6 ou mais), dá para escrever de vários jeitos. Os três abaixo guardam o mesmo booleano:</p>
+
+<pre class="file" data-file="aprovado.js">const nota = 7.5;
+
+// 1. A comparação direto na variável (o melhor)
+const aprovado1 = nota &gt;= 6;
+
+// 2. Com if/else, escrevendo true e false à mão
+let aprovado2;
+if (nota &gt;= 6) {
+  aprovado2 = true;
+} else {
+  aprovado2 = false;
+}
+
+// 3. Com Boolean(): só para transformar outro tipo de valor
+const temNome = Boolean("Ana");
+
+console.log(aprovado1, aprovado2, temNome);
+</pre>
+
+<pre class="term">$ node aprovado.js
+true true true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Guardar o resultado de uma pergunta</td><td>A comparação direto: <code>const aprovado = nota &gt;= 6;</code>. Curto e claro.</td></tr>
+<tr><td>Um valor fixo de sim ou não</td><td><code>true</code> ou <code>false</code> escrito à mão: <code>let luzAcesa = false;</code></td></tr>
+<tr><td>Transformar um número ou texto em booleano</td><td><code>Boolean(valor)</code> (ou <code>!!valor</code>, que faz o mesmo e aparece em código de outras pessoas)</td></tr>
+<tr><td>Transformar a resposta digitada <code>"true"</code>/<code>"false"</code></td><td><code>digitado === "true"</code> (nunca <code>Boolean(digitado)</code>)</td></tr>
+</table>
+</div>
+
+<p>O <code>if/else</code> do jeito 2 funciona, mas escreve em cinco linhas o que a comparação já responde sozinha. É um sinal de iniciante que vale a pena perder cedo.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>True</code> com letra maiúscula</strong>
+<pre class="file" data-file="maiuscula.js">const lojaAberta = True;
+console.log(lojaAberta);
+</pre>
+<pre class="term">$ node maiuscula.js
+/home/ana/maiuscula.js:1
+const lojaAberta = True;
+                   ^
+
+ReferenceError: True is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/maiuscula.js:1:20)
+    …  « mais 7 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/maiuscula.js:1</dt><dd>O arquivo e a linha do problema: a linha 1.</dd>
+  <dt>const lojaAberta = True; e o ^</dt><dd>A linha do código, com o <code>^</code> embaixo do lugar exato: o <code>True</code>.</dd>
+  <dt>ReferenceError: True is not defined</dt><dd>"Erro de referência: <code>True</code> não está definido". Com <code>T</code> maiúsculo, o JavaScript não reconhece a palavra <code>true</code>; ele acha que <code>True</code> é o nome de uma variável, e essa variável não existe.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/maiuscula.js:1:20)</dt><dd>Onde o erro aconteceu: linha 1, coluna 20 (a posição do <code>True</code> na linha). As outras linhas <code>at</code> são de dentro do Node.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p>Quem vem do Python escreve <code>True</code> e <code>False</code>; no JavaScript, os dois são <strong>sempre em minúsculas</strong>. <strong>Como consertar:</strong> <code>const lojaAberta = true;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu em português</strong>
+<pre class="file" data-file="verdadeiro.js">const lojaAberta = verdadeiro;
+</pre>
+<pre class="term">$ node verdadeiro.js
+/home/ana/verdadeiro.js:1
+const lojaAberta = verdadeiro;
+                   ^
+
+ReferenceError: verdadeiro is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/verdadeiro.js:1:20)
+    …  « mais 7 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>O mesmo erro, pelo mesmo motivo: as palavras da linguagem são em inglês. <code>verdadeiro</code>, <code>falso</code>, <code>sim</code> e <code>não</code> viram nomes de variáveis que não existem. <strong>Como consertar:</strong> <code>true</code> e <code>false</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs aspas no booleano</strong>
+<pre class="file" data-file="aspas_if.js">const lojaAberta = "false";
+if (lojaAberta) {
+  console.log("Pode entrar!");
+}
+</pre>
+<pre class="term">$ node aspas_if.js
+Pode entrar!
+</pre>
+<p>Nenhum erro, e o resultado é o oposto do esperado: a loja está "fechada" e mesmo assim apareceu <code>Pode entrar!</code>. O <code>"false"</code> com aspas é um texto não vazio, e um texto não vazio conta como verdadeiro (seção 7). É o erro mais traiçoeiro desta aula, porque o JavaScript não reclama. <strong>Como consertar:</strong> tire as aspas: <code>const lojaAberta = false;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>new Boolean</code></strong>
+<pre class="file" data-file="novo.js">const falso = new Boolean(false);
+console.log(falso);
+console.log(typeof falso);
+if (falso) {
+  console.log("Entrou no if!");
+}
+</pre>
+<pre class="term">$ node novo.js
+[Boolean: false]
+object
+Entrou no if!
+</pre>
+<p>O <code>new Boolean(false)</code> não cria um booleano: cria um <strong>objeto</strong> (o <code>typeof</code> diz <code>object</code>) que embrulha o <code>false</code>. E todo objeto conta como verdadeiro, então o <code>if</code> entrou. Você pode encontrar isso em código antigo; não use. <strong>Como consertar:</strong> escreva <code>false</code> direto, ou use <code>Boolean(…)</code> <strong>sem</strong> o <code>new</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Fechado;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria está fechada, mas o programa dá erro. Conserte a primeira linha para o programa mostrar <code>Fechado. Volte amanhã!</code>. Cuidado: há dois jeitos de errar aqui (a letra maiúscula e as aspas).</p>
+<pre class="script" data-file="main.js">const padariaAberta = False;
+if (padariaAberta) {
+  console.log("Aberto! Pode entrar.");
+}
+if (!padariaAberta) {
+  console.log("Fechado. Volte amanhã!");
+}
+</pre>
+<pre class="solucao" data-file="main.js">const padariaAberta = false;
+if (padariaAberta) {
+  console.log("Aberto! Pode entrar.");
+}
+if (!padariaAberta) {
+  console.log("Fechado. Volte amanhã!");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th><th>O que é</th></tr>
+<tr><td><code>true</code> / <code>false</code></td><td><code>true</code> / <code>false</code></td><td>Os dois únicos valores booleanos (sem aspas, em minúsculas)</td></tr>
+<tr><td><code>typeof true</code></td><td><code>"boolean"</code></td><td>O nome do tipo</td></tr>
+<tr><td><code>17 &gt;= 18</code></td><td><code>false</code></td><td>Uma comparação produz um booleano</td></tr>
+<tr><td><code>!true</code> / <code>!false</code></td><td><code>false</code> / <code>true</code></td><td>"Não": inverte o valor</td></tr>
+<tr><td><code>x = !x</code></td><td>o contrário de antes</td><td>Aperta o "interruptor"</td></tr>
+<tr><td><code>Boolean(0)</code> / <code>Boolean("Ana")</code></td><td><code>false</code> / <code>true</code></td><td>Diz se um valor conta como falso ou verdadeiro</td></tr>
+<tr><td><code>Boolean("false")</code></td><td><code>true</code></td><td>Pegadinha: texto não vazio conta como verdadeiro</td></tr>
+<tr><td><code>texto === "true"</code></td><td><code>true</code> ou <code>false</code></td><td>Transforma a resposta digitada em booleano</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: True is not defined</code></td><td>Letra maiúscula: o certo é <code>true</code> (e <code>false</code>)</td></tr>
+<tr><td><code>ReferenceError: verdadeiro is not defined</code></td><td>Palavra em português: o certo é <code>true</code></td></tr>
+<tr><td>O <code>if</code> entra mesmo com o valor "falso"</td><td>O valor é o texto <code>"false"</code> (com aspas) ou um <code>new Boolean(false)</code></td></tr>
+<tr><td><code>typeof</code> diz <code>string</code> num valor que parecia booleano</td><td>Aspas em volta do <code>true</code>/<code>false</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete com o booleano certo (a loja está fechada):</p>
+<div class="ex-code">const lojaAberta = <input data-answer="false" aria-label="valor booleano">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que o Node mostra para <code>console.log(3 &gt; 5);</code>?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O tipo</h3>
+<p>O que <code>typeof "true"</code> devolve? (Escreva sem aspas.)</p>
+<div class="ex-code"><input data-answer="string" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Invertendo</h3>
+<p>Qual é o valor de <code>!!false</code>? (Dica: inverta duas vezes.)</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Quantos valores booleanos diferentes existem no JavaScript?</p>
+<label><input type="radio" name="q5"> Um</label>
+<label><input type="radio" name="q5"> Três: <code>true</code>, <code>false</code> e <code>maybe</code></label>
+<label><input type="radio" name="q5"> Dois: <code>true</code> e <code>false</code></label>
+<label><input type="radio" name="q5"> Infinitos</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Qual destes é o melhor nome para uma variável booleana?</p>
+<label><input type="radio" name="q6"> <code>status</code></label>
+<label><input type="radio" name="q6"> <code>temEstoque</code></label>
+<label><input type="radio" name="q6"> <code>x</code></label>
+<label><input type="radio" name="q6"> <code>valor</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. O que <code>Boolean("false")</code> devolve?</p>
+<label><input type="radio" name="q7"> <code>false</code>, porque o texto diz "false"</label>
+<label><input type="radio" name="q7"> Um erro</label>
+<label><input type="radio" name="q7"> <code>"false"</code></label>
+<label><input type="radio" name="q7"> <code>true</code>, porque é um texto que não está vazio</label>
+</div>
+
+<h3>Missão final: o aluno passou?</h3>
+
+<div class="tryjs" data-goal="out:Aprovada: true;;src:nota\s*&gt;=\s*6|6\s*&lt;=\s*nota">
+<p class="try-task"><strong>Missão:</strong> a nota da Ana foi 8. Complete a segunda linha com a <strong>comparação</strong> que diz se ela passou (a média é 6: nota maior ou igual a 6). O programa deve mostrar <code>Aprovada: true</code>. Depois, troque a nota para 4 e veja o resultado mudar sozinho.</p>
+<pre class="script" data-file="main.js">const nota = 8;
+const aprovada = false; // troque o false pela comparação
+console.log(`Aprovada: ${aprovada}`);
+</pre>
+<pre class="solucao" data-file="main.js">const nota = 8;
+const aprovada = nota &gt;= 6;
+console.log(`Aprovada: ${aprovada}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O booleano tem só dois valores: <code>true</code> (verdadeiro) e <code>false</code> (falso), sem aspas e em minúsculas. O <code>typeof</code> deles é <code>boolean</code>.</li>
+  <li>Toda comparação (<code>idade &gt;= 18</code>, <code>a === b</code>) produz um booleano, e é assim que eles nascem quase sempre.</li>
+  <li>O booleano decide o caminho do programa: o <code>if</code> só roda o bloco quando recebe <code>true</code>.</li>
+  <li>O <code>!</code> inverte: <code>x = !x</code> aperta o interruptor. Dê nomes que soam como pergunta: <code>lojaAberta</code>, <code>temEstoque</code>.</li>
+  <li><code>"true"</code> com aspas é texto, não booleano. <code>Boolean(valor)</code> diz se um valor conta como verdadeiro, e <code>Boolean("false")</code> é <code>true</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
