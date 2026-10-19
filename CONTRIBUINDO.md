@@ -49,7 +49,7 @@ Dentro de `<pre>` e de atributos, escape `<`, `>` e `&` (`&lt;`, `&gt;`, `&amp;`
 
 ### Terminal (`pre.term`)
 - `$ ` = `ana@notebook:~$` (o prompt aparece sozinho);
-- `> ` e `... ` = o modo interativo do Node e a continuação dele — **só depois de uma linha `$ node`** (sem arquivo) ou `$ node -i`; o site destaca como prompt até o próximo `$ `;
+- `> ` e `| ` = o modo interativo do Node e a continuação dele (o Node 24 usa `| `; o site também aceita `... `, de versões antigas) — **só depois de uma linha `$ node`** (sem arquivo) ou `$ node -i`; o site destaca como prompt até o próximo `$ `;
 - `> ` logo depois de um comando do bash (fora do modo interativo) = continuação do bash (heredoc);
 - `«` = anotação (vira um comentário em cinza à direita).
 
@@ -137,7 +137,52 @@ No `.exercise`, `data-answer="a|b"` aceita respostas alternativas (a comparaçã
 ## 4. O editor do guia (`assets/jssim.js`)
 > **Esta seção é mantida pelo agente do simulador.** Antes de escrever uma frase do tipo "no editor…" que não esteja aqui, confira com as ferramentas dele (`tools/sim.js`).
 
-(em construção)
+### Como testar (na VPS)
+```bash
+timeout 300 node ~/guia-js/tools/testar-missoes.js pagina.html          # caixas, metas, escapes, links, privacidade
+timeout 600 node ~/guia-js/tools/testar-missoes.js --nativo pagina.html # + compara cada .tryjs com o node do lab
+timeout 60 node ~/guia-js/tools/sim.js main.js [contas.js dados.txt] [--stdin "Ana\n30" | --digitar "Ana\n30"] [--args "a b"] [--goal "out:…"]
+timeout 60 node ~/guia-js/tools/sim.js -e 'console.log([1, 2, 3])'
+timeout 60 node ~/guia-js/tools/sim.js --repl --digitar "1 + 1\nlet x = 10\nx * 2"
+```
+O testador e o `sim.js` rodam **o mesmo editor** (`assets/jssim.js` + `assets/jssim/worker.js`) num **Chromium headless de verdade** (motor V8, o mesmo do Node). `--nativo` roda também no Node.js v24.22.0 do lab e anota as diferenças em `tools/DIFERENCAS.md`. Com `data-digitar`, o lab roda num terminal de verdade (o eco do que foi digitado aparece, como na caixa).
+
+### O que a caixa `.tryjs` faz
+- **Rodar** abre um Web Worker novo (cada Rodar parte do zero) e roda `main.js` como o `node main.js` do lab: `/home/ana/main.js`, `process.argv = ['/usr/local/bin/node', '/home/ana/main.js', …data-args]`, `process.cwd()` = `/home/ana`, `process.platform` = `'linux'`, `process.version` = `'v24.22.0'`, `process.env` da Ana (`HOME`, `USER=ana`, `LANG=pt_BR.UTF-8`, `TZ=America/Sao_Paulo`…), `os.hostname()` = `'notebook'`.
+- **Terminal da caixa:** `ana@notebook:~$ node main.js`, a saída, o stderr em vermelho, `[código de saída: N]`.
+- **`console.log` e companhia** formatam com o `util.inspect` do próprio Node (extraído: `node-inspect-extracted`): `{ nome: 'Ana', idade: 30 }`, `[ 1, 2, 3 ]`, `Map(1) { 'a' => 1 }`, `[Function: soma]`, `[class Pessoa]`, `[Object]` depois de 2 níveis, `... 100 more items`, quebra em 80 colunas. Também `console.error/warn/info/debug/table/dir/group/count/time/assert/trace` como no Node.
+- **Erro não tratado = igual ao Node:** `/home/ana/main.js:3`, a linha, o `^`, linha em branco, `TypeError: …`, os `at …` (com as linhas `node:internal/…` que o Node 24.22 mostra), `Node.js v24.22.0`, código 1. Também: erro de sintaxe (`SyntaxError` com `^^^^`), Promise rejeitada sem `catch`, `throw "texto"`, erro dentro de `setTimeout` (`Timeout._onTimeout`), módulo inexistente (`Cannot find module` / `ERR_MODULE_NOT_FOUND`), `ENOENT` do `fs`.
+- **Módulos:** `require("./contas.js")` e `import { soma } from "./contas.js"` acham as abas; a detecção do Node 24 vale (arquivo com `import`/`export` ou `await` no topo vira módulo ES; `.mjs`/`.cjs`; aba `package.json` com `"type": "module"`). Módulos do Node: `fs` (sync, callback e `fs/promises`, numa pasta em memória com as abas: o que o programa grava fica lá até o fim do Rodar), `path`, `readline` e `readline/promises`, `events`, `util`, `os`, `assert`, `process`, `timers`, `timers/promises`, `buffer` (o básico), `url`, `crypto` (`randomUUID`, `randomInt`, `randomBytes`). **Não há** `http`, `child_process`, `net`, `worker_threads`, `zlib`, `stream` de verdade, `npm install` (o programa recebe um erro dizendo que o editor não tem o módulo): mostre esses com saída do lab, sem caixa.
+- Globais: `setTimeout`/`setInterval`/`setImmediate`, `queueMicrotask`, `process.nextTick`, `structuredClone`, `fetch` (o do navegador: só sites que permitem CORS; o lab não tem internet), `Intl` (pt-BR, fuso do navegador do leitor), `URL`, `TextEncoder`, `crypto`, `performance`.
+- **Fim do programa** como no Node: quando não há mais timers, entrada sendo lida nem `fetch` pendente. `process.exit(n)` e `process.exitCode` funcionam.
+
+### Entrada (teclado)
+- **Sem `data-stdin`** o leitor **digita** no terminal da caixa (Enter manda a linha; Ctrl+D = fim da entrada; Ctrl+C ou ■ Parar = interromper). O que ele digita aparece no terminal (cinza) e **não entra** na saída das metas `out:`.
+- **Com `data-stdin`** a entrada vai de uma vez, **como um pipe** (`node main.js < entrada.txt`): nada é ecoado. Atenção, é o Node de verdade: com `readline/promises` e dois `await rl.question()`, a 2ª linha do pipe se perde e o Node avisa `Warning: Detected unsettled top-level await` (código 13). **Para perguntas com `readline`, prefira o leitor digitando** (`data-digitar` para o testador).
+- `fs.readFileSync(0, "utf8")` (ler tudo): com `data-stdin` recebe o texto; sem ele, o editor pede as linhas e o Ctrl+D e roda o programa de novo com elas.
+- `data-repl`: o modo interativo do Node (`> `, `| ` na continuação, `undefined` depois de `let x = 10`, `Uncaught ReferenceError: …`, `.exit`, `.help`). Sem `pre.script`: `node` puro. Com `pre.script`: o editor abre o `node` e faz `.load main.js` (o Node não roda um arquivo e fica no `> `).
+
+### Números fixos
+| | |
+|---|---|
+| Tempo máximo rodando | 10 s (sem contar a espera pelo teclado); depois o editor para o programa |
+| Saída máxima | 2 milhões de caracteres |
+| Terminal da caixa | mostra até 3000 linhas (o resto é resumido) |
+| `process.stdout.columns` | 80 (o `inspect` quebra em 80) |
+
+### Editor × lab (o que pode sair diferente)
+| Assunto | Editor (navegador do leitor) | Lab (Node.js v24.22.0) |
+|---|---|---|
+| Mensagens de erro | iguais no Chrome/Edge (mesmo motor V8); **no Firefox/Safari o texto do erro muda** (a caixa avisa) | as do V8 |
+| `Math.random()`, `new Date()`, `Date.now()`, `console.time` | outros valores a cada Rodar | idem |
+| `console.log(promessa)` | sabe o estado só das criadas com `new Promise`/`Promise.resolve`/`Promise.reject`; as de `async function` aparecem `Promise { <pending> }` | `Promise { 1 }` se já resolvida |
+| `fetch` | o do navegador (CORS) | sem internet no lab |
+| `os.cpus()`, memória, `uptime` | valores fixos de mentira | os da máquina |
+| Cores do `console.log` | sem cor | sem cor nas saídas colhidas (pipe/`tela`) |
+| `require` de um módulo ES (`require(esm)`) | não suportado (erro do editor) | funciona |
+| Linha do `throw "texto"` (não-Error) | o 1º `throw` do arquivo | a linha certa |
+
+Mais detalhes e o que ainda falta: `tools/ESTADO.md` e `tools/DIFERENCAS.md`.
 
 ## 5. Fidelidade: o laboratório (`~/guia-js-lab/lab`, na VPS)
 É a máquina da Ana (usuária `ana`, computador `notebook`, `/home/ana`, pt_BR, Ubuntu 26.04) com o **Node.js 24 LTS oficial**, o npm e um Chromium para o que é do navegador. Toda saída de terminal mostrada numa aula vem de lá (detalhes em `~/guia-js-lab/COMO-USAR.md`, na VPS):
