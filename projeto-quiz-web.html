@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Quiz na Página — perguntas num array, botões, placar e recorde passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo no navegador: um quiz de JavaScript numa página web. As perguntas ficam num array de objetos, os botões das opções são criados com createElement, a resposta é conferida no clique, o placar conta os acertos, os botões são desabilitados depois de responder, e o recorde fica no localStorage. Quatro versões, os erros reais (var no laço, função chamada no addEventListener, placar 7 de 5) e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Quiz</span> na Página</h1>
+
+<p class="intro">A Ana quer testar o que aprendeu de JavaScript com um quiz: uma pergunta por vez, quatro opções em botões, a resposta na hora ("Certo!" ou "Errado! A resposta é…"), o placar no fim e o recorde guardado. É um projeto pequeno que junta quase tudo de "A Página Web": dados num array, elementos criados pelo JavaScript, eventos e <code>localStorage</code>. E as perguntas do quiz são sobre pegadinhas que você já viu neste guia.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Guardar as perguntas num <a href="arrays.html">array</a> de <a href="objetos.html">objetos</a>.</li>
+  <li>Criar um botão para cada opção com <a href="dom-criar.html">createElement</a> e <a href="foreach.html">forEach</a>.</li>
+  <li>Saber em qual botão a pessoa clicou, com uma <a href="arrow-functions.html">arrow function</a> que "lembra" da posição (<a href="closures.html">closure</a>).</li>
+  <li>Avançar de pergunta com uma variável de estado e mostrar o placar.</li>
+  <li>Desabilitar botões e colorir com <a href="dom-estilo.html">classList</a>.</li>
+  <li>Guardar o recorde com <a href="localstorage.html">localStorage</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>A página mostra "Pergunta 1 de 5", a pergunta e um botão para cada opção. Ao clicar, as opções travam, a certa fica verde (e a escolhida, se errada, vermelha), aparece o resultado e o botão <strong>Próxima</strong>. No fim: "Você acertou 4 de 5. Novo recorde!", o recorde guardado e o botão <strong>Jogar de novo</strong>. A Ana jogou duas vezes no Chromium do computador dela (errou a primeira pergunta na primeira vez e acertou tudo na segunda); o texto dos parágrafos, lido em cada momento:</p>
+
+<pre class="devtools">&gt; localStorage.getItem("quiz-recorde")
+null</pre>
+
+<ul>
+  <li>ao abrir: <strong>Seu recorde: 0 de 5</strong>;</li>
+  <li>no fim da primeira partida: <strong>Você acertou 4 de 5. Novo recorde!</strong> e <strong>Seu recorde: 4 de 5</strong>;</li>
+  <li>depois de Jogar de novo: <strong>Pergunta 1 de 5</strong>;</li>
+  <li>no fim da segunda: <strong>Você acertou 5 de 5. Novo recorde!</strong> e <strong>Seu recorde: 5 de 5</strong>.</li>
+</ul>
+
+<p>Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">Uma pergunta</a> (objeto, botões criados, clique).</li>
+  <li><a href="#versao2">Várias perguntas e o placar</a> (array, <code>atual</code>, <code>acertos</code>, Próxima).</li>
+  <li><a href="#versao3">Uma resposta só, com cores</a> (<code>disabled</code>, <code>classList</code>).</li>
+  <li><a href="#versao4">Recorde e Jogar de novo</a> (<code>localStorage</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Crie a pasta <code>quiz</code> com o <code>index.html</code>, o <code>style.css</code> e o <code>script.js</code>, e abra o <code>index.html</code> no navegador (veja <a href="script-na-pagina.html">JavaScript na Página</a>). Nas caixas <strong>Experimente</strong>, responda as perguntas clicando no quadro <strong>Resultado</strong>.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Uma pergunta</h2>
+<p>Uma pergunta de múltipla escolha tem três partes: o texto, as opções e qual delas é a certa. Um objeto guarda as três. A certa é guardada pela <strong>posição</strong> no array de opções (0 é a primeira), e não pelo texto: assim, mudar a forma de escrever uma opção não estraga a correção.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+</pre>
+
+<pre class="file" data-file="script.js">const pergunta = {
+  texto: 'Quanto dá "10" + 5 no JavaScript?',
+  opcoes: ["15", '"105"', "NaN", "Dá erro"],
+  certa: 1,
+};
+
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+
+elPergunta.textContent = pergunta.texto;
+
+pergunta.opcoes.forEach((opcao, i) =&gt; {
+  const botao = document.createElement("button");
+  botao.textContent = opcao;
+  botao.addEventListener("click", () =&gt; {
+    if (i === pergunta.certa) {
+      elResultado.textContent = "Certo!";
+    } else {
+      elResultado.textContent = `Errado! A resposta é ${pergunta.opcoes[pergunta.certa]}.`;
+    }
+  });
+  elOpcoes.append(botao);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>texto: 'Quanto dá "10" + 5 no JavaScript?'</dt><dd>O texto tem aspas duplas dentro, então ele vai entre aspas simples (veja <a href="strings.html">Strings</a>).</dd>
+  <dt>certa: 1</dt><dd>A posição da opção certa: <code>'"105"'</code>, a segunda.</dd>
+  <dt>pergunta.opcoes.forEach((opcao, i) =&gt; { … })</dt><dd>Para cada opção, recebe o texto (<code>opcao</code>) e a posição (<code>i</code>), e cria um botão.</dd>
+  <dt>botao.addEventListener("click", () =&gt; { … })</dt><dd>A função do clique usa o <code>i</code>, e cada botão "lembra" do <code>i</code> da volta em que foi criado: o primeiro botão lembra 0, o segundo, 1… (isso é uma <a href="closures.html">closure</a>).</dd>
+  <dt>if (i === pergunta.certa)</dt><dd>Compara a posição do botão clicado com a posição certa.</dd>
+  <dt>pergunta.opcoes[pergunta.certa]</dt><dd>O texto da opção certa, para a mensagem de erro.</dd>
+</dl>
+
+<p>A Ana clicou primeiro em "15" e depois em <code>"105"</code>. No Console, os botões criados:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#opcoes button")].map((b) =&gt; b.textContent)
+(4) ['15', '"105"', 'NaN', 'Dá erro']</pre>
+
+<p>O parágrafo do resultado mostrou <strong>Errado! A resposta é "105".</strong> depois do primeiro clique e <strong>Certo!</strong> depois do segundo. (Ainda dá para clicar quantas vezes quiser: a versão 3 resolve.)</p>
+
+<div class="cenario">
+<strong>Um <code>for</code> com <code>var</code>: todos os botões dizem "Errado"</strong>
+<p>A Ana trocou o <code>forEach</code> por um <code>for</code> com o <code>var</code> que viu num tutorial antigo:</p>
+<pre class="file" data-file="script.js">for (var i = 0; i &lt; pergunta.opcoes.length; i++) {
+  const botao = document.createElement("button");
+  botao.textContent = pergunta.opcoes[i];
+  botao.addEventListener("click", () =&gt; {
+    if (i === pergunta.certa) {
+      elResultado.textContent = "Certo!";
+    } else {
+      elResultado.textContent = `Errado! A resposta é ${pergunta.opcoes[pergunta.certa]}.`;
+    }
+  });
+  elOpcoes.append(botao);
+}
+</pre>
+<p>Ela clicou na opção certa, <code>"105"</code>, e a página respondeu <strong>Errado! A resposta é "105".</strong> No Console:</p>
+<pre class="devtools">&gt; i
+4</pre>
+<p>O <code>var</code> cria <strong>uma</strong> variável <code>i</code> para o laço inteiro (e ela até existe fora dele, na página toda). Os quatro botões lembram da <strong>mesma</strong> variável, e quando alguém clica, o laço já terminou: <code>i</code> vale 4 para todos, e 4 nunca é a certa. Com <code>let</code>, cada volta do laço tem o seu próprio <code>i</code>, e tudo funciona. É um dos motivos para nunca usar <code>var</code> (veja <a href="var.html">var: o Jeito Antigo</a>). Nenhum erro aparece: só a resposta errada.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#resultado~Errado! A resposta é &quot;105&quot;.;;semerro" data-acoes="clicar #opcoes button:nth-child(1)">
+<p class="try-task"><strong>Missão (versão 1):</strong> os botões aparecem, mas clicar não faz nada. Na função do clique, se <code>i</code> for a posição certa, mostre <code>Certo!</code> no parágrafo <code>#resultado</code>; senão, <code>Errado! A resposta é "105".</code> (com o texto da opção certa). Rode e clique em "15".</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const pergunta = {
+  texto: 'Quanto dá "10" + 5 no JavaScript?',
+  opcoes: ["15", '"105"', "NaN", "Dá erro"],
+  certa: 1,
+};
+
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+
+elPergunta.textContent = pergunta.texto;
+
+pergunta.opcoes.forEach((opcao, i) =&gt; {
+  const botao = document.createElement("button");
+  botao.textContent = opcao;
+  botao.addEventListener("click", () =&gt; {
+    // mostre "Certo!" ou "Errado! A resposta é …" no parágrafo #resultado
+  });
+  elOpcoes.append(botao);
+});
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const pergunta = {
+  texto: 'Quanto dá "10" + 5 no JavaScript?',
+  opcoes: ["15", '"105"', "NaN", "Dá erro"],
+  certa: 1,
+};
+
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+
+elPergunta.textContent = pergunta.texto;
+
+pergunta.opcoes.forEach((opcao, i) =&gt; {
+  const botao = document.createElement("button");
+  botao.textContent = opcao;
+  botao.addEventListener("click", () =&gt; {
+    if (i === pergunta.certa) {
+      elResultado.textContent = "Certo!";
+    } else {
+      elResultado.textContent = `Errado! A resposta é ${pergunta.opcoes[pergunta.certa]}.`;
+    }
+  });
+  elOpcoes.append(botao);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Várias perguntas e o placar</h2>
+<p>Agora as perguntas viram um array, e a página precisa lembrar de duas coisas enquanto a Ana joga: <strong>em qual pergunta está</strong> (<code>atual</code>) e <strong>quantas acertou</strong> (<code>acertos</code>). Três funções fazem o trabalho: <code>mostrarPergunta</code> desenha a pergunta atual, <code>responder</code> confere o clique, e <code>mostrarFim</code> mostra o placar. O botão <strong>Próxima</strong> começa escondido.</p>
+
+<pre class="file" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;p id="progresso"&gt;&lt;/p&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;button id="proxima" hidden&gt;Próxima&lt;/button&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<pre class="file" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+mostrarPergunta();
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>&lt;button id="proxima" hidden&gt;</code></td><td>O atributo <code>hidden</code> ("escondido") esconde o elemento. No JavaScript, <code>botaoProxima.hidden = false</code> mostra e <code>true</code> esconde.</td></tr>
+<tr><td><code>let atual = 0;</code> e <code>let acertos = 0;</code></td><td>O <strong>estado</strong> do jogo: mudam a cada resposta, por isso <code>let</code>.</td></tr>
+<tr><td><code>const p = perguntas[atual];</code></td><td>A pergunta da vez. Um nome curto para não repetir <code>perguntas[atual]</code> toda hora.</td></tr>
+<tr><td><code>`Pergunta ${atual + 1} de ${perguntas.length}`</code></td><td>Para as pessoas, a primeira pergunta é a 1, não a 0.</td></tr>
+<tr><td><code>elOpcoes.replaceChildren();</code></td><td>Apaga os botões da pergunta anterior antes de criar os novos.</td></tr>
+<tr><td><code>() =&gt; responder(i)</code></td><td>Uma função que, <strong>quando clicada</strong>, chama <code>responder</code> com a posição do botão.</td></tr>
+<tr><td><code>acertos++;</code></td><td>Mais um acerto (veja <a href="incremento.html">++</a>).</td></tr>
+<tr><td><code>atual++;</code> e <code>if (atual &lt; perguntas.length)</code></td><td>Na Próxima: anda uma pergunta; se ainda há perguntas, mostra; senão, o fim.</td></tr>
+</table>
+</div>
+
+<p>A Ana jogou, acertando todas menos a segunda (respondeu <code>let</code>). Lendo os parágrafos em cada momento: no começo, <strong>Pergunta 1 de 5</strong>; depois da primeira resposta, <strong>Certo!</strong>; depois da segunda, <strong>Errado! A resposta é const.</strong>; e no fim, o título <strong>Fim do quiz!</strong> e o placar <strong>Você acertou 4 de 5.</strong></p>
+
+<div class="cenario">
+<strong>Chamar a função no <code>addEventListener</code>: o quiz responde sozinho</strong>
+<p>Na pressa, a Ana escreveu <code>botao.addEventListener("click", responder(i));</code>, sem o <code>() =&gt;</code>. A página abriu já mostrando <strong>Errado! A resposta é "105".</strong>, sem ninguém clicar, e com o botão Próxima à mostra. No Console:</p>
+<pre class="devtools">&gt; acertos
+1
+&gt; botaoProxima.hidden
+false</pre>
+<p>Clicar nos botões não mudou mais nada. O que aconteceu: <code>responder(i)</code>, com parênteses, <strong>chama a função na hora</strong>, durante a criação dos botões. As quatro opções foram "respondidas" uma atrás da outra (a segunda contou um acerto, a última deixou a mensagem de erro), e o <code>addEventListener</code> recebeu o que <code>responder</code> devolveu: <code>undefined</code>. É o mesmo erro do <code>setInterval(atualizar(), 1000)</code> do <a href="projeto-relogio-web.html">projeto do relógio</a>: para entregar uma função que deve rodar <strong>depois</strong>, ou você passa o nome dela sem parênteses, ou embrulha a chamada numa arrow function, <code>() =&gt; responder(i)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Clicar várias vezes: "Você acertou 7 de 5."</strong>
+<p>A Ana clicou três vezes na opção certa da primeira pergunta e, na segunda, clicou primeiro na errada e depois na certa. No fim, a página mostrou <strong>Você acertou 7 de 5.</strong> Cada clique na opção certa soma um acerto, e nada impede de clicar de novo. A versão 3 trava as opções depois da primeira resposta.</p>
+</div>
+
+<div class="tryweb" data-goal="texto:#progresso~Pergunta 2 de 5;;semerro" data-acoes="clicar #opcoes button:nth-child(2);;clicar #proxima">
+<p class="try-task"><strong>Missão (versão 2):</strong> o botão Próxima aparece, mas não faz nada. No clique dele, avance <code>atual</code> e mostre a próxima pergunta (ou o fim, se acabaram). Rode, responda a primeira pergunta e clique em Próxima: deve aparecer <code>Pergunta 2 de 5</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;p id="progresso"&gt;&lt;/p&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;button id="proxima" hidden&gt;Próxima&lt;/button&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  // vá para a próxima pergunta, ou mostre o fim
+});
+
+mostrarPergunta();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+mostrarPergunta();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Uma resposta só, com cores</h2>
+<p>Duas melhorias no <code>responder</code>: depois do clique, <strong>todos</strong> os botões da pergunta ficam desabilitados (nada de clicar de novo), a opção certa fica verde e, se a Ana errou, a escolhida fica vermelha. No CSS, duas classes:</p>
+
+<pre class="file" data-file="style.css">#opcoes button.certo {
+  background: #c8f7c5;
+}
+
+#opcoes button.errado {
+  background: #f7c5c5;
+}
+</pre>
+
+<p>E o <code>responder</code> novo (o resto do <code>script.js</code> fica igual):</p>
+
+<pre class="file" data-file="script.js">function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>elOpcoes.querySelectorAll("button")</dt><dd>Todos os botões <strong>dentro</strong> de <code>#opcoes</code>, na ordem em que aparecem: a mesma ordem das opções. Por isso <code>botoes[p.certa]</code> é o botão da opção certa.</dd>
+  <dt>botao.disabled = true;</dt><dd>Um botão desabilitado fica cinza e não dispara mais o <code>click</code>.</dd>
+  <dt>classList.add("certo")</dt><dd>Acrescenta a classe; o CSS pinta de verde (veja <a href="dom-estilo.html">classList</a>).</dd>
+</dl>
+
+<p>A Ana clicou em "15" (errado) e, em seguida, tentou clicar em <code>"105"</code>. O resultado continuou <strong>Errado! A resposta é "105".</strong>, e o placar não mudou. No Console:</p>
+
+<pre class="devtools">&gt; [...document.querySelectorAll("#opcoes button")].map((b) =&gt; `${b.textContent} ${b.className} ${b.disabled}`)
+(4) ['15 errado true', '"105" certo true', 'NaN  true', 'Dá erro  true']
+&gt; acertos
+0</pre>
+
+<p>As quatro opções desabilitadas (<code>true</code>), a escolhida com a classe <code>errado</code>, a certa com <code>certo</code>, e nenhum acerto contado pelo segundo clique.</p>
+
+<div class="tryweb" data-goal="dom:#opcoes button:disabled;;dom:#opcoes button.certo;;semerro" data-acoes="clicar #opcoes button:nth-child(1)">
+<p class="try-task"><strong>Missão (versão 3):</strong> mude o <code>responder</code> para desabilitar todos os botões de <code>#opcoes</code> e pôr a classe <code>certo</code> no botão da opção certa (e <code>errado</code> no escolhido, se errou). Rode e clique em "15".</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;p id="progresso"&gt;&lt;/p&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;button id="proxima" hidden&gt;Próxima&lt;/button&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+mostrarPergunta();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+
+#opcoes button.certo {
+  background: #c8f7c5;
+}
+
+#opcoes button.errado {
+  background: #f7c5c5;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+mostrarPergunta();
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Recorde e Jogar de novo</h2>
+<p>Para a Ana querer jogar de novo, o quiz guarda o melhor placar no <a href="localstorage.html">localStorage</a> e ganha um botão para recomeçar. No HTML, depois do Próxima:</p>
+
+<pre class="file" data-file="index.html">  &lt;button id="denovo" hidden&gt;Jogar de novo&lt;/button&gt;
+  &lt;p id="recorde"&gt;&lt;/p&gt;
+</pre>
+
+<p>No <code>script.js</code>, a versão completa:</p>
+
+<pre class="file" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+const botaoDeNovo = document.querySelector("#denovo");
+const elRecorde = document.querySelector("#recorde");
+
+const CHAVE_RECORDE = "quiz-recorde";
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  if (acertos &gt; recorde) {
+    localStorage.setItem(CHAVE_RECORDE, acertos);
+    elResultado.textContent += " Novo recorde!";
+  }
+  mostrarRecorde();
+  botaoDeNovo.hidden = false;
+}
+
+// Mostra o melhor resultado guardado neste navegador
+function mostrarRecorde() {
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  elRecorde.textContent = `Seu recorde: ${recorde} de ${perguntas.length}`;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+botaoDeNovo.addEventListener("click", () =&gt; {
+  atual = 0;
+  acertos = 0;
+  botaoDeNovo.hidden = true;
+  mostrarPergunta();
+});
+
+mostrarRecorde();
+mostrarPergunta();
+</pre>
+
+<dl class="anatomy">
+  <dt>Number(localStorage.getItem(CHAVE_RECORDE))</dt><dd>O <code>localStorage</code> guarda texto: o recorde 5 volta como <code>'5'</code>. O <code>Number</code> converte. Na primeira visita não há nada, o <code>getItem</code> dá <code>null</code>, e <code>Number(null)</code> é 0: um recorde zero, que é exatamente o que se quer.</dd>
+  <dt>if (acertos &gt; recorde)</dt><dd>Só grava se bateu o recorde.</dd>
+  <dt>elResultado.textContent += " Novo recorde!"</dt><dd>O <code>+=</code> acrescenta no fim do texto que já estava lá.</dd>
+  <dt>botaoDeNovo.addEventListener("click", …)</dt><dd>Recomeçar é voltar o estado ao início (<code>atual = 0</code>, <code>acertos = 0</code>) e desenhar a primeira pergunta. O recorde fica: ele está no <code>localStorage</code>, não nas variáveis.</dd>
+</dl>
+
+<p>Conferindo no Console, depois das duas partidas do começo da página:</p>
+
+<pre class="devtools">&gt; localStorage.getItem("quiz-recorde")
+'5'
+&gt; typeof localStorage.getItem("quiz-recorde")
+'string'
+&gt; Number(null)
+0</pre>
+
+<p>Um detalhe: nas caixas Experimente, o <code>localStorage</code> é o do seu navegador, e o recorde fica guardado de uma vez para a outra, como num site de verdade.</p>
+
+<div class="tryweb" data-goal="texto:#progresso~Pergunta 1 de 5;;semerro" data-acoes="clicar #opcoes button:nth-child(2);;clicar #proxima;;clicar #opcoes button:nth-child(3);;clicar #proxima;;clicar #opcoes button:nth-child(2);;clicar #proxima;;clicar #opcoes button:nth-child(1);;clicar #proxima;;clicar #opcoes button:nth-child(2);;clicar #proxima;;clicar #denovo">
+<p class="try-task"><strong>Missão (versão 4):</strong> o botão Jogar de novo aparece no fim, mas não faz nada. No clique dele, volte <code>atual</code> e <code>acertos</code> para 0, esconda o próprio botão e mostre a primeira pergunta. Rode, responda as cinco perguntas e clique em Jogar de novo: deve voltar <code>Pergunta 1 de 5</code>.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;p id="progresso"&gt;&lt;/p&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;button id="proxima" hidden&gt;Próxima&lt;/button&gt;
+  &lt;button id="denovo" hidden&gt;Jogar de novo&lt;/button&gt;
+  &lt;p id="recorde"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+const botaoDeNovo = document.querySelector("#denovo");
+const elRecorde = document.querySelector("#recorde");
+
+const CHAVE_RECORDE = "quiz-recorde";
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  if (acertos &gt; recorde) {
+    localStorage.setItem(CHAVE_RECORDE, acertos);
+    elResultado.textContent += " Novo recorde!";
+  }
+  mostrarRecorde();
+  botaoDeNovo.hidden = false;
+}
+
+// Mostra o melhor resultado guardado neste navegador
+function mostrarRecorde() {
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  elRecorde.textContent = `Seu recorde: ${recorde} de ${perguntas.length}`;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+botaoDeNovo.addEventListener("click", () =&gt; {
+  // recomece o quiz do zero
+});
+
+mostrarRecorde();
+mostrarPergunta();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+
+#opcoes button.certo {
+  background: #c8f7c5;
+}
+
+#opcoes button.errado {
+  background: #f7c5c5;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+const botaoDeNovo = document.querySelector("#denovo");
+const elRecorde = document.querySelector("#recorde");
+
+const CHAVE_RECORDE = "quiz-recorde";
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  if (acertos &gt; recorde) {
+    localStorage.setItem(CHAVE_RECORDE, acertos);
+    elResultado.textContent += " Novo recorde!";
+  }
+  mostrarRecorde();
+  botaoDeNovo.hidden = false;
+}
+
+// Mostra o melhor resultado guardado neste navegador
+function mostrarRecorde() {
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  elRecorde.textContent = `Seu recorde: ${recorde} de ${perguntas.length}`;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+botaoDeNovo.addEventListener("click", () =&gt; {
+  atual = 0;
+  acertos = 0;
+  botaoDeNovo.hidden = true;
+  mostrarPergunta();
+});
+
+mostrarRecorde();
+mostrarPergunta();
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escolha</th><th>Opções</th><th>Qual usar</th></tr>
+<tr><td>Guardar a resposta certa</td><td>a posição (<code>certa: 1</code>) × o texto (<code>certa: '"105"'</code>)</td><td>A posição: comparar números é simples, e corrigir a escrita de uma opção não quebra a correção. O texto é mais fácil de ler no código, mas uma vírgula a mais e ninguém acerta.</td></tr>
+<tr><td>Saber qual botão foi clicado</td><td>arrow function com o <code>i</code> × <code>data-indice</code> no botão + <code>evento.target.dataset.indice</code></td><td>A arrow function é a mais curta. O <code>data-</code> (veja <a href="eventos-objeto.html">O Objeto do Evento</a>) serve quando um só ouvinte cuida de muitos botões.</td></tr>
+<tr><td>Criar os botões</td><td><code>createElement</code> × montar <code>innerHTML</code> com uma template string</td><td><code>createElement</code> com <code>textContent</code>: as opções podem ter <code>&lt;</code> e aspas, como <code>'"105"'</code>, sem risco (veja o aviso do <a href="projeto-compras-web.html">projeto da lista de compras</a>).</td></tr>
+<tr><td>As perguntas</td><td>no próprio <code>script.js</code> × num <code>perguntas.json</code> carregado com <a href="fetch.html">fetch</a></td><td>No script é o mais simples. Num JSON separado, dá para trocar o quiz sem mexer no código (o <code>fetch</code> de arquivo precisa de um servidor, não funciona com dois cliques no <code>index.html</code>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Desafio extra: embaralhar as perguntas</h2>
+<p>Jogando de novo, a Ana já sabe a ordem das perguntas de cor. A solução é embaralhar o array antes de cada partida. O jeito certo de embaralhar é o algoritmo de <strong>Fisher-Yates</strong>: do fim para o começo, troca cada item com um item sorteado entre ele e os anteriores (veja <a href="math-random.html">Math.random</a>):</p>
+
+<pre class="file" data-file="script.js">// Embaralha a lista no lugar (algoritmo de Fisher-Yates)
+function embaralhar(lista) {
+  for (let i = lista.length - 1; i &gt; 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+  }
+}
+</pre>
+
+<p>O <code>[lista[i], lista[j]] = [lista[j], lista[i]]</code> troca dois itens de lugar numa linha, com <a href="desestruturacao.html">desestruturação</a>. Chame <code>embaralhar(perguntas)</code> antes da primeira <code>mostrarPergunta()</code> e no Jogar de novo. Como a ordem muda a cada vez, a Ana conferiu no Console, abrindo a página três vezes, a posição certa de cada pergunta na ordem sorteada:</p>
+
+<pre class="devtools">&gt; perguntas.map((p) =&gt; p.certa).join(",")
+'1,1,1,0,2'</pre>
+<pre class="devtools">&gt; perguntas.map((p) =&gt; p.certa).join(",")
+'0,1,2,1,1'</pre>
+<pre class="devtools">&gt; perguntas.map((p) =&gt; p.certa).join(",")
+'1,1,0,2,1'</pre>
+
+<p>Três ordens diferentes. (Você vai achar na internet o atalho <code>perguntas.sort(() =&gt; Math.random() - 0.5)</code>: ele embaralha, mas não de forma justa; algumas ordens saem mais que outras. Prefira o Fisher-Yates.)</p>
+
+<div class="tryweb" data-goal="src:Math\.random;;texto:#progresso~Pergunta 1 de 5;;semerro">
+<p class="try-task"><strong>Desafio no editor:</strong> acrescente a função <code>embaralhar</code> e chame-a antes da primeira pergunta e no Jogar de novo. Rode algumas vezes: a primeira pergunta deve mudar.</p>
+<pre class="script" data-file="index.html">&lt;!DOCTYPE html&gt;
+&lt;html lang="pt-BR"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;Quiz de JavaScript&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Quiz de JavaScript&lt;/h1&gt;
+  &lt;p id="progresso"&gt;&lt;/p&gt;
+  &lt;h2 id="pergunta"&gt;&lt;/h2&gt;
+  &lt;div id="opcoes"&gt;&lt;/div&gt;
+  &lt;p id="resultado"&gt;&lt;/p&gt;
+  &lt;button id="proxima" hidden&gt;Próxima&lt;/button&gt;
+  &lt;button id="denovo" hidden&gt;Jogar de novo&lt;/button&gt;
+  &lt;p id="recorde"&gt;&lt;/p&gt;
+  &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<pre class="script" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+const botaoDeNovo = document.querySelector("#denovo");
+const elRecorde = document.querySelector("#recorde");
+
+const CHAVE_RECORDE = "quiz-recorde";
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  if (acertos &gt; recorde) {
+    localStorage.setItem(CHAVE_RECORDE, acertos);
+    elResultado.textContent += " Novo recorde!";
+  }
+  mostrarRecorde();
+  botaoDeNovo.hidden = false;
+}
+
+// Mostra o melhor resultado guardado neste navegador
+function mostrarRecorde() {
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  elRecorde.textContent = `Seu recorde: ${recorde} de ${perguntas.length}`;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+botaoDeNovo.addEventListener("click", () =&gt; {
+  atual = 0;
+  acertos = 0;
+  botaoDeNovo.hidden = true;
+  mostrarPergunta();
+});
+
+mostrarRecorde();
+mostrarPergunta();
+</pre>
+<pre class="script" data-file="style.css">body {
+  font-family: sans-serif;
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+#opcoes button {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font-size: 1em;
+}
+
+#opcoes button.certo {
+  background: #c8f7c5;
+}
+
+#opcoes button.errado {
+  background: #f7c5c5;
+}
+</pre>
+<pre class="solucao" data-file="script.js">const perguntas = [
+  {
+    texto: 'Quanto dá "10" + 5 no JavaScript?',
+    opcoes: ["15", '"105"', "NaN", "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual palavra cria uma variável que não pode receber outro valor?",
+    opcoes: ["let", "var", "const", "fixo"],
+    certa: 2,
+  },
+  {
+    texto: "O que typeof null devolve?",
+    opcoes: ['"null"', '"object"', '"undefined"', "Dá erro"],
+    certa: 1,
+  },
+  {
+    texto: "Qual método junta os itens de um array num texto só?",
+    opcoes: ["join", "split", "concat", "push"],
+    certa: 0,
+  },
+  {
+    texto: "0.1 + 0.2 === 0.3 dá…",
+    opcoes: ["true", "false"],
+    certa: 1,
+  },
+];
+
+const elProgresso = document.querySelector("#progresso");
+const elPergunta = document.querySelector("#pergunta");
+const elOpcoes = document.querySelector("#opcoes");
+const elResultado = document.querySelector("#resultado");
+const botaoProxima = document.querySelector("#proxima");
+const botaoDeNovo = document.querySelector("#denovo");
+const elRecorde = document.querySelector("#recorde");
+
+const CHAVE_RECORDE = "quiz-recorde";
+
+// Embaralha a lista no lugar (algoritmo de Fisher-Yates)
+function embaralhar(lista) {
+  for (let i = lista.length - 1; i &gt; 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+  }
+}
+
+let atual = 0;    // a posição da pergunta na tela
+let acertos = 0;
+
+function mostrarPergunta() {
+  const p = perguntas[atual];
+  elProgresso.textContent = `Pergunta ${atual + 1} de ${perguntas.length}`;
+  elPergunta.textContent = p.texto;
+  elResultado.textContent = "";
+  botaoProxima.hidden = true;
+  elOpcoes.replaceChildren();
+  p.opcoes.forEach((opcao, i) =&gt; {
+    const botao = document.createElement("button");
+    botao.textContent = opcao;
+    botao.addEventListener("click", () =&gt; responder(i));
+    elOpcoes.append(botao);
+  });
+}
+
+function responder(escolha) {
+  const p = perguntas[atual];
+  const botoes = elOpcoes.querySelectorAll("button");
+  for (const botao of botoes) {
+    botao.disabled = true;
+  }
+  botoes[p.certa].classList.add("certo");
+  if (escolha === p.certa) {
+    acertos++;
+    elResultado.textContent = "Certo!";
+  } else {
+    botoes[escolha].classList.add("errado");
+    elResultado.textContent = `Errado! A resposta é ${p.opcoes[p.certa]}.`;
+  }
+  botaoProxima.hidden = false;
+}
+
+function mostrarFim() {
+  elProgresso.textContent = "";
+  elPergunta.textContent = "Fim do quiz!";
+  elOpcoes.replaceChildren();
+  elResultado.textContent = `Você acertou ${acertos} de ${perguntas.length}.`;
+  botaoProxima.hidden = true;
+
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  if (acertos &gt; recorde) {
+    localStorage.setItem(CHAVE_RECORDE, acertos);
+    elResultado.textContent += " Novo recorde!";
+  }
+  mostrarRecorde();
+  botaoDeNovo.hidden = false;
+}
+
+// Mostra o melhor resultado guardado neste navegador
+function mostrarRecorde() {
+  const recorde = Number(localStorage.getItem(CHAVE_RECORDE));
+  elRecorde.textContent = `Seu recorde: ${recorde} de ${perguntas.length}`;
+}
+
+botaoProxima.addEventListener("click", () =&gt; {
+  atual++;
+  if (atual &lt; perguntas.length) {
+    mostrarPergunta();
+  } else {
+    mostrarFim();
+  }
+});
+
+botaoDeNovo.addEventListener("click", () =&gt; {
+  atual = 0;
+  acertos = 0;
+  botaoDeNovo.hidden = true;
+  embaralhar(perguntas);
+  mostrarPergunta();
+});
+
+embaralhar(perguntas);
+mostrarRecorde();
+mostrarPergunta();
+</pre>
+</div>
+
+<p>Outras ideias: embaralhar também as opções de cada pergunta (cuidado: a posição <code>certa</code> muda junto!); um tempo limite por pergunta com <a href="timers.html">setTimeout</a>; uma barra de progresso.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>{ texto, opcoes: [ … ], certa: 1 }</code></td><td>Uma pergunta; a certa pela posição</td></tr>
+<tr><td><code>opcoes.forEach((opcao, i) =&gt; { … })</code></td><td>Um botão por opção, sabendo a posição</td></tr>
+<tr><td><code>botao.addEventListener("click", () =&gt; responder(i))</code></td><td>Chamar <code>responder</code> só no clique, com a posição</td></tr>
+<tr><td><code>let atual = 0; let acertos = 0;</code></td><td>O estado do jogo</td></tr>
+<tr><td><code>elemento.hidden = true / false</code></td><td>Esconder e mostrar</td></tr>
+<tr><td><code>botao.disabled = true</code></td><td>Travar as opções depois da resposta</td></tr>
+<tr><td><code>classList.add("certo")</code></td><td>Pintar a certa (com o CSS)</td></tr>
+<tr><td><code>Number(localStorage.getItem(chave))</code></td><td>Ler o recorde (0 na primeira vez)</td></tr>
+<tr><td><code>localStorage.setItem(chave, acertos)</code></td><td>Guardar o recorde</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Todo botão diz "Errado", até o certo</td><td><code>for (var i …)</code>: todos lembram do mesmo <code>i</code>. Use <code>let</code> ou <code>forEach</code></td></tr>
+<tr><td>A página já abre "respondida" e os cliques não fazem nada</td><td><code>addEventListener("click", responder(i))</code>: faltou o <code>() =&gt;</code></td></tr>
+<tr><td>"Você acertou 7 de 5."</td><td>Dá para clicar mais de uma vez: desabilite os botões</td></tr>
+<tr><td>A pergunta seguinte aparece com os botões da anterior junto</td><td>Faltou o <code>replaceChildren()</code> antes de criar os novos</td></tr>
+<tr><td>O recorde compara errado ("10" &lt; "9")</td><td>Comparou os textos do <code>localStorage</code>: converta com <code>Number</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Só no clique</h3>
+<p>Complete para <code>responder(i)</code> rodar só quando clicarem:</p>
+<div class="ex-code">botao.addEventListener("click", <input data-answer="() =&gt; responder(i)|()=&gt;responder(i)" aria-label="função">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Travar</h3>
+<p>Complete a propriedade que impede novos cliques no botão:</p>
+<div class="ex-code">botao.<input data-answer="disabled" aria-label="propriedade"> = true;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Mostrar</h3>
+<p>Complete o valor que faz o botão escondido aparecer:</p>
+<div class="ex-code">botaoProxima.hidden = <input data-answer="false" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>4. O texto da certa</h3>
+<p>Sem rodar: com <code>opcoes: ["join", "split", "concat", "push"]</code> e <code>certa: 0</code>, o que é <code>opcoes[certa]</code>? (sem aspas)</p>
+<div class="ex-code"><input data-answer="join" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Com <code>for (var i = 0; …)</code>, por que o botão certo respondeu "Errado"?</p>
+<label><input type="radio" name="q5"> Porque o <code>var</code> não funciona em laços</label>
+<label><input type="radio" name="q5"> Porque todos os botões lembram da mesma variável <code>i</code>, que vale 4 quando alguém clica</label>
+<label><input type="radio" name="q5"> Porque faltou o <code>replaceChildren</code></label>
+<label><input type="radio" name="q5"> Porque o <code>===</code> não compara números</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>Number(localStorage.getItem("quiz-recorde"))</code> dá 0 na primeira visita?</p>
+<label><input type="radio" name="q6"> Porque o <code>getItem</code> devolve <code>null</code>, e <code>Number(null)</code> é 0</label>
+<label><input type="radio" name="q6"> Porque o <code>localStorage</code> começa com 0 em todas as chaves</label>
+<label><input type="radio" name="q6"> Porque dá erro e o erro vira 0</label>
+<label><input type="radio" name="q6"> Porque o <code>Number</code> sempre devolve 0 para texto</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. O que o Jogar de novo precisa fazer?</p>
+<label><input type="radio" name="q7"> Recarregar a página com <code>location.reload()</code></label>
+<label><input type="radio" name="q7"> Apagar o recorde do <code>localStorage</code></label>
+<label><input type="radio" name="q7"> Voltar <code>atual</code> e <code>acertos</code> para 0 e mostrar a primeira pergunta</label>
+<label><input type="radio" name="q7"> Criar um array de perguntas novo</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Dados primeiro: as perguntas num array de objetos, com a resposta certa pela posição.</li>
+  <li>Os botões nascem do array (<code>forEach</code> + <code>createElement</code>), e cada um lembra da sua posição pela closure. Com <code>var</code> no laço, todos lembrariam da mesma.</li>
+  <li>No <code>addEventListener</code>, entregue uma função (<code>() =&gt; responder(i)</code>), nunca a chamada (<code>responder(i)</code>).</li>
+  <li>O estado do jogo (<code>atual</code>, <code>acertos</code>) fica em variáveis <code>let</code>; cada tela é desenhada a partir dele.</li>
+  <li>Desabilite o que não pode ser clicado de novo; <code>hidden</code> esconde e mostra.</li>
+  <li>O <code>localStorage</code> guarda texto: converta com <code>Number</code> ao ler.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
