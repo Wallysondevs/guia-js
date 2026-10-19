@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Operadores Lógicos — &amp;&amp; (E), || (OU) e ! (NÃO) | Guia JavaScript</title>
+<meta name="description" content="Os operadores lógicos do JavaScript para quem nunca programou: &amp;&amp; (E), || (OU) e ! (NÃO), as tabelas-verdade, como juntar comparações (nota entre 0 e 10), o curto-circuito, o valor que eles devolvem (nome || &quot;visitante&quot;), a pegadinha do 0, e os erros reais do Node.js 24 (and/or, &amp; sozinho, cor === &quot;azul&quot; || &quot;verde&quot;).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Operadores Lógicos</span></h1>
+
+<p class="intro">Na aula <a href="operadores-comparacao.html">Comparação</a>, você fez perguntas de uma parte só: "a idade é maior ou igual a 18?", "o preço é menor que 50?". A vida real quase sempre pergunta <strong>duas coisas ao mesmo tempo</strong>: "tem ingresso <strong>e</strong> tem idade?", "paga com dinheiro <strong>ou</strong> com cartão?", "<strong>não</strong> está chovendo?". Para juntar perguntas existem os <strong>operadores lógicos</strong>: <code>&amp;&amp;</code> (E), <code>||</code> (OU) e <code>!</code> (NÃO).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>&amp;&amp;</code> ("E"): verdadeiro só quando as <strong>duas</strong> partes são verdadeiras.</li>
+  <li>O <code>||</code> ("OU"): verdadeiro quando <strong>pelo menos uma</strong> parte é verdadeira.</li>
+  <li>O <code>!</code> ("NÃO"): inverte, <code>true</code> vira <code>false</code> e vice-versa.</li>
+  <li>Como juntar comparações: "a nota está entre 0 e 10" e "a nota é inválida".</li>
+  <li>O <strong>curto-circuito</strong>: quando o JavaScript nem olha a segunda parte.</li>
+  <li>Que <code>&amp;&amp;</code> e <code>||</code> devolvem <strong>um dos valores</strong>, e não só <code>true</code>/<code>false</code> (<code>nome || "visitante"</code>), e a pegadinha do <code>0</code>.</li>
+  <li>Os erros reais: <code>and</code>/<code>or</code> escritos por extenso, o <code>&amp;</code> sozinho, e o <code>cor === "azul" || "verde"</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: as regras da portaria do cinema</h2>
+<p>O cinema do bairro tem um cartaz na porta da sala do filme de terror:</p>
+<ol class="passo">
+  <li><em>"Para entrar, é preciso ter ingresso <strong>E</strong> ter 14 anos ou mais."</em> Quem tem ingresso mas tem 12 anos fica de fora. Quem tem 20 anos mas não comprou ingresso também. As <strong>duas</strong> condições precisam ser verdade.</li>
+  <li>Na bilheteria: <em>"Aceitamos dinheiro <strong>OU</strong> cartão."</em> Basta <strong>uma</strong> das duas. Quem tem as duas também paga, claro.</li>
+  <li>Na pipoca: <em>"Promoção válida se o cliente <strong>NÃO</strong> for funcionário."</em> O "não" vira a resposta ao contrário.</li>
+</ol>
+<p>Cada pergunta do cartaz tem resposta <code>true</code> (verdadeiro) ou <code>false</code> (falso), os <a href="booleanos.html">booleanos</a>. Os operadores lógicos pegam essas respostas e montam uma resposta nova:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Em português</th><th>Em JavaScript</th><th>Como se lê</th></tr>
+<tr><td>E</td><td><code>&amp;&amp;</code></td><td>"e" (dois "e comercial" grudados)</td></tr>
+<tr><td>OU</td><td><code>||</code></td><td>"ou" (duas barras verticais grudadas; no teclado ABNT, <kbd>Shift</kbd> + a tecla ao lado do <kbd>Z</kbd>)</td></tr>
+<tr><td>NÃO</td><td><code>!</code></td><td>"não" (o ponto de exclamação, sempre <strong>antes</strong> do valor)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. <code>&amp;&amp;</code> (E): as duas partes têm de ser verdade</h2>
+
+<pre class="file" data-file="cinema.js">const idade = 16;
+const temIngresso = true;
+
+console.log(idade &gt;= 14 &amp;&amp; temIngresso);
+console.log(idade &gt;= 18 &amp;&amp; temIngresso);
+</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 14</dt><dd>A primeira pergunta: "a idade é 14 ou mais?". Com <code>idade</code> valendo 16, a resposta é <code>true</code>.</dd>
+  <dt>&amp;&amp;</dt><dd>O "E". Junta a pergunta da esquerda com a da direita.</dd>
+  <dt>temIngresso</dt><dd>A segunda pergunta. Aqui ela já é um booleano pronto (<code>true</code>), então não precisa de comparação: <code>temIngresso === true</code> seria o mesmo que <code>temIngresso</code>, só mais comprido.</dd>
+  <dt>idade &gt;= 18 &amp;&amp; temIngresso</dt><dd>Agora a primeira parte é <code>false</code> (16 não é 18 ou mais). Como o "E" exige as duas, o resultado é <code>false</code>, mesmo com o ingresso.</dd>
+</dl>
+
+<pre class="term">$ node cinema.js
+true
+false
+</pre>
+
+<p>Todas as combinações possíveis cabem numa tabelinha, a <strong>tabela-verdade</strong> do <code>&amp;&amp;</code>. Ela saiu deste programa:</p>
+
+<pre class="file" data-file="tabela-e.js">console.log("true  &amp;&amp; true  →", true &amp;&amp; true);
+console.log("true  &amp;&amp; false →", true &amp;&amp; false);
+console.log("false &amp;&amp; true  →", false &amp;&amp; true);
+console.log("false &amp;&amp; false →", false &amp;&amp; false);
+</pre>
+
+<pre class="term">$ node tabela-e.js
+true  &amp;&amp; true  → true
+true  &amp;&amp; false → false
+false &amp;&amp; true  → false
+false &amp;&amp; false → false
+</pre>
+
+<p>Resumindo: <strong>basta um <code>false</code> para o "E" dar <code>false</code>.</strong> Só dá <code>true</code> quando tudo é <code>true</code>.</p>
+
+<hr>
+
+<h2>2. <code>||</code> (OU): basta uma parte ser verdade</h2>
+
+<pre class="file" data-file="pagamento.js">const temDinheiro = false;
+const temCartao = true;
+
+console.log(temDinheiro || temCartao);
+console.log(temDinheiro || false);
+</pre>
+
+<pre class="term">$ node pagamento.js
+true
+false
+</pre>
+
+<p>Na primeira linha, a Ana não tem dinheiro, mas tem cartão: uma das duas basta, <code>true</code>. Na segunda, as duas partes são <code>false</code>, então o "OU" também dá <code>false</code>. A tabela-verdade do <code>||</code>:</p>
+
+<pre class="file" data-file="tabela-ou.js">console.log("true  || true  →", true || true);
+console.log("true  || false →", true || false);
+console.log("false || true  →", false || true);
+console.log("false || false →", false || false);
+</pre>
+
+<pre class="term">$ node tabela-ou.js
+true  || true  → true
+true  || false → true
+false || true  → true
+false || false → false
+</pre>
+
+<p>O espelho do "E": <strong>basta um <code>true</code> para o "OU" dar <code>true</code>.</strong> Só dá <code>false</code> quando tudo é <code>false</code>.</p>
+
+<div class="note">
+<strong>O "ou" do JavaScript não é o "ou um ou outro"</strong>
+<p>Em português, "café ou chá?" costuma querer dizer "escolha <strong>só um</strong>". O <code>||</code> não é assim: <code>true || true</code> dá <code>true</code>. Quem tem dinheiro <strong>e</strong> cartão também pode pagar.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>!</code> (NÃO): inverte a resposta</h2>
+
+<pre class="file" data-file="nao.js">const ehFuncionario = false;
+const ganhaPromocao = !ehFuncionario;
+
+console.log("Funcionário?", ehFuncionario);
+console.log("Ganha a promoção?", ganhaPromocao);
+console.log(!true, !false);
+</pre>
+
+<pre class="term">$ node nao.js
+Funcionário? false
+Ganha a promoção? true
+false true
+</pre>
+
+<p>O <code>!</code> vem <strong>colado antes</strong> do valor (<code>!ehFuncionario</code>) e só trabalha com um valor, enquanto o <code>&amp;&amp;</code> e o <code>||</code> ficam entre dois. Ele lê "não é funcionário?": como <code>ehFuncionario</code> é <code>false</code>, a resposta invertida é <code>true</code>.</p>
+
+<p>Para inverter uma expressão inteira, use parênteses: <code>!(idade &gt;= 18)</code> quer dizer "a idade <strong>não</strong> é 18 ou mais" (o mesmo que <code>idade &lt; 18</code>). Sem os parênteses, o <code>!</code> pegaria só o <code>idade</code>, e o resultado seria outro (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="tryjs" data-goal="out:Frete grátis? true;;src:\|\|">
+<p class="try-task"><strong>Missão:</strong> a lojinha da Ana dá frete grátis para compras de R$ 100 ou mais <strong>OU</strong> para clientes VIP. O programa abaixo usa o operador errado e nega o frete para uma cliente VIP que comprou R$ 80. Troque o operador para aparecer <code>Frete grátis? true</code>.</p>
+<pre class="script" data-file="main.js">const totalCompra = 80;
+const clienteVip = true;
+const freteGratis = totalCompra &gt;= 100 &amp;&amp; clienteVip;
+console.log("Frete grátis?", freteGratis);
+</pre>
+<pre class="solucao" data-file="main.js">const totalCompra = 80;
+const clienteVip = true;
+const freteGratis = totalCompra &gt;= 100 || clienteVip;
+console.log("Frete grátis?", freteGratis);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Juntando comparações: a nota entre 0 e 10</h2>
+<p>A professora da Ana quer saber se uma nota é <strong>válida</strong>, isto é, se está entre 0 e 10. Em matemática se escreve 0 ≤ nota ≤ 10, mas no JavaScript são <strong>duas perguntas</strong> ligadas por um "E": a nota é maior ou igual a 0 <strong>e</strong> menor ou igual a 10.</p>
+
+<pre class="file" data-file="nota.js">const nota = 7.5;
+const notaValida = nota &gt;= 0 &amp;&amp; nota &lt;= 10;
+const notaInvalida = nota &lt; 0 || nota &gt; 10;
+
+console.log("Nota:", nota);
+console.log("Válida?", notaValida);
+console.log("Inválida?", notaInvalida);
+</pre>
+
+<pre class="term">$ node nota.js
+Nota: 7.5
+Válida? true
+Inválida? false
+</pre>
+
+<p>Repare que as duas perguntas são o avesso uma da outra: "válida" usa <code>&amp;&amp;</code> (dentro da faixa: as duas pontas valem), e "inválida" usa <code>||</code> (fora da faixa: basta escapar por <strong>um</strong> lado). Trocando a nota para <code>15</code>, as respostas se invertem:</p>
+
+<pre class="term">$ node nota15.js
+Nota: 15
+Válida? false
+Inválida? true
+</pre>
+
+<h3>Três partes ou mais</h3>
+<p>Dá para encadear quantas partes quiser: <code>a &amp;&amp; b &amp;&amp; c</code> só é <code>true</code> se as três forem; <code>a || b || c</code> é <code>true</code> se qualquer uma for. Quando misturar <code>&amp;&amp;</code> com <code>||</code>, use <strong>parênteses</strong> para deixar claro o que vai junto. No parque de diversões, a montanha-russa exige 1,40 m de altura <strong>e</strong> (12 anos <strong>ou</strong> um adulto junto):</p>
+
+<pre class="file" data-file="parque.js">const altura = 1.45;
+const idade = 10;
+const comAdulto = true;
+
+const podeEntrar = altura &gt;= 1.4 &amp;&amp; (idade &gt;= 12 || comAdulto);
+console.log("Pode entrar?", podeEntrar);
+</pre>
+
+<pre class="term">$ node parque.js
+Pode entrar? true
+</pre>
+
+<p>O JavaScript resolve primeiro os parênteses (<code>false || true</code> → <code>true</code>) e depois o "E" (<code>true &amp;&amp; true</code> → <code>true</code>). Sem parênteses, o <code>&amp;&amp;</code> seria feito <strong>antes</strong> do <code>||</code>, porque ele tem prioridade maior (como a multiplicação antes da soma). A aula <a href="precedencia.html">Precedência dos Operadores</a> mostra a ordem completa; por enquanto, a regra prática é: <strong>misturou <code>&amp;&amp;</code> e <code>||</code>, ponha parênteses.</strong></p>
+
+<hr>
+
+<h2>5. O curto-circuito: quando a segunda parte nem é olhada</h2>
+<p>O JavaScript lê da esquerda para a direita e é preguiçoso de um jeito esperto:</p>
+<ul>
+  <li>no <code>a &amp;&amp; b</code>, se <code>a</code> já é falso, o resultado <strong>vai ser</strong> falso, então ele nem olha o <code>b</code>;</li>
+  <li>no <code>a || b</code>, se <code>a</code> já é verdadeiro, o resultado <strong>vai ser</strong> verdadeiro, então ele nem olha o <code>b</code>.</li>
+</ul>
+<p>Isso se chama <strong>curto-circuito</strong>. Dá para ver acontecendo pondo um <code>console.log</code> na segunda parte:</p>
+
+<pre class="file" data-file="curto.js">console.log("Começo");
+false &amp;&amp; console.log("1. isto não aparece");
+true &amp;&amp; console.log("2. isto aparece");
+true || console.log("3. isto não aparece");
+false || console.log("4. isto aparece");
+console.log("Fim");
+</pre>
+
+<pre class="term">$ node curto.js
+Começo
+2. isto aparece
+4. isto aparece
+Fim
+</pre>
+
+<p>As linhas 1 e 3 nunca rodaram: o JavaScript já sabia a resposta pela primeira parte. Isso não é só curiosidade, é uma <strong>proteção</strong> muito usada. Imagine que o nome do cliente pode não ter sido preenchido (<code>null</code>, veja <a href="null-undefined.html">null e undefined</a>):</p>
+
+<pre class="file" data-file="protecao.js">const nome = null;
+const temNome = nome !== null &amp;&amp; nome.length &gt; 0;
+console.log("Tem nome?", temNome);
+</pre>
+
+<pre class="term">$ node protecao.js
+Tem nome? false
+</pre>
+
+<p>Como <code>nome !== null</code> deu <code>false</code>, o <code>nome.length</code> (o tamanho do texto) nunca foi calculado. E ainda bem: pedir o <code>.length</code> de <code>null</code> é um erro que derruba o programa (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>6. <code>&amp;&amp;</code> e <code>||</code> devolvem um dos valores</h2>
+<p>Até aqui, tudo deu <code>true</code> ou <code>false</code>. Mas a regra exata é outra: o <code>&amp;&amp;</code> e o <code>||</code> devolvem <strong>um dos dois valores</strong>, exatamente o que fez o JavaScript decidir. Com booleanos não dá para notar a diferença; com textos e números, dá:</p>
+
+<pre class="file" data-file="valores.js">console.log("Ana" || "visitante");
+console.log("" || "visitante");
+console.log(null || "visitante");
+console.log("Ana" &amp;&amp; "Bia");
+console.log(null &amp;&amp; "Bia");
+console.log(0 || 10);
+</pre>
+
+<pre class="term">$ node valores.js
+Ana
+visitante
+visitante
+Bia
+null
+10
+</pre>
+
+<p>Para entender, você precisa de uma ideia da aula <a href="truthy-falsy.html">Truthy e Falsy</a>: alguns valores <strong>contam como falso</strong> numa pergunta (<code>false</code>, <code>0</code>, <code>""</code> o texto vazio, <code>null</code>, <code>undefined</code> e <code>NaN</code>), e todos os outros contam como verdadeiro. Com isso:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que devolve</th><th>Exemplo</th></tr>
+<tr><td><code>a || b</code></td><td>O <code>a</code>, se ele contar como verdadeiro; senão, o <code>b</code></td><td><code>"" || "visitante"</code> → <code>visitante</code></td></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>O <code>a</code>, se ele contar como falso; senão, o <code>b</code></td><td><code>null &amp;&amp; "Bia"</code> → <code>null</code></td></tr>
+<tr><td><code>!a</code></td><td>Sempre um booleano: <code>true</code> se <code>a</code> conta como falso</td><td><code>!""</code> → <code>true</code></td></tr>
+</table>
+</div>
+
+<p>O uso mais comum disso é o <strong>valor padrão</strong>: "use o nome, e, se ele estiver vazio, use <code>visitante</code>":</p>
+
+<pre class="file" data-file="padrao.js">const nomeDigitado = "";
+const nome = nomeDigitado || "visitante";
+console.log(`Olá, ${nome}!`);
+</pre>
+
+<pre class="term">$ node padrao.js
+Olá, visitante!
+</pre>
+
+<p>(O <code>`Olá, ${nome}!`</code> com crases é um <a href="template-strings.html">template string</a>, que encaixa o valor da variável no texto.)</p>
+
+<div class="warning">
+<strong>A pegadinha do 0</strong>
+<p>O <code>0</code> também conta como falso. Se a quantidade em estoque pode ser zero, <code>quantidade || 10</code> troca o zero por 10, e o programa diz que tem 10 pães quando não tem nenhum (a última linha de <code>valores.js</code> mostrou: <code>0 || 10</code> deu <code>10</code>). Para "use o padrão só quando o valor <strong>faltar</strong> (<code>null</code> ou <code>undefined</code>)", o JavaScript tem o <code>??</code>: <code>0 ?? 10</code> dá <code>0</code>. Ele tem aula própria: <a href="optional-chaining.html">?. e ??</a>.</p>
+</div>
+
+<p>E o <code>!!</code> (dois "não" seguidos)? Ele inverte duas vezes, e o que sobra é o booleano que o valor "conta como": <code>!!"Ana"</code> dá <code>true</code>, <code>!!""</code> dá <code>false</code>. Você vai encontrá-lo em código dos outros; o jeito mais claro de escrever a mesma coisa é <code>Boolean("Ana")</code> (veja <a href="conversao.html">Conversão</a>).</p>
+
+<pre class="file" data-file="duplo.js">console.log(!!"Ana", !!"", !!0, !!42);
+console.log(Boolean("Ana"), Boolean(""));
+</pre>
+
+<pre class="term">$ node duplo.js
+true false false true
+true false
+</pre>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> troque o valor de <code>nomeDigitado</code> por <code>"Bia"</code>, depois por <code>null</code>, depois por <code>"   "</code> (três espaços). O texto com espaços conta como verdadeiro ou falso?</p>
+<pre class="script" data-file="main.js">const nomeDigitado = "";
+const nome = nomeDigitado || "visitante";
+console.log(`Olá, ${nome}!`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A mesma pergunta pode ser escrita de mais de um jeito. As duas linhas de cada par abaixo dão sempre o mesmo resultado:</p>
+
+<pre class="file" data-file="formas.js">const nota = 15;
+
+// "a nota é inválida?"
+console.log(nota &lt; 0 || nota &gt; 10);
+console.log(!(nota &gt;= 0 &amp;&amp; nota &lt;= 10));
+
+// "não tem dinheiro E não tem cartão?"
+const temDinheiro = false;
+const temCartao = false;
+console.log(!temDinheiro &amp;&amp; !temCartao);
+console.log(!(temDinheiro || temCartao));
+</pre>
+
+<pre class="term">$ node formas.js
+true
+true
+true
+true
+</pre>
+
+<p>Esse "troca-troca" tem nome: <strong>leis de De Morgan</strong>. Para negar uma pergunta com "E", negue cada parte e troque o "E" por "OU" (e vice-versa): "não (A e B)" é o mesmo que "não A ou não B". Na prática, escolha a forma que se lê melhor em voz alta: <code>nota &lt; 0 || nota &gt; 10</code> ("menor que zero ou maior que dez") é mais fácil de entender que a versão com <code>!( … )</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Todas as condições precisam valer (faixa de valores, "tem isso e aquilo")</td><td><code>a &amp;&amp; b</code></td></tr>
+<tr><td>Basta uma condição (várias formas de pagamento, várias exceções)</td><td><code>a || b</code></td></tr>
+<tr><td>Inverter um booleano</td><td><code>!a</code> (para uma expressão inteira: <code>!( … )</code>)</td></tr>
+<tr><td>Valor padrão quando o texto vem vazio</td><td><code>valor || "padrão"</code></td></tr>
+<tr><td>Valor padrão só quando falta (<code>null</code>/<code>undefined</code>), e <code>0</code> ou <code>""</code> são respostas válidas</td><td><code>valor ?? padrão</code> (aula <a href="optional-chaining.html">?. e ??</a>)</td></tr>
+<tr><td>Transformar qualquer valor em booleano</td><td><code>Boolean(valor)</code> (ou <code>!!valor</code>, em código antigo)</td></tr>
+</table>
+</div>
+
+<p>Nas próximas aulas, os operadores lógicos vão aparecer o tempo todo dentro do <code>if</code> ("se"), que decide se um trecho do programa roda ou não: <code>if (nota &gt;= 0 &amp;&amp; nota &lt;= 10) { … }</code> (veja <a href="if.html">if</a>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>and</code> ou <code>or</code> por extenso</strong>
+<p>Quem vem do Python (ou do Lua) escreve as palavras:</p>
+<pre class="file" data-file="and.js">const idade = 16;
+const temIngresso = true;
+console.log(idade &gt;= 14 and temIngresso);
+</pre>
+<pre class="term">$ node and.js
+/home/ana/and.js:3
+console.log(idade &gt;= 14 and temIngresso);
+                     ^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « mais 7 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/and.js:3</dt><dd>O arquivo e a linha onde o Node encontrou o problema: a linha 3.</dd>
+  <dt>console.log(idade &gt;= 14 and temIngresso);</dt><dd>A própria linha 3, copiada.</dd>
+  <dt>^^</dt><dd>As setinhas embaixo do <code>14</code>: o último pedaço que fez sentido para o Node. O problema está logo <strong>depois</strong> dele.</dd>
+  <dt>SyntaxError: missing ) after argument list</dt><dd>"Erro de sintaxe: faltou o <code>)</code> depois da lista de argumentos." O Node leu <code>idade &gt;= 14</code> e esperava, em seguida, uma vírgula ou o <code>)</code> que fecha o <code>console.log</code>. Encontrou uma palavra solta e se perdeu. A mensagem fala do parêntese, mas o defeito é o <code>and</code>: para o JavaScript, <code>and</code> não é nada.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Os lugares de dentro do próprio Node por onde o erro passou (no terminal aparecem 8 linhas assim). Não ajudam você; dá para ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa.</dd>
+</dl>
+<p>Um erro de sintaxe impede o programa inteiro de rodar: nenhuma linha anterior aparece. <strong>Como consertar:</strong> <code>and</code> → <code>&amp;&amp;</code>, <code>or</code> → <code>||</code>, <code>not</code> → <code>!</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu um <code>&amp;</code> só (ou um <code>|</code> só)</strong>
+<pre class="file" data-file="um-e.js">const idade = 16;
+const temIngresso = true;
+console.log(idade &gt;= 14 &amp; temIngresso);
+console.log(idade &gt;= 18 | temIngresso);
+</pre>
+<pre class="term">$ node um-e.js
+1
+1
+</pre>
+<p>Nenhuma mensagem de erro, e por isso é traiçoeiro: o <code>&amp;</code> e o <code>|</code> sozinhos <strong>existem</strong>, mas são outros operadores (os "bit a bit", que fazem contas com os zeros e uns dentro dos números). Eles transformam <code>true</code> em 1 e <code>false</code> em 0 e devolvem um <strong>número</strong>, não um booleano, e não fazem curto-circuito. <strong>Como consertar:</strong> são sempre <strong>dois</strong>: <code>&amp;&amp;</code> e <code>||</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>cor === "azul" || "verde"</code>: o "ou" que sempre dá certo</strong>
+<pre class="file" data-file="cor.js">const cor = "vermelho";
+const corFria = cor === "azul" || "verde";
+console.log("É cor fria?", corFria);
+</pre>
+<pre class="term">$ node cor.js
+É cor fria? verde
+</pre>
+<p>A Ana quis perguntar "a cor é azul ou verde?". Mas o JavaScript leu duas partes separadas: <code>cor === "azul"</code> (que dá <code>false</code>) <strong>ou</strong> <code>"verde"</code> (um texto que não está vazio, que conta como verdadeiro). Pela regra da seção 6, o <code>||</code> devolveu o <code>"verde"</code>, e qualquer pergunta com esse resultado vai achar que "sim". <strong>Como consertar:</strong> repita a comparação em cada parte: <code>cor === "azul" || cor === "verde"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>0 &lt; nota &lt; 10</code>: a faixa escrita como em matemática</strong>
+<pre class="file" data-file="faixa.js">const nota = 15;
+console.log(0 &lt; nota &lt; 10);
+console.log(0 &lt; nota &amp;&amp; nota &lt; 10);
+</pre>
+<pre class="term">$ node faixa.js
+true
+false
+</pre>
+<p>A primeira linha diz que 15 está entre 0 e 10! O JavaScript faz uma comparação de cada vez: <code>0 &lt; 15</code> dá <code>true</code>, e depois <code>true &lt; 10</code>, em que o <code>true</code> vira o número 1 (veja <a href="conversao-automatica.html">Conversão Automática</a>), e <code>1 &lt; 10</code> dá <code>true</code>. Nenhum erro, resposta errada. <strong>Como consertar:</strong> duas comparações ligadas por <code>&amp;&amp;</code>, como na segunda linha.</p>
+</div>
+
+<div class="cenario">
+<strong>Sem a proteção do curto-circuito</strong>
+<pre class="file" data-file="semprotecao.js">const nome = null;
+const temNome = nome.length &gt; 0;
+console.log("Tem nome?", temNome);
+</pre>
+<pre class="term">$ node semprotecao.js
+/home/ana/semprotecao.js:2
+const temNome = nome.length &gt; 0;
+                     ^
+
+TypeError: Cannot read properties of null (reading 'length')
+    at Object.&lt;anonymous&gt; (/home/ana/semprotecao.js:2:22)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « mais 6 linhas "at" de dentro do Node, cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: não dá para ler propriedades de <code>null</code> (lendo <code>length</code>)". O <code>null</code> não é um texto e não tem tamanho. O <code>at Object.&lt;anonymous&gt; (/home/ana/semprotecao.js:2:22)</code> confirma o lugar: linha 2, coluna 22, o ponto antes do <code>length</code>. Este é um erro <strong>de execução</strong>: o programa começou a rodar e parou na linha 2. <strong>Como consertar:</strong> pergunte antes se o valor existe: <code>nome !== null &amp;&amp; nome.length &gt; 0</code> (seção 5).</p>
+</div>
+
+<div class="tryjs" data-goal="out:É cor fria? true;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa diz que <code>"vermelho"</code> é cor fria. Conserte a condição para ela perguntar de verdade "a cor é azul <strong>ou</strong> a cor é verde?". Depois troque a cor para <code>"verde"</code> até aparecer <code>É cor fria? true</code>.</p>
+<pre class="script" data-file="main.js">const cor = "vermelho";
+const corFria = cor === "azul" || "verde";
+console.log("É cor fria?", corFria);
+</pre>
+<pre class="solucao" data-file="main.js">const cor = "verde";
+const corFria = cor === "azul" || cor === "verde";
+console.log("É cor fria?", corFria);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Nome</th><th>Resultado</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>E</td><td><code>true</code> só se as duas partes forem verdadeiras. Devolve <code>a</code> se ele contar como falso; senão, <code>b</code></td></tr>
+<tr><td><code>a || b</code></td><td>OU</td><td><code>true</code> se pelo menos uma parte for verdadeira. Devolve <code>a</code> se ele contar como verdadeiro; senão, <code>b</code></td></tr>
+<tr><td><code>!a</code></td><td>NÃO</td><td>Inverte: <code>!true</code> → <code>false</code>, <code>!false</code> → <code>true</code></td></tr>
+<tr><td><code>!!a</code></td><td>NÃO NÃO</td><td>O booleano que <code>a</code> "conta como" (o mesmo que <code>Boolean(a)</code>)</td></tr>
+<tr><td><code>x &gt;= 0 &amp;&amp; x &lt;= 10</code></td><td>—</td><td><code>x</code> está entre 0 e 10 (inclusive)</td></tr>
+<tr><td><code>x &lt; 0 || x &gt; 10</code></td><td>—</td><td><code>x</code> está fora da faixa</td></tr>
+<tr><td><code>valor || "padrão"</code></td><td>—</td><td>Valor padrão quando <code>valor</code> conta como falso (cuidado com o <code>0</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code> apontando um <code>and</code>/<code>or</code></td><td>Escreveu a palavra no lugar de <code>&amp;&amp;</code>/<code>||</code></td></tr>
+<tr><td>Saiu <code>1</code> ou <code>0</code> no lugar de <code>true</code>/<code>false</code></td><td>Usou <code>&amp;</code> ou <code>|</code> sozinho</td></tr>
+<tr><td>A pergunta com "ou" sempre dá certo</td><td><code>x === "a" || "b"</code>: falta repetir o <code>x ===</code></td></tr>
+<tr><td>Um número fora da faixa passa no teste</td><td>Escreveu <code>0 &lt; x &lt; 10</code>; o certo é <code>0 &lt; x &amp;&amp; x &lt; 10</code></td></tr>
+<tr><td>A quantidade 0 virou o valor padrão</td><td><code>0 || padrão</code>: use <code>??</code></td></tr>
+<tr><td><code>TypeError: Cannot read properties of null</code></td><td>Faltou proteger com <code>valor !== null &amp;&amp; …</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual é o resultado?</h3>
+<p>Escreva o que cada linha mostra (<code>true</code> ou <code>false</code>):</p>
+<div class="ex-code">console.log(true &amp;&amp; false); → <input data-answer="false" aria-label="resultado 1"><br>console.log(false || true); → <input data-answer="true" aria-label="resultado 2"><br>console.log(!(5 &gt; 3)); → <input data-answer="false" aria-label="resultado 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a faixa</h3>
+<p>Complete para a variável dizer se a <code>idade</code> está entre 18 e 65 (inclusive):</p>
+<div class="ex-code">const adulto = idade &gt;= 18 <input data-answer="&amp;&amp;" aria-label="operador lógico"> idade &lt;= 65;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O valor devolvido</h3>
+<p>O que o programa mostra?</p>
+<pre class="file" data-file="ex3.js">const apelido = "";
+console.log(apelido || "Sem apelido");
+</pre>
+<div class="ex-code">Saída: <input data-answer="Sem apelido" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana quer saber se o dia é sábado <strong>ou</strong> domingo. Qual linha está certa?</p>
+<label><input type="radio" name="q4"> <code>dia === "sábado" || "domingo"</code></label>
+<label><input type="radio" name="q4"> <code>dia === "sábado" &amp;&amp; dia === "domingo"</code></label>
+<label><input type="radio" name="q4"> <code>dia === "sábado" || dia === "domingo"</code></label>
+<label><input type="radio" name="q4"> <code>dia === "sábado" or dia === "domingo"</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Em <code>false &amp;&amp; console.log("oi")</code>, o que acontece?</p>
+<label><input type="radio" name="q5"> Aparece <code>oi</code></label>
+<label><input type="radio" name="q5"> Nada aparece: o JavaScript nem olha a segunda parte (curto-circuito)</label>
+<label><input type="radio" name="q5"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q5"> Aparece <code>false oi</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O estoque tem <code>const paes = 0;</code>. Quanto vale <code>paes || 10</code>?</p>
+<label><input type="radio" name="q6"> <code>10</code>, porque o 0 conta como falso</label>
+<label><input type="radio" name="q6"> <code>0</code></label>
+<label><input type="radio" name="q6"> <code>true</code></label>
+<label><input type="radio" name="q6"> <code>false</code></label>
+</div>
+
+<h3>Missão final: a montanha-russa</h3>
+
+<div class="tryjs" data-goal="out:Pode entrar? true;;src:&amp;&amp;;;src:\|\|">
+<p class="try-task"><strong>Missão:</strong> a regra da montanha-russa é: altura de pelo menos 1,40 m (<code>1.4</code>) <strong>E</strong> (12 anos ou mais <strong>OU</strong> com um adulto junto). Troque o <code>false</code> pela condição completa, usando <code>&amp;&amp;</code>, <code>||</code> e parênteses. Com os valores do programa, a resposta tem de ser <code>Pode entrar? true</code>. Depois, mude <code>comAdulto</code> para <code>false</code> e veja a resposta mudar.</p>
+<pre class="script" data-file="main.js">const altura = 1.45;
+const idade = 10;
+const comAdulto = true;
+
+const podeEntrar = false; // troque o false pela condição
+console.log("Pode entrar?", podeEntrar);
+</pre>
+<pre class="solucao" data-file="main.js">const altura = 1.45;
+const idade = 10;
+const comAdulto = true;
+
+const podeEntrar = altura &gt;= 1.4 &amp;&amp; (idade &gt;= 12 || comAdulto);
+console.log("Pode entrar?", podeEntrar);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>&amp;&amp;</code> (E) dá <code>true</code> só quando <strong>todas</strong> as partes são verdadeiras; <code>||</code> (OU) dá <code>true</code> quando <strong>pelo menos uma</strong> é; <code>!</code> (NÃO) inverte.</li>
+  <li>Faixa de valores: <code>x &gt;= 0 &amp;&amp; x &lt;= 10</code>. Fora da faixa: <code>x &lt; 0 || x &gt; 10</code>. Nunca <code>0 &lt; x &lt; 10</code>.</li>
+  <li>Misturou <code>&amp;&amp;</code> e <code>||</code>? Use parênteses.</li>
+  <li><strong>Curto-circuito:</strong> no <code>&amp;&amp;</code>, se a primeira parte é falsa, a segunda nem roda; no <code>||</code>, se a primeira é verdadeira, idem. Serve de proteção: <code>nome !== null &amp;&amp; nome.length &gt; 0</code>.</li>
+  <li><code>&amp;&amp;</code> e <code>||</code> devolvem um dos valores: <code>nome || "visitante"</code> é um valor padrão (mas o <code>0</code> e o <code>""</code> também contam como falso; para eles, <code>??</code>).</li>
+  <li>Erros comuns: <code>and</code>/<code>or</code> por extenso (<code>SyntaxError</code>), <code>&amp;</code>/<code>|</code> sozinhos (dão números) e <code>x === "a" || "b"</code> (sempre "verdadeiro").</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
