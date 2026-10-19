@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Mensagens de Erro Comuns — o que significam e como resolver | Guia JavaScript</title>
+<meta name="description" content="As mensagens de erro mais comuns do Node.js 24 e do V8, colhidas de verdade e explicadas em português: is not defined, Cannot read properties of undefined, is not a function, Assignment to constant variable, missing ) after argument list, Unexpected end of input, Maximum call stack size exceeded, Cannot find module, ENOENT e outras, com a causa e a solução de cada uma.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Mensagens de Erro Comuns</span></h1>
+
+<p class="intro">Esta é a página de consulta das <strong>mensagens de erro</strong> que você mais vai ver no Node.js (e, quase iguais, no navegador, porque o Chrome e o Node usam o mesmo motor de JavaScript, o V8). As mensagens saem sempre em <strong>inglês</strong>; aqui cada uma tem a tradução, o que ela quer dizer, um programa que a provoca e o jeito de resolver. Todas foram colhidas de verdade no computador da Ana, com o Node.js v24.22.0.</p>
+
+<div class="note">
+<strong>Como usar esta página</strong>
+<ul>
+  <li>Procure pela <strong>última parte</strong> da mensagem (Ctrl+F): por exemplo, <code>is not defined</code> ou <code>Cannot read properties</code>. O nome da variável na sua mensagem será outro.</li>
+  <li>Os programas de exemplo foram rodados numa pasta <code>erros</code> dentro da pasta da Ana, por isso os caminhos são <code>/home/ana/erros/arquivo.js</code>.</li>
+  <li>Nas saídas completas, as linhas <code>at …</code> internas do Node (as que começam com <code>node:internal</code>) foram cortadas e marcadas com uma anotação.</li>
+</ul>
+</div>
+
+<p>Pule direto para o grupo:</p>
+<ul>
+  <li><a href="#ler">Como ler uma mensagem de erro</a></li>
+  <li><a href="#tipos">Os tipos de erro, num quadro</a></li>
+  <li><a href="#reference">ReferenceError</a>: o nome não existe</li>
+  <li><a href="#type">TypeError</a>: o valor não é do tipo certo</li>
+  <li><a href="#syntax">SyntaxError</a>: o código está mal escrito</li>
+  <li><a href="#range">RangeError</a>: o valor está fora do permitido</li>
+  <li><a href="#modulos">Módulos: require e import</a></li>
+  <li><a href="#arquivos">Arquivos: ENOENT, EISDIR, EEXIST</a></li>
+  <li><a href="#throw">Erros que o seu programa lança (throw e Promises)</a></li>
+  <li><a href="#silenciosos">Erros que não dão mensagem</a></li>
+</ul>
+
+<hr>
+
+<h2 id="ler">Como ler uma mensagem de erro</h2>
+
+<p>A Ana quis mostrar o nome de cada aluno, mas o laço foi uma volta longe demais (<code>&lt;=</code> no lugar de <code>&lt;</code>):</p>
+
+<pre class="file" data-file="chamada.js">const alunos = [{ nome: "Ana" }, { nome: "Bia" }];
+
+for (let i = 0; i &lt;= alunos.length; i++) {
+  console.log(alunos[i].nome);
+}
+</pre>
+
+<pre class="term">$ node chamada.js
+Ana
+Bia
+/home/ana/chamada.js:4
+  console.log(alunos[i].nome);
+                        ^
+
+TypeError: Cannot read properties of undefined (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/chamada.js:4:25)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>Ana, Bia</dt><dd>O programa rodou normalmente até o erro. Tudo o que ele escreveu antes continua na tela.</dd>
+  <dt>/home/ana/chamada.js:4</dt><dd><strong>Onde</strong>: o arquivo e o número da linha.</dd>
+  <dt>console.log(alunos[i].nome); e o ^</dt><dd>A linha do código, e o <code>^</code> (acento circunflexo) embaixo do ponto exato do problema: o <code>.nome</code>.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'nome')</dt><dd><strong>O quê</strong>: o tipo do erro (<code>TypeError</code>, "erro de tipo") e a mensagem: "não dá para ler propriedades de <code>undefined</code> (lendo <code>'nome'</code>)". Na terceira volta, <code>i</code> valeu <code>2</code>, e <code>alunos[2]</code> não existe: é <code>undefined</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/chamada.js:4:25)</dt><dd>A <strong>pilha de chamadas</strong> (<em>stack trace</em>): o caminho que o programa fez até o erro, do mais recente para o mais antigo. <code>4:25</code> é a linha 4, coluna 25. Leia as linhas com o <strong>seu</strong> arquivo e pule as que começam com <code>node:internal</code>.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node, para quem for ajudar você. O programa parou aqui, com o código de saída <code>1</code>.</dd>
+</dl>
+
+<p>A explicação completa está em <a href="erros.html">Lendo uma Mensagem de Erro</a>.</p>
+
+<div class="tryjs" data-goal="out:Bia;;semerro">
+<p class="try-task"><strong>Missão:</strong> rode o programa e veja o erro. Depois corrija a condição do <code>for</code> para que ele mostre os dois nomes e termine <strong>sem erro</strong>.</p>
+<pre class="script" data-file="main.js">const alunos = [{ nome: "Ana" }, { nome: "Bia" }];
+
+for (let i = 0; i &lt;= alunos.length; i++) {
+  console.log(alunos[i].nome);
+}
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = [{ nome: "Ana" }, { nome: "Bia" }];
+
+for (let i = 0; i &lt; alunos.length; i++) {
+  console.log(alunos[i].nome);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="tipos">Os tipos de erro, num quadro</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Em português</th><th>Quando acontece</th><th>O programa roda?</th></tr>
+<tr><td><code>SyntaxError</code></td><td>erro de sintaxe</td><td>o código está mal escrito (parêntese, aspas, chave)</td><td><strong>nenhuma</strong> linha roda</td></tr>
+<tr><td><code>ReferenceError</code></td><td>erro de referência</td><td>um nome (variável, função) que não existe ou ainda não pode ser usado</td><td>roda até a linha do erro</td></tr>
+<tr><td><code>TypeError</code></td><td>erro de tipo</td><td>uma operação com o valor errado: ler de <code>undefined</code>, chamar o que não é função, mudar uma <code>const</code></td><td>roda até a linha do erro</td></tr>
+<tr><td><code>RangeError</code></td><td>erro de intervalo</td><td>um número fora do permitido; recursão sem fim</td><td>roda até a linha do erro</td></tr>
+<tr><td><code>Error</code></td><td>erro (genérico)</td><td>lançado pelo seu código (<code>throw new Error(…)</code>) ou pelo Node (arquivos, módulos)</td><td>roda até a linha do erro</td></tr>
+</table>
+</div>
+
+<p>Mais sobre cada tipo em <a href="tipos-erro.html">Os Tipos de Erro</a>; para tratar um erro sem derrubar o programa, <a href="try-catch.html">try … catch … finally</a>.</p>
+
+<hr>
+
+<h2 id="reference">ReferenceError</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>ReferenceError: precco is not defined</code></td><td><code>const preco = 10;</code><br><code>console.log(precco * 2);</code></td><td>"<code>precco</code> não está definido": não existe variável (ou função) com esse nome</td><td>Quase sempre é um erro de digitação ou de maiúscula (<code>Preco</code> ≠ <code>preco</code>). Também acontece quando a variável foi criada dentro de outro bloco (<a href="escopo.html">Escopo</a>).</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'total' before initialization</code></td><td><code>console.log(total);</code><br><code>const total = 50;</code></td><td>"Não dá para acessar <code>total</code> antes de ela receber valor": a variável existe, mas foi usada antes da linha do <code>let</code>/<code>const</code></td><td>Mova a declaração para cima. Veja <a href="hoisting.html">Hoisting</a>.</td></tr>
+<tr><td><code>ReferenceError: document is not defined</code></td><td><code>document.querySelector("h1")</code> num programa rodado com <code>node</code></td><td>O <code>document</code> (a página) só existe no <strong>navegador</strong></td><td>Rode o código numa página (<a href="script-na-pagina.html">JavaScript na Página</a>). O mesmo vale para <code>window</code>, <code>alert</code>, <code>localStorage</code>.</td></tr>
+<tr><td><code>ReferenceError: require is not defined in ES module scope, you can use import instead</code></td><td><code>const fs = require("node:fs");</code> num arquivo <code>.mjs</code> (ou num <code>.js</code> que usa <code>import</code>)</td><td>"<code>require</code> não existe em módulos ES; use <code>import</code>"</td><td>Escreva <code>import fs from "node:fs";</code>. Veja <a href="modulos.html">Módulos</a>.</td></tr>
+</table>
+</div>
+
+<p>Um detalhe do Node 24: um arquivo <code>.js</code> que tem <code>import</code> é rodado como módulo automaticamente. No lab, um arquivo com <code>import fs from "node:fs";</code> na linha 1 e <code>require("node:path")</code> na linha 3 rodou as duas primeiras linhas e só parou na terceira, com <code>file:///home/ana/erros/import-cjs.js:3</code> no começo da mensagem (repare no <code>file://</code>: é assim que o Node mostra o caminho de um módulo).</p>
+
+<hr>
+
+<h2 id="type">TypeError</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined (reading 'nome')</code></td><td><code>alunos[2].nome</code>, com só 2 alunos</td><td>"Não dá para ler propriedades de <code>undefined</code>": o que vem antes do <code>.nome</code> não existe</td><td>Descubra por que está <code>undefined</code> (posição fora do array? propriedade com nome errado? função sem <code>return</code>?). Para algo que pode faltar: <code>alunos[2]?.nome</code> (<a href="optional-chaining.html">?. e ??</a>).</td></tr>
+<tr><td><code>TypeError: Cannot read properties of null (reading 'textContent')</code></td><td><code>document.querySelector("#nada").textContent</code></td><td>O mesmo, com <code>null</code>: no navegador, quase sempre um <code>querySelector</code> que não achou o elemento</td><td>Confira o seletor e se o <code>&lt;script&gt;</code> está no fim da página (<a href="ref-dom.html#erros">DOM e Eventos</a>).</td></tr>
+<tr><td><code>TypeError: Cannot set properties of undefined (setting 'rua')</code></td><td><code>const loja = {};</code><br><code>loja.endereco.rua = "Rua das Flores";</code></td><td>"Não dá para mudar propriedades de <code>undefined</code>": <code>loja.endereco</code> não existe</td><td>Crie o objeto de dentro antes: <code>loja.endereco = { rua: "Rua das Flores" };</code></td></tr>
+<tr><td><code>TypeError: nome.toUppercase is not a function</code></td><td><code>nome.toUppercase()</code></td><td>"Não é uma função": o nome do método está errado, ou o valor não tem esse método</td><td>Confira a grafia (é <code>toUpperCase</code>) e o tipo do valor (<code>typeof</code>). Métodos de array não existem em textos e vice-versa (<a href="ref-string.html">String</a>, <a href="ref-array.html">Array</a>).</td></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td><code>const total = 10;</code><br><code>total = total + 5;</code></td><td>"Atribuição a uma variável constante": uma <code>const</code> não pode receber outro valor</td><td>Se o valor precisa mudar, declare com <code>let</code> (<a href="const.html">Constantes</a>).</td></tr>
+<tr><td><code>TypeError: quantidade is not iterable</code></td><td><code>const quantidade = 5;</code><br><code>for (const item of quantidade) { … }</code></td><td>"Não é iterável": o <code>for … of</code> (e o <code>...</code>) só funciona com o que tem itens: array, texto, <code>Set</code>, <code>Map</code></td><td>Para repetir 5 vezes, use <code>for (let i = 0; i &lt; 5; i++)</code>. Para objetos, <code>Object.entries(obj)</code> (<a href="for-of.html">for … of</a>).</td></tr>
+<tr><td><code>TypeError: Cannot convert undefined or null to object</code></td><td><code>Object.keys(config)</code>, com <code>config</code> valendo <code>null</code></td><td>As funções do <code>Object</code> precisam de um objeto</td><td>Confira de onde veio o valor; use <code>Object.keys(config ?? {})</code> se ele puder faltar.</td></tr>
+<tr><td><code>TypeError: Class constructor Produto cannot be invoked without 'new'</code></td><td><code>const p = Produto("Caderno");</code></td><td>"A classe não pode ser chamada sem <code>new</code>"</td><td><code>new Produto("Caderno")</code> (<a href="classes.html">Classes</a>).</td></tr>
+<tr><td><code>TypeError: criar is not a constructor</code></td><td><code>const criar = () =&gt; ({});</code><br><code>new criar();</code></td><td>"Não é um construtor": arrow functions (e funções comuns que não são classes) não servem para <code>new</code></td><td>Chame sem <code>new</code>, ou transforme em <code>class</code>.</td></tr>
+<tr><td><code>TypeError: Reduce of empty array with no initial value</code></td><td><code>[].reduce((s, n) =&gt; s + n)</code></td><td>"<code>reduce</code> de array vazio sem valor inicial"</td><td>Passe o valor inicial: <code>reduce((s, n) =&gt; s + n, 0)</code> (<a href="reduce.html">reduce</a>).</td></tr>
+<tr><td><code>TypeError: Cannot mix BigInt and other types, use explicit conversions</code></td><td><code>10n + 1</code></td><td>"Não dá para misturar BigInt com outros tipos"</td><td>Converta um dos lados (<a href="bigint.html">BigInt</a>).</td></tr>
+<tr><td><code>TypeError: Converting circular structure to JSON</code></td><td><code>JSON.stringify(obj)</code>, com <code>obj</code> apontando para ele mesmo</td><td>"Estrutura circular": o texto JSON não teria fim</td><td>Tire a propriedade que fecha o círculo antes (<a href="ref-object.html#erros">Object e JSON</a>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="syntax">SyntaxError</h2>
+
+<p>Um erro de sintaxe é encontrado <strong>antes</strong> de o programa começar: nenhuma linha roda, nem as que estão antes do erro. A mensagem não tem a linha <code>at Object.&lt;anonymous&gt;</code> com o seu arquivo; o lugar está só na primeira linha e no <code>^</code>.</p>
+
+<pre class="file" data-file="parentese.js">console.log("Olá, Ana!";
+</pre>
+
+<pre class="term">$ node parentese.js
+/home/ana/erros/parentese.js:1
+console.log("Olá, Ana!";
+            ^^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « e mais 7 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td><code>console.log("Olá, Ana!";</code></td><td>"Falta o <code>)</code> depois dos argumentos"</td><td>Feche o parêntese. O editor de código costuma pintar o par de cada parêntese.</td></tr>
+<tr><td><code>SyntaxError: Unexpected token ')'</code></td><td><code>console.log(lista.map(n =&gt; n * 2)));</code></td><td>"Símbolo inesperado <code>)</code>": sobrou um parêntese (o <code>^</code> aponta o que sobrou). Pode ser <code>'}'</code>, <code>','</code> etc.</td><td>Conte os pares de <code>( )</code>, <code>[ ]</code> e <code>{ }</code>.</td></tr>
+<tr><td><code>SyntaxError: Unexpected end of input</code></td><td>uma função sem o <code>}</code> do fim</td><td>"Fim inesperado do código": o arquivo acabou com algo aberto. A mensagem aponta a <strong>última</strong> linha do arquivo, e não onde falta o <code>}</code></td><td>Procure o <code>{</code> (ou <code>(</code>, <code>[</code>) que não foi fechado; a indentação ajuda a achar.</td></tr>
+<tr><td><code>SyntaxError: Invalid or unexpected token</code></td><td><code>const recado = "Comprar pão;</code></td><td>"Símbolo inválido": aqui, um texto sem a aspa do fim. Também aparece com aspas "curvas" coladas de um editor de texto (<code>“ ”</code>)</td><td>Feche a aspa; use aspas retas <code>"</code>.</td></tr>
+<tr><td><code>SyntaxError: Identifier 'nome' has already been declared</code></td><td><code>let nome = "Ana";</code><br><code>let nome = "Bia";</code></td><td>"O nome <code>nome</code> já foi declarado" no mesmo bloco</td><td>Tire o segundo <code>let</code> (<code>nome = "Bia";</code>) ou use outro nome.</td></tr>
+<tr><td><code>SyntaxError: Missing initializer in const declaration</code></td><td><code>const idade 30;</code></td><td>"Falta o valor na declaração <code>const</code>": aqui, faltou o <code>=</code></td><td><code>const idade = 30;</code> Uma <code>const</code> sempre nasce com valor.</td></tr>
+<tr><td><code>SyntaxError: await is only valid in async functions and the top level bodies of modules</code></td><td><code>await fetch(…)</code> dentro de uma <code>function</code> comum</td><td>"<code>await</code> só vale em funções <code>async</code> e solto em módulos"</td><td><code>async function buscar() { … }</code> (<a href="async-await.html">async e await</a>).</td></tr>
+<tr><td><code>SyntaxError: Unary operator used immediately before exponentiation expression…</code></td><td><code>-2 ** 2</code></td><td>Sinal de menos logo antes de <code>**</code></td><td><code>(-2) ** 2</code> (<a href="ref-operadores.html#erros">Operadores</a>).</td></tr>
+<tr><td><code>SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)</code></td><td><code>JSON.parse("{nome: 'Ana'}")</code></td><td>O texto não é JSON válido (chaves sem aspas duplas). Este acontece com o programa <strong>rodando</strong>, e a primeira linha da mensagem é <code>&lt;anonymous_script&gt;:1</code></td><td>Corrija o JSON ou trate com <code>try … catch</code> (<a href="ref-object.html#erros">Object e JSON</a>).</td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:JSON inválido;;out:Fim do programa;;semerro;;src:catch">
+<p class="try-task"><strong>Missão:</strong> o texto JSON chegou com defeito e derruba o programa: o <code>Fim do programa</code> nunca aparece. Envolva as duas linhas do <code>JSON.parse</code> num <code>try { … } catch (erro) { … }</code> e, no <code>catch</code>, mostre <code>JSON inválido:</code> seguido de <code>erro.message</code>. O programa deve terminar sem erro, mostrando <code>Fim do programa</code>.</p>
+<pre class="script" data-file="main.js">const texto = "{nome: 'Ana'}";
+
+const pessoa = JSON.parse(texto);
+console.log(pessoa.nome);
+console.log("Fim do programa");
+</pre>
+<pre class="solucao" data-file="main.js">const texto = "{nome: 'Ana'}";
+
+try {
+  const pessoa = JSON.parse(texto);
+  console.log(pessoa.nome);
+} catch (erro) {
+  console.log("JSON inválido:", erro.message);
+}
+console.log("Fim do programa");
+</pre>
+</div>
+
+<pre class="term">$ node lerjson2.js
+JSON inválido: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+Fim do programa
+</pre>
+
+<hr>
+
+<h2 id="range">RangeError</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>RangeError: Maximum call stack size exceeded</code></td><td>uma função que chama a si mesma para sempre</td><td>"Tamanho máximo da pilha de chamadas excedido": chamadas demais, uma dentro da outra</td><td>Toda <a href="recursao.html">recursão</a> precisa de um caso que para (<code>if (n === 0) return …</code>).</td></tr>
+<tr><td><code>RangeError: Invalid array length</code></td><td><code>new Array(-1)</code></td><td>"Tamanho de array inválido"</td><td>Use um número inteiro de 0 para cima.</td></tr>
+<tr><td><code>RangeError: toFixed() digits argument must be between 0 and 100</code></td><td><code>(3.14).toFixed(101)</code></td><td>"O número de casas tem de ficar entre 0 e 100"</td><td>(<a href="ref-math-number.html#formatar">Math e Number</a>).</td></tr>
+<tr><td><code>RangeError: Invalid time value</code></td><td><code>new Date("31/12/2026").toISOString()</code></td><td>"Valor de tempo inválido": a data é <code>Invalid Date</code></td><td>Crie a data com <code>new Date(2026, 11, 31)</code> (<a href="ref-date.html#erros">Date</a>).</td></tr>
+</table>
+</div>
+
+<p>A recursão sem fim, no lab (a pilha mostra só as 10 últimas chamadas):</p>
+
+<pre class="file" data-file="recursao.js">function contar(n) {
+  return contar(n + 1);
+}
+contar(1);
+</pre>
+
+<pre class="term">$ node recursao.js
+/home/ana/erros/recursao.js:2
+  return contar(n + 1);
+  ^
+
+RangeError: Maximum call stack size exceeded
+    at contar (/home/ana/erros/recursao.js:2:3)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+    at contar (/home/ana/erros/recursao.js:2:10)
+
+Node.js v24.22.0
+</pre>
+
+<hr>
+
+<h2 id="modulos">Módulos: <code>require</code> e <code>import</code></h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>Error: Cannot find module './contas'</code>, seguido de <code>Require stack:</code></td><td><code>require("./contas")</code> sem o arquivo <code>contas.js</code> na pasta</td><td>"Não encontrei o módulo": o arquivo não existe naquele caminho</td><td>Confira o nome e a pasta (o <code>./</code> é a pasta do programa). Veja <a href="modulos-commonjs.html">require e module.exports</a>.</td></tr>
+<tr><td><code>Error: Cannot find module 'picocolors'</code></td><td><code>require("picocolors")</code> sem ter instalado</td><td>Um pacote do npm que não está em <code>node_modules</code></td><td><code>npm install picocolors</code> na pasta do projeto (<a href="npm.html">npm</a>).</td></tr>
+<tr><td><code>Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/ana/erros/contas.js' imported from /home/ana/erros/import.mjs</code></td><td><code>import { somar } from "./contas.js";</code> sem o arquivo</td><td>O mesmo, com <code>import</code>: a mensagem já diz o caminho completo procurado e quem pediu</td><td>Confira o nome; no <code>import</code>, a extensão <code>.js</code> é obrigatória (<a href="modulos.html">Módulos</a>).</td></tr>
+<tr><td><code>ReferenceError: require is not defined in ES module scope…</code></td><td><code>require</code> num módulo</td><td>(veja <a href="#reference">ReferenceError</a>)</td><td>Use <code>import</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ node modulo.js
+node:internal/modules/cjs/loader:1568
+  throw err;
+  ^
+
+Error: Cannot find module './contas'
+Require stack:
+- /home/ana/erros/modulo.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)   « mais 7 linhas internas, cortadas aqui
+    at Object.&lt;anonymous&gt; (/home/ana/erros/modulo.js:1:16)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/ana/erros/modulo.js' ]
+}
+
+Node.js v24.22.0
+</pre>
+
+<p>As três primeiras linhas mostram código de <strong>dentro do Node</strong> (foi lá que o erro foi lançado): pule. A <code>Require stack</code> ("pilha de <code>require</code>") lista quem pediu o módulo: <code>modulo.js</code>, linha 1.</p>
+
+<hr>
+
+<h2 id="arquivos">Arquivos: <code>ENOENT</code>, <code>EISDIR</code>, <code>EEXIST</code></h2>
+
+<p>Os erros de arquivo trazem um <strong>código</strong> do sistema (<code>code</code>) que você pode testar num <code>catch</code>: <code>if (erro.code === "ENOENT") …</code>. A saída completa de um deles está em <a href="ref-node.html#erros">Node.js: console, process e fs</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Exemplo que provoca</th><th>Significa</th><th>Como resolver</th></tr>
+<tr><td><code>Error: ENOENT: no such file or directory, open 'lista.txt'</code></td><td><code>fs.readFileSync("lista.txt", "utf8")</code> sem o arquivo</td><td>"Não existe esse arquivo ou pasta"</td><td>Confira o nome e a pasta atual (<code>process.cwd()</code>); teste antes com <code>fs.existsSync</code> (<a href="fs-ler.html">Lendo Arquivos</a>).</td></tr>
+<tr><td><code>Error: EISDIR: illegal operation on a directory, read</code></td><td><code>fs.readFileSync("/home/ana", "utf8")</code></td><td>"Operação proibida numa pasta": tentou ler uma pasta como se fosse arquivo</td><td>Para pastas, <code>fs.readdirSync</code>.</td></tr>
+<tr><td><code>Error: EEXIST: file already exists, mkdir 'fotos'</code></td><td><code>fs.mkdirSync("fotos")</code> duas vezes</td><td>"Já existe"</td><td><code>fs.mkdirSync("fotos", { recursive: true })</code> não reclama.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="throw">Erros que o seu programa lança</h2>
+
+<p>Com <code>throw new Error("mensagem")</code>, o <strong>seu</strong> código cria o erro (<a href="throw.html">Lançando Erros</a>). Ele sai igual aos outros, com a sua mensagem e o nome da função na pilha:</p>
+
+<pre class="file" data-file="throw.js">function sacar(saldo, valor) {
+  if (valor &gt; saldo) {
+    throw new Error("Saldo insuficiente");
+  }
+  return saldo - valor;
+}
+console.log(sacar(100, 30));
+console.log(sacar(100, 500));
+</pre>
+
+<pre class="term">$ node throw.js
+70
+/home/ana/erros/throw.js:3
+    throw new Error("Saldo insuficiente");
+    ^
+
+Error: Saldo insuficiente
+    at sacar (/home/ana/erros/throw.js:3:11)
+    at Object.&lt;anonymous&gt; (/home/ana/erros/throw.js:8:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>Leia a pilha de cima para baixo: o erro aconteceu <strong>dentro</strong> de <code>sacar</code> (linha 3), que foi chamada na linha 8.</p>
+
+<p>Numa função <code>async</code>, o erro vira uma <strong>Promise rejeitada</strong>. Se ninguém tratar (com <code>await</code> dentro de <code>try</code>, ou <code>.catch</code>), o Node derruba o programa, mas só depois que o resto do código síncrono rodou:</p>
+
+<pre class="file" data-file="promessa.js">async function carregar() {
+  throw new Error("servidor fora do ar");
+}
+carregar();
+console.log("continua...");
+</pre>
+
+<pre class="term">$ node promessa.js
+continua...
+/home/ana/erros/promessa.js:2
+  throw new Error("servidor fora do ar");
+        ^
+
+Error: servidor fora do ar
+    at carregar (/home/ana/erros/promessa.js:2:9)
+    at Object.&lt;anonymous&gt; (/home/ana/erros/promessa.js:4:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>Repare que <code>continua...</code> apareceu <strong>antes</strong> do erro. Veja <a href="promises.html">Promises</a> e <a href="async-await.html">async e await</a>. No navegador, o mesmo erro aparece no Console como <code>Uncaught (in promise) Error: servidor fora do ar</code>.</p>
+
+<hr>
+
+<h2 id="silenciosos">Erros que não dão mensagem</h2>
+
+<p>Os piores erros são os que <strong>não</strong> aparecem: o programa roda até o fim, mas o resultado está errado. Os mais comuns, todos conferidos no lab:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O código</th><th>O que saiu</th><th>Por quê</th><th>Aula</th></tr>
+<tr><td><code>const preco = "10";</code><br><code>console.log(preco + 5);</code></td><td><code>105</code></td><td>O preço era <strong>texto</strong> (veio de um <code>prompt</code>, de um campo, de um arquivo), e o <code>+</code> juntou. Converta com <code>Number(preco)</code>.</td><td><a href="conversao-automatica.html">Conversão Automática</a></td></tr>
+<tr><td><code>const dobro = (n) =&gt; { n * 2; };</code><br><code>console.log(dobro(5));</code></td><td><code>undefined</code></td><td>Arrow function <strong>com chaves</strong> precisa de <code>return</code>. Sem chaves, devolve sozinha: <code>(n) =&gt; n * 2</code>.</td><td><a href="arrow-functions.html">Arrow Functions</a></td></tr>
+<tr><td><code>Number("1,5")</code></td><td><code>NaN</code></td><td>Vírgula decimal não é entendida. E toda conta com <code>NaN</code> dá <code>NaN</code>.</td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+<tr><td><code>[5, 1, 10, 2].sort()</code></td><td><code>[ 1, 10, 2, 5 ]</code></td><td>Sem função, o <code>sort</code> ordena como texto.</td><td><a href="ref-array.html#ordenar">Métodos de Array</a></td></tr>
+<tr><td><code>new Date(2026, 5, 20)</code> querendo 20 de maio</td><td>20 de <strong>junho</strong></td><td>Os meses começam em 0.</td><td><a href="ref-date.html">Date e Intl</a></td></tr>
+<tr><td><code>if (x = 5)</code> no lugar de <code>if (x === 5)</code></td><td>sempre entra no <code>if</code></td><td>Um <code>=</code> só <strong>guarda</strong> o 5 em <code>x</code>; o resultado, <code>5</code>, é "verdadeiro".</td><td><a href="operadores-comparacao.html">Comparação</a></td></tr>
+<tr><td><code>0.1 + 0.2 === 0.3</code></td><td><code>false</code></td><td>Imprecisão das casas decimais.</td><td><a href="numeros-especiais.html">NaN, Infinity e a Precisão</a></td></tr>
+</table>
+</div>
+
+<p>Para caçar esses, mostre os valores no meio do caminho com <code>console.log</code> e confira o tipo com <code>typeof</code> (<a href="depuracao.html">Depurando</a>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Leia o erro de cima para baixo: <strong>onde</strong> (arquivo:linha e o <code>^</code>), <strong>o quê</strong> (<code>Tipo: mensagem</code>) e o <strong>caminho</strong> (as linhas <code>at</code> com o seu arquivo).</li>
+  <li><code>is not defined</code>: nome errado ou fora do escopo. <code>Cannot access … before initialization</code>: usado antes do <code>let</code>/<code>const</code>.</li>
+  <li><code>Cannot read properties of undefined/null</code>: o que vem antes do ponto não existe. <code>is not a function</code>: nome de método errado ou tipo errado. <code>Assignment to constant variable</code>: troque por <code>let</code>.</li>
+  <li><code>SyntaxError</code>: nada roda; procure o parêntese, a chave ou a aspa que falta ou sobra.</li>
+  <li><code>Maximum call stack size exceeded</code>: recursão sem fim. <code>Cannot find module</code>: caminho errado ou pacote não instalado. <code>ENOENT</code>: arquivo não encontrado.</li>
+  <li>Os erros sem mensagem (<code>"10" + 5</code>, <code>NaN</code>, função sem <code>return</code>) se caçam com <code>console.log</code> e <code>typeof</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
