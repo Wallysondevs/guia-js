@@ -146,7 +146,8 @@ function analisarHtml(html) {
     if (NIVEIS && !NIVEIS.has(alvo) && !alvo.includes("/"))
       problemas.push({ grav: "aviso", linha: linhaDe(l.index), msg: 'link para "' + alvo + '", que não está na NIVEIS' });
   }
-  const PROIBIDO = /\/home\/admin|\/home\/wallyson|wallyson(?!devs\.github\.io)|ip-172-\d|guia-[a-z]+-lab|\/tmp\/claude/i;
+  // qualquer pasta pessoal que não seja a da Ana, nomes de máquina da nuvem, o lab e rascunhos; o resto (nomes, IPs) vem do ~/.guia-proibido
+  const PROIBIDO = /\/home\/(?!ana\b)[a-z][a-z0-9_-]*|ip-172-\d|guia-[a-z]+-lab|\/tmp\/claude/i;
   const PROIBIDO_EXTRA = (() => { try { return fs.readFileSync(path.join(require("os").homedir(), ".guia-proibido"), "utf8").split("\n").map((x) => x.trim()).filter(Boolean); } catch (e) { return []; } })();
   const linhasSrc = html.split("\n");
   for (let k = 0; k < linhasSrc.length; k++) {
