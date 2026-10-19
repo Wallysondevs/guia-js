@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript: os tipos de erro (ReferenceError, TypeError…) | Guia JavaScript</title>
+<meta name="description" content="Os tipos de erro do JavaScript para quem nunca programou: SyntaxError, ReferenceError, TypeError, RangeError, URIError, os erros do Node (ENOENT), a família Error (name, message, instanceof) e o que não dá erro nenhum (NaN, undefined, Infinity), com as mensagens reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript: <span class="hl">Os Tipos de Erro</span></h1>
+
+<p class="intro">Na aula <a href="erros.html">Lendo uma Mensagem de Erro</a>, você viu que a linha mais importante da mensagem tem a forma <code>Tipo: mensagem</code>. A palavra antes dos dois-pontos (<code>ReferenceError</code>, <code>TypeError</code>, <code>SyntaxError</code>…) é o <strong>tipo</strong> do erro, e ela sozinha já diz muito sobre o que aconteceu. São poucos tipos, e cada um tem um "jeito" de aparecer. Conhecendo os principais, você bate o olho e já sabe onde procurar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os quatro tipos que você vai ver quase todo dia: <code>SyntaxError</code>, <code>ReferenceError</code>, <code>TypeError</code> e <code>RangeError</code>, com as mensagens reais mais comuns de cada um.</li>
+  <li>Os raros: <code>URIError</code>, <code>EvalError</code> e <code>AggregateError</code>.</li>
+  <li>Os erros que vêm do <strong>Node</strong>, como o <code>ENOENT</code> (arquivo não encontrado), que trazem informações extras.</li>
+  <li>Que todos são da mesma família, o <code>Error</code>, e como descobrir o tipo de um erro com <code>name</code>, <code>message</code> e <code>instanceof</code>.</li>
+  <li>O que <strong>não</strong> dá erro no JavaScript (e por isso engana): <code>NaN</code>, <code>undefined</code>, <code>Infinity</code>.</li>
+</ul>
+</div>
+
+<p>Todas as mensagens desta aula saíram do <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). Para encurtar, as linhas <code>at</code> internas do Node (as que começam com <code>node:internal</code>) foram cortadas, com um aviso no lugar.</p>
+
+<hr>
+
+<h2>A ideia: a oficina mecânica</h2>
+<p>Quando o carro da Ana quebrou, o mecânico não disse só "está com defeito". Ele disse em qual <strong>parte</strong>: "é <strong>elétrico</strong>" (a bateria), "é no <strong>motor</strong>", "é <strong>pneu</strong>". Só com essa palavra a Ana já sabe mais ou menos o tamanho do problema e quem vai consertar.</p>
+<p>Os tipos de erro são as "partes" do seu programa:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Tradução</th><th>Em uma frase</th></tr>
+<tr><td><code>SyntaxError</code></td><td>erro de sintaxe</td><td>O código está <strong>mal escrito</strong>: o JavaScript não entende a "gramática".</td></tr>
+<tr><td><code>ReferenceError</code></td><td>erro de referência</td><td>Você usou um <strong>nome que não existe</strong> (ou ainda não existe).</td></tr>
+<tr><td><code>TypeError</code></td><td>erro de tipo</td><td>O nome existe, mas o <strong>valor não serve</strong> para o que você pediu (ler propriedade de <code>null</code>, chamar o que não é função).</td></tr>
+<tr><td><code>RangeError</code></td><td>erro de faixa</td><td>O valor é do tipo certo, mas está <strong>fora da faixa</strong> permitida (um tamanho negativo, um número grande demais).</td></tr>
+<tr><td><code>URIError</code></td><td>erro de URI</td><td>Um endereço (URL) mal codificado. Raro.</td></tr>
+<tr><td><code>Error</code></td><td>erro</td><td>O tipo "genérico", usado pelo Node e por você mesmo (aula <a href="throw.html">throw</a>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. <code>SyntaxError</code>: o código está mal escrito</h2>
+<p>É o erro de "gramática": um parêntese que não fecha, aspas sem par, uma chave sobrando. A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> mostrou vários. O que eles têm em comum:</p>
+<ul>
+  <li>acontecem <strong>antes</strong> de o programa começar: nenhuma linha roda, nem as que estão certas;</li>
+  <li>as linhas <code>at</code> são todas do Node (<code>wrapSafe</code>…), porque o seu código nem chegou a rodar;</li>
+  <li>às vezes o número da linha aponta <strong>depois</strong> do erro de verdade.</li>
+</ul>
+
+<h3>O <code>SyntaxError</code> que acontece com o programa rodando: <code>JSON.parse</code></h3>
+<p>Existe um caso em que o <code>SyntaxError</code> aparece no meio do programa: quando o próprio programa pede para ler um texto como código ou dados. O exemplo do dia a dia é o <a href="json.html">JSON.parse</a>, que transforma um texto JSON em objeto. O seu programa está certo; quem está mal escrito é o <strong>texto</strong>:</p>
+
+<pre class="file" data-file="json.js">const texto = "{nome: 'Ana'}";
+const dados = JSON.parse(texto);
+</pre>
+
+<pre class="term">$ node json.js
+&lt;anonymous_script&gt;:1
+{nome: 'Ana'}
+ ^
+
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/json.js:2:20)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>Repare: a primeira linha não é o seu arquivo, é <code>&lt;anonymous_script&gt;:1</code> ("roteiro anônimo"), e a linha copiada é o <strong>texto</strong> que o <code>JSON.parse</code> recebeu. A mensagem diz "era esperado o nome de uma propriedade ou <code>}</code> no JSON, na posição 1": em JSON, os nomes têm de estar entre <strong>aspas duplas</strong> (<code>{"nome": "Ana"}</code>). A linha do <strong>seu</strong> código aparece no <code>at</code>: <code>json.js:2</code>.</p>
+
+<hr>
+
+<h2>2. <code>ReferenceError</code>: um nome que não existe</h2>
+<p>Você usou um nome (de variável, de função) que o JavaScript não conhece. Quase sempre é um erro de digitação:</p>
+
+<pre class="file" data-file="ref1.js">const preco = 10;
+console.log(preço);
+</pre>
+
+<pre class="term">$ node ref1.js
+/home/ana/ref1.js:2
+console.log(preço);
+            ^
+
+ReferenceError: preço is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/ref1.js:2:13)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>"<code>preço</code> não está definido". A variável se chama <code>preco</code>, sem cedilha; <code>preço</code> é outro nome. (É um dos motivos para escrever nomes sem acento: veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>.) Outras causas comuns: maiúscula trocada (<code>Nome</code> × <code>nome</code>), variável criada dentro de um bloco <code>{ }</code> e usada fora dele (veja <a href="escopo.html">Escopo</a>).</p>
+
+<h3>Existe, mas ainda não: "before initialization"</h3>
+
+<pre class="file" data-file="tdz.js">console.log(total);
+let total = 0;
+</pre>
+
+<pre class="term">$ node tdz.js
+/home/ana/tdz.js:1
+console.log(total);
+            ^
+
+ReferenceError: Cannot access 'total' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/tdz.js:1:13)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Não é possível acessar <code>total</code> antes da inicialização". Desta vez o JavaScript <strong>sabe</strong> que <code>total</code> existe (ele leu o arquivo todo), mas a linha do <code>let</code> ainda não rodou. Uma variável <code>let</code> ou <code>const</code> só pode ser usada <strong>depois</strong> da linha que a cria (a aula <a href="hoisting.html">Hoisting</a> explica o porquê). <strong>Como consertar:</strong> crie a variável antes de usá-la.</p>
+
+<hr>
+
+<h2>3. <code>TypeError</code>: o valor não serve para isso</h2>
+<p>É o erro mais comum de todos. O nome existe, mas o <strong>valor</strong> que está nele não aceita o que você pediu. As mensagens mais frequentes:</p>
+
+<div class="cenario">
+<strong>Ler uma propriedade de <code>null</code> ou <code>undefined</code></strong>
+<pre class="file" data-file="tipo1.js">const cliente = null;
+console.log(cliente.nome);
+</pre>
+<pre class="term">$ node tipo1.js
+/home/ana/tipo1.js:2
+console.log(cliente.nome);
+                    ^
+
+TypeError: Cannot read properties of null (reading 'nome')
+    at Object.&lt;anonymous&gt; (/home/ana/tipo1.js:2:21)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para ler propriedades de <code>null</code> (lendo <code>nome</code>)". <code>null</code> e <code>undefined</code> são "nada": não têm propriedades. A versão com <code>undefined</code> (<code>Cannot read properties of undefined</code>) é ainda mais comum: aparece quando você pega uma posição que não existe num array, ou uma propriedade com o nome errado, e tenta ir mais fundo (<code>turma[5].nome</code>, <code>cliente.compra.length</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Mudar uma propriedade de <code>undefined</code></strong>
+<pre class="file" data-file="tipo2.js">let aluno;
+aluno.nota = 10;
+</pre>
+<pre class="term">$ node tipo2.js
+/home/ana/tipo2.js:2
+aluno.nota = 10;
+           ^
+
+TypeError: Cannot set properties of undefined (setting 'nota')
+    at Object.&lt;anonymous&gt; (/home/ana/tipo2.js:2:12)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para <strong>definir</strong> propriedades de <code>undefined</code> (definindo <code>nota</code>)". O <code>let aluno;</code> criou a variável sem valor (<code>undefined</code>), e não dá para pendurar uma nota no nada. <strong>Como consertar:</strong> <code>let aluno = {};</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Outras mensagens de <code>TypeError</code> que você já viu ou vai ver</strong>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Quando</th></tr>
+<tr><td><code>x is not a function</code></td><td>Pôs <code>()</code> em algo que não é função, ou errou o nome de um método (<code>toUppercase</code>)</td></tr>
+<tr><td><code>x is not iterable</code></td><td><code>for … of</code> ou <code>...</code> em algo que não é lista</td></tr>
+<tr><td><code>Assignment to constant variable.</code></td><td>Tentou mudar uma <code>const</code></td></tr>
+<tr><td><code>Constructor Set requires 'new'</code></td><td>Esqueceu o <code>new</code> (veja <a href="set.html">Set</a>)</td></tr>
+<tr><td><code>Cannot mix BigInt and other types, use explicit conversions</code></td><td>Conta entre um <a href="bigint.html">BigInt</a> e um número comum: <code>10n + 1</code></td></tr>
+</table>
+</div>
+</div>
+
+<div class="tryjs" data-goal="out:Olá, visitante!;;semerro">
+<p class="try-task"><strong>Missão:</strong> quando ninguém fez login, o <code>cliente</code> é <code>null</code> e o programa dá <code>TypeError</code>. Use o <code>?.</code> e o <code>??</code> (veja <a href="optional-chaining.html">?. e ??</a>) para mostrar <code>Olá, visitante!</code> nesse caso.</p>
+<pre class="script" data-file="main.js">const cliente = null;
+console.log(`Olá, ${cliente.nome}!`);
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = null;
+console.log(`Olá, ${cliente?.nome ?? "visitante"}!`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>RangeError</code>: fora da faixa</h2>
+<p>O valor é do tipo certo (um número), mas está fora dos limites que a operação aceita. Como um elevador que vai do térreo ao 10º andar: apertar "−1" ou "200" não faz sentido.</p>
+
+<pre class="file" data-file="range2.js">const preco = 4.5;
+console.log(preco.toFixed(200));
+</pre>
+
+<pre class="term">$ node range2.js
+/home/ana/range2.js:2
+console.log(preco.toFixed(200));
+                  ^
+
+RangeError: toFixed() digits argument must be between 0 and 100
+    at Number.toFixed (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/range2.js:2:19)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>"O número de casas do <code>toFixed()</code> tem de estar entre 0 e 100" (veja <a href="numeros-formatar.html">Formatando Números</a>). A primeira linha <code>at</code> é <code>Number.toFixed (&lt;anonymous&gt;)</code>: o erro estourou <strong>dentro</strong> do <code>toFixed</code>, que é do próprio JavaScript; a linha seguinte mostra onde <strong>você</strong> o chamou.</p>
+
+<p>Outros dois, com tamanhos negativos:</p>
+
+<pre class="term">$ node range1.js
+/home/ana/range1.js:1
+const lista = new Array(-1);
+              ^
+
+RangeError: Invalid array length
+    at Object.&lt;anonymous&gt; (/home/ana/range1.js:1:15)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+$ node range3.js
+/home/ana/range3.js:1
+console.log("ha".repeat(-1));
+                 ^
+
+RangeError: Invalid count value: -1
+    at String.repeat (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/range3.js:1:18)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Tamanho de array inválido" e "quantidade inválida: −1". Um array não pode ter −1 itens; não dá para repetir um texto −1 vezes.</p>
+
+<h3>O <code>RangeError</code> mais famoso: a pilha estourou</h3>
+<p>Uma função que chama a si mesma sem nunca parar (uma <a href="recursao.html">recursão</a> sem fim) enche a pilha de chamadas até ela estourar:</p>
+
+<pre class="file" data-file="recursao.js">function contar(n) {
+  return contar(n + 1);
+}
+contar(1);
+</pre>
+
+<pre class="term">$ node recursao.js
+/home/ana/recursao.js:2
+  return contar(n + 1);
+  ^
+
+RangeError: Maximum call stack size exceeded
+    at contar (/home/ana/recursao.js:2:3)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+    at contar (/home/ana/recursao.js:2:10)
+
+Node.js v24.22.0
+</pre>
+
+<p>"Tamanho máximo da pilha de chamadas excedido". Esta é a mensagem inteira, sem cortes: a pilha tinha milhares de <code>contar</code> empilhados, e o Node mostra só os 10 primeiros. Uma pilha cheia de linhas iguais é a "cara" de uma recursão sem fim. <strong>Como consertar:</strong> toda recursão precisa de um caso em que ela <strong>para</strong> (<code>if (n &gt; 10) return;</code>).</p>
+
+<div class="tryjs" data-goal="out:R$ 4.50;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana queria mostrar o preço com 2 casas decimais, mas digitou um número fora da faixa. Conserte para aparecer <code>R$ 4.50</code>.</p>
+<pre class="script" data-file="main.js">const preco = 4.5;
+console.log(`R$ ${preco.toFixed(200)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const preco = 4.5;
+console.log(`R$ ${preco.toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Os raros: <code>URIError</code>, <code>EvalError</code> e <code>AggregateError</code></h2>
+<p>O <code>URIError</code> aparece quando as funções que codificam e decodificam endereços da internet recebem um texto mal formado. O <code>%</code>, num endereço, tem de vir seguido de dois algarismos (<code>%20</code> é o espaço):</p>
+
+<pre class="file" data-file="uri.js">console.log(decodeURIComponent("100%"));
+</pre>
+
+<pre class="term">$ node uri.js
+/home/ana/uri.js:1
+console.log(decodeURIComponent("100%"));
+            ^
+
+URIError: URI malformed
+    at decodeURIComponent (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/uri.js:1:13)
+«                                  (mais 7 linhas "at" internas, cortadas)
+
+Node.js v24.22.0
+</pre>
+
+<p>"URI mal formada" (URI é o nome técnico de um endereço). Os outros dois:</p>
+<ul>
+  <li><strong><code>EvalError</code></strong> existe por compatibilidade com versões muito antigas do JavaScript. Hoje o próprio JavaScript não o usa mais; você só o verá se alguém o criar de propósito.</li>
+  <li><strong><code>AggregateError</code></strong> ("erro agregado") junta <strong>vários</strong> erros num só. Aparece com <code>Promise.any</code>, quando todas as tentativas falham (veja <a href="promise-all.html">Várias Promises</a>).</li>
+</ul>
+
+<hr>
+
+<h2>6. Os erros que vêm do Node</h2>
+<p>Quando o problema não é no seu código, mas no <strong>mundo lá fora</strong> (um arquivo que não existe, uma pasta sem permissão, a internet fora do ar), quem reclama é o Node. O tipo é o genérico <code>Error</code>, e a mensagem começa com um <strong>código</strong> em maiúsculas:</p>
+
+<pre class="file" data-file="arquivo.js">const fs = require("node:fs");
+const texto = fs.readFileSync("notas.txt", "utf8");
+</pre>
+
+<pre class="term">$ node arquivo.js
+node:fs:483
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open 'notas.txt'
+    at Object.readFileSync (node:fs:483:20)
+    at Object.&lt;anonymous&gt; (/home/ana/arquivo.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'notas.txt'
+}
+
+Node.js v24.22.0
+</pre>
+
+<dl class="anatomy">
+  <dt>node:fs:483 e a linha com return binding…</dt><dd>Desta vez, a primeira linha <strong>não</strong> é o seu arquivo: é o código do próprio Node (<code>node:fs</code>, o módulo de arquivos), onde o erro foi percebido. Não tente entender essa linha.</dd>
+  <dt>Error: ENOENT: no such file or directory, open 'notas.txt'</dt><dd><code>ENOENT</code> é um código antigo dos sistemas Unix: "<strong>E</strong>rror, <strong>NO</strong> <strong>ENT</strong>ry", "não há essa entrada". Traduzindo a mensagem: "arquivo ou pasta não encontrado, ao abrir <code>notas.txt</code>".</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/arquivo.js:2:18)</dt><dd>A <strong>sua</strong> linha: a 2, onde você pediu para ler o arquivo. É a primeira linha <code>at</code> com <code>/home/ana/</code>.</dd>
+  <dt>{ errno, code, syscall, path }</dt><dd>Informações extras que o Node pendura no erro: o <code>code</code> (<code>'ENOENT'</code>), a operação (<code>syscall: 'open'</code>, "abrir") e o arquivo (<code>path: 'notas.txt'</code>). Um programa pode olhar o <code>code</code> para decidir o que fazer (aula <a href="try-catch.html">try … catch</a>).</dd>
+</dl>
+
+<p>Outros códigos que você vai encontrar: <code>EACCES</code> (sem permissão), <code>EISDIR</code> (era uma pasta, não um arquivo), <code>EEXIST</code> (já existe). Eles aparecem nas aulas de <a href="fs-ler.html">arquivos</a>.</p>
+
+<hr>
+
+<h2>7. Todos são da mesma família: <code>Error</code></h2>
+<p>Todos esses tipos são "parentes": cada um é um tipo especial de <code>Error</code>. Dentro do programa, um erro é um <strong>objeto</strong>, com duas propriedades principais:</p>
+<ul>
+  <li><code>name</code>: o nome do tipo (<code>"TypeError"</code>);</li>
+  <li><code>message</code>: a mensagem (<code>"Cannot read properties of null (reading 'nome')"</code>).</li>
+</ul>
+<p>Para pegar o erro e olhar para ele, sem o programa parar, usa-se o <code>try … catch</code> ("tente … pegue"), que é o assunto da <a href="try-catch.html">próxima aula</a>. Uma espiada:</p>
+
+<pre class="file" data-file="nomes.js">try {
+  null.nome;
+} catch (erro) {
+  console.log(erro.name);
+  console.log(erro.message);
+  console.log(erro instanceof TypeError);
+  console.log(erro instanceof Error);
+  console.log(erro instanceof RangeError);
+}
+</pre>
+
+<pre class="term">$ node nomes.js
+TypeError
+Cannot read properties of null (reading 'nome')
+true
+true
+false
+</pre>
+
+<p>O <code>instanceof</code> ("é instância de", "é um") pergunta se o erro é de um tipo. Repare que ele é <code>TypeError</code> <strong>e</strong> também <code>Error</code> (todo <code>TypeError</code> é um <code>Error</code>, como todo gato é um animal), mas não é <code>RangeError</code>. Todos os tipos desta aula respondem <code>true</code> para <code>instanceof Error</code>:</p>
+
+<pre class="file" data-file="familia.js">const erros = [new Error("a"), new SyntaxError("b"), new ReferenceError("c"),
+  new TypeError("d"), new RangeError("e"), new URIError("f"), new EvalError("g")];
+for (const e of erros) {
+  console.log(e.name, e instanceof Error);
+}
+</pre>
+
+<pre class="term">$ node familia.js
+Error true
+SyntaxError true
+ReferenceError true
+TypeError true
+RangeError true
+URIError true
+EvalError true
+</pre>
+
+<p>O <code>new TypeError("d")</code> <strong>cria</strong> um erro sem lançá-lo (é só um objeto; o programa segue). Na aula <a href="throw.html">throw</a>, você vai usar isso para criar os seus próprios erros.</p>
+
+<hr>
+
+<h2>8. O que <strong>não</strong> dá erro</h2>
+<p>O JavaScript é muito tolerante. Várias coisas que em outras linguagens dariam erro, aqui só dão um resultado estranho, e o programa segue como se nada tivesse acontecido:</p>
+
+<pre class="file" data-file="semerro.js">console.log(10 / 0);
+console.log("abc" * 2);
+const lista = [1, 2, 3];
+console.log(lista[10]);
+console.log(Math.sqrt(-1));
+const obj = {};
+console.log(obj.nome);
+</pre>
+
+<pre class="term">$ node semerro.js
+Infinity
+NaN
+undefined
+NaN
+undefined
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Resultado</th><th>Em outras linguagens…</th></tr>
+<tr><td><code>10 / 0</code></td><td><code>Infinity</code></td><td>"divisão por zero"</td></tr>
+<tr><td><code>"abc" * 2</code></td><td><code>NaN</code> ("não é um número")</td><td>"tipo errado"</td></tr>
+<tr><td><code>lista[10]</code></td><td><code>undefined</code></td><td>"índice fora da faixa"</td></tr>
+<tr><td><code>Math.sqrt(-1)</code></td><td><code>NaN</code></td><td>"domínio inválido"</td></tr>
+<tr><td><code>obj.nome</code> (não existe)</td><td><code>undefined</code></td><td>"propriedade não existe"</td></tr>
+</table>
+</div>
+
+<p>Esses valores "silenciosos" seguem viajando pelo programa até, mais adiante, darem um <code>TypeError</code> longe do lugar onde nasceram (<code>lista[10].nome</code>), ou um resultado errado na tela. Quando o programa mostra <code>NaN</code> ou <code>undefined</code> onde devia haver um valor, a caça é com <code>console.log</code> e o depurador: veja <a href="depuracao.html">Depurando</a>.</p>
+
+<hr>
+
+<h2 id="formas">Do tipo à causa: onde procurar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Viu…</th><th>Procure por…</th></tr>
+<tr><td><code>SyntaxError</code> no seu arquivo</td><td>Parênteses, chaves, colchetes e aspas sem par; vírgula ou ponto e vírgula fora do lugar. Olhe também as linhas de cima.</td></tr>
+<tr><td><code>SyntaxError</code> com <code>JSON.parse</code></td><td>O texto JSON: aspas duplas nos nomes, sem vírgula sobrando no fim.</td></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>Erro de digitação no nome; maiúscula/minúscula; acento; variável criada em outro bloco.</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'x' before initialization</code></td><td>Uso antes da linha do <code>let</code>/<code>const</code>.</td></tr>
+<tr><td><code>TypeError: Cannot read properties of undefined</code></td><td>Quem está antes do ponto: qual variável ou propriedade está <code>undefined</code>, e por quê?</td></tr>
+<tr><td><code>TypeError: x is not a function</code></td><td>O nome do método (está certo?) e o tipo do valor (é o que você pensa?).</td></tr>
+<tr><td><code>RangeError</code></td><td>Um número negativo ou grande demais; uma recursão sem fim.</td></tr>
+<tr><td><code>Error: ENOENT</code>, <code>EACCES</code>…</td><td>O mundo lá fora: o arquivo existe? o caminho está certo? você está na pasta certa?</td></tr>
+<tr><td>Nenhum erro, mas <code>NaN</code>/<code>undefined</code> na saída</td><td>Erro de lógica: siga o valor com <code>console.log</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Achar que a propriedade inexistente dá <code>ReferenceError</code></strong>
+<p>O <code>ReferenceError</code> é só para <strong>nomes soltos</strong> (variáveis, funções). Para propriedades (o que vem depois do ponto), o JavaScript não reclama: <code>obj.nmoe</code> só devolve <code>undefined</code>, como você viu na seção 8. O erro só aparece se você for mais fundo (<code>obj.nmoe.length</code>), e aí é um <code>TypeError</code> apontando para o <code>.length</code>, não para o nome errado. Na mensagem <code>Cannot read properties of undefined (reading 'length')</code>, o culpado é o que vem <strong>antes</strong> do <code>.length</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pensar que o <code>SyntaxError</code> do <code>JSON.parse</code> é no seu código</strong>
+<p>A mensagem começa com <code>&lt;anonymous_script&gt;:1</code>, e não com o seu arquivo, e a linha copiada é o texto JSON. Quem tem que ser consertado é o <strong>texto</strong> (ou quem o produziu). A sua linha aparece no <code>at</code>, só para dizer de onde o <code>JSON.parse</code> foi chamado.</p>
+</div>
+
+<div class="cenario">
+<strong>Procurar o erro na primeira linha quando ela é do Node</strong>
+<p>No <code>ENOENT</code> (seção 6), a primeira linha é <code>node:fs:483</code>, com um código do Node que você nunca escreveu. Não é bug do Node. Desça pelas linhas <code>at</code> até a primeira com <code>/home/ana/</code>: essa é a sua.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Mensagens reais típicas (Node 24)</th></tr>
+<tr><td><code>SyntaxError</code></td><td><code>missing ) after argument list</code> · <code>Unexpected token ')'</code> · <code>Invalid or unexpected token</code> · <code>Unexpected end of input</code> · <code>Expected property name or '}' in JSON at position 1 (line 1 column 2)</code></td></tr>
+<tr><td><code>ReferenceError</code></td><td><code>preço is not defined</code> · <code>Cannot access 'total' before initialization</code></td></tr>
+<tr><td><code>TypeError</code></td><td><code>Cannot read properties of null (reading 'nome')</code> · <code>Cannot set properties of undefined (setting 'nota')</code> · <code>x is not a function</code> · <code>x is not iterable</code> · <code>Assignment to constant variable.</code> · <code>Cannot mix BigInt and other types, use explicit conversions</code></td></tr>
+<tr><td><code>RangeError</code></td><td><code>Invalid array length</code> · <code>Invalid count value: -1</code> · <code>toFixed() digits argument must be between 0 and 100</code> · <code>Maximum call stack size exceeded</code></td></tr>
+<tr><td><code>URIError</code></td><td><code>URI malformed</code></td></tr>
+<tr><td><code>Error</code> (do Node)</td><td><code>ENOENT: no such file or directory, open 'notas.txt'</code></td></tr>
+<tr><td>Propriedades</td><td><code>erro.name</code> (o tipo), <code>erro.message</code> (a mensagem), <code>erro instanceof TypeError</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual o tipo?</h3>
+<p>Que tipo de erro dá <code>console.log(totl)</code>, quando a variável se chama <code>total</code>? (Escreva exatamente como o Node mostra.)</p>
+<div class="ex-code"><input data-answer="ReferenceError" aria-label="tipo do erro"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E este?</h3>
+<p>Que tipo de erro dá <code>const x = undefined; x.length;</code>?</p>
+<div class="ex-code"><input data-answer="TypeError" aria-label="tipo do erro"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destas linhas dá um <code>RangeError</code>?</p>
+<label><input type="radio" name="q3"> <code>console.log(10 / 0)</code></label>
+<label><input type="radio" name="q3"> <code>null.nome</code></label>
+<label><input type="radio" name="q3"> <code>"ab".repeat(-2)</code></label>
+<label><input type="radio" name="q3"> <code>console.log(semNome)</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que <code>console.log("abc" * 2)</code> faz no JavaScript?</p>
+<label><input type="radio" name="q4"> Dá <code>TypeError</code></label>
+<label><input type="radio" name="q4"> Mostra <code>abcabc</code></label>
+<label><input type="radio" name="q4"> Dá <code>SyntaxError</code></label>
+<label><input type="radio" name="q4"> Mostra <code>NaN</code>, sem erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Um erro é <code>TypeError</code>. Quanto vale <code>erro instanceof Error</code>?</p>
+<label><input type="radio" name="q5"> <code>true</code>: todo tipo de erro é um <code>Error</code></label>
+<label><input type="radio" name="q5"> <code>false</code>: ele é <code>TypeError</code>, não <code>Error</code></label>
+<label><input type="radio" name="q5"> Dá erro</label>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. <code>Error: ENOENT: no such file or directory</code> quer dizer:</p>
+<label><input type="radio" name="q6"> Que há um erro de digitação numa variável</label>
+<label><input type="radio" name="q6"> Que o arquivo ou pasta pedido não foi encontrado</label>
+<label><input type="radio" name="q6"> Que o Node está com defeito</label>
+<label><input type="radio" name="q6"> Que falta um parêntese</label>
+</div>
+
+<h3>Missões finais</h3>
+
+<div class="tryjs" data-goal="erro:RangeError;;src:repeat">
+<p class="try-task"><strong>Missão 1 (ao contrário):</strong> desta vez, a missão é <strong>provocar</strong> um erro. Mude só o número do <code>repeat</code> para o programa dar um <code>RangeError</code>. Depois leia a mensagem.</p>
+<pre class="script" data-file="main.js">console.log("ha".repeat(3));
+</pre>
+<pre class="solucao" data-file="main.js">console.log("ha".repeat(-1));
+</pre>
+</div>
+
+<div class="tryjs" data-goal="out:Ana gastou R$ 25.50;;semerro">
+<p class="try-task"><strong>Missão 2:</strong> este programa tem dois erros de tipos diferentes (um <code>TypeError</code> e um <code>ReferenceError</code>). Rode, leia o tipo, conserte, rode de novo, até aparecer <code>Ana gastou R$ 25.50</code>.</p>
+<pre class="script" data-file="main.js">const cliente = { nome: "Ana", compras: [4.5, 12, 9] };
+const total = cliente.compra.reduce((soma, p) =&gt; soma + p, 0);
+console.log(`${cliente.nome} gastou R$ ${totl.toFixed(2)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const cliente = { nome: "Ana", compras: [4.5, 12, 9] };
+const total = cliente.compras.reduce((soma, p) =&gt; soma + p, 0);
+console.log(`${cliente.nome} gastou R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<p>No lab, o primeiro erro foi <code>TypeError: Cannot read properties of undefined (reading 'reduce')</code> na linha 2 (a propriedade se chama <code>compras</code>, com <code>s</code>, então <code>cliente.compra</code> era <code>undefined</code>). Consertado esse, veio <code>ReferenceError: totl is not defined</code> na linha 3. Com os dois consertados: <code>Ana gastou R$ 25.50</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A palavra antes dos dois-pontos é o <strong>tipo</strong> do erro, e ela já diz onde procurar.</li>
+  <li><code>SyntaxError</code>: código mal escrito; nada roda. Também aparece com <code>JSON.parse</code> de texto mal formado.</li>
+  <li><code>ReferenceError</code>: nome que não existe (digitação, acento, escopo) ou usado antes do <code>let</code>/<code>const</code>.</li>
+  <li><code>TypeError</code>: o valor não serve para a operação; o campeão é <code>Cannot read properties of undefined</code>.</li>
+  <li><code>RangeError</code>: número fora da faixa, ou recursão sem fim (<code>Maximum call stack size exceeded</code>).</li>
+  <li>Erros do Node (<code>ENOENT</code>…) são <code>Error</code> com um <code>code</code> e informações extras.</li>
+  <li>Todos são <code>Error</code>: têm <code>name</code> e <code>message</code>, e o <code>instanceof</code> diz o tipo.</li>
+  <li><code>NaN</code>, <code>undefined</code> e <code>Infinity</code> não são erros: o programa segue, e o problema aparece mais adiante.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
