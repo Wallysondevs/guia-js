@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Projeto Contador de Palavras — split, regex com acentos, Map e ranking passo a passo | Guia JavaScript</title>
+<meta name="description" content="Projeto passo a passo: um contador de palavras em JavaScript (Node.js 24) que lê um poema de um arquivo, separa as palavras com split(/\s+/), limpa pontuação e maiúsculas com uma regex que aceita acentos (\p{L}), conta cada palavra num Map, ordena com toSorted e localeCompare, tira as palavras comuns com um Set e desenha barras. Quatro versões com saídas reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Contador de Palavras</span></h1>
+
+<p class="intro">Quais palavras um texto mais usa? A pergunta parece simples, e é um ótimo treino: o programa precisa ler um arquivo, separar as palavras, decidir que "Sabiá;" e "sabiá" são a mesma palavra, contar cada uma e mostrar as campeãs. A Ana vai testar com a "Canção do Exílio", de Gonçalves Dias (1843), um poema que todo brasileiro já leu na escola e que repete muito as mesmas palavras.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler um arquivo de texto com <a href="fs-ler.html">fs.readFileSync</a>.</li>
+  <li>Separar palavras com <a href="strings-split.html">split</a> e uma <a href="regex.html">expressão regular</a> (<code>/\s+/</code>).</li>
+  <li>Limpar com <code>toLowerCase</code> e <a href="regex-metodos.html">replace</a>, sem estragar os acentos (<code>\p{L}</code>).</li>
+  <li>Encadear <a href="map.html">map</a> e <a href="filter.html">filter</a>.</li>
+  <li>Contar com um <a href="colecao-map.html">Map</a> e o operador <a href="optional-chaining.html">??</a>.</li>
+  <li>Ordenar com <a href="sort.html">toSorted</a> e <code>localeCompare</code>, e tirar as palavras comuns com um <a href="set.html">Set</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="construir">O que vamos construir</h2>
+<p>O poema fica num arquivo de texto, <code>cancao.txt</code>, na pasta do projeto:</p>
+
+<pre class="file" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+
+<p>E o programa pronto, no computador da Ana (Node.js v24.22.0), mostra as palavras mais usadas, cada uma com uma barra do tamanho da contagem:</p>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+As 10 palavras mais usadas em cancao.txt:
+mais        6 ██████
+tem         5 █████
+canta       4 ████
+encontro    4 ████
+lá          4 ████
+minha       4 ████
+onde        4 ████
+palmeiras   4 ████
+sabiá       4 ████
+terra       4 ████
+$ node palavras.js cancao.txt 3
+As 3 palavras mais usadas em cancao.txt:
+mais        6 ██████
+tem         5 █████
+canta       4 ████</pre>
+
+<p>Vamos chegar lá em quatro versões:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">Ler o arquivo e separar as palavras</a> (<code>split(/\s+/)</code>).</li>
+  <li><a href="#versao2">Limpar: minúsculas e sem pontuação</a> (<code>toLowerCase</code>, <code>replace</code>, <code>\p{L}</code>).</li>
+  <li><a href="#versao3">Contar num Map e ordenar</a> (<code>Map</code>, <code>??</code>, <code>toSorted</code>).</li>
+  <li><a href="#versao4">Palavras comuns, barras e colunas</a> (<code>Set</code>, <code>repeat</code>, <code>process.argv</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Crie a pasta e, dentro dela, o <code>cancao.txt</code> com o poema acima (copie e cole num editor de texto e salve). O programa vai se chamar <code>palavras.js</code>:</p>
+
+<pre class="term">$ mkdir -p projetos/palavras
+$ cd projetos/palavras</pre>
+
+<p>Nas caixas <strong>Experimente</strong>, o <code>cancao.txt</code> fica numa aba ao lado do programa. Troque o poema por outro texto e rode de novo: o programa conta o que estiver lá.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Ler o arquivo e separar as palavras</h2>
+<p>A primeira ideia de quase todo mundo: palavras são separadas por espaço, então basta cortar o texto nos espaços.</p>
+
+<pre class="file" data-file="palavras.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto.split(" ");
+
+console.log(`Caracteres: ${texto.length}`);
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 6));
+</pre>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Caracteres: 678
+Palavras: 95
+[
+  'Canção',
+  'do',
+  'Exílio\nGonçalves',
+  'Dias\n\nMinha',
+  'terra',
+  'tem'
+]</pre>
+
+<p>O <code>slice(0, 6)</code> mostra só as 6 primeiras, para conferir, e elas revelam o problema: <code>'Exílio\nGonçalves'</code> virou uma palavra só. No fim de cada linha não há espaço, há uma <strong>quebra de linha</strong> (<code>\n</code>), e o <code>split(" ")</code> não corta ali. Entre os versos também há linhas em branco (<code>\n\n</code>). E, se alguém digitar dois espaços seguidos, apareceria uma "palavra" vazia entre eles.</p>
+
+<p>A solução é cortar em <strong>qualquer sequência de espaços em branco</strong>: espaço, quebra de linha, tabulação, quantos forem. Uma <a href="regex.html">expressão regular</a> diz isso em quatro caracteres: <code>/\s+/</code>.</p>
+
+<pre class="file" data-file="palavras.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const linhas = texto.split("\n").filter((linha) =&gt; linha.trim() !== "");
+const palavras = texto.trim().split(/\s+/);
+
+console.log(`Caracteres: ${texto.length}`);
+console.log(`Linhas com texto: ${linhas.length}`);
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 6));
+</pre>
+
+<dl class="anatomy">
+  <dt>/\s+/</dt><dd>Uma regex (o que fica entre as barras). <code>\s</code> quer dizer "um espaço em branco qualquer" (espaço, <code>\n</code>, tabulação); o <code>+</code>, "um ou mais seguidos". O <code>split</code> aceita uma regex no lugar de um texto.</dd>
+  <dt>texto.trim()</dt><dd>Tira os brancos das pontas antes de cortar. Sem ele, a quebra de linha do fim do arquivo deixaria uma palavra vazia <code>''</code> no fim do array.</dd>
+  <dt>texto.split("\n").filter((linha) =&gt; linha.trim() !== "")</dt><dd>As linhas do arquivo, sem as linhas em branco: só fica a linha que, sem os espaços, não é vazia.</dd>
+  <dt>texto.length</dt><dd>Quantos caracteres o texto tem, contando espaços e quebras de linha.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Caracteres: 678
+Linhas com texto: 26
+Palavras: 120
+[ 'Canção', 'do', 'Exílio', 'Gonçalves', 'Dias', 'Minha' ]
+$ wc cancao.txt
+ 31 120 706 cancao.txt</pre>
+
+<p>As 120 palavras batem com o <code>wc</code> ("<em>word count</em>", o contador do Linux), que mostra linhas, palavras e <strong>bytes</strong>. Os bytes (706) são mais que os caracteres (678) porque cada letra acentuada, como o <code>ç</code> e o <code>á</code>, ocupa 2 bytes no arquivo em UTF-8. As 31 linhas do <code>wc</code> contam as linhas em branco; o programa contou só as 26 com texto.</p>
+
+<p>Conferindo os dois jeitos de cortar no modo interativo:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "palmeiras,\nOnde".split(" ")
+[ 'palmeiras,\nOnde' ]
+&gt; "palmeiras,\nOnde  canta".split(/\s+/)
+[ 'palmeiras,', 'Onde', 'canta' ]
+&gt; "Canção".length
+6
+&gt; .exit</pre>
+
+<div class="tryjs" data-goal="out:Palavras: 120">
+<p class="try-task"><strong>Missão (versão 1):</strong> o programa corta só nos espaços e conta 95 palavras. Troque o <code>split(" ")</code> por um corte em qualquer sequência de brancos (sem esquecer o <code>trim()</code>), para sair <code>Palavras: 120</code>.</p>
+<pre class="script" data-file="palavras.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto.split(" ");
+
+console.log(`Caracteres: ${texto.length}`);
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 6));
+</pre>
+<pre class="script" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+<pre class="solucao" data-file="palavras.js">import fs from "node:fs";
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const linhas = texto.split("\n").filter((linha) =&gt; linha.trim() !== "");
+const palavras = texto.trim().split(/\s+/);
+
+console.log(`Caracteres: ${texto.length}`);
+console.log(`Linhas com texto: ${linhas.length}`);
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 6));
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Limpar: minúsculas e sem pontuação</h2>
+<p>As palavras ainda vêm com a pontuação grudada (<code>'palmeiras,'</code>, <code>'Sabiá;'</code>) e com maiúsculas (<code>'Minha'</code> no começo do verso, <code>'minha'</code> no meio). Para contar, <code>"Sabiá;"</code>, <code>"Sabiá."</code> e <code>"sabiá"</code> têm de ser a mesma palavra. Cada palavra passa por uma função <code>limpar</code>:</p>
+
+<pre class="file" data-file="palavras.js">import fs from "node:fs";
+
+// Minúsculas e só letras: "Sabiá;" vira "sabiá", "—" vira ""
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 12));
+</pre>
+
+<dl class="anatomy">
+  <dt>palavra.toLowerCase()</dt><dd>Tudo em minúsculas, inclusive as acentuadas: <code>"SABIÁ"</code> vira <code>"sabiá"</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+  <dt>.replace(/[^\p{L}]/gu, "")</dt><dd>Troca por nada (apaga) todo caractere que <strong>não</strong> é letra. Os colchetes <code>[…]</code> são "um destes"; o <code>^</code> logo depois do <code>[</code> inverte: "qualquer um, menos estes". O <code>\p{L}</code> é "uma letra de qualquer alfabeto", acentos incluídos. O <code>g</code> troca todas as ocorrências, não só a primeira; o <code>u</code> liga o modo Unicode, sem o qual o <code>\p{…}</code> não funciona.</dd>
+  <dt>texto.trim().split(/\s+/).map(limpar).filter(…)</dt><dd>Um <strong>encadeamento</strong>: cada método recebe o resultado do anterior. Corta, limpa cada palavra, e o <code>filter</code> tira as que ficaram vazias (o travessão <code>—</code> do poema, sozinho entre espaços, vira <code>""</code>). Uma etapa por linha deixa a leitura fácil.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Palavras: 118
+[
+  'canção',    'do',
+  'exílio',    'gonçalves',
+  'dias',      'minha',
+  'terra',     'tem',
+  'palmeiras', 'onde',
+  'canta',     'o'
+]</pre>
+
+<p>118: os dois travessões saíram da conta. (Com mais de 6 itens curtos, o Node mostra o array em colunas para economizar linhas.)</p>
+
+<div class="cenario">
+<strong>A regex que come os acentos: <code>[^a-z]</code> e <code>\w</code></strong>
+<p>Na internet, a receita mais comum para "só letras" é <code>/[^a-z]/g</code>. Com ela no <code>limpar</code>:</p>
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Palavras: 116
+[
+  'cano',      'do',
+  'exlio',     'gonalves',
+  'dias',      'minha',
+  'terra',     'tem',
+  'palmeiras', 'onde',
+  'canta',     'o'
+]</pre>
+<p>"canção" virou <strong>"cano"</strong>! O <code>a-z</code> são só as 26 letras sem acento; <code>ç</code>, <code>ã</code>, <code>í</code> não estão nessa faixa e foram apagados. E as duas crases <code>à</code> sumiram inteiras (viraram <code>""</code>): por isso 116. O <code>\w</code> ("caractere de palavra") tem o mesmo defeito:</p>
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; "Não gorjeiam como lá.".match(/\w+/g)
+[ 'N', 'o', 'gorjeiam', 'como', 'l' ]
+&gt; "Não gorjeiam como lá.".match(/\p{L}+/gu)
+[ 'Não', 'gorjeiam', 'como', 'lá' ]
+&gt; "Sabiá;".toLowerCase().replace(/[^\p{L}]/gu, "")
+'sabiá'
+&gt; .exit</pre>
+<p>Para textos em português, use <code>\p{L}</code> com a flag <code>u</code>. Nenhum erro aparece em nenhum dos casos: o programa só conta errado, em silêncio.</p>
+</div>
+
+<div class="tryjs" data-goal="out:'canção';;out:Palavras: 118">
+<p class="try-task"><strong>Missão (versão 2):</strong> a função <code>limpar</code> usa <code>[^a-z]</code> e transforma "canção" em "cano". Troque a regex por uma que mantenha as letras acentuadas, para a lista começar com <code>'canção'</code> e sair <code>Palavras: 118</code>.</p>
+<pre class="script" data-file="palavras.js">import fs from "node:fs";
+
+// Minúsculas e só letras: "Sabiá;" vira "sabiá", "—" vira ""
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 12));
+</pre>
+<pre class="script" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+<pre class="solucao" data-file="palavras.js">import fs from "node:fs";
+
+// Minúsculas e só letras: "Sabiá;" vira "sabiá", "—" vira ""
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+console.log(`Palavras: ${palavras.length}`);
+console.log(palavras.slice(0, 12));
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Contar num Map e ordenar</h2>
+<p>Agora, contar. A ideia é a de uma folha de papel com uma coluna de palavras e uma de tracinhos: para cada palavra do texto, se ela já está na folha, mais um tracinho; se não está, escreve a palavra com um tracinho. Em JavaScript, essa folha é um <a href="colecao-map.html">Map</a>: um dicionário que liga cada <strong>chave</strong> (a palavra) a um <strong>valor</strong> (quantas vezes).</p>
+
+<pre class="file" data-file="palavras.js">import fs from "node:fs";
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+// Conta quantas vezes cada palavra aparece
+const contagem = new Map();
+for (const palavra of palavras) {
+  contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+}
+
+// Da mais frequente para a menos; empate: ordem alfabética
+const ranking = [...contagem].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`Palavras: ${palavras.length}, diferentes: ${contagem.size}`);
+for (const [palavra, vezes] of ranking.slice(0, 10)) {
+  console.log(`${palavra}: ${vezes}`);
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que faz</th></tr>
+<tr><td><code>new Map()</code></td><td>Um Map vazio.</td></tr>
+<tr><td><code>contagem.get(palavra) ?? 0</code></td><td>O <code>get</code> devolve a contagem atual, ou <code>undefined</code> se a palavra ainda não está no Map. O <code>??</code> troca o <code>undefined</code> por <code>0</code>: "quantas vezes já vi, ou zero".</td></tr>
+<tr><td><code>contagem.set(palavra, … + 1)</code></td><td>Guarda o valor novo (cria a chave, se não existia).</td></tr>
+<tr><td><code>contagem.size</code></td><td>Quantas chaves o Map tem: as palavras <strong>diferentes</strong>.</td></tr>
+<tr><td><code>[...contagem]</code></td><td>O spread transforma o Map num array de pares <code>[palavra, vezes]</code>: <code>[ [ 'minha', 4 ], [ 'terra', 4 ], … ]</code>. Arrays sabem ordenar; Maps, não.</td></tr>
+<tr><td><code>b[1] - a[1]</code></td><td>Compara as contagens (a posição 1 do par): a maior vem primeiro.</td></tr>
+<tr><td><code>|| a[0].localeCompare(b[0], "pt-BR")</code></td><td>Se as contagens empatam, <code>b[1] - a[1]</code> dá <code>0</code>, que é falso, e o <code>||</code> passa para a comparação das palavras em ordem alfabética do português.</td></tr>
+<tr><td><code>ranking.slice(0, 10)</code></td><td>Só as 10 primeiras.</td></tr>
+<tr><td><code>for (const [palavra, vezes] of …)</code></td><td>Desestrutura cada par em duas variáveis com nome.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Palavras: 118, diferentes: 56
+mais: 6
+que: 6
+eu: 5
+tem: 5
+canta: 4
+encontro: 4
+lá: 4
+minha: 4
+não: 4
+o: 4</pre>
+
+<p>Conferindo o Map e as comparações no modo interativo:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const contagem = new Map()
+undefined
+&gt; contagem.set("terra", 1)
+Map(1) { 'terra' =&gt; 1 }
+&gt; contagem.get("terra")
+1
+&gt; contagem.get("mar")
+undefined
+&gt; [...contagem]
+[ [ 'terra', 1 ] ]
+&gt; "ária".localeCompare("bosque", "pt-BR")
+-1
+&gt; "ária" &lt; "bosque"
+false
+&gt; .exit</pre>
+
+<p>O último mostra por que o <code>localeCompare</code>: o <code>&lt;</code> compara os códigos dos caracteres, e no código o <code>á</code> vem <strong>depois</strong> de todas as letras sem acento. Para ele, "ária" ficaria depois de "bosque". O <code>localeCompare(…, "pt-BR")</code> ordena como um dicionário (resultado negativo: "ária" vem antes).</p>
+
+<div class="cenario">
+<strong>Esquecer o <code>?? 0</code>: tudo vira <code>NaN</code></strong>
+<p>Com <code>contagem.set(palavra, contagem.get(palavra) + 1);</code>, sem o <code>?? 0</code>:</p>
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+Palavras: 118, diferentes: 56
+à: NaN
+amores: NaN
+aqui: NaN
+as: NaN
+aves: NaN
+aviste: NaN
+bosques: NaN
+cá: NaN
+canção: NaN
+canta: NaN</pre>
+<p>Na primeira vez de cada palavra, <code>contagem.get(palavra)</code> é <code>undefined</code>, e <code>undefined + 1</code> dá <code>NaN</code>. Daí em diante, <code>NaN + 1</code> continua <code>NaN</code>. Todas as contagens empataram em <code>NaN</code>, e o ranking virou ordem alfabética. Mais uma vez, nenhum erro: só a resposta errada.</p>
+</div>
+
+<div class="tryjs" data-goal="out:mais: 6;;out:que: 6;;semerro">
+<p class="try-task"><strong>Missão (versão 3):</strong> todas as contagens saem <code>NaN</code>. Conserte a linha do <code>contagem.set</code> para que a primeira vez de cada palavra conte a partir de zero, e o ranking comece com <code>mais: 6</code> e <code>que: 6</code>.</p>
+<pre class="script" data-file="palavras.js">import fs from "node:fs";
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+// Conta quantas vezes cada palavra aparece
+const contagem = new Map();
+for (const palavra of palavras) {
+  contagem.set(palavra, contagem.get(palavra) + 1);
+}
+
+// Da mais frequente para a menos; empate: ordem alfabética
+const ranking = [...contagem].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`Palavras: ${palavras.length}, diferentes: ${contagem.size}`);
+for (const [palavra, vezes] of ranking.slice(0, 10)) {
+  console.log(`${palavra}: ${vezes}`);
+}
+</pre>
+<pre class="script" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+<pre class="solucao" data-file="palavras.js">import fs from "node:fs";
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+const texto = fs.readFileSync("cancao.txt", "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+// Conta quantas vezes cada palavra aparece
+const contagem = new Map();
+for (const palavra of palavras) {
+  contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+}
+
+// Da mais frequente para a menos; empate: ordem alfabética
+const ranking = [...contagem].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`Palavras: ${palavras.length}, diferentes: ${contagem.size}`);
+for (const [palavra, vezes] of ranking.slice(0, 10)) {
+  console.log(`${palavra}: ${vezes}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Palavras comuns, barras e colunas</h2>
+<p>O ranking da versão 3 diz que o poema fala de "que", "eu" e "o". É verdade, mas não ajuda: essas palavras pequenas aparecem em <strong>qualquer</strong> texto. Quem estuda textos chama isso de palavras vazias (<em>stop words</em>) e as tira da conta. A versão 4 faz isso com um <a href="set.html">Set</a>, desenha uma barra para cada contagem e deixa a Ana escolher o arquivo e quantas palavras ver:</p>
+
+<pre class="file" data-file="palavras.js">// Contador de Palavras da Ana, versão 4: palavras comuns, barras e colunas
+import fs from "node:fs";
+
+// Palavras pequenas que aparecem em qualquer texto e não dizem nada sobre ele
+const COMUNS = new Set([
+  "a", "à", "as", "o", "os", "e", "é", "de", "do", "da", "dos", "das",
+  "em", "no", "na", "um", "uma", "que", "eu", "por", "para", "não", "sem",
+]);
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+function contar(palavras) {
+  const contagem = new Map();
+  for (const palavra of palavras) {
+    contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+const arquivo = process.argv[2] ?? "cancao.txt";
+const quantas = Number(process.argv[3] ?? 10);
+if (!Number.isInteger(quantas) || quantas &lt; 1) {
+  console.error(`Quantidade inválida: ${process.argv[3]}. Use um número inteiro, como 5.`);
+  process.exit(1);
+}
+
+const texto = fs.readFileSync(arquivo, "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "" &amp;&amp; !COMUNS.has(palavra));
+
+const ranking = [...contar(palavras)].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`As ${quantas} palavras mais usadas em ${arquivo}:`);
+for (const [palavra, vezes] of ranking.slice(0, quantas)) {
+  console.log(`${palavra.padEnd(10)} ${String(vezes).padStart(2)} ${"█".repeat(vezes)}`);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>const COMUNS = new Set([ … ]);</dt><dd>Um conjunto com as palavras a ignorar. Um <code>Set</code> responde "está aqui?" com <code>has</code>, muito rápido, mesmo com milhares de palavras (veja <a href="set.html">Set</a>).</dd>
+  <dt>!COMUNS.has(palavra)</dt><dd>No <code>filter</code>: fica só a palavra que <strong>não</strong> está no conjunto.</dd>
+  <dt>function contar(palavras)</dt><dd>A contagem da versão 3, numa função que devolve o Map.</dd>
+  <dt>process.argv[2] ?? "cancao.txt"</dt><dd>O arquivo vem da linha de comando; sem ele, o <code>cancao.txt</code>.</dd>
+  <dt>Number(process.argv[3] ?? 10)</dt><dd>Quantas palavras mostrar; sem o número, 10. O <code>if</code> logo abaixo recusa o que não for um inteiro positivo.</dd>
+  <dt>"█".repeat(vezes)</dt><dd>Repete o caractere <code>█</code> (um bloco cheio) <code>vezes</code> vezes: a barra do gráfico. <code>"█".repeat(4)</code> é <code>'████'</code>.</dd>
+  <dt>palavra.padEnd(10)</dt><dd>A palavra com espaços à direita até 10 caracteres, para as barras começarem todas na mesma coluna.</dd>
+  <dt>String(vezes).padStart(2)</dt><dd>O número virou texto (o <code>padStart</code> é de string) e foi alinhado à direita em 2 casas.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js
+As 10 palavras mais usadas em cancao.txt:
+mais        6 ██████
+tem         5 █████
+canta       4 ████
+encontro    4 ████
+lá          4 ████
+minha       4 ████
+onde        4 ████
+palmeiras   4 ████
+sabiá       4 ████
+terra       4 ████
+$ node palavras.js cancao.txt 3
+As 3 palavras mais usadas em cancao.txt:
+mais        6 ██████
+tem         5 █████
+canta       4 ████
+$ node palavras.js cancao.txt três
+Quantidade inválida: três. Use um número inteiro, como 5.
+$ echo $?
+1</pre>
+
+<p>Agora sim: "minha terra tem palmeiras onde canta o sabiá" está quase inteiro no ranking. Ainda sobrou o "lá", que a Ana pode pôr no <code>COMUNS</code> se quiser.</p>
+
+<div class="cenario">
+<strong>Sem a conferência do número: <code>As NaN palavras</code></strong>
+<p>Antes do <code>if</code> que confere a quantidade, a Ana escreveu o número por extenso:</p>
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js cancao.txt três
+As NaN palavras mais usadas em cancao.txt:</pre>
+<p><code>Number("três")</code> é <code>NaN</code>, e <code>ranking.slice(0, NaN)</code> trata o <code>NaN</code> como 0 e devolve um array vazio: o programa mostra o título e mais nada. Com o <code>if (!Number.isInteger(quantas) || quantas &lt; 1)</code>, a Ana recebe uma frase dizendo o que fazer, e o programa termina com o código 1 ("deu errado").</p>
+</div>
+
+<div class="tryjs" data-goal="out:sabiá;;out:terra;;src:COMUNS\.has">
+<p class="try-task"><strong>Missão (versão 4):</strong> o conjunto <code>COMUNS</code> já existe, mas ninguém o usa, e o ranking continua cheio de "que" e "eu". No <code>filter</code>, tire também as palavras que estão em <code>COMUNS</code> (com <code>COMUNS.has</code>), para "sabiá" e "terra" entrarem no ranking.</p>
+<pre class="script" data-file="palavras.js">// Contador de Palavras da Ana, versão 4: palavras comuns, barras e colunas
+import fs from "node:fs";
+
+// Palavras pequenas que aparecem em qualquer texto e não dizem nada sobre ele
+const COMUNS = new Set([
+  "a", "à", "as", "o", "os", "e", "é", "de", "do", "da", "dos", "das",
+  "em", "no", "na", "um", "uma", "que", "eu", "por", "para", "não", "sem",
+]);
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+function contar(palavras) {
+  const contagem = new Map();
+  for (const palavra of palavras) {
+    contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+const arquivo = process.argv[2] ?? "cancao.txt";
+const quantas = Number(process.argv[3] ?? 10);
+if (!Number.isInteger(quantas) || quantas &lt; 1) {
+  console.error(`Quantidade inválida: ${process.argv[3]}. Use um número inteiro, como 5.`);
+  process.exit(1);
+}
+
+const texto = fs.readFileSync(arquivo, "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "");
+
+const ranking = [...contar(palavras)].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`As ${quantas} palavras mais usadas em ${arquivo}:`);
+for (const [palavra, vezes] of ranking.slice(0, quantas)) {
+  console.log(`${palavra.padEnd(10)} ${String(vezes).padStart(2)} ${"█".repeat(vezes)}`);
+}
+</pre>
+<pre class="script" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+<pre class="solucao" data-file="palavras.js">// Contador de Palavras da Ana, versão 4: palavras comuns, barras e colunas
+import fs from "node:fs";
+
+// Palavras pequenas que aparecem em qualquer texto e não dizem nada sobre ele
+const COMUNS = new Set([
+  "a", "à", "as", "o", "os", "e", "é", "de", "do", "da", "dos", "das",
+  "em", "no", "na", "um", "uma", "que", "eu", "por", "para", "não", "sem",
+]);
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+function contar(palavras) {
+  const contagem = new Map();
+  for (const palavra of palavras) {
+    contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+const arquivo = process.argv[2] ?? "cancao.txt";
+const quantas = Number(process.argv[3] ?? 10);
+if (!Number.isInteger(quantas) || quantas &lt; 1) {
+  console.error(`Quantidade inválida: ${process.argv[3]}. Use um número inteiro, como 5.`);
+  process.exit(1);
+}
+
+const texto = fs.readFileSync(arquivo, "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "" &amp;&amp; !COMUNS.has(palavra));
+
+const ranking = [...contar(palavras)].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`As ${quantas} palavras mais usadas em ${arquivo}:`);
+for (const [palavra, vezes] of ranking.slice(0, quantas)) {
+  console.log(`${palavra.padEnd(10)} ${String(vezes).padStart(2)} ${"█".repeat(vezes)}`);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de separar e de contar</h2>
+
+<h3>Separar: cortar nos brancos × pegar as letras</h3>
+<p>A versão 2 corta nos brancos e depois apaga o que não é letra. Dá para fazer as duas coisas de uma vez, pedindo direto as sequências de letras com <code>match</code>: <code>texto.toLowerCase().match(/\p{L}+/gu)</code>. O resultado quase sempre é o mesmo; a diferença aparece em palavras com apóstrofo ou hífen. No poema, "qu'inda" vira <code>"quinda"</code> com o <code>replace</code> (o apóstrofo é apagado e as partes se juntam) e <code>"qu"</code> + <code>"inda"</code> com o <code>match</code> (o apóstrofo separa). Para "guarda-chuva", o mesmo: uma palavra ou duas. Escolha conforme o que você quer contar.</p>
+
+<h3>Contar: <code>Map</code> × objeto</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como fica</th><th>Quando usar</th></tr>
+<tr><td><code>Map</code> (este projeto)</td><td><code>contagem.set(p, (contagem.get(p) ?? 0) + 1)</code></td><td>Contagens e dicionários em geral: qualquer texto pode ser chave, tem <code>size</code> e vira array com <code>[...contagem]</code>.</td></tr>
+<tr><td>Objeto comum</td><td><code>contagem[p] = (contagem[p] ?? 0) + 1</code></td><td>Funciona, e você vai ver muito em código antigo. Cuidado com chaves que já existem em todo objeto, como <code>"constructor"</code>: num texto que contenha essa palavra, a conta sai errada. Para virar array: <code>Object.entries(contagem)</code>.</td></tr>
+</table>
+</div>
+
+<h3>Ordenar os empates</h3>
+<p>Sem o critério de desempate (<code>|| a[0].localeCompare(…)</code>), as palavras com a mesma contagem ficariam na ordem em que apareceram no texto (o <code>toSorted</code> mantém a ordem dos empates). Não é errado, mas a ordem alfabética deixa o resultado igual toda vez, fácil de conferir.</p>
+
+<hr>
+
+<h2>Desafio extra: palavras diferentes e a mais longa</h2>
+<p>A Ana quer duas informações a mais no fim: quantas palavras diferentes sobraram (sem as comuns) e qual é a mais longa. A primeira é o tamanho do <code>ranking</code>. A segunda é um <a href="reduce.html">reduce</a> que guarda a maior palavra vista até agora:</p>
+
+<pre class="term" data-cwd="~/projetos/palavras">$ node palavras.js cancao.txt 3
+As 3 palavras mais usadas em cancao.txt:
+mais        6 ██████
+tem         5 █████
+canta       4 ████
+Palavras diferentes: 44
+A mais longa: gonçalves (9 letras)</pre>
+
+<div class="tryjs" data-args="cancao.txt 3" data-goal="out:Palavras diferentes: 44;;out:A mais longa: gonçalves (9 letras);;semerro">
+<p class="try-task"><strong>Desafio no editor:</strong> o comando da caixa é <code>cancao.txt 3</code>. No fim do programa, mostre <code>Palavras diferentes: 44</code> (o tamanho do <code>ranking</code>) e <code>A mais longa: gonçalves (9 letras)</code>, achando a mais longa com <code>palavras.reduce((maior, palavra) =&gt; (palavra.length &gt; maior.length ? palavra : maior), "")</code>.</p>
+<pre class="script" data-file="palavras.js">// Contador de Palavras da Ana, versão 4: palavras comuns, barras e colunas
+import fs from "node:fs";
+
+// Palavras pequenas que aparecem em qualquer texto e não dizem nada sobre ele
+const COMUNS = new Set([
+  "a", "à", "as", "o", "os", "e", "é", "de", "do", "da", "dos", "das",
+  "em", "no", "na", "um", "uma", "que", "eu", "por", "para", "não", "sem",
+]);
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+function contar(palavras) {
+  const contagem = new Map();
+  for (const palavra of palavras) {
+    contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+const arquivo = process.argv[2] ?? "cancao.txt";
+const quantas = Number(process.argv[3] ?? 10);
+if (!Number.isInteger(quantas) || quantas &lt; 1) {
+  console.error(`Quantidade inválida: ${process.argv[3]}. Use um número inteiro, como 5.`);
+  process.exit(1);
+}
+
+const texto = fs.readFileSync(arquivo, "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "" &amp;&amp; !COMUNS.has(palavra));
+
+const ranking = [...contar(palavras)].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`As ${quantas} palavras mais usadas em ${arquivo}:`);
+for (const [palavra, vezes] of ranking.slice(0, quantas)) {
+  console.log(`${palavra.padEnd(10)} ${String(vezes).padStart(2)} ${"█".repeat(vezes)}`);
+}
+</pre>
+<pre class="script" data-file="cancao.txt">Canção do Exílio
+Gonçalves Dias
+
+Minha terra tem palmeiras,
+Onde canta o Sabiá;
+As aves, que aqui gorjeiam,
+Não gorjeiam como lá.
+
+Nosso céu tem mais estrelas,
+Nossas várzeas têm mais flores,
+Nossos bosques têm mais vida,
+Nossa vida mais amores.
+
+Em cismar, sozinho, à noite,
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Minha terra tem primores,
+Que tais não encontro eu cá;
+Em cismar — sozinho, à noite —
+Mais prazer encontro eu lá;
+Minha terra tem palmeiras,
+Onde canta o Sabiá.
+
+Não permita Deus que eu morra,
+Sem que eu volte para lá;
+Sem que desfrute os primores
+Que não encontro por cá;
+Sem qu'inda aviste as palmeiras,
+Onde canta o Sabiá.
+</pre>
+<pre class="solucao" data-file="palavras.js">// Contador de Palavras da Ana, versão 4: palavras comuns, barras e colunas
+import fs from "node:fs";
+
+// Palavras pequenas que aparecem em qualquer texto e não dizem nada sobre ele
+const COMUNS = new Set([
+  "a", "à", "as", "o", "os", "e", "é", "de", "do", "da", "dos", "das",
+  "em", "no", "na", "um", "uma", "que", "eu", "por", "para", "não", "sem",
+]);
+
+function limpar(palavra) {
+  return palavra.toLowerCase().replace(/[^\p{L}]/gu, "");
+}
+
+function contar(palavras) {
+  const contagem = new Map();
+  for (const palavra of palavras) {
+    contagem.set(palavra, (contagem.get(palavra) ?? 0) + 1);
+  }
+  return contagem;
+}
+
+const arquivo = process.argv[2] ?? "cancao.txt";
+const quantas = Number(process.argv[3] ?? 10);
+if (!Number.isInteger(quantas) || quantas &lt; 1) {
+  console.error(`Quantidade inválida: ${process.argv[3]}. Use um número inteiro, como 5.`);
+  process.exit(1);
+}
+
+const texto = fs.readFileSync(arquivo, "utf8");
+const palavras = texto
+  .trim()
+  .split(/\s+/)
+  .map(limpar)
+  .filter((palavra) =&gt; palavra !== "" &amp;&amp; !COMUNS.has(palavra));
+
+const ranking = [...contar(palavras)].toSorted(
+  (a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"),
+);
+
+console.log(`As ${quantas} palavras mais usadas em ${arquivo}:`);
+for (const [palavra, vezes] of ranking.slice(0, quantas)) {
+  console.log(`${palavra.padEnd(10)} ${String(vezes).padStart(2)} ${"█".repeat(vezes)}`);
+}
+
+const maisLonga = palavras.reduce(
+  (maior, palavra) =&gt; (palavra.length &gt; maior.length ? palavra : maior),
+  "",
+);
+console.log(`Palavras diferentes: ${ranking.length}`);
+console.log(`A mais longa: ${maisLonga} (${maisLonga.length} letras)`);
+</pre>
+</div>
+
+<p>Repare que "palmeiras" também tem 9 letras: com o <code>&gt;</code>, ganha a primeira que apareceu no texto ("Gonçalves", no título). Outras ideias: mostrar em que linhas aparece uma palavra escolhida; contar as letras em vez das palavras; comparar dois poemas.</p>
+
+<hr>
+
+<h2>Referência rápida do projeto</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Para que serviu</th></tr>
+<tr><td><code>texto.trim().split(/\s+/)</code></td><td>Cortar em palavras, em qualquer sequência de brancos</td></tr>
+<tr><td><code>palavra.toLowerCase()</code></td><td>"Minha" e "minha" contam juntas</td></tr>
+<tr><td><code>.replace(/[^\p{L}]/gu, "")</code></td><td>Apagar o que não é letra, mantendo os acentos</td></tr>
+<tr><td><code>.map(limpar).filter((p) =&gt; p !== "")</code></td><td>Limpar todas e tirar as que ficaram vazias</td></tr>
+<tr><td><code>contagem.set(p, (contagem.get(p) ?? 0) + 1)</code></td><td>Contar num Map</td></tr>
+<tr><td><code>[...contagem].toSorted((a, b) =&gt; b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))</code></td><td>Ranking: mais vezes primeiro, empate em ordem alfabética</td></tr>
+<tr><td><code>new Set([...])</code> + <code>COMUNS.has(p)</code></td><td>Ignorar as palavras comuns</td></tr>
+<tr><td><code>"█".repeat(n)</code></td><td>Desenhar a barra</td></tr>
+<tr><td><code>padEnd</code> / <code>padStart</code></td><td>Alinhar as colunas</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Palavras grudadas: <code>'Exílio\nGonçalves'</code></td><td><code>split(" ")</code> não corta na quebra de linha: use <code>/\s+/</code></td></tr>
+<tr><td>Uma palavra vazia <code>''</code> no fim</td><td>Faltou o <code>trim()</code> antes do <code>split</code></td></tr>
+<tr><td>"canção" vira "cano"</td><td>Regex <code>[^a-z]</code> ou <code>\w</code>: use <code>\p{L}</code> com a flag <code>u</code></td></tr>
+<tr><td>Todas as contagens <code>NaN</code></td><td><code>undefined + 1</code>: faltou o <code>?? 0</code></td></tr>
+<tr><td>"ária" depois de "zebra"</td><td>Ordenou com <code>&lt;</code> ou sem <code>localeCompare</code></td></tr>
+<tr><td>Só o título, sem palavras</td><td>Quantidade <code>NaN</code> (texto no lugar do número)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qualquer branco</h3>
+<p>Complete a regex que corta em "um ou mais espaços em branco":</p>
+<div class="ex-code">const palavras = texto.trim().split(/<input data-answer="\s+" aria-label="regex">/);</div>
+</div>
+
+<div class="exercise">
+<h3>2. A flag que faltou</h3>
+<p>Complete a flag que liga o modo Unicode (sem ela, o <code>\p{L}</code> não funciona):</p>
+<div class="ex-code">palavra.replace(/[^\p{L}]/g<input data-answer="u" aria-label="flag">, "")</div>
+</div>
+
+<div class="exercise">
+<h3>3. Zero quando falta</h3>
+<p>Complete o operador que troca o <code>undefined</code> por 0:</p>
+<div class="ex-code">contagem.set(palavra, (contagem.get(palavra) <input data-answer="??" aria-label="operador"> 0) + 1);</div>
+</div>
+
+<div class="exercise">
+<h3>4. A barra</h3>
+<p>Sem rodar: quantos caracteres tem <code>"█".repeat(6)</code>?</p>
+<div class="ex-code"><input data-answer="6" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que <code>"Não gorjeiam como lá.".match(/\w+/g)</code> deu <code>[ 'N', 'o', 'gorjeiam', 'como', 'l' ]</code>?</p>
+<label><input type="radio" name="q5"> O ponto final atrapalhou</label>
+<label><input type="radio" name="q5"> O <code>\w</code> só reconhece letras sem acento, números e <code>_</code>; o <code>ã</code> e o <code>á</code> ficaram de fora</label>
+<label><input type="radio" name="q5"> Faltou o <code>toLowerCase</code></label>
+<label><input type="radio" name="q5"> O <code>match</code> só pega palavras com mais de uma letra</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que transformar o Map em array com <code>[...contagem]</code> antes de ordenar?</p>
+<label><input type="radio" name="q6"> Porque o Map não tem <code>toSorted</code>; o array de pares <code>[palavra, vezes]</code> tem</label>
+<label><input type="radio" name="q6"> Porque o Map apaga as palavras repetidas</label>
+<label><input type="radio" name="q6"> Para o programa ficar mais rápido</label>
+<label><input type="radio" name="q6"> Porque o <code>for … of</code> não funciona com Map</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. Para que serve o <code>Set</code> <code>COMUNS</code> na versão 4?</p>
+<label><input type="radio" name="q7"> Para contar as palavras sem repetição</label>
+<label><input type="radio" name="q7"> Para ordenar o ranking</label>
+<label><input type="radio" name="q7"> Para ignorar palavras pequenas, como "que" e "de", que aparecem em qualquer texto</label>
+<label><input type="radio" name="q7"> Para guardar as palavras com acento</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Para cortar um texto em palavras, use <code>texto.trim().split(/\s+/)</code>: pega espaços, quebras de linha e brancos repetidos.</li>
+  <li>Para limpar, <code>toLowerCase()</code> e <code>replace(/[^\p{L}]/gu, "")</code>. Em português, nunca <code>[a-z]</code> nem <code>\w</code>: eles apagam as letras acentuadas.</li>
+  <li><code>map</code> e <code>filter</code> encadeados deixam cada etapa numa linha.</li>
+  <li>Um <code>Map</code> conta: <code>contagem.set(p, (contagem.get(p) ?? 0) + 1)</code>. Sem o <code>?? 0</code>, tudo vira <code>NaN</code>.</li>
+  <li><code>[...map].toSorted(…)</code> ordena; <code>localeCompare(…, "pt-BR")</code> põe as palavras acentuadas no lugar certo.</li>
+  <li>Um <code>Set</code> com <code>has</code> é o jeito de perguntar "esta palavra está na lista?".</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
