@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript DOM e Eventos — referência com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida do DOM e dos eventos no navegador: querySelector, querySelectorAll, getElementById, textContent, innerHTML, value, atributos, dataset, classList, style, createElement, append, remove, closest, addEventListener, os eventos mais usados (click, input, submit, keydown), o objeto do evento, preventDefault e localStorage, com resultados reais do Console do Chromium.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">DOM e Eventos</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida do <strong>DOM</strong> (<em>Document Object Model</em>, "modelo de objetos do documento": a página vista pelo JavaScript como uma árvore de objetos) e dos <strong>eventos</strong> (cliques, teclas, digitação). Aqui estão os jeitos de encontrar um elemento, mudar o texto, os atributos, as classes e o estilo, criar e remover elementos, reagir ao que a pessoa faz e guardar dados no navegador.</p>
+
+<div class="warning">
+<strong>Só no navegador</strong>
+<p>Tudo nesta página é do <strong>navegador</strong>: o <code>document</code>, o <code>window</code>, o <code>localStorage</code>. No Node não existe página, e <code>document.querySelector(…)</code> dá <code>ReferenceError: document is not defined</code> (veja <a href="ref-erros.html">Mensagens de Erro Comuns</a>). Para praticar, use as caixas "Experimente" desta página ou o Console do navegador (<a href="console-navegador.html">O Console do Navegador (F12)</a>).</p>
+</div>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Os exemplos usam a página da lojinha da Ana, aberta no navegador com dois cliques no arquivo:</li>
+</ul>
+<pre class="file" data-file="index.html">&lt;h1 id="titulo"&gt;Lojinha da Ana&lt;/h1&gt;
+&lt;ul id="lista"&gt;
+  &lt;li class="item" data-preco="4.5"&gt;Pão&lt;/li&gt;
+  &lt;li class="item destaque" data-preco="6"&gt;Leite&lt;/li&gt;
+  &lt;li class="item" data-preco="12"&gt;Café&lt;/li&gt;
+&lt;/ul&gt;
+&lt;input id="busca" type="text" placeholder="Procurar..."&gt;
+&lt;a id="link" href="https://example.com"&gt;Site&lt;/a&gt;
+&lt;button id="botao"&gt;Comprar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<ul>
+  <li><strong>Exemplo</strong> é o que você digitaria no <strong>Console</strong> do navegador (F12); <strong>Resultado</strong> é o que o Console do Chromium 155 respondeu no computador da Ana. Textos aparecem entre aspas simples (<code>'Pão'</code>).</li>
+  <li>Os exemplos seguem em ordem: quando um muda a página, os de baixo já veem a mudança.</li>
+</ul>
+</div>
+
+<p>Assim fica no Console:</p>
+
+<pre class="devtools">&gt; document.querySelector("#titulo")
+&lt;h1 id="titulo"&gt;Lojinha da Ana&lt;/h1&gt;
+&gt; document.querySelector(".item").textContent
+'Pão'
+&gt; document.querySelectorAll(".item").length
+3
+&gt; document.querySelector("#nada")
+null
+</pre>
+
+<p>O primeiro resultado é o próprio <strong>elemento</strong> (o Console mostra a tag, e ao clicar nela dá para abrir a árvore). O <code>querySelector</code> de algo que não existe não dá erro: devolve <code>null</code>. O erro só vem depois, quando você tenta usar esse <code>null</code>.</p>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#selecionar">Selecionar elementos</a></li>
+  <li><a href="#conteudo">Texto, HTML e valor</a></li>
+  <li><a href="#atributos">Atributos e data-*</a></li>
+  <li><a href="#classes">Classes e estilo</a></li>
+  <li><a href="#criar">Criar, mover e remover</a></li>
+  <li><a href="#navegar">Andar pela árvore</a></li>
+  <li><a href="#eventos">Eventos</a> e <a href="#objeto-evento">o objeto do evento</a></li>
+  <li><a href="#storage">localStorage</a></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="selecionar">Selecionar elementos</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>document.querySelector(sel)</code></td><td>o <strong>primeiro</strong> elemento que casa com o seletor CSS, ou <code>null</code></td><td><code>document.querySelector(".item").textContent</code></td><td><code>'Pão'</code></td><td><a href="dom-selecionar.html">Selecionando Elementos</a></td></tr>
+<tr><td></td><td>seletores: <code>#id</code>, <code>.classe</code>, <code>tag</code>, <code>pai filho</code>…; sem o <code>#</code>, procura uma <strong>tag</strong> com esse nome</td><td><code>document.querySelector("lista")</code></td><td><code>null</code> (não existe a tag <code>&lt;lista&gt;</code>)</td><td></td></tr>
+<tr><td><code>document.querySelectorAll(sel)</code></td><td><strong>todos</strong>, numa <code>NodeList</code> (parecida com um array)</td><td><code>document.querySelectorAll(".item").length</code></td><td><code>3</code></td><td><a href="dom-selecionar.html">Selecionando Elementos</a></td></tr>
+<tr><td></td><td>a <code>NodeList</code> tem <code>forEach</code></td><td><code>document.querySelectorAll(".item").forEach(li =&gt; console.log(li.textContent))</code></td><td>mostra <code>Pão</code>, <code>Leite</code>, <code>Café</code></td><td><a href="foreach.html">forEach</a></td></tr>
+<tr><td></td><td>mas não tem <code>map</code>/<code>filter</code>: converta com <code>[...]</code> ou <code>Array.from</code></td><td><code>[...document.querySelectorAll(".item")].map(li =&gt; li.textContent)</code></td><td><code>(3) ['Pão', 'Leite', 'Café']</code></td><td><a href="ref-array.html#criar">Array.from</a></td></tr>
+<tr><td><code>document.getElementById(id)</code></td><td>o elemento com esse <code>id</code> (sem o <code>#</code>)</td><td><code>document.getElementById("lista").children.length</code></td><td><code>3</code></td><td></td></tr>
+<tr><td><code>document.title</code></td><td>o título da aba</td><td><code>document.title</code></td><td><code>'Lojinha da Ana'</code></td><td><a href="dom.html">O que é o DOM</a></td></tr>
+</table>
+</div>
+
+<p>O Console do navegador mostra arrays com o tamanho na frente, <code>(3) ['Pão', 'Leite', 'Café']</code>, sem os espaços que o Node põe (<code>[ 'Pão', 'Leite', 'Café' ]</code>).</p>
+
+<hr>
+
+<h2 id="conteudo">Texto, HTML e valor</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>textContent</code></td><td>lê ou troca o texto do elemento</td><td><code>document.querySelector("#titulo").textContent = "Loja Nova"</code></td><td><code>'Loja Nova'</code> (e o título da página mudou)</td><td><a href="dom-alterar.html">Mudando Textos e Atributos</a></td></tr>
+<tr><td><code>innerHTML</code></td><td>lê ou troca o <strong>HTML</strong> de dentro (as tags viram elementos)</td><td><code>document.querySelector("#saida").innerHTML = "&lt;strong&gt;Oi&lt;/strong&gt;"</code> e depois <code>….textContent</code></td><td><code>'&lt;strong&gt;Oi&lt;/strong&gt;'</code>, <code>'Oi'</code></td><td><a href="dom-alterar.html">Mudando Textos e Atributos</a></td></tr>
+<tr><td><code>outerHTML</code></td><td>o HTML do elemento inteiro, com a própria tag</td><td><code>document.querySelector("#link").outerHTML</code></td><td><code>'&lt;a id="link" href="https://example.com" target="_blank"&gt;Site&lt;/a&gt;'</code></td><td></td></tr>
+<tr><td><code>value</code></td><td>o que está escrito num campo (<code>input</code>, <code>textarea</code>, <code>select</code>); é sempre <strong>texto</strong></td><td><code>document.querySelector("#busca").value</code>, antes e depois de digitar <code>pão</code></td><td><code>''</code>, <code>'pão'</code></td><td><a href="formularios.html">Formulários</a></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Prefira <code>textContent</code></strong>
+<p>Para pôr um texto que veio da pessoa (um nome, um comentário), use <code>textContent</code>: ele mostra o texto como está. Com <code>innerHTML</code>, um texto com <code>&lt;</code> vira tag, e isso abre brecha para alguém injetar código na página.</p>
+</div>
+
+<hr>
+
+<h2 id="atributos">Atributos e <code>data-*</code></h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>getAttribute(nome)</code></td><td>o valor do atributo, como está escrito no HTML</td><td><code>document.querySelector("#link").getAttribute("href")</code></td><td><code>'https://example.com'</code></td><td><a href="dom-alterar.html">Mudando Textos e Atributos</a></td></tr>
+<tr><td><code>el.href</code>, <code>el.id</code>, <code>el.src</code>…</td><td>a propriedade com o mesmo nome; às vezes "arrumada" pelo navegador</td><td><code>document.querySelector("#link").href</code></td><td><code>'https://example.com/'</code> (ganhou a barra)</td><td></td></tr>
+<tr><td><code>setAttribute(nome, valor)</code></td><td>cria ou muda um atributo</td><td><code>document.querySelector("#link").setAttribute("target", "_blank")</code></td><td><code>undefined</code> (e o link ganhou <code>target="_blank"</code>)</td><td></td></tr>
+<tr><td><code>removeAttribute(nome)</code></td><td>apaga o atributo</td><td colspan="2">funciona como o <code>setAttribute</code></td><td></td></tr>
+<tr><td><code>dataset.nome</code></td><td>lê os atributos <code>data-nome</code> (sempre como texto)</td><td><code>document.querySelector(".destaque").dataset.preco</code></td><td><code>'6'</code></td><td><a href="dom-alterar.html">Mudando Textos e Atributos</a></td></tr>
+<tr><td></td><td>todos os preços, como números</td><td><code>Array.from(document.querySelectorAll(".item"), li =&gt; Number(li.dataset.preco))</code></td><td><code>(3) [4.5, 6, 12]</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="classes">Classes e estilo</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>classList.add(c)</code></td><td>acrescenta a classe</td><td><code>document.querySelector(".item").classList.add("vendido")</code> e depois <code>….className</code></td><td><code>undefined</code>, <code>'item vendido'</code></td><td><a href="dom-estilo.html">Mudando o Estilo</a></td></tr>
+<tr><td><code>classList.remove(c)</code></td><td>tira a classe</td><td><code>document.querySelector(".item").classList.remove("vendido")</code></td><td><code>undefined</code></td><td></td></tr>
+<tr><td><code>classList.contains(c)</code></td><td>tem a classe?</td><td><code>document.querySelector(".destaque").classList.contains("destaque")</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>classList.toggle(c)</code></td><td>põe se não tem, tira se tem; devolve se ficou com ela</td><td><code>document.querySelector(".destaque").classList.toggle("destaque")</code></td><td><code>false</code> (tirou)</td><td><a href="dom-estilo.html">Mudando o Estilo</a></td></tr>
+<tr><td><code>className</code></td><td>todas as classes, num texto só</td><td>(veja o <code>add</code>)</td><td><code>'item vendido'</code></td><td></td></tr>
+<tr><td><code>style.propriedade</code></td><td>muda um estilo direto no elemento; o nome do CSS vira <code>camelCase</code> (<code>background-color</code> → <code>backgroundColor</code>)</td><td><code>document.querySelector("#titulo").style.color = "red"</code>, <code>….style.backgroundColor = "yellow"</code>, <code>….getAttribute("style")</code></td><td><code>'red'</code>, <code>'yellow'</code>, <code>'color: red; background-color: yellow;'</code></td><td><a href="dom-estilo.html">Mudando o Estilo</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="criar">Criar, mover e remover</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>document.createElement(tag)</code></td><td>cria um elemento novo, ainda fora da página</td><td><code>const novo = document.createElement("li")</code>, <code>novo.textContent = "Bolo"</code></td><td><code>undefined</code>, <code>'Bolo'</code></td><td><a href="dom-criar.html">Criando e Removendo Elementos</a></td></tr>
+<tr><td><code>pai.append(el)</code></td><td>põe no <strong>fim</strong> de dentro do pai (aceita texto também)</td><td><code>document.querySelector("#lista").append(novo)</code> e depois <code>document.querySelectorAll("#lista li").length</code></td><td><code>undefined</code>, <code>4</code></td><td><a href="dom-criar.html">Criando e Removendo Elementos</a></td></tr>
+<tr><td><code>pai.prepend(el)</code></td><td>põe no <strong>começo</strong></td><td><code>document.querySelector("#lista").prepend("Início")</code></td><td><code>undefined</code> (o texto <code>Início</code> apareceu antes do Pão)</td><td></td></tr>
+<tr><td><code>el.remove()</code></td><td>tira o elemento da página</td><td><code>novo.remove()</code> e depois <code>document.querySelectorAll("#lista li").length</code></td><td><code>undefined</code>, <code>3</code></td><td><a href="dom-criar.html">Criando e Removendo Elementos</a></td></tr>
+<tr><td>também</td><td><code>el.before(x)</code>, <code>el.after(x)</code>, <code>el.replaceWith(x)</code>, <code>pai.appendChild(el)</code> (o antigo)</td><td colspan="2">funcionam do mesmo jeito</td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="navegar">Andar pela árvore</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>parentElement</code></td><td>o elemento pai</td><td><code>document.querySelector(".item").parentElement.tagName</code></td><td><code>'UL'</code> (o <code>tagName</code> vem em maiúsculas)</td></tr>
+<tr><td><code>closest(sel)</code></td><td>o ancestral mais próximo que casa com o seletor</td><td><code>document.querySelector(".item").closest("ul").id</code></td><td><code>'lista'</code></td></tr>
+<tr><td><code>children</code></td><td>os elementos filhos</td><td><code>document.getElementById("lista").children.length</code></td><td><code>3</code></td></tr>
+<tr><td>também</td><td><code>firstElementChild</code>, <code>lastElementChild</code>, <code>nextElementSibling</code>, <code>previousElementSibling</code></td><td colspan="2">o primeiro e o último filho; o irmão seguinte e o anterior</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="eventos">Eventos</h2>
+
+<p><code>el.addEventListener("tipo", funcao)</code> ("adicionar um ouvinte de evento") manda o navegador chamar a função toda vez que o evento acontecer naquele elemento. Aula: <a href="eventos.html">Eventos (addEventListener)</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Evento</th><th>Acontece quando…</th><th>Usado em</th><th>Aula</th></tr>
+<tr><td><code>click</code></td><td>o elemento é clicado (ou tocado no celular)</td><td>botões, links, qualquer elemento</td><td><a href="eventos.html">Eventos</a></td></tr>
+<tr><td><code>input</code></td><td>o texto de um campo muda (a cada letra)</td><td><code>input</code>, <code>textarea</code></td><td><a href="formularios.html">Formulários</a></td></tr>
+<tr><td><code>change</code></td><td>o valor muda e o campo perde o foco (ou o item escolhido muda)</td><td><code>select</code>, <code>checkbox</code>, <code>input</code></td><td><a href="formularios.html">Formulários</a></td></tr>
+<tr><td><code>submit</code></td><td>o formulário é enviado (botão ou Enter)</td><td><code>form</code></td><td><a href="formularios.html">Formulários</a></td></tr>
+<tr><td><code>keydown</code>, <code>keyup</code></td><td>uma tecla é apertada, solta</td><td><code>document</code>, campos</td><td><a href="eventos-objeto.html">O Objeto do Evento</a></td></tr>
+<tr><td><code>mouseover</code>, <code>mouseout</code></td><td>o mouse entra, sai do elemento</td><td>qualquer elemento</td><td></td></tr>
+<tr><td><code>focus</code>, <code>blur</code></td><td>o campo ganha, perde o foco</td><td>campos</td><td></td></tr>
+<tr><td><code>DOMContentLoaded</code></td><td>o HTML terminou de ser lido</td><td><code>document</code> (quando o <code>&lt;script&gt;</code> está no <code>&lt;head&gt;</code>)</td><td><a href="script-na-pagina.html">JavaScript na Página</a></td></tr>
+</table>
+</div>
+
+<h3 id="objeto-evento">O objeto do evento</h3>
+
+<p>A função recebe um objeto (costuma se chamar <code>evento</code> ou <code>e</code>) com os detalhes do que aconteceu. O <code>script.js</code> da lojinha tem três ouvintes:</p>
+
+<pre class="file" data-file="script.js">const botao = document.querySelector("#botao");
+botao.addEventListener("click", (evento) =&gt; {
+  console.log("clicou em", evento.target.textContent);
+  console.log(evento.type, evento.target.id);
+});
+document.querySelector("#busca").addEventListener("input", (e) =&gt; {
+  console.log("digitou:", e.target.value);
+});
+document.addEventListener("keydown", (e) =&gt; {
+  if (e.key === "Enter") console.log("tecla:", e.key);
+});
+</pre>
+
+<p>No lab, a Ana digitou <code>pão</code> no campo, apertou Enter e clicou em Comprar. O Console mostrou (no navegador, à direita de cada linha aparece também o arquivo e a linha do <code>console.log</code>, como <code>script.js:7</code>):</p>
+
+<pre class="devtools">digitou: p
+digitou: pã
+digitou: pão
+tecla: Enter
+clicou em Comprar
+click botao
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Propriedade ou método</th><th>O que é</th><th>No exemplo</th></tr>
+<tr><td><code>evento.target</code></td><td>o elemento onde o evento aconteceu</td><td><code>evento.target.textContent</code> → <code>Comprar</code>; <code>evento.target.id</code> → <code>botao</code></td></tr>
+<tr><td><code>evento.type</code></td><td>o tipo do evento</td><td><code>click</code></td></tr>
+<tr><td><code>e.target.value</code></td><td>no <code>input</code>, o texto do campo naquele momento</td><td><code>p</code>, <code>pã</code>, <code>pão</code> (um evento por letra)</td></tr>
+<tr><td><code>e.key</code></td><td>no <code>keydown</code>/<code>keyup</code>, a tecla: <code>"Enter"</code>, <code>"Escape"</code>, <code>"a"</code>, <code>"ArrowUp"</code>…</td><td><code>Enter</code></td></tr>
+<tr><td><code>evento.preventDefault()</code></td><td>cancela o que o navegador faria sozinho: no <code>submit</code>, recarregar a página; num link, abrir o endereço</td><td>veja abaixo</td></tr>
+<tr><td><code>el.removeEventListener(tipo, f)</code></td><td>para de ouvir (precisa ser a <strong>mesma</strong> função, guardada numa variável)</td><td></td></tr>
+</table>
+</div>
+
+<p>Um formulário que não recarrega a página, colhido no lab (a Ana digitou <code>Ana</code> e apertou Enter):</p>
+
+<pre class="file" data-file="script.js">const form = document.querySelector("#cadastro");
+form.addEventListener("submit", (evento) =&gt; {
+  evento.preventDefault();
+  const nome = document.querySelector("#nome").value;
+  document.querySelector("#saida").textContent = `Bem-vinda, ${nome}!`;
+  console.log("enviado sem recarregar");
+});
+</pre>
+
+<pre class="devtools">enviado sem recarregar
+</pre>
+
+<p>E o parágrafo <code>#saida</code> passou a mostrar <code>Bem-vinda, Ana!</code>. Sem o <code>preventDefault()</code>, o navegador recarregaria a página e o texto sumiria na hora.</p>
+
+<div class="tryweb" data-goal="texto:#saida~Pedido de 3 itens;;dom:#saida.ok;;semerro" data-acoes="clicar #botao">
+<p class="try-task"><strong>Missão:</strong> quando a Ana clicar em <strong>Comprar</strong>, o parágrafo <code>#saida</code> deve mostrar <code>Pedido de 3 itens</code> (conte os <code>.item</code> com <code>querySelectorAll</code> e use o <code>length</code>) e ganhar a classe <code>ok</code> (com <code>classList.add</code>), que deixa o texto verde. Complete a função do clique.</p>
+<pre class="script" data-file="index.html">&lt;h1&gt;Lojinha da Ana&lt;/h1&gt;
+&lt;ul id="lista"&gt;
+  &lt;li class="item"&gt;Pão&lt;/li&gt;
+  &lt;li class="item"&gt;Leite&lt;/li&gt;
+  &lt;li class="item"&gt;Café&lt;/li&gt;
+&lt;/ul&gt;
+&lt;button id="botao"&gt;Comprar&lt;/button&gt;
+&lt;p id="saida"&gt;&lt;/p&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="style.css">.ok {
+  color: green;
+  font-weight: bold;
+}
+</pre>
+<pre class="script" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+
+botao.addEventListener("click", () =&gt; {
+  // conte os itens e escreva no parágrafo
+});
+</pre>
+<pre class="solucao" data-file="script.js">const botao = document.querySelector("#botao");
+const saida = document.querySelector("#saida");
+
+botao.addEventListener("click", () =&gt; {
+  const itens = document.querySelectorAll(".item");
+  saida.textContent = `Pedido de ${itens.length} itens`;
+  saida.classList.add("ok");
+});
+</pre>
+</div>
+
+<p>No Chromium do lab, depois do clique, o parágrafo ficou assim: <code>&lt;p id="saida" class="ok"&gt;Pedido de 3 itens&lt;/p&gt;</code>.</p>
+
+<hr>
+
+<h2 id="storage">localStorage</h2>
+
+<p>Uma gaveta do navegador que guarda <strong>textos</strong> por site, e eles continuam lá depois de fechar a aba. Aula: <a href="localstorage.html">Guardando Dados (localStorage)</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>setItem(chave, valor)</code></td><td>guarda (o valor vira texto)</td><td><code>localStorage.setItem("nome", "Ana")</code></td><td><code>undefined</code></td></tr>
+<tr><td><code>getItem(chave)</code></td><td>lê; se não existe, <code>null</code></td><td><code>localStorage.getItem("nome")</code>, <code>localStorage.getItem("idade")</code></td><td><code>'Ana'</code>, <code>null</code></td></tr>
+<tr><td></td><td>arrays e objetos: guarde com <code>JSON.stringify</code>…</td><td><code>localStorage.setItem("carrinho", JSON.stringify(["pão", "café"]))</code>, <code>localStorage.getItem("carrinho")</code></td><td><code>undefined</code>, <code>'["pão","café"]'</code></td></tr>
+<tr><td></td><td>…e leia com <code>JSON.parse</code></td><td><code>JSON.parse(localStorage.getItem("carrinho"))</code></td><td><code>(2) ['pão', 'café']</code></td></tr>
+<tr><td><code>removeItem(chave)</code></td><td>apaga uma chave</td><td><code>localStorage.removeItem("nome")</code></td><td><code>undefined</code></td></tr>
+<tr><td><code>clear()</code></td><td>apaga tudo do site</td><td><code>localStorage.clear()</code> e depois <code>localStorage.length</code></td><td><code>undefined</code>, <code>0</code></td></tr>
+<tr><td><code>length</code></td><td>quantas chaves há</td><td><code>localStorage.length</code></td><td><code>0</code></td></tr>
+</table>
+</div>
+
+<div class="tryweb">
+<p class="try-task"><strong>Livre:</strong> abra o Console da caixa e mexa na página: troque textos, acrescente itens, mude classes. Cada clique no botão acrescenta um item novo na lista.</p>
+<pre class="script" data-file="index.html">&lt;h1 id="titulo"&gt;Lojinha da Ana&lt;/h1&gt;
+&lt;ul id="lista"&gt;
+  &lt;li class="item"&gt;Pão&lt;/li&gt;
+  &lt;li class="item"&gt;Leite&lt;/li&gt;
+&lt;/ul&gt;
+&lt;input id="novo" placeholder="Novo item"&gt;
+&lt;button id="botao"&gt;Acrescentar&lt;/button&gt;
+&lt;script src="script.js"&gt;&lt;/script&gt;
+</pre>
+<pre class="script" data-file="script.js">const lista = document.querySelector("#lista");
+const campo = document.querySelector("#novo");
+
+document.querySelector("#botao").addEventListener("click", () =&gt; {
+  const li = document.createElement("li");
+  li.textContent = campo.value || "Item sem nome";
+  li.classList.add("item");
+  lista.append(li);
+  campo.value = "";
+  console.log("Itens:", document.querySelectorAll(".item").length);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<p>Mensagens reais do Console do Chromium:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem</th><th>O que aconteceu</th></tr>
+<tr><td><code>document.querySelector("#nada").textContent = "x"</code></td><td><code>Uncaught TypeError: Cannot set properties of null (setting 'textContent')</code></td><td>"Não dá para mudar propriedades de <code>null</code>": o <code>querySelector</code> não achou o elemento. Confira o seletor (o <code>#</code>, o <code>.</code>, a grafia) e se o elemento existe.</td></tr>
+<tr><td><code>&lt;script src="script.js"&gt;</code> no <code>&lt;head&gt;</code>, e lá dentro <code>botao.addEventListener(…)</code></td><td><code>Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')</code></td><td>O script rodou <strong>antes</strong> de o botão existir na página, e o <code>querySelector</code> deu <code>null</code>. Ponha o <code>&lt;script&gt;</code> no fim do <code>&lt;body&gt;</code> ou use <code>&lt;script defer&gt;</code> (<a href="script-na-pagina.html">JavaScript na Página</a>).</td></tr>
+<tr><td><code>document.querySelectorAll(".item").map(li =&gt; li)</code></td><td><code>Uncaught TypeError: document.querySelectorAll(...).map is not a function</code></td><td>A <code>NodeList</code> não é um array. Use <code>[...lista].map(…)</code> ou <code>Array.from(lista, …)</code>.</td></tr>
+<tr><td><code>document.querySelectorAll(".item").textContent</code></td><td>nenhuma: o resultado é <code>undefined</code></td><td>Uma lista não tem <code>textContent</code>: percorra com <code>forEach</code>, ou use <code>querySelector</code> para pegar só um.</td></tr>
+<tr><td><code>document.querySelector("#1")</code></td><td><code>Uncaught SyntaxError: Failed to execute 'querySelector' on 'Document': '#1' is not a valid selector.</code></td><td>"Não é um seletor válido": no CSS, um <code>id</code> não pode começar com número. Use <code>document.getElementById("1")</code> ou mude o <code>id</code>.</td></tr>
+<tr><td><code>….addEventListener("click")</code></td><td><code>Uncaught TypeError: Failed to execute 'addEventListener' on 'EventTarget': 2 arguments required, but only 1 present.</code></td><td>"São necessários 2 argumentos, mas só 1 foi passado": faltou a função.</td></tr>
+</table>
+</div>
+
+<p>O caso do script no <code>&lt;head&gt;</code>, como aparece no Console ao abrir a página:</p>
+
+<pre class="devtools">Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at script.js:2:7
+</pre>
+
+<p>O <code>script.js:2:7</code> diz onde: linha 2, coluna 7 (o começo de <code>addEventListener</code>, logo depois de <code>botao.</code>). Mais mensagens em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Encontrar: <code>querySelector</code> (o primeiro ou <code>null</code>), <code>querySelectorAll</code> (todos, uma <code>NodeList</code> com <code>forEach</code>), <code>getElementById</code>.</li>
+  <li>Mudar: <code>textContent</code> (texto, o mais seguro), <code>innerHTML</code> (HTML), <code>value</code> (campos), <code>setAttribute</code>, <code>dataset</code>.</li>
+  <li>Aparência: <code>classList.add/remove/toggle/contains</code>; <code>style.corDeFundo</code> em <code>camelCase</code>.</li>
+  <li>Criar e tirar: <code>createElement</code> + <code>append</code>/<code>prepend</code>; <code>remove()</code>.</li>
+  <li>Reagir: <code>addEventListener("click" | "input" | "submit" | "keydown", (e) =&gt; …)</code>; <code>e.target</code>, <code>e.key</code>, <code>e.preventDefault()</code>.</li>
+  <li>Guardar: <code>localStorage.setItem</code>/<code>getItem</code>, com <code>JSON.stringify</code>/<code>JSON.parse</code> para arrays e objetos.</li>
+  <li>O erro mais comum: <code>null</code> do <code>querySelector</code> (seletor errado ou script cedo demais).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
