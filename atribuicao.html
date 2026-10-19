@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Atribuição — =, +=, -=, *= e os outros atalhos | Guia JavaScript</title>
+<meta name="description" content="Os operadores de atribuição do JavaScript para quem nunca programou: o = que quer dizer &quot;guarde&quot;, x = x + 1, os atalhos +=, -=, *=, /=, %= e **=, o += com textos, ??= e ||=, e os erros reais do Node.js 24 (Assignment to constant variable, Invalid left-hand side in assignment, o = no lugar do === dentro do if).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Atribuição</span></h1>
+
+<p class="intro">Desde a primeira variável, você usa o sinal <code>=</code>. Ele parece o "igual" da matemática, mas no JavaScript quer dizer outra coisa: "<strong>guarde</strong> este valor nesta variável". Isso se chama <strong>atribuição</strong> (dar um valor a alguém). Esta aula mostra o que o <code>=</code> faz de verdade, como mudar o valor de uma variável a partir do valor que ela já tem, e os atalhos que encurtam isso: <code>+=</code>, <code>-=</code>, <code>*=</code> e companhia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>=</code> faz: primeiro calcula a direita, depois guarda na esquerda.</li>
+  <li>Por que <code>pontos = pontos + 5</code> faz sentido (e não é uma equação impossível).</li>
+  <li>Os atalhos <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>%=</code> e <code>**=</code>.</li>
+  <li>O <code>+=</code> com textos, para ir montando uma frase.</li>
+  <li>Os atalhos <code>??=</code> e <code>||=</code>, para dar um valor só quando falta.</li>
+  <li>Os erros reais: mudar uma <code>const</code>, o lado esquerdo errado, o <code>=</code> no lugar do <code>===</code> e o <code>=+</code> trocado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a lousa do placar</h2>
+<p>Na gincana da escola, o placar de cada equipe é escrito numa lousa. Quando a equipe ganha 5 pontos, a professora faz três coisas, nesta ordem:</p>
+<ol class="passo">
+  <li><strong>Lê</strong> o que está escrito na lousa agora: 25.</li>
+  <li><strong>Faz a conta</strong> de cabeça: 25 + 5 = 30.</li>
+  <li><strong>Apaga</strong> o 25 e <strong>escreve</strong> o 30 no lugar.</li>
+</ol>
+<p>A atribuição é exatamente isso. A variável é a lousa; o <code>=</code> é "apague o que está lá e escreva isto". E a conta do lado direito é feita <strong>antes</strong>, com o valor antigo.</p>
+
+<hr>
+
+<h2>1. O <code>=</code>: guardar um valor</h2>
+
+<pre class="file" data-file="guardar.js">let pontos = 10;
+console.log(pontos);
+pontos = 25;
+console.log(pontos);
+pontos = pontos + 5;
+console.log(pontos);
+</pre>
+
+<dl class="anatomy">
+  <dt>let pontos = 10;</dt><dd>Cria a variável e já guarda o 10 nela (veja <a href="variaveis.html">Variáveis</a>). O <code>let</code> aparece só na criação.</dd>
+  <dt>pontos = 25;</dt><dd>Uma <strong>nova atribuição</strong>: apaga o 10 e guarda o 25. Sem <code>let</code>, porque a variável já existe.</dd>
+  <dt>pontos = pontos + 5;</dt><dd>Na matemática, "x = x + 5" seria impossível. Aqui, ela se lê da <strong>direita para a esquerda</strong>: "pegue o valor atual de <code>pontos</code> (25), some 5 (30) e guarde o resultado em <code>pontos</code>".</dd>
+</dl>
+
+<pre class="term">$ node guardar.js
+10
+25
+30
+</pre>
+
+<div class="tip">
+<strong>Leia o <code>=</code> como "recebe"</strong>
+<p><code>pontos = 25</code> se lê "pontos <strong>recebe</strong> 25". Assim você nunca confunde com o "igual" da matemática. Para <strong>perguntar</strong> se dois valores são iguais, o JavaScript usa outro sinal, o <code>===</code> (aula <a href="operadores-comparacao.html">Comparação</a>).</p>
+</div>
+
+<hr>
+
+<h2>2. Os atalhos: <code>+=</code>, <code>-=</code>, <code>*=</code>…</h2>
+<p>Mudar uma variável a partir do valor que ela já tem é tão comum que existe um atalho para cada operador aritmético (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). Em vez de repetir o nome da variável, você escreve o operador colado no <code>=</code>:</p>
+
+<pre class="file" data-file="compostos.js">let saldo = 100;
+saldo += 50;
+console.log("depois de += 50:", saldo);
+saldo -= 30;
+console.log("depois de -= 30:", saldo);
+saldo *= 2;
+console.log("depois de *= 2:", saldo);
+saldo /= 4;
+console.log("depois de /= 4:", saldo);
+saldo %= 7;
+console.log("depois de %= 7:", saldo);
+saldo **= 2;
+console.log("depois de **= 2:", saldo);
+</pre>
+
+<pre class="term">$ node compostos.js
+depois de += 50: 150
+depois de -= 30: 120
+depois de *= 2: 240
+depois de /= 4: 60
+depois de %= 7: 4
+depois de **= 2: 16
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atalho</th><th>É o mesmo que</th><th>Lê-se</th><th>No exemplo</th></tr>
+<tr><td><code>saldo += 50</code></td><td><code>saldo = saldo + 50</code></td><td>"some 50 ao saldo"</td><td>100 → 150</td></tr>
+<tr><td><code>saldo -= 30</code></td><td><code>saldo = saldo - 30</code></td><td>"tire 30 do saldo"</td><td>150 → 120</td></tr>
+<tr><td><code>saldo *= 2</code></td><td><code>saldo = saldo * 2</code></td><td>"multiplique o saldo por 2"</td><td>120 → 240</td></tr>
+<tr><td><code>saldo /= 4</code></td><td><code>saldo = saldo / 4</code></td><td>"divida o saldo por 4"</td><td>240 → 60</td></tr>
+<tr><td><code>saldo %= 7</code></td><td><code>saldo = saldo % 7</code></td><td>"fique com o resto da divisão por 7"</td><td>60 → 4</td></tr>
+<tr><td><code>saldo **= 2</code></td><td><code>saldo = saldo ** 2</code></td><td>"eleve o saldo ao quadrado"</td><td>4 → 16</td></tr>
+</table>
+</div>
+
+<p>O operador vem <strong>antes</strong> do <code>=</code>, colado nele, sem espaço no meio: <code>+=</code>. (A seção <a href="#errado">Quando dá errado</a> mostra o que acontece com <code>=+</code> e com <code>+ =</code>.)</p>
+
+<h3>O acumulador: o caixa da padaria</h3>
+<p>O uso mais comum do <code>+=</code> é <strong>acumular</strong>: começar um total em zero e ir somando cada valor. No caixa da padaria:</p>
+
+<pre class="file" data-file="caixa.js">let total = 0;
+total += 4.5;
+total += 12.9;
+total += 3.25;
+console.log(`Total da compra: R$ ${total}`);
+</pre>
+
+<pre class="term">$ node caixa.js
+Total da compra: R$ 20.65
+</pre>
+
+<p>A variável <code>total</code> começa em 0 e "engorda" a cada linha. Repare que ela é <code>let</code>: uma <code>const</code> não poderia mudar. Quando você aprender os laços (<a href="for.html">for</a>, <a href="while.html">while</a>), o <code>total += preco</code> vai ficar <strong>dentro</strong> do laço, somando quantos preços houver.</p>
+
+<div class="tryjs" data-goal="out:Total da compra: R$ 28.65;;src:\+=\s*8">
+<p class="try-task"><strong>Missão:</strong> o cliente lembrou de levar um pote de manteiga de R$ 8. Acrescente uma linha com <code>+=</code> para somar o 8 no total, antes do <code>console.log</code>. O total deve dar <code>Total da compra: R$ 28.65</code>.</p>
+<pre class="script" data-file="main.js">let total = 0;
+total += 4.5;
+total += 12.9;
+total += 3.25;
+console.log(`Total da compra: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">let total = 0;
+total += 4.5;
+total += 12.9;
+total += 3.25;
+total += 8;
+console.log(`Total da compra: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O <code>+=</code> com textos</h2>
+<p>Com textos, o <code>+</code> <strong>junta</strong> (veja <a href="strings.html">Strings</a>), e o <code>+=</code> também: ele cola um pedaço no fim do texto que já está na variável.</p>
+
+<pre class="file" data-file="texto.js">let lista = "Compras:";
+lista += " pão";
+lista += ", leite";
+lista += ", café";
+console.log(lista);
+</pre>
+
+<pre class="term">$ node texto.js
+Compras: pão, leite, café
+</pre>
+
+<p>Cuidado com o caso contrário: se a variável guarda um número <strong>como texto</strong>, o <code>+=</code> junta em vez de somar. Com <code>let contador = "1";</code>, o <code>contador += 1</code> deixa o contador valendo <code>"11"</code> (no lab, saiu <code>11</code>). É a pegadinha da aula <a href="conversao-automatica.html">Conversão Automática</a>. Os outros atalhos (<code>-=</code>, <code>*=</code>…) não juntam: eles convertem o texto para número.</p>
+
+<hr>
+
+<h2>4. Dar um valor só se faltar: <code>??=</code> e <code>||=</code></h2>
+<p>Desde o ECMAScript 2021, há também atalhos que só atribuem <strong>em certas condições</strong>:</p>
+
+<pre class="file" data-file="logicos.js">let apelido = null;
+apelido ??= "sem apelido";
+console.log(apelido);
+apelido ??= "outro";
+console.log(apelido);
+let desconto = 0;
+desconto ||= 10;
+console.log(desconto);
+let quantidade = 0;
+quantidade ??= 10;
+console.log(quantidade);
+</pre>
+
+<pre class="term">$ node logicos.js
+sem apelido
+sem apelido
+10
+0
+</pre>
+
+<dl class="anatomy">
+  <dt>apelido ??= "sem apelido"</dt><dd>"Se <code>apelido</code> for <code>null</code> ou <code>undefined</code>, guarde <code>"sem apelido"</code>; senão, deixe como está". Na primeira vez ele era <code>null</code> e recebeu o valor; na segunda, já tinha valor, e o <code>"outro"</code> foi ignorado. É o <code>??</code> da aula <a href="null-undefined.html">null e undefined</a>, em forma de atribuição.</dd>
+  <dt>desconto ||= 10</dt><dd>"Se <code>desconto</code> contar como falso, guarde 10". O <code>0</code> conta como falso (veja <a href="truthy-falsy.html">Truthy e Falsy</a>), então o desconto zero virou 10.</dd>
+  <dt>quantidade ??= 10</dt><dd>Com o <code>??=</code>, o <code>0</code> fica: ele só troca <code>null</code> e <code>undefined</code>. Para valores padrão, o <code>??=</code> é quase sempre o certo.</dd>
+</dl>
+
+<p>Existe também o <code>&amp;&amp;=</code> ("se tiver valor, troque"), bem menos usado. Os três dependem dos operadores lógicos, explicados em <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+
+<hr>
+
+<h2>5. Detalhes que aparecem em código de outras pessoas</h2>
+
+<h3>A atribuição também devolve um valor</h3>
+<p>Uma atribuição, além de guardar, <strong>devolve</strong> o valor guardado. É por isso que dá para encadear várias numa linha só:</p>
+
+<pre class="file" data-file="encadeado.js">let a, b, c;
+a = b = c = 0;
+console.log(a, b, c);
+</pre>
+
+<pre class="term">$ node encadeado.js
+0 0 0
+</pre>
+
+<p>A linha <code>a = b = c = 0</code> é resolvida da <strong>direita para a esquerda</strong>: <code>c</code> recebe 0, esse 0 vai para <code>b</code>, e depois para <code>a</code>. Funciona, mas é mais claro escrever uma variável por linha. Esse "devolver um valor" também explica um dos erros mais traiçoeiros da seção <a href="#errado">Quando dá errado</a>: o <code>=</code> dentro do <code>if</code>.</p>
+
+<h3>Atribuição não é igualdade para sempre</h3>
+<p>Uma atribuição copia o valor <strong>daquele momento</strong>. Se você escreve <code>let total = preco * 2;</code> e depois muda o <code>preco</code>, o <code>total</code> não muda sozinho: ele guardou o resultado da conta, e não a conta. Como numa lousa: o que foi escrito fica lá até alguém apagar.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para somar 1 a uma variável, há quatro formas, todas com o mesmo resultado:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>pontos = pontos + 1;</code></td><td>A forma por extenso. Clara para quem está começando; um pouco repetitiva</td></tr>
+<tr><td><code>pontos += 1;</code></td><td>O atalho. É a forma mais usada para somar qualquer valor (<code>total += preco</code>)</td></tr>
+<tr><td><code>pontos++;</code></td><td>Atalho ainda menor, só para somar exatamente 1. Muito usado em contadores de laço (aula <a href="incremento.html">Incremento e Decremento</a>)</td></tr>
+<tr><td><code>pontos = 1 + pontos;</code></td><td>Funciona com números, mas com textos a ordem muda o resultado (<code>"!" + texto</code> ≠ <code>texto + "!"</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Dar o valor inicial</td><td><code>let total = 0;</code> (com <code>let</code> ou <code>const</code>)</td></tr>
+<tr><td>Trocar o valor por outro, sem relação com o antigo</td><td><code>status = "pago";</code></td></tr>
+<tr><td>Mudar a partir do valor antigo</td><td>O atalho: <code>total += preco;</code>, <code>estoque -= vendidos;</code>, <code>preco *= 1.1;</code></td></tr>
+<tr><td>Dar um valor padrão só se estiver faltando</td><td><code>apelido ??= "sem apelido";</code></td></tr>
+<tr><td>Um valor que nunca vai mudar</td><td><code>const</code>: nenhuma atribuição depois da criação</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou mudar uma <code>const</code></strong>
+<pre class="file" data-file="constante.js">const limite = 100;
+limite += 10;
+console.log(limite);
+</pre>
+<pre class="term">$ node constante.js
+/home/ana/constante.js:2
+limite += 10;
+       ^
+
+TypeError: Assignment to constant variable.
+    at Object.&lt;anonymous&gt; (/home/ana/constante.js:2:8)
+    …  « mais 7 linhas at de dentro do Node (node:internal/…), cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/constante.js:2</dt><dd>O arquivo e a linha do problema: a 2.</dd>
+  <dt>limite += 10; e o ^</dt><dd>O <code>^</code> aponta para o <code>+=</code>, a tentativa de atribuir.</dd>
+  <dt>TypeError: Assignment to constant variable.</dt><dd>"Erro de tipo: atribuição a uma variável constante". O <code>limite</code> foi criado com <code>const</code>, que quer dizer "nunca muda" (veja <a href="const.html">Constantes</a>). Qualquer atribuição depois da criação (<code>=</code>, <code>+=</code>, <code>++</code>…) dá esse erro.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/constante.js:2:8)</dt><dd>Linha 2, coluna 8: a posição do <code>+=</code>. Repare que o erro acontece <strong>durante</strong> a execução: a linha 1 rodou normalmente.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se o valor precisa mudar, crie a variável com <code>let</code>: <code>let limite = 100;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu a atribuição ao contrário</strong>
+<pre class="file" data-file="invertido.js">let preco;
+10 = preco;
+</pre>
+<pre class="term">$ node invertido.js
+/home/ana/invertido.js:2
+10 = preco;
+^^
+
+SyntaxError: Invalid left-hand side in assignment
+    …  « 8 linhas at de dentro do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+<p>"Lado esquerdo inválido na atribuição". O lado esquerdo do <code>=</code> tem de ser um lugar onde se possa guardar algo, uma variável. O <code>10</code> é um valor, e não dá para guardar nada "dentro do 10". Na matemática, <code>10 = x</code> e <code>x = 10</code> são a mesma coisa; no JavaScript, não. <strong>Como consertar:</strong> a variável vai sempre à esquerda: <code>preco = 10;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar do <code>===</code> dentro do <code>if</code></strong>
+<pre class="file" data-file="ifigual.js">let nota = 4;
+if (nota = 10) {
+  console.log("Nota máxima!");
+}
+console.log("A nota agora é", nota);
+</pre>
+<pre class="term">$ node ifigual.js
+Nota máxima!
+A nota agora é 10
+</pre>
+<p>Nenhum erro, e dois estragos. A Ana queria <strong>perguntar</strong> "a nota é 10?", mas escreveu um <code>=</code> só, que <strong>guarda</strong> 10 na nota. A atribuição devolve o valor guardado (o 10), e 10 conta como verdadeiro: o <code>if</code> entrou. Resultado: um 4 virou "nota máxima", e a variável foi alterada para sempre. <strong>Como consertar:</strong> para perguntar, use <code>===</code>: <code>if (nota === 10)</code> (aula <a href="operadores-comparacao.html">Comparação</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Trocou a ordem: <code>=+</code> no lugar de <code>+=</code></strong>
+<pre class="file" data-file="espaco.js">let saldo = 100;
+saldo =+ 50;
+console.log(saldo);
+</pre>
+<pre class="term">$ node espaco.js
+50
+</pre>
+<p>O saldo deveria ir para 150, e foi para 50. Sem erro nenhum: o JavaScript leu <code>saldo = +50</code>, "saldo recebe mais cinquenta", ou seja, 50. O antigo 100 foi apagado. <strong>Como consertar:</strong> o operador vem <strong>antes</strong> do igual: <code>saldo += 50;</code>. (E com espaço no meio, <code>saldo + = 50;</code>, o Node recusa com <code>SyntaxError: Unexpected token '='</code>, "símbolo <code>=</code> inesperado": os dois sinais têm de estar colados.)</p>
+</div>
+
+<div class="cenario">
+<strong>Acumulou numa variável sem valor inicial</strong>
+<pre class="file" data-file="undef.js">let total;
+total += 10;
+console.log(total);
+</pre>
+<pre class="term">$ node undef.js
+NaN
+</pre>
+<p>A variável começou como <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>), e <code>undefined + 10</code> é <code>NaN</code>. Daí para a frente, toda soma dá <code>NaN</code>. <strong>Como consertar:</strong> todo acumulador começa com um valor: <code>let total = 0;</code> (ou <code>let lista = "";</code>, para texto).</p>
+</div>
+
+<div class="cenario">
+<strong>Errou o nome na atribuição</strong>
+<pre class="file" data-file="semdeclarar2.js">let total = 0;
+totl = total + 10;
+console.log(total);
+</pre>
+<pre class="term">$ node semdeclarar2.js
+0
+</pre>
+<p>O total continuou 0, e o Node não reclamou. Num arquivo <code>.js</code> comum, atribuir a um nome que não existe (<code>totl</code>, com a letra faltando) <strong>cria</strong> uma variável nova, em silêncio: um resto dos tempos antigos do JavaScript. Em <strong>modo estrito</strong> (com a linha <code>"use strict";</code> no topo do arquivo, ou em módulos, aula <a href="modulos.html">Módulos</a>), o mesmo erro para o programa com <code>ReferenceError: totl is not defined</code>, que é bem mais útil. <strong>Como consertar:</strong> confira o nome: <code>total = total + 10;</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Estoque: 35;;semerro">
+<p class="try-task"><strong>Missão:</strong> o estoque de pão de queijo começa em 50. Foram vendidos 20 e chegaram mais 5. O programa dá erro (leia a mensagem) e, mesmo depois de consertado, ainda tem uma pegadinha. Faça ele mostrar <code>Estoque: 35</code>.</p>
+<pre class="script" data-file="main.js">const estoque = 50;
+estoque -= 20;
+estoque =+ 5;
+console.log(`Estoque: ${estoque}`);
+</pre>
+<pre class="solucao" data-file="main.js">let estoque = 50;
+estoque -= 20;
+estoque += 5;
+console.log(`Estoque: ${estoque}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>É o mesmo que</th><th>O que faz</th></tr>
+<tr><td><code>x = 5</code></td><td></td><td>Guarda 5 em <code>x</code> (apaga o valor antigo)</td></tr>
+<tr><td><code>x += 5</code></td><td><code>x = x + 5</code></td><td>Soma (com texto, junta no fim)</td></tr>
+<tr><td><code>x -= 5</code></td><td><code>x = x - 5</code></td><td>Subtrai</td></tr>
+<tr><td><code>x *= 5</code></td><td><code>x = x * 5</code></td><td>Multiplica</td></tr>
+<tr><td><code>x /= 5</code></td><td><code>x = x / 5</code></td><td>Divide</td></tr>
+<tr><td><code>x %= 5</code></td><td><code>x = x % 5</code></td><td>Fica com o resto</td></tr>
+<tr><td><code>x **= 5</code></td><td><code>x = x ** 5</code></td><td>Eleva à potência</td></tr>
+<tr><td><code>x ??= 5</code></td><td><code>x = x ?? 5</code> (só atribui se faltar)</td><td>Guarda 5 só se <code>x</code> for <code>null</code>/<code>undefined</code></td></tr>
+<tr><td><code>x ||= 5</code></td><td>(só atribui se <code>x</code> contar como falso)</td><td>Guarda 5 se <code>x</code> for <code>0</code>, <code>""</code>, <code>null</code>…</td></tr>
+<tr><td><code>a = b = 0</code></td><td><code>b = 0; a = b;</code></td><td>Atribuições encadeadas, da direita para a esquerda</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Assignment to constant variable.</code></td><td>Atribuição a uma <code>const</code>: use <code>let</code></td></tr>
+<tr><td><code>SyntaxError: Invalid left-hand side in assignment</code></td><td>Valor à esquerda do <code>=</code> (<code>10 = x</code>)</td></tr>
+<tr><td><code>SyntaxError: Unexpected token '='</code></td><td>Espaço no meio do atalho: <code>+ =</code></td></tr>
+<tr><td>O <code>if</code> sempre entra e a variável muda sozinha</td><td><code>=</code> no lugar do <code>===</code></td></tr>
+<tr><td>O valor foi substituído em vez de somado</td><td><code>=+</code> no lugar de <code>+=</code></td></tr>
+<tr><td><code>NaN</code> num acumulador</td><td>A variável não tinha valor inicial</td></tr>
+<tr><td>"Soma" que gruda (<code>"11"</code>)</td><td>A variável guardava um texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o atalho</h3>
+<p>Complete para tirar 3 do estoque, com o atalho:</p>
+<div class="ex-code">estoque <input data-answer="-=" aria-label="operador de atribuição"> 3;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale?</h3>
+<p>Quanto vale <code>x</code> depois destas linhas? <code>let x = 4;</code> <code>x *= 3;</code> <code>x -= 2;</code></p>
+<div class="ex-code"><input data-answer="10" aria-label="valor de x"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Com texto</h3>
+<p>O que aparece? <code>let s = "Olá";</code> <code>s += ", Ana";</code> <code>console.log(s);</code></p>
+<div class="ex-code"><input data-answer="Olá, Ana" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como se lê <code>pontos = pontos + 5</code>?</p>
+<label><input type="radio" name="q4"> "pontos é igual a pontos mais 5", uma equação impossível</label>
+<label><input type="radio" name="q4"> "pegue o valor de pontos, some 5 e guarde o resultado em pontos"</label>
+<label><input type="radio" name="q4"> "compare pontos com pontos mais 5"</label>
+<label><input type="radio" name="q4"> Dá erro, porque a variável aparece dos dois lados</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que acontece com <code>const total = 0;</code> seguido de <code>total += 5;</code>?</p>
+<label><input type="radio" name="q5"> <code>total</code> passa a valer 5</label>
+<label><input type="radio" name="q5"> <code>total</code> continua 0, sem erro</label>
+<label><input type="radio" name="q5"> <code>SyntaxError: Invalid left-hand side in assignment</code></label>
+<label><input type="radio" name="q5"> <code>TypeError: Assignment to constant variable.</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>let saldo = 100;</code> <code>saldo =+ 30;</code> Quanto vale o saldo?</p>
+<label><input type="radio" name="q6"> 30</label>
+<label><input type="radio" name="q6"> 130</label>
+<label><input type="radio" name="q6"> 70</label>
+<label><input type="radio" name="q6"> Dá erro</label>
+</div>
+
+<h3>Missão final: o cofrinho da Ana</h3>
+
+<div class="tryjs" data-goal="out:No cofrinho: R$ 105;;src:\+=;;src:-=">
+<p class="try-task"><strong>Missão:</strong> o cofrinho da Ana começa com R$ 50. Use <strong>um atalho por linha</strong> para: depositar 80 (<code>+=</code>), gastar 35 num presente (<code>-=</code>) e depositar mais 10 (<code>+=</code>). O programa deve mostrar <code>No cofrinho: R$ 105</code>.</p>
+<pre class="script" data-file="main.js">let cofrinho = 50;
+// escreva as três linhas aqui
+
+console.log(`No cofrinho: R$ ${cofrinho}`);
+</pre>
+<pre class="solucao" data-file="main.js">let cofrinho = 50;
+cofrinho += 80;
+cofrinho -= 35;
+cofrinho += 10;
+console.log(`No cofrinho: R$ ${cofrinho}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>=</code> é a <strong>atribuição</strong>: "recebe". Primeiro o JavaScript calcula o lado direito, depois guarda o resultado na variável da esquerda, apagando o valor antigo.</li>
+  <li><code>x = x + 5</code> não é equação: é "pegue o valor de x, some 5, guarde em x". O atalho é <code>x += 5</code>; há também <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>%=</code> e <code>**=</code>.</li>
+  <li>O <code>+=</code> com texto junta no fim. Acumuladores começam com valor: <code>let total = 0;</code>.</li>
+  <li><code>x ??= padrão</code> dá um valor só quando <code>x</code> é <code>null</code> ou <code>undefined</code>.</li>
+  <li>Uma <code>const</code> não aceita atribuição (<code>Assignment to constant variable.</code>); a variável fica sempre à esquerda; para <strong>perguntar</strong> se é igual, use <code>===</code>, nunca <code>=</code>; e é <code>+=</code>, não <code>=+</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
