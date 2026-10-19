@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Métodos de Array — referência com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida dos métodos de array do JavaScript: push, pop, shift, unshift, splice, slice, concat, indexOf, includes, find, filter, map, forEach, reduce, some, every, sort, toSorted, toReversed, with, join, flat, Array.from e mais, dizendo quais mudam o array original, com resultado real do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Métodos de Array</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida dos <strong>métodos de array</strong>: as funções que toda lista já traz consigo, chamadas com um ponto depois dela (<code>compras.push("café")</code>). Elas acrescentam e tiram itens, procuram, filtram, transformam, somam, ordenam e juntam. A informação mais importante de cada linha é se o método <strong>muda o array original</strong> ou <strong>devolve um novo</strong>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Nos exemplos, <code>nums</code> é <code>const nums = [5, 1, 10, 2]</code> e <code>compras</code> é <code>const compras = ["pão", "leite", "café"]</code>. Quando o exemplo muda o array, ele usa um array <code>a</code> próprio, e a tabela mostra como <code>a</code> ficou depois.</li>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana, no formato do Node: <code>[ 1, 2, 3 ]</code>, com espaços dentro dos colchetes e textos entre aspas simples.</li>
+  <li>A coluna <strong>Muda?</strong> diz se o array original é alterado: <strong>sim</strong> (cuidado!) ou <strong>não</strong> (devolve um valor novo e deixa o original como estava).</li>
+  <li>Muitos métodos recebem uma <strong>função</strong> como argumento (<code>n =&gt; n &gt; 4</code>): ela é chamada uma vez para cada item. Se a seta <code>=&gt;</code> ainda é novidade, veja <a href="arrow-functions.html">Arrow Functions</a> e <a href="funcoes-valores.html">Funções como Valores</a>.</li>
+</ul>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#acessar">Tamanho e acesso</a>: <code>length</code> <code>[i]</code> <code>at</code></li>
+  <li><a href="#mudar">Acrescentar e tirar (mudam o array)</a>: <code>push</code> <code>pop</code> <code>unshift</code> <code>shift</code> <code>splice</code> <code>fill</code></li>
+  <li><a href="#copias">Pedaços e cópias</a>: <code>slice</code> <code>concat</code> <code>...</code> <code>structuredClone</code></li>
+  <li><a href="#procurar">Procurar</a>: <code>indexOf</code> <code>includes</code> <code>find</code> <code>findIndex</code> <code>findLast</code> <code>some</code> <code>every</code></li>
+  <li><a href="#percorrer">Percorrer e transformar</a>: <code>forEach</code> <code>map</code> <code>filter</code> <code>reduce</code> <code>flat</code> <code>flatMap</code></li>
+  <li><a href="#ordenar">Ordenar e inverter</a>: <code>sort</code> <code>reverse</code> <code>toSorted</code> <code>toReversed</code> <code>toSpliced</code> <code>with</code></li>
+  <li><a href="#juntar">Virar texto</a>: <code>join</code> <code>toString</code></li>
+  <li><a href="#criar">Criar arrays</a>: <code>Array.from</code> <code>Array.of</code> <code>new Array</code> <code>Array.isArray</code> <code>entries</code> <code>keys</code></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="acessar">Tamanho e acesso</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>length</code></td><td>quantos itens (propriedade: sem parênteses)</td><td><code>compras.length</code></td><td><code>3</code></td><td><a href="arrays.html">Arrays</a></td></tr>
+<tr><td><code>a[i]</code></td><td>o item na posição <code>i</code> (a primeira é <code>0</code>); fora da lista dá <code>undefined</code></td><td><code>compras[0]</code>, <code>compras[5]</code></td><td><code>'pão'</code>, <code>undefined</code></td><td><a href="arrays-acessar.html">Acessando e Alterando Itens</a></td></tr>
+<tr><td><code>at(i)</code></td><td>igual, mas aceita negativo: <code>-1</code> é o último <span class="versao">ES2022</span></td><td><code>compras.at(-1)</code></td><td><code>'café'</code></td><td></td></tr>
+<tr><td><code>a[i] = v</code></td><td>troca o item (muda o array, mesmo sendo <code>const</code>)</td><td>com <code>a</code> = <code>[ 'a', 'X', 'Y', 'd', 'e' ]</code>: <code>a[0] = "Z"</code></td><td><code>a</code> ficou <code>[ 'Z', 'X', 'Y', 'd', 'e' ]</code></td><td><a href="arrays-acessar.html">Acessando e Alterando Itens</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="mudar">Acrescentar e tirar (mudam o array)</h2>
+
+<p>Todos desta tabela <strong>mudam</strong> o array. Repare que o valor que o método <strong>devolve</strong> não é o array: o <code>push</code> devolve o tamanho novo, o <code>pop</code> devolve o item tirado.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo (a partir de <code>a</code>)</th><th>Devolve</th><th><code>a</code> fica</th><th>Aula</th></tr>
+<tr><td><code>push(x)</code></td><td>põe no <strong>fim</strong></td><td><code>["pão", "leite"]</code>, <code>a.push("café")</code></td><td><code>3</code></td><td><code>[ 'pão', 'leite', 'café' ]</code></td><td><a href="arrays-adicionar-remover.html">push, pop, shift e unshift</a></td></tr>
+<tr><td><code>pop()</code></td><td>tira do <strong>fim</strong></td><td><code>a.pop()</code></td><td><code>'café'</code></td><td><code>[ 'pão', 'leite' ]</code></td><td></td></tr>
+<tr><td><code>unshift(x)</code></td><td>põe no <strong>começo</strong></td><td><code>a.unshift("ovo")</code></td><td><code>3</code></td><td><code>[ 'ovo', 'pão', 'leite' ]</code></td><td></td></tr>
+<tr><td><code>shift()</code></td><td>tira do <strong>começo</strong></td><td><code>a.shift()</code></td><td><code>'ovo'</code></td><td><code>[ 'pão', 'leite' ]</code></td><td></td></tr>
+<tr><td><code>splice(i, n)</code></td><td>tira <code>n</code> itens a partir da posição <code>i</code></td><td><code>["a", "b", "c", "d", "e"]</code>, <code>a.splice(1, 2)</code></td><td><code>[ 'b', 'c' ]</code></td><td><code>[ 'a', 'd', 'e' ]</code></td><td><a href="arrays-splice.html">splice e slice</a></td></tr>
+<tr><td><code>splice(i, 0, …)</code></td><td>com <code>0</code> no meio: só <strong>insere</strong> na posição <code>i</code></td><td><code>a.splice(1, 0, "X", "Y")</code></td><td><code>[]</code></td><td><code>[ 'a', 'X', 'Y', 'd', 'e' ]</code></td><td></td></tr>
+<tr><td><code>length = n</code></td><td>corta o array no tamanho <code>n</code></td><td><code>[ 'Z', 'X', 'Y', 'd', 'e' ]</code>, <code>a.length = 2</code></td><td><code>2</code></td><td><code>[ 'Z', 'X' ]</code></td><td></td></tr>
+<tr><td><code>fill(v)</code></td><td>preenche tudo com <code>v</code></td><td><code>[3, 2, 1]</code>, <code>a.fill(0)</code></td><td><code>[ 0, 0, 0 ]</code></td><td><code>[ 0, 0, 0 ]</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="copias">Pedaços e cópias (não mudam)</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>slice(ini, fim)</code></td><td>copia o pedaço de <code>ini</code> até antes de <code>fim</code>; negativo conta do fim</td><td><code>nums.slice(1, 3)</code>, <code>nums.slice(-2)</code></td><td><code>[ 1, 10 ]</code>, <code>[ 10, 2 ]</code></td><td><a href="arrays-splice.html">splice e slice</a></td></tr>
+<tr><td><code>concat(…)</code></td><td>um array novo com os itens dos dois</td><td><code>nums.concat([7, 8])</code></td><td><code>[ 5, 1, 10, 2, 7, 8 ]</code></td><td></td></tr>
+<tr><td><code>[...a, x]</code></td><td>spread: copia e acrescenta (o jeito moderno)</td><td><code>[...nums, 7]</code></td><td><code>[ 5, 1, 10, 2, 7 ]</code></td><td><a href="arrays-copiar.html">Copiando Arrays</a></td></tr>
+<tr><td><code>structuredClone(a)</code></td><td>cópia <strong>profunda</strong>: copia também os arrays de dentro</td><td><code>structuredClone([[1, 2], [3]])</code></td><td><code>[ [ 1, 2 ], [ 3 ] ]</code></td><td><a href="arrays-copiar.html">Copiando Arrays</a></td></tr>
+<tr><td><code>const [x, ...resto] = a</code></td><td>desestruturação: tira o primeiro e guarda o resto</td><td><code>const [primeiro, ...resto] = compras</code></td><td><code>primeiro</code> = <code>'pão'</code>, <code>resto</code> = <code>[ 'leite', 'café' ]</code></td><td><a href="desestruturacao.html">Desestruturação</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="procurar">Procurar (não mudam)</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>indexOf(x)</code></td><td>a posição do item, ou <code>-1</code></td><td><code>nums.indexOf(10)</code>, <code>nums.indexOf(99)</code></td><td><code>2</code>, <code>-1</code></td><td><a href="arrays-buscar.html">Procurando</a></td></tr>
+<tr><td><code>lastIndexOf(x)</code></td><td>a posição da última vez</td><td><code>nums.lastIndexOf(1)</code></td><td><code>1</code></td><td></td></tr>
+<tr><td><code>includes(x)</code></td><td><code>true</code> se o item está lá (compara como o <code>===</code>: <code>2</code> não é <code>"2"</code>)</td><td><code>nums.includes(2)</code>, <code>nums.includes("2")</code></td><td><code>true</code>, <code>false</code></td><td><a href="arrays-buscar.html">Procurando</a></td></tr>
+<tr><td></td><td>única diferença do <code>indexOf</code>: acha o <code>NaN</code></td><td><code>[NaN].includes(NaN)</code>, <code>[NaN].indexOf(NaN)</code></td><td><code>true</code>, <code>-1</code></td><td></td></tr>
+<tr><td><code>find(f)</code></td><td>o <strong>primeiro item</strong> para o qual <code>f</code> dá verdadeiro, ou <code>undefined</code></td><td><code>nums.find(n =&gt; n &gt; 4)</code>, <code>nums.find(n =&gt; n &gt; 99)</code></td><td><code>5</code>, <code>undefined</code></td><td><a href="arrays-buscar.html">Procurando</a></td></tr>
+<tr><td><code>findIndex(f)</code></td><td>a <strong>posição</strong> desse item, ou <code>-1</code></td><td><code>nums.findIndex(n =&gt; n &gt; 4)</code></td><td><code>0</code></td><td></td></tr>
+<tr><td><code>findLast(f)</code></td><td>o último item que serve <span class="versao">ES2023</span></td><td><code>nums.findLast(n =&gt; n &gt; 4)</code></td><td><code>10</code></td><td></td></tr>
+<tr><td><code>findLastIndex(f)</code></td><td>a posição do último que serve <span class="versao">ES2023</span></td><td><code>nums.findLastIndex(n =&gt; n &gt; 4)</code></td><td><code>2</code></td><td></td></tr>
+<tr><td><code>some(f)</code></td><td><code>true</code> se <strong>algum</strong> item serve</td><td><code>nums.some(n =&gt; n &gt; 9)</code></td><td><code>true</code></td><td><a href="arrays-outros.html">some, every, join, flat e Outros</a></td></tr>
+<tr><td><code>every(f)</code></td><td><code>true</code> se <strong>todos</strong> servem</td><td><code>nums.every(n =&gt; n &gt; 0)</code></td><td><code>true</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="percorrer">Percorrer e transformar (não mudam)</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>forEach(f)</code></td><td>chama <code>f</code> para cada item; não devolve nada</td><td><code>nums.forEach(n =&gt; console.log(n))</code></td><td>mostra <code>5</code>, <code>1</code>, <code>10</code>, <code>2</code> (um por linha) e devolve <code>undefined</code></td><td><a href="foreach.html">forEach</a></td></tr>
+<tr><td><code>map(f)</code></td><td>um array novo com o resultado de <code>f</code> para cada item</td><td><code>nums.map(n =&gt; n * 2)</code></td><td><code>[ 10, 2, 20, 4 ]</code></td><td><a href="map.html">map</a></td></tr>
+<tr><td><code>filter(f)</code></td><td>um array novo só com os itens para os quais <code>f</code> dá verdadeiro</td><td><code>nums.filter(n =&gt; n &gt; 4)</code></td><td><code>[ 5, 10 ]</code></td><td><a href="filter.html">filter</a></td></tr>
+<tr><td><code>reduce(f, inicial)</code></td><td>acumula: junta todos os itens num valor só</td><td><code>nums.reduce((soma, n) =&gt; soma + n, 0)</code></td><td><code>18</code></td><td><a href="reduce.html">reduce</a></td></tr>
+<tr><td></td><td>sem o valor inicial, começa pelo primeiro item</td><td><code>nums.reduce((maior, n) =&gt; n &gt; maior ? n : maior)</code></td><td><code>10</code></td><td></td></tr>
+<tr><td><code>flat(n)</code></td><td>"achata" arrays dentro de arrays (1 nível; <code>Infinity</code> = todos)</td><td><code>[1, [2, [3, [4]]]].flat()</code>, <code>[1, [2, [3, [4]]]].flat(Infinity)</code></td><td><code>[ 1, 2, [ 3, [ 4 ] ] ]</code>, <code>[ 1, 2, 3, 4 ]</code></td><td><a href="arrays-outros.html">some, every, join, flat e Outros</a></td></tr>
+<tr><td><code>flatMap(f)</code></td><td><code>map</code> seguido de <code>flat</code></td><td><code>["a b", "c d"].flatMap(t =&gt; t.split(" "))</code></td><td><code>[ 'a', 'b', 'c', 'd' ]</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:Aprovadas: [ 7, 9, 8 ];;src:\.filter\(">
+<p class="try-task"><strong>Missão:</strong> a Ana quer só as notas de quem passou (6 ou mais). Use <code>filter</code> para que o programa mostre <code>Aprovadas: [ 7, 9, 8 ]</code>.</p>
+<pre class="script" data-file="main.js">const notas = [7, 4, 9, 5.5, 8];
+
+const aprovadas = notas;
+console.log("Aprovadas:", aprovadas);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [7, 4, 9, 5.5, 8];
+
+const aprovadas = notas.filter((n) =&gt; n &gt;= 6);
+console.log("Aprovadas:", aprovadas);
+</pre>
+</div>
+
+<p>No lab, o programa original mostrou <code>Aprovadas: [ 7, 4, 9, 5.5, 8 ]</code>; com o <code>filter</code>, <code>Aprovadas: [ 7, 9, 8 ]</code>. O array <code>notas</code> continuou com as cinco notas.</p>
+
+<hr>
+
+<h2 id="ordenar">Ordenar e inverter</h2>
+
+<div class="warning">
+<strong>O <code>sort()</code> sem função ordena números como texto</strong>
+<p>Sem argumento, o <code>sort</code> compara os itens como se fossem textos, letra a letra: <code>"10"</code> vem antes de <code>"2"</code> porque <code>"1"</code> vem antes de <code>"2"</code>. Para números, passe sempre a função <code>(x, y) =&gt; x - y</code>.</p>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Muda?</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>sort()</code></td><td>ordena como <strong>texto</strong></td><td>sim</td><td><code>nums.sort()</code></td><td><code>[ 1, 10, 2, 5 ]</code> (e <code>nums</code> ficou assim)</td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td><code>sort((x, y) =&gt; x - y)</code></td><td>números, do menor para o maior</td><td>sim</td><td><code>[5, 1, 10, 2].sort((x, y) =&gt; x - y)</code></td><td><code>[ 1, 2, 5, 10 ]</code></td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td><code>sort((x, y) =&gt; y - x)</code></td><td>do maior para o menor</td><td>sim</td><td><code>[5, 1, 10, 2].sort((x, y) =&gt; y - x)</code></td><td><code>[ 10, 5, 2, 1 ]</code></td><td></td></tr>
+<tr><td></td><td>textos: maiúsculas antes, acentuadas no fim</td><td>sim</td><td><code>["Érica", "ana", "Bia"].sort()</code></td><td><code>[ 'Bia', 'ana', 'Érica' ]</code></td><td></td></tr>
+<tr><td></td><td>textos em ordem de dicionário</td><td>sim</td><td><code>["Érica", "ana", "Bia"].sort((x, y) =&gt; x.localeCompare(y))</code></td><td><code>[ 'ana', 'Bia', 'Érica' ]</code></td><td><a href="ref-string.html#comparar">localeCompare</a></td></tr>
+<tr><td><code>reverse()</code></td><td>inverte a ordem</td><td>sim</td><td><code>[1, 2, 3]</code>, <code>a.reverse()</code></td><td><code>[ 3, 2, 1 ]</code></td><td></td></tr>
+<tr><td><code>toSorted(f)</code></td><td>como o <code>sort</code>, mas devolve uma cópia <span class="versao">ES2023</span></td><td>não</td><td><code>const n2 = [5, 1, 10, 2]</code>, <code>n2.toSorted((x, y) =&gt; x - y)</code></td><td><code>[ 1, 2, 5, 10 ]</code> (<code>n2</code> continuou <code>[ 5, 1, 10, 2 ]</code>)</td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td><code>toReversed()</code></td><td>cópia invertida <span class="versao">ES2023</span></td><td>não</td><td><code>n2.toReversed()</code></td><td><code>[ 2, 10, 1, 5 ]</code></td><td></td></tr>
+<tr><td><code>toSpliced(i, n)</code></td><td>cópia sem os <code>n</code> itens a partir de <code>i</code> <span class="versao">ES2023</span></td><td>não</td><td><code>n2.toSpliced(1, 2)</code></td><td><code>[ 5, 2 ]</code></td><td></td></tr>
+<tr><td><code>with(i, v)</code></td><td>cópia com o item <code>i</code> trocado <span class="versao">ES2023</span></td><td>não</td><td><code>n2.with(0, 99)</code></td><td><code>[ 99, 1, 10, 2 ]</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tryjs" data-goal="out:[ 3.5, 12, 25, 100 ];;semerro">
+<p class="try-task"><strong>Missão:</strong> os preços da lojinha saíram fora de ordem: <code>[ 100, 12, 25, 3.5 ]</code>. Passe a função de comparar números para o <code>toSorted</code>, para que saia <code>[ 3.5, 12, 25, 100 ]</code>.</p>
+<pre class="script" data-file="main.js">const precos = [12, 3.5, 100, 25];
+
+const ordenados = precos.toSorted();
+console.log("Do mais barato ao mais caro:", ordenados);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [12, 3.5, 100, 25];
+
+const ordenados = precos.toSorted((a, b) =&gt; a - b);
+console.log("Do mais barato ao mais caro:", ordenados);
+</pre>
+</div>
+
+<pre class="term">$ node precos.js
+Do mais barato ao mais caro: [ 100, 12, 25, 3.5 ]
+$ node precos2.js
+Do mais barato ao mais caro: [ 3.5, 12, 25, 100 ]
+</pre>
+
+<hr>
+
+<h2 id="juntar">Virar texto</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>join(sep)</code></td><td>junta os itens num texto, com <code>sep</code> no meio</td><td><code>compras.join(", ")</code>, <code>compras.join("")</code></td><td><code>'pão, leite, café'</code>, <code>'pãoleitecafé'</code></td><td><a href="strings-split.html">Dividindo e Juntando</a></td></tr>
+<tr><td><code>toString()</code></td><td>junta com vírgula, sem espaço</td><td><code>compras.toString()</code></td><td><code>'pão,leite,café'</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="criar">Criar arrays</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>Array.from(x)</code></td><td>cria um array a partir de um texto, <code>Set</code> etc.</td><td><code>Array.from("Ana")</code></td><td><code>[ 'A', 'n', 'a' ]</code></td><td><a href="set.html">Set</a></td></tr>
+<tr><td><code>Array.from({ length: n }, f)</code></td><td>um array de <code>n</code> itens calculados por <code>f</code></td><td><code>Array.from({ length: 3 }, (_, i) =&gt; i * 10)</code></td><td><code>[ 0, 10, 20 ]</code></td><td></td></tr>
+<tr><td><code>Array.of(…)</code></td><td>um array com os itens dados</td><td><code>Array.of(7)</code></td><td><code>[ 7 ]</code></td><td></td></tr>
+<tr><td><code>new Array(n)</code></td><td>um array com <code>n</code> lugares <strong>vazios</strong> (cuidado: não é <code>[n]</code>)</td><td><code>new Array(3)</code>, <code>new Array(3).fill("-")</code></td><td><code>[ &lt;3 empty items&gt; ]</code>, <code>[ '-', '-', '-' ]</code></td><td></td></tr>
+<tr><td><code>Array.isArray(x)</code></td><td><code>true</code> se for array (o <code>typeof</code> diria <code>'object'</code>)</td><td><code>Array.isArray(compras)</code>, <code>Array.isArray("pão")</code></td><td><code>true</code>, <code>false</code></td><td><a href="typeof.html">typeof</a></td></tr>
+<tr><td><code>entries()</code></td><td>pares <code>[posição, item]</code> (usado no <code>for … of</code>)</td><td><code>[...compras.entries()]</code></td><td><code>[ [ 0, 'pão' ], [ 1, 'leite' ], [ 2, 'café' ] ]</code></td><td><a href="for-of.html">for … of</a></td></tr>
+<tr><td><code>keys()</code></td><td>só as posições</td><td><code>[...compras.keys()]</code></td><td><code>[ 0, 1, 2 ]</code></td><td></td></tr>
+<tr><td><code>Math.max(...a)</code></td><td>o maior número do array (com spread)</td><td><code>Math.max(...nums)</code></td><td><code>10</code></td><td><a href="ref-math-number.html">Math e Number</a></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Agrupar itens</strong>
+<p>Para separar uma lista em grupos (por exemplo, produtos por categoria), use <code>Object.groupBy</code>, que fica em <a href="ref-object.html">Object e JSON</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem do Node</th><th>O que aconteceu</th></tr>
+<tr><td><code>[].reduce((s, n) =&gt; s + n)</code></td><td><code>TypeError: Reduce of empty array with no initial value</code></td><td>"<code>reduce</code> de array vazio sem valor inicial": com a lista vazia, não há primeiro item para começar. Passe o valor inicial: <code>reduce((s, n) =&gt; s + n, 0)</code> dá <code>0</code>.</td></tr>
+<tr><td><code>compras.toUpperCase()</code></td><td><code>TypeError: compras.toUpperCase is not a function</code></td><td>"não é uma função": esse método é de <strong>string</strong>, não de array. Para todos os itens: <code>compras.map(c =&gt; c.toUpperCase())</code>.</td></tr>
+<tr><td><code>nada.push(1)</code> (com <code>let nada</code>)</td><td><code>TypeError: Cannot read properties of undefined (reading 'push')</code></td><td>A variável não tem um array (está <code>undefined</code>). Comece com <code>let nada = [];</code>.</td></tr>
+<tr><td><code>new Array(-1)</code></td><td><code>RangeError: Invalid array length</code></td><td>"tamanho de array inválido": tamanho negativo (ou com vírgula) não existe.</td></tr>
+</table>
+</div>
+
+<p>O primeiro erro, num programa, sai assim no terminal da Ana:</p>
+
+<pre class="file" data-file="reduce.js">const carrinho = [];
+const total = carrinho.reduce((soma, preco) =&gt; soma + preco);
+console.log(total);
+</pre>
+
+<pre class="term">$ node reduce.js
+/home/ana/reduce.js:2
+const total = carrinho.reduce((soma, preco) =&gt; soma + preco);
+                       ^
+
+TypeError: Reduce of empty array with no initial value
+    at Array.reduce (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/reduce.js:2:24)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)   « e mais 6 linhas "at" internas do Node, cortadas aqui
+
+Node.js v24.22.0
+</pre>
+
+<p>A primeira linha diz o arquivo e a linha (<code>reduce.js:2</code>); o <code>^</code> aponta para o <code>reduce</code>; a linha <code>at Object.&lt;anonymous&gt; (/home/ana/reduce.js:2:24)</code> repete o lugar: linha 2, coluna 24. Mais mensagens em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Mudam o array</strong>: <code>push</code>, <code>pop</code>, <code>unshift</code>, <code>shift</code>, <code>splice</code>, <code>sort</code>, <code>reverse</code>, <code>fill</code>, <code>a[i] = v</code>.</li>
+  <li><strong>Devolvem um novo</strong>: <code>slice</code>, <code>concat</code>, <code>map</code>, <code>filter</code>, <code>flat</code>, <code>toSorted</code>, <code>toReversed</code>, <code>toSpliced</code>, <code>with</code>, <code>[...a]</code>.</li>
+  <li>Procurar: <code>includes</code> (sim/não), <code>indexOf</code> (posição ou <code>-1</code>), <code>find</code> (o item ou <code>undefined</code>), <code>some</code>/<code>every</code>.</li>
+  <li>Transformar: <code>map</code> transforma, <code>filter</code> filtra, <code>reduce</code> acumula (com valor inicial!).</li>
+  <li>Números: <code>sort((x, y) =&gt; x - y)</code> ou <code>toSorted((x, y) =&gt; x - y)</code>. Sem a função, ordena como texto.</li>
+  <li><code>join</code> transforma em texto; <code>Array.from</code> e <code>Array.isArray</code> criam e conferem arrays.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
