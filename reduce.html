@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript reduce — acumulando os itens de um array num valor só | Guia JavaScript</title>
+<meta name="description" content="O método reduce dos arrays do JavaScript para quem nunca programou: o acumulador, o item atual e o valor inicial, somar o carrinho, média das notas, maior temperatura, contar aprovados, placar de votos, reduceRight e os erros reais do Node.js 24 (Reduce of empty array with no initial value, is not a function, o return esquecido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">reduce</span></h1>
+
+<p class="intro">O <a href="map.html">map</a> transforma cada item de um array e devolve <strong>outro array</strong>. O <a href="filter.html">filter</a> escolhe alguns itens e devolve <strong>outro array</strong>. Mas muitas perguntas do dia a dia pedem <strong>uma resposta só</strong>: quanto deu o carrinho inteiro? Qual é a média da turma? Qual foi a maior temperatura da semana? Para isso existe o <code>reduce</code> (em inglês, "<strong>reduzir</strong>"): ele passa por todos os itens e vai <strong>acumulando</strong> um resultado, até sobrar um valor só.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A ideia do <strong>acumulador</strong>: o valor que vai sendo carregado de um item para o outro.</li>
+  <li>Como se escreve um <code>reduce</code>: a função com <code>(acumulador, item)</code> e o <strong>valor inicial</strong>.</li>
+  <li>Como acompanhar, volta por volta, o que o <code>reduce</code> faz.</li>
+  <li>Usos práticos: somar, tirar a média, multiplicar, achar o maior, contar, juntar textos, montar um placar.</li>
+  <li>O <code>reduceRight</code>, que começa pelo fim.</li>
+  <li>Quando o <code>reduce</code> é a melhor escolha, e quando um <code>for … of</code>, um <code>filter</code> ou um <code>Math.max</code> deixam o código mais claro.</li>
+  <li>Os erros reais: o array vazio sem valor inicial, o <code>return</code> esquecido, os números que eram textos.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a calculadora do caixa</h2>
+<p>Na padaria do bairro, a Ana passa as compras de um cliente no caixa: pão (R$ 8), leite (R$ 6), café (R$ 15) e queijo (R$ 22). A calculadora faz assim:</p>
+<ol class="passo">
+  <li>O visor <strong>começa em 0</strong>.</li>
+  <li>Passa o pão: o visor mostra 0 + 8 = <strong>8</strong>.</li>
+  <li>Passa o leite: o visor mostra 8 + 6 = <strong>14</strong>.</li>
+  <li>Passa o café: 14 + 15 = <strong>29</strong>.</li>
+  <li>Passa o queijo: 29 + 22 = <strong>51</strong>. Acabaram os itens: o total é <strong>51</strong>.</li>
+</ol>
+<p>Repare em três coisas, porque elas são exatamente as três peças do <code>reduce</code>:</p>
+<ul>
+  <li>O <strong>visor</strong> guarda o resultado parcial e passa de um item para o outro. Ele se chama <strong>acumulador</strong>.</li>
+  <li>Para cada item, a calculadora faz <strong>a mesma conta</strong>: "o que está no visor + o preço deste item". Essa conta é a <strong>função</strong> que você entrega ao <code>reduce</code>.</li>
+  <li>O visor precisou de um <strong>valor inicial</strong> (o 0) antes do primeiro item.</li>
+</ul>
+
+<hr>
+
+<h2>1. Primeiro, sem <code>reduce</code></h2>
+<p>Você já sabe somar um array com o <a href="for-of.html">for … of</a>: uma variável começa em 0 e recebe cada preço.</p>
+
+<pre class="file" data-file="total-for.js">const precos = [8, 6, 15, 22];
+let total = 0;
+for (const preco of precos) {
+  total = total + preco;
+}
+console.log("Total:", total);
+</pre>
+
+<pre class="term">$ node total-for.js
+Total: 51
+</pre>
+
+<p>A variável <code>total</code> é o visor da calculadora: um acumulador. Ela precisa ser <code>let</code>, porque muda a cada volta. O <code>reduce</code> faz o mesmo trabalho, mas cuida sozinho do laço e da variável que muda.</p>
+
+<hr>
+
+<h2>2. O mesmo total com <code>reduce</code></h2>
+
+<pre class="file" data-file="total-reduce.js">const precos = [8, 6, 15, 22];
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+console.log("Total:", total);
+</pre>
+
+<pre class="term">$ node total-reduce.js
+Total: 51
+</pre>
+
+<p>Mesmo resultado, numa linha só. Vamos desmontar essa linha peça por peça:</p>
+
+<dl class="anatomy">
+  <dt>precos.reduce(…)</dt><dd>Chama o método <code>reduce</code> do array <code>precos</code>. Como o <code>map</code> e o <code>filter</code>, ele <strong>não muda</strong> o array original.</dd>
+  <dt>(soma, preco) =&gt; soma + preco</dt><dd>A <strong>função</strong> que o <code>reduce</code> vai chamar uma vez para cada item (é uma <a href="arrow-functions.html">arrow function</a>). Ela recebe dois valores, nesta ordem:</dd>
+  <dt>soma</dt><dd>O <strong>acumulador</strong>: o resultado parcial até aqui (o visor). O nome é você quem escolhe; <code>soma</code>, <code>total</code> ou <code>acumulado</code> deixam claro o que ele guarda. Ele vem <strong>sempre primeiro</strong>.</dd>
+  <dt>preco</dt><dd>O <strong>item atual</strong> do array, o que está passando no caixa agora.</dd>
+  <dt>soma + preco</dt><dd>O que a função <strong>devolve</strong>. Esse valor vira o acumulador da <strong>próxima</strong> volta. Na arrow function sem chaves, o valor depois do <code>=&gt;</code> é devolvido sozinho, sem precisar escrever <code>return</code>.</dd>
+  <dt>, 0</dt><dd>O segundo argumento do <code>reduce</code>: o <strong>valor inicial</strong> do acumulador (o visor zerado). Fica <strong>depois</strong> da função, antes do <code>)</code> final. É fácil esquecer; a seção <a href="#errado">Quando dá errado</a> mostra o que acontece.</dd>
+  <dt>const total = …</dt><dd>O que o <code>reduce</code> devolve no fim: o valor do acumulador depois do último item. Como esse valor não muda mais, pode ser <code>const</code>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>Na calculadora</th><th>No código</th></tr>
+<tr><td>Acumulador</td><td>O visor</td><td><code>soma</code> (1º parâmetro)</td></tr>
+<tr><td>Item atual</td><td>O produto passando</td><td><code>preco</code> (2º parâmetro)</td></tr>
+<tr><td>A conta de cada item</td><td>"visor + preço"</td><td><code>soma + preco</code> (o que a função devolve)</td></tr>
+<tr><td>Valor inicial</td><td>O visor começa em 0</td><td><code>, 0</code> (2º argumento do <code>reduce</code>)</td></tr>
+<tr><td>Resultado</td><td>O total no fim</td><td>O que o <code>reduce</code> devolve</td></tr>
+</table>
+</div>
+
+<h3>Passo a passo: o que o <code>reduce</code> fez</h3>
+<p>Para ver o acumulador andando, a Ana trocou a arrow function curta por uma com chaves e pôs um <code>console.log</code> dentro dela. Com chaves, o <code>return</code> passa a ser obrigatório:</p>
+
+<pre class="file" data-file="passo.js">const precos = [8, 6, 15, 22];
+const total = precos.reduce((soma, preco) =&gt; {
+  console.log(`soma = ${soma}, preco = ${preco}, devolve ${soma + preco}`);
+  return soma + preco;
+}, 0);
+console.log("Total:", total);
+</pre>
+
+<pre class="term">$ node passo.js
+soma = 0, preco = 8, devolve 8
+soma = 8, preco = 6, devolve 14
+soma = 14, preco = 15, devolve 29
+soma = 29, preco = 22, devolve 51
+Total: 51
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Volta</th><th><code>soma</code> (chega)</th><th><code>preco</code></th><th>A função devolve</th></tr>
+<tr><td>1ª</td><td>0 (o valor inicial)</td><td>8</td><td>8</td></tr>
+<tr><td>2ª</td><td>8 (o que a 1ª devolveu)</td><td>6</td><td>14</td></tr>
+<tr><td>3ª</td><td>14</td><td>15</td><td>29</td></tr>
+<tr><td>4ª</td><td>29</td><td>22</td><td><strong>51</strong>, que vira o resultado do <code>reduce</code></td></tr>
+</table>
+</div>
+
+<p>A regra de ouro do <code>reduce</code>: <strong>o que a função devolve numa volta é o que ela recebe como acumulador na volta seguinte</strong>. Quatro itens, quatro chamadas da função, um valor no fim.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode e acompanhe o acumulador. Depois acrescente um preço no array (por exemplo, <code>10</code>) e veja aparecer uma volta a mais. Troque o valor inicial <code>0</code> por <code>100</code>: o que muda?</p>
+<pre class="script" data-file="main.js">const precos = [8, 6, 15, 22];
+const total = precos.reduce((soma, preco) =&gt; {
+  console.log(`soma = ${soma}, preco = ${preco}, devolve ${soma + preco}`);
+  return soma + preco;
+}, 0);
+console.log("Total:", total);
+</pre>
+</div>
+
+<div class="tryjs" data-goal="out:Gastos do mês: R$ 545;;src:\.reduce\(">
+<p class="try-task"><strong>Missão:</strong> a Ana anotou os gastos do mês. Troque o <code>0</code> da linha do <code>total</code> por um <code>reduce</code> que some os gastos, para aparecer <code>Gastos do mês: R$ 545</code>.</p>
+<pre class="script" data-file="main.js">const gastos = [120, 45, 300, 80];
+const total = 0;
+console.log(`Gastos do mês: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const gastos = [120, 45, 300, 80];
+const total = gastos.reduce((soma, gasto) =&gt; soma + gasto, 0);
+console.log(`Gastos do mês: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Somar e depois dividir: a média</h2>
+<p>A média é a soma dividida pela quantidade. O <code>reduce</code> faz a soma; o <code>length</code> dá a quantidade:</p>
+
+<pre class="file" data-file="media.js">const notas = [7, 8.5, 6, 9];
+const soma = notas.reduce((acumulado, nota) =&gt; acumulado + nota, 0);
+const media = soma / notas.length;
+console.log(`Soma: ${soma}, média: ${media}`);
+</pre>
+
+<pre class="term">$ node media.js
+Soma: 30.5, média: 7.625
+</pre>
+
+<p>Para mostrar com uma casa decimal só, use <code>media.toFixed(1)</code> (aula <a href="numeros-formatar.html">Formatando Números</a>).</p>
+
+<hr>
+
+<h2>4. O valor inicial depende da conta</h2>
+<p>Para somar, o visor começa em 0, porque somar 0 não muda nada. Para <strong>multiplicar</strong>, o certo é começar em <strong>1</strong>: multiplicar por 1 não muda nada, mas multiplicar por 0 zera tudo.</p>
+
+<pre class="file" data-file="multiplicar.js">const fatores = [2, 3, 4];
+const produto = fatores.reduce((resultado, n) =&gt; resultado * n, 1);
+console.log("Produto:", produto);
+const errado = fatores.reduce((resultado, n) =&gt; resultado * n, 0);
+console.log("Com 0 no começo:", errado);
+</pre>
+
+<pre class="term">$ node multiplicar.js
+Produto: 24
+Com 0 no começo: 0
+</pre>
+
+<p>Com o 0 no começo, a primeira volta faz <code>0 * 2</code>, que dá 0, e daí em diante tudo é 0. Não aparece erro nenhum: só uma resposta errada. A tabela abaixo resume o valor inicial "neutro" de cada tipo de acumulador:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que você está acumulando</th><th>Valor inicial</th><th>Exemplo de função</th></tr>
+<tr><td>Uma soma (total, quantidade)</td><td><code>0</code></td><td><code>(soma, x) =&gt; soma + x</code></td></tr>
+<tr><td>Um produto</td><td><code>1</code></td><td><code>(prod, x) =&gt; prod * x</code></td></tr>
+<tr><td>Um texto</td><td><code>""</code> (texto vazio)</td><td><code>(texto, x) =&gt; texto + x</code></td></tr>
+<tr><td>Um objeto (um placar)</td><td><code>{}</code></td><td>veja a seção 7</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Achar o maior: sem valor inicial</h2>
+<p>O acumulador não precisa ser uma soma. Ele pode guardar "<strong>o maior que eu vi até agora</strong>". A Ana anotou as temperaturas máximas da semana:</p>
+
+<pre class="file" data-file="maior.js">const temperaturas = [22, 27, 19, 31, 25];
+const maior = temperaturas.reduce((maiorAteAgora, t) =&gt; (t &gt; maiorAteAgora ? t : maiorAteAgora));
+console.log("Maior:", maior);
+console.log("Com Math.max:", Math.max(...temperaturas));
+</pre>
+
+<pre class="term">$ node maior.js
+Maior: 31
+Com Math.max: 31
+</pre>
+
+<dl class="anatomy">
+  <dt>t &gt; maiorAteAgora ? t : maiorAteAgora</dt><dd>O <a href="ternario.html">operador ternário</a>: "se esta temperatura for maior que a campeã até agora, ela vira a campeã; senão, a campeã continua". Os parênteses em volta são só para ler melhor.</dd>
+  <dt>(sem o <code>, 0</code>)</dt><dd>Aqui <strong>não há valor inicial</strong>. Quando você não passa um, o <code>reduce</code> usa o <strong>primeiro item</strong> (22) como acumulador e começa a função pelo <strong>segundo</strong> (27). Faz sentido: a primeira temperatura é a maior que você viu até ali. Começar em 0 também daria certo nesta semana, mas daria errado num inverno: no lab, com as temperaturas <code>[-3, -1, -7]</code>, o valor inicial 0 devolveu <code>0</code>, uma temperatura que nem estava na lista; sem valor inicial, saiu o certo, <code>-1</code>.</dd>
+  <dt>Math.max(...temperaturas)</dt><dd>O jeito pronto de achar o maior número (aula <a href="math.html">Math</a>). Os três pontinhos espalham os itens do array como argumentos separados (aula <a href="spread-rest.html">Spread e Rest</a>). Para números, é mais curto que o <code>reduce</code>.</dd>
+</dl>
+
+<p>Sem valor inicial, há um risco: se o array estiver <strong>vazio</strong>, o <code>reduce</code> não tem primeiro item para usar e dá erro (veja <a href="#errado">Quando dá errado</a>). Por isso, a regra prática é: <strong>passe sempre o valor inicial</strong>, a não ser que o acumulador precise ser um dos itens, como aqui.</p>
+
+<hr>
+
+<h2>6. Contar e juntar textos</h2>
+<p>Para <strong>contar</strong> quantos alunos passaram (nota 7 ou mais), o acumulador é um contador que só sobe quando o item interessa:</p>
+
+<pre class="file" data-file="contar.js">const notas = [7, 4.5, 8.5, 6, 9, 5];
+const aprovados = notas.reduce((quantos, nota) =&gt; (nota &gt;= 7 ? quantos + 1 : quantos), 0);
+console.log("Aprovados:", aprovados);
+console.log("Com filter:", notas.filter((nota) =&gt; nota &gt;= 7).length);
+</pre>
+
+<pre class="term">$ node contar.js
+Aprovados: 3
+Com filter: 3
+</pre>
+
+<p>Quando a nota não interessa, a função devolve o <code>quantos</code> do jeito que chegou, sem somar. A segunda linha faz o mesmo de outro jeito: o <a href="filter.html">filter</a> separa os aprovados e o <code>.length</code> conta. As duas estão certas; muita gente acha a do <code>filter</code> mais fácil de ler.</p>
+
+<p>O acumulador também pode ser um <strong>texto</strong>, que começa vazio e vai crescendo:</p>
+
+<pre class="file" data-file="juntar.js">const nomes = ["Ana", "Bia", "Caio"];
+const lista = nomes.reduce((texto, nome) =&gt; texto + nome + "; ", "");
+console.log(lista);
+console.log(nomes.join("; "));
+</pre>
+
+<pre class="term">$ node juntar.js
+Ana; Bia; Caio;
+Ana; Bia; Caio
+</pre>
+
+<p>O <code>reduce</code> deixou um <code>"; "</code> sobrando no fim. O <code>join</code> (aula <a href="strings-split.html">split e join</a>) põe o separador só <strong>entre</strong> os itens e já existe pronto: para juntar textos, prefira ele.</p>
+
+<hr>
+
+<h2>7. Acumulando a partir de objetos</h2>
+<p>Na vida real, os itens de um array costumam ser <strong>objetos</strong>, com várias informações juntas, como <code>{ nome: "pão", preco: 8, quantidade: 2 }</code>. Os objetos têm aula própria (<a href="objetos.html">Objetos</a>); por enquanto, basta saber que <code>item.preco</code> lê o preço do item e <code>item.quantidade</code> lê a quantidade.</p>
+
+<pre class="file" data-file="carrinho.js">const carrinho = [
+  { nome: "pão", preco: 8, quantidade: 2 },
+  { nome: "leite", preco: 6, quantidade: 3 },
+  { nome: "café", preco: 15, quantidade: 1 },
+];
+const total = carrinho.reduce((soma, item) =&gt; soma + item.preco * item.quantidade, 0);
+console.log(`Total da compra: R$ ${total}`);
+</pre>
+
+<pre class="term">$ node carrinho.js
+Total da compra: R$ 49
+</pre>
+
+<p>O <code>2 × 8 + 3 × 6 + 1 × 15</code> dá 16 + 18 + 15 = 49. Aqui o valor inicial é <strong>obrigatório</strong>. A Ana apagou o <code>, 0</code> para ver o que acontecia:</p>
+
+<pre class="term">$ node carrinho-sem.js
+Total da compra: R$ [object Object]1815
+</pre>
+
+<p>Sem valor inicial, o primeiro acumulador foi o <strong>objeto inteiro</strong> do pão, e não um número. Somar um objeto com 18 vira o texto <code>"[object Object]18"</code>, e daí em diante o <code>+</code> só junta textos. Por isso, com objetos, passe sempre o <code>0</code>.</p>
+
+<h3>O acumulador como placar</h3>
+<p>Na festa da escola, a turma votou na comida. A Ana quer saber quantos votos cada uma recebeu. O acumulador agora é um objeto vazio <code>{}</code>, que ganha uma "linha" para cada comida nova:</p>
+
+<pre class="file" data-file="votos.js">const votos = ["pizza", "lasanha", "pizza", "sushi", "pizza", "lasanha"];
+const placar = votos.reduce((contagem, voto) =&gt; {
+  contagem[voto] = (contagem[voto] || 0) + 1;
+  return contagem;
+}, {});
+console.log(placar);
+</pre>
+
+<pre class="term">$ node votos.js
+{ pizza: 3, lasanha: 2, sushi: 1 }
+</pre>
+
+<dl class="anatomy">
+  <dt>contagem[voto]</dt><dd>A contagem da comida votada (por exemplo, <code>contagem["pizza"]</code>). Na primeira vez que uma comida aparece, ela ainda não existe no placar e vale <code>undefined</code>.</dd>
+  <dt>(contagem[voto] || 0) + 1</dt><dd>"O que já tinha, ou 0 se não tinha nada, mais 1". O <code>||</code> troca o <code>undefined</code> por 0 (aula <a href="operadores-logicos.html">Operadores Lógicos</a>).</dd>
+  <dt>return contagem;</dt><dd>Devolve o <strong>mesmo</strong> placar, agora atualizado, para a próxima volta. Esquecer este <code>return</code> é o erro mais comum desse tipo de <code>reduce</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>8. <code>reduceRight</code>: começando pelo fim</h2>
+<p>O <code>reduce</code> anda da esquerda para a direita (do índice 0 até o último). O <code>reduceRight</code> ("reduzir pela direita") faz o mesmo, mas do último item para o primeiro:</p>
+
+<pre class="file" data-file="direita.js">const letras = ["a", "b", "c"];
+console.log(letras.reduce((texto, letra) =&gt; texto + letra, ""));
+console.log(letras.reduceRight((texto, letra) =&gt; texto + letra, ""));
+</pre>
+
+<pre class="term">$ node direita.js
+abc
+cba
+</pre>
+
+<p>Para somar, a ordem não muda o resultado; ela só importa quando a conta depende da ordem, como juntar textos. Ele aparece pouco no dia a dia.</p>
+
+<div class="note">
+<strong>Mais dois parâmetros, raramente usados</strong>
+<p>Além do acumulador e do item, a função do <code>reduce</code> também recebe o <strong>índice</strong> do item e o <strong>array inteiro</strong>: <code>(acumulador, item, indice, array)</code>, como no <code>map</code> e no <code>filter</code>. Você só escreve os parâmetros que for usar.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O <code>reduce</code> é poderoso: dá para fazer quase tudo com ele. Isso não quer dizer que ele seja sempre a forma mais clara. Somar os preços, quatro jeitos:</p>
+
+<pre class="file" data-file="formas.js">const precos = [8, 6, 15, 22];
+
+// 1) for … of com um acumulador let
+let total1 = 0;
+for (const preco of precos) {
+  total1 = total1 + preco;
+}
+
+// 2) forEach com um acumulador let
+let total2 = 0;
+precos.forEach((preco) =&gt; {
+  total2 += preco;
+});
+
+// 3) reduce, sem let nenhum
+const total3 = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+
+// 4) for clássico
+let total4 = 0;
+for (let i = 0; i &lt; precos.length; i++) {
+  total4 += precos[i];
+}
+
+console.log(total1, total2, total3, total4);
+</pre>
+
+<pre class="term">$ node formas.js
+51 51 51 51
+</pre>
+
+<p>Os quatro chegam a 51. O <code>reduce</code> é o único que não precisa de uma variável <code>let</code> mudando por fora. A tabela ajuda a escolher:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Somar, multiplicar, montar um placar: juntar <strong>todos</strong> os itens num valor</td><td><code>reduce</code> (ou <code>for … of</code>, se achar mais claro)</td></tr>
+<tr><td>Achar o maior ou o menor <strong>número</strong></td><td><code>Math.max(...lista)</code> / <code>Math.min(...lista)</code></td></tr>
+<tr><td>Achar o item "campeão" de uma lista de objetos (o mais caro, o mais velho)</td><td><code>reduce</code> sem valor inicial</td></tr>
+<tr><td>Contar quantos itens passam num teste</td><td><code>filter(…).length</code> (ou <code>reduce</code>)</td></tr>
+<tr><td>Juntar textos com um separador</td><td><code>join</code></td></tr>
+<tr><td>Transformar cada item / escolher alguns itens</td><td><a href="map.html">map</a> / <a href="filter.html">filter</a></td></tr>
+<tr><td>A conta tem muitos passos, <code>if</code>s ou <code>break</code></td><td><code>for … of</code>: fica mais fácil de ler e de parar no meio</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Array vazio e sem valor inicial</strong>
+<p>Um cliente chegou ao caixa e desistiu de tudo: o carrinho ficou vazio. O programa não passou o valor inicial:</p>
+<pre class="file" data-file="vazio.js">const precos = [];
+const total = precos.reduce((soma, preco) =&gt; soma + preco);
+console.log("Total:", total);
+</pre>
+<pre class="term">$ node vazio.js
+/home/ana/vazio.js:2
+const total = precos.reduce((soma, preco) =&gt; soma + preco);
+                     ^
+
+TypeError: Reduce of empty array with no initial value
+    at Array.reduce (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/vazio.js:2:22)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/vazio.js:2</dt><dd>Onde foi o erro: no arquivo <code>vazio.js</code> da pasta da Ana, linha 2.</dd>
+  <dt>const total = … e o <code>^</code></dt><dd>A linha do código, e o <code>^</code> apontando para o <code>reduce</code>, a parte que deu problema.</dd>
+  <dt>TypeError: Reduce of empty array with no initial value</dt><dd>"Erro de tipo: reduce de um array vazio sem valor inicial". Sem valor inicial, o <code>reduce</code> usa o primeiro item como acumulador; num array vazio não há primeiro item, e ele não tem o que devolver.</dd>
+  <dt>at Array.reduce (&lt;anonymous&gt;)</dt><dd>O erro aconteceu dentro do <code>reduce</code>, que é código do próprio JavaScript (por isso "anônimo", sem arquivo).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/vazio.js:2:22)</dt><dd>Quem chamou o <code>reduce</code>: o seu programa, linha 2, coluna 22. As linhas <code>at</code> seguintes são do próprio Node e foram cortadas aqui.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa. O <code>console.log</code> da linha 3 nunca rodou: o programa parou no erro.</dd>
+</dl>
+<p><strong>Como consertar:</strong> passe o valor inicial. Com <code>precos.reduce((soma, preco) =&gt; soma + preco, 0)</code>, o carrinho vazio dá <code>Total: 0</code>, que é a resposta certa:</p>
+<pre class="term">$ node vazio-ok.js
+Total: 0
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Chaves sem <code>return</code>: o resultado vira <code>undefined</code></strong>
+<pre class="file" data-file="semreturn.js">const precos = [8, 6, 15, 22];
+const total = precos.reduce((soma, preco) =&gt; {
+  soma + preco;
+}, 0);
+console.log("Total:", total);
+</pre>
+<pre class="term">$ node semreturn.js
+Total: undefined
+</pre>
+<p>Nenhuma mensagem de erro, só uma resposta sem sentido. Quando a arrow function tem <strong>chaves</strong>, ela só devolve alguma coisa se houver <code>return</code> (aula <a href="return.html">Retornando Valores</a>). Aqui ela calcula <code>soma + preco</code> e joga o resultado fora; cada volta devolve <code>undefined</code>, e o último <code>undefined</code> vira o total. <strong>Como consertar:</strong> escreva <code>return soma + preco;</code>, ou tire as chaves: <code>(soma, preco) =&gt; soma + preco</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Os números eram textos</strong>
+<p>Dados que vêm do teclado ou de um arquivo chegam como <strong>texto</strong>. Olhe o que o <code>+</code> faz com eles:</p>
+<pre class="file" data-file="textos.js">const precos = ["8", "6", "15", "22"];
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+console.log("Total:", total);
+const certo = precos.reduce((soma, preco) =&gt; soma + Number(preco), 0);
+console.log("Total certo:", certo);
+</pre>
+<pre class="term">$ node textos.js
+Total: 0861522
+Total certo: 51
+</pre>
+<p>Na primeira volta, <code>0 + "8"</code> dá o texto <code>"08"</code>: com um texto no meio, o <code>+</code> <strong>junta</strong> em vez de somar (aula <a href="conversao-automatica.html">Conversão Automática</a>). Daí em diante tudo vira texto: <code>"086"</code>, <code>"08615"</code>, <code>"0861522"</code>. <strong>Como consertar:</strong> converta cada item com <code>Number(preco)</code> (aula <a href="conversao.html">Conversão</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Passou o valor inicial no lugar da função</strong>
+<pre class="file" data-file="semfuncao.js">const precos = [8, 6, 15, 22];
+const total = precos.reduce(0);
+console.log("Total:", total);
+</pre>
+<pre class="term">$ node semfuncao.js
+/home/ana/semfuncao.js:2
+const total = precos.reduce(0);
+                     ^
+
+TypeError: number 0 is not a function
+    at Array.reduce (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/semfuncao.js:2:22)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"O número 0 não é uma função". O primeiro argumento do <code>reduce</code> tem de ser a <strong>função</strong>; o valor inicial vem <strong>depois</strong>. <strong>Como consertar:</strong> <code>precos.reduce((soma, preco) =&gt; soma + preco, 0)</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 0;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa quebra com o carrinho vazio. Rode, leia o erro e conserte para ele mostrar <code>Total: 0</code>.</p>
+<pre class="script" data-file="main.js">const precos = [];
+const total = precos.reduce((soma, preco) =&gt; soma + preco);
+console.log("Total:", total);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [];
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista.reduce((acc, item) =&gt; …, inicial)</code></td><td>Chama a função para cada item, da esquerda para a direita; o que ela devolve vira o <code>acc</code> da volta seguinte; no fim, devolve o último <code>acc</code></td></tr>
+<tr><td><code>lista.reduce((acc, item) =&gt; …)</code></td><td>Sem valor inicial: o primeiro item é o <code>acc</code> inicial e a função começa pelo segundo. Dá <code>TypeError</code> num array vazio</td></tr>
+<tr><td><code>(acc, item, indice, array)</code></td><td>Os quatro parâmetros que a função pode receber</td></tr>
+<tr><td><code>lista.reduceRight(…)</code></td><td>Igual, mas do último item para o primeiro</td></tr>
+<tr><td><code>reduce((s, x) =&gt; s + x, 0)</code></td><td>Soma</td></tr>
+<tr><td><code>reduce((p, x) =&gt; p * x, 1)</code></td><td>Produto</td></tr>
+<tr><td><code>reduce((m, x) =&gt; (x &gt; m ? x : m))</code></td><td>O maior</td></tr>
+<tr><td><code>reduce((q, x) =&gt; (teste ? q + 1 : q), 0)</code></td><td>Contar os que passam no teste</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: Reduce of empty array with no initial value</code></td><td>Array vazio e faltou o valor inicial</td></tr>
+<tr><td><code>TypeError: … is not a function</code></td><td>O primeiro argumento do <code>reduce</code> não é uma função</td></tr>
+<tr><td>Resultado <code>undefined</code></td><td>Função com chaves e sem <code>return</code></td></tr>
+<tr><td>Resultado <code>NaN</code> ou <code>[object Object]…</code></td><td>Faltou o valor inicial numa lista de objetos (o primeiro acumulador foi um objeto)</td></tr>
+<tr><td>Números "grudados" (<code>0861522</code>)</td><td>Os itens eram textos: converta com <code>Number</code></td></tr>
+<tr><td>Produto dá sempre 0</td><td>Valor inicial 0 numa multiplicação: use 1</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o reduce</h3>
+<p>Complete para somar as idades, começando do zero:</p>
+<div class="ex-code">const total = idades.<input data-answer="reduce" aria-label="nome do método">((soma, idade) =&gt; soma <input data-answer="+" aria-label="operador"> idade, <input data-answer="0" aria-label="valor inicial">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o resultado?</h3>
+<p>O que este trecho mostra?</p>
+<pre class="file" data-file="ex2.js">const r = [2, 5, 10].reduce((acc, n) =&gt; acc + n, 100);
+console.log(r);
+</pre>
+<div class="ex-code">Mostra <input data-answer="117" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Na função <code>(soma, preco) =&gt; soma + preco</code>, o que é o <code>soma</code>?</p>
+<label><input type="radio" name="q3"> O item atual do array</label>
+<label><input type="radio" name="q3"> O acumulador: o que a volta anterior devolveu (ou o valor inicial)</label>
+<label><input type="radio" name="q3"> O tamanho do array</label>
+<label><input type="radio" name="q3"> O índice do item</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual é o valor inicial certo para multiplicar todos os itens de um array?</p>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>""</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>[]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>[].reduce((s, x) =&gt; s + x)</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> <code>TypeError: Reduce of empty array with no initial value</code></label>
+<label><input type="radio" name="q5"> Devolve <code>0</code></label>
+<label><input type="radio" name="q5"> Devolve <code>undefined</code></label>
+<label><input type="radio" name="q5"> Devolve <code>[]</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O <code>reduce</code> muda o array original?</p>
+<label><input type="radio" name="q6"> Sim, ele apaga os itens</label>
+<label><input type="radio" name="q6"> Sim, ele deixa só o resultado</label>
+<label><input type="radio" name="q6"> Só se o valor inicial for 0</label>
+<label><input type="radio" name="q6"> Não: ele só devolve um valor novo</label>
+</div>
+
+<h3>Missão final: o produto mais caro</h3>
+
+<div class="tryjs" data-goal="out:Mais caro: mochila (R$ 129);;src:\.reduce\(">
+<p class="try-task"><strong>Missão:</strong> a papelaria da Ana tem este estoque. Troque o <code>estoque[0]</code> por um <code>reduce</code> que guarde, no acumulador, o item <strong>mais caro visto até agora</strong>. Dica: não passe valor inicial (o primeiro item é o campeão no começo) e compare <code>item.preco</code> com <code>campeao.preco</code>.</p>
+<pre class="script" data-file="main.js">const estoque = [
+  { nome: "caderno", preco: 18 },
+  { nome: "mochila", preco: 129 },
+  { nome: "caneta", preco: 3 },
+  { nome: "estojo", preco: 25 },
+];
+const maisCaro = estoque[0];
+console.log(`Mais caro: ${maisCaro.nome} (R$ ${maisCaro.preco})`);
+</pre>
+<pre class="solucao" data-file="main.js">const estoque = [
+  { nome: "caderno", preco: 18 },
+  { nome: "mochila", preco: 129 },
+  { nome: "caneta", preco: 3 },
+  { nome: "estojo", preco: 25 },
+];
+const maisCaro = estoque.reduce((campeao, item) =&gt; (item.preco &gt; campeao.preco ? item : campeao));
+console.log(`Mais caro: ${maisCaro.nome} (R$ ${maisCaro.preco})`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Mais caro: mochila (R$ 129)</code>. Repare que o acumulador aqui é um <strong>objeto inteiro</strong>, e não um número: o <code>reduce</code> aceita acumular qualquer coisa.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>reduce</code> passa por todos os itens e <strong>acumula</strong> um resultado só: <code>lista.reduce((acumulador, item) =&gt; novoAcumulador, valorInicial)</code>.</li>
+  <li>O que a função devolve numa volta vira o acumulador da volta seguinte; o que ela devolve na última volta é o resultado.</li>
+  <li>O valor inicial depende da conta: <code>0</code> para somar, <code>1</code> para multiplicar, <code>""</code> para texto, <code>{}</code> para um placar. Passe-o <strong>sempre</strong>, a não ser que o acumulador precise ser um dos itens (o maior, o mais caro).</li>
+  <li>Sem valor inicial, um array vazio dá <code>TypeError: Reduce of empty array with no initial value</code>.</li>
+  <li>Função com chaves precisa de <code>return</code>; sem ele, o resultado é <code>undefined</code>.</li>
+  <li>O <code>reduce</code> não muda o array original. O <code>reduceRight</code> faz o mesmo do fim para o começo.</li>
+  <li>Nem tudo precisa de <code>reduce</code>: <code>Math.max</code>, <code>filter(…).length</code>, <code>join</code> e um <code>for … of</code> às vezes dizem a mesma coisa de forma mais clara.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
