@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript static — métodos e campos da própria classe | Guia JavaScript</title>
+<meta name="description" content="Membros static no JavaScript para quem está começando: métodos static (Moeda.formatar), campos static (um contador de produtos, constantes da classe), métodos de fábrica (Produto.deTexto), static e herança com new this, o bloco static, os static prontos (Math.max, Number.isInteger, Array.isArray) e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">static</span></h1>
+
+<p class="intro">Até aqui, tudo o que você pôs numa classe era de <strong>cada objeto</strong>: cada produto tem o seu nome, o seu preço e sabe se descrever. Mas algumas coisas não são de um produto em particular: <strong>quantos produtos</strong> a lojinha já cadastrou, a <strong>taxa de entrega</strong> que vale para todos os pedidos, uma função que <strong>formata dinheiro</strong>. Essas coisas são da <strong>classe</strong>, e se marcam com a palavra <code>static</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre o que é de cada objeto e o que é da classe.</li>
+  <li>Como escrever e chamar um <strong>método static</strong>: <code>Moeda.formatar(5.49)</code>.</li>
+  <li>Que você já usou vários: <code>Math.max</code>, <code>Number.isInteger</code>, <code>Array.isArray</code>, <code>Object.keys</code>.</li>
+  <li>Como criar <strong>campos static</strong>: um contador de produtos e constantes da classe.</li>
+  <li>O <strong>método de fábrica</strong>, que cria objetos a partir de um texto, e o que acontece com <code>static</code> na herança.</li>
+  <li>Os erros reais: chamar o <code>static</code> pelo objeto, chamar o método normal pela classe, e o <code>this</code> que não é o que você esperava.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o que está escrito em cada pote × o que está escrito na fábrica</h2>
+<p>Pense numa fábrica de potes de geleia. Cada pote tem a <strong>sua</strong> etiqueta: sabor, data, peso. Essas informações são do pote; dois potes podem ter sabores diferentes. Mas na parede da fábrica tem um quadro: "<strong>potes fabricados hoje: 312</strong>". Esse número não é de pote nenhum: é da fábrica. E a máquina que cola etiquetas também é da fábrica: os potes não carregam a máquina dentro deles.</p>
+<p>Numa classe é igual:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>É de cada objeto (normal)</th><th>É da classe (<code>static</code>)</th></tr>
+<tr><td>Exemplo</td><td>o nome e o preço do leite; <code>leite.descrever()</code></td><td>quantos produtos existem; <code>Moeda.formatar(…)</code></td></tr>
+<tr><td>Como se acessa</td><td>pelo objeto: <code>leite.preco</code></td><td>pelo nome da classe: <code>Produto.total</code></td></tr>
+<tr><td>Quantas cópias existem</td><td>uma por objeto criado com <code>new</code></td><td>uma só, na classe</td></tr>
+<tr><td>Precisa de <code>new</code>?</td><td>sim</td><td>não</td></tr>
+</table>
+</div>
+<p><code>static</code>, em inglês, quer dizer "estático", "parado": algo que fica <strong>na classe</strong> e não vai junto para cada objeto.</p>
+
+<hr>
+
+<h2>1. O primeiro método static</h2>
+<p>A Ana mostra preços em vários lugares e quer sempre o mesmo formato, com vírgula: <code>R$ 5,49</code>. Uma função que formata não precisa de produto nenhum: recebe um número, devolve um texto. Ela agrupa essa função numa classe <code>Moeda</code>:</p>
+
+<pre class="file" data-file="moeda.js">class Moeda {
+  static formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  }
+}
+
+console.log(Moeda.formatar(5.49));
+console.log(Moeda.formatar(27.9));
+console.log(typeof Moeda.formatar);
+</pre>
+
+<dl class="anatomy">
+  <dt>static formatar(valor) { … }</dt><dd>Um método como os da aula <a href="classes.html">Classes</a>, só que com <code>static</code> na frente. Ele passa a pertencer à classe <code>Moeda</code>, não aos objetos dela.</dd>
+  <dt>valor.toFixed(2).replace(".", ",")</dt><dd>Fixa 2 casas (<code>"5.49"</code>) e troca o ponto pela vírgula (<code>"5,49"</code>). O <code>replace</code> está em <a href="strings-substituir.html">Substituindo</a>.</dd>
+  <dt>Moeda.formatar(5.49)</dt><dd>A chamada usa o <strong>nome da classe</strong>, sem <code>new</code> e sem criar objeto nenhum.</dd>
+  <dt>typeof Moeda.formatar</dt><dd><code>function</code>: um método static é uma função guardada dentro da classe, como uma gaveta com etiqueta.</dd>
+</dl>
+
+<pre class="term">$ node moeda.js
+R$ 5,49
+R$ 27,90
+function
+</pre>
+
+<div class="tryjs" data-goal="out:R$ 5,49;;semerro;;src:static\s+formatar">
+<p class="try-task"><strong>Missão:</strong> este programa dá erro, porque <code>formatar</code> é um método normal (de objeto) e está sendo chamado pela classe. Rode para ver a mensagem e conserte com <strong>uma palavra</strong>, para aparecer <code>R$ 5,49</code>.</p>
+<pre class="script" data-file="main.js">class Moeda {
+  formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  }
+}
+
+console.log(Moeda.formatar(5.49));
+</pre>
+<pre class="solucao" data-file="main.js">class Moeda {
+  static formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  }
+}
+
+console.log(Moeda.formatar(5.49));
+</pre>
+</div>
+
+<h3>Você já usou vários métodos static</h3>
+<p>Desde o começo do guia, você chama métodos pelo nome de uma classe pronta do JavaScript, sem <code>new</code>. São todos static:</p>
+
+<pre class="file" data-file="prontos.js">console.log(Math.max(3, 10, 7));
+console.log(Number.isInteger(5.49));
+console.log(Array.isArray([1, 2, 3]));
+console.log(Object.keys({ nome: "Leite", preco: 5.49 }));
+console.log(String.fromCharCode(65, 110, 97));
+</pre>
+
+<pre class="term">$ node prontos.js
+10
+false
+true
+[ 'nome', 'preco' ]
+Ana
+</pre>
+
+<p>Compare: <code>Number.isInteger(5.49)</code> é static (chamado pelo <code>Number</code>), mas <code>(5.49).toFixed(2)</code> é de cada número (chamado pelo valor). <code>Array.isArray(lista)</code> é static, mas <code>lista.push(4)</code> é de cada array. O <code>String.fromCharCode</code> monta um texto a partir dos códigos das letras (65 é <code>A</code>, 110 é <code>n</code>, 97 é <code>a</code>). (O <code>Math</code> é um caso especial: ele nem é uma classe, é um objeto só com funções, e nunca se faz <code>new Math()</code>.)</p>
+
+<hr>
+
+<h2>2. Campos static: um contador da classe</h2>
+<p>Campos também podem ser static. A Ana quer saber quantos produtos já cadastrou. Esse número é um só para a loja inteira, então mora na classe:</p>
+
+<pre class="file" data-file="contador.js">class Produto {
+  static total = 0;
+
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+    Produto.total = Produto.total + 1;
+  }
+}
+
+console.log(`Cadastrados: ${Produto.total}`);
+const arroz = new Produto("Arroz 5 kg", 27.9);
+const leite = new Produto("Leite 1 L", 5.49);
+const cafe = new Produto("Café 500 g", 19.9);
+console.log(`Cadastrados: ${Produto.total}`);
+console.log(leite);
+console.log(leite.total);
+</pre>
+
+<dl class="anatomy">
+  <dt>static total = 0;</dt><dd>Um <strong>campo static</strong>: uma variável que pertence à classe, criada uma vez só, quando a classe é lida, com o valor 0.</dd>
+  <dt>Produto.total = Produto.total + 1;</dt><dd>Dentro do construtor, que roda a cada <code>new</code>, a classe soma 1 no seu contador. Repare que é <code>Produto.total</code>, e não <code>this.total</code>: o <code>this</code> do construtor é o produto novo, não a classe.</dd>
+  <dt>Cadastrados: 0 … Cadastrados: 3</dt><dd>Antes de qualquer <code>new</code>, o campo já existe e vale 0. Depois de três <code>new</code>, vale 3.</dd>
+  <dt>console.log(leite)</dt><dd>O leite <strong>não</strong> carrega o <code>total</code>: só tem nome e preço.</dd>
+  <dt>leite.total → undefined</dt><dd>Pelo objeto, o campo static não aparece. (Na seção <a href="#errado">Quando dá errado</a> você vê o problema que isso causa.)</dd>
+</dl>
+
+<pre class="term">$ node contador.js
+Cadastrados: 0
+Cadastrados: 3
+Produto { nome: 'Leite 1 L', preco: 5.49 }
+undefined
+</pre>
+
+<h3>Constantes da classe</h3>
+<p>Um uso muito comum de campo static é guardar um valor fixo que a classe usa, com um nome que explica o número. Os programadores costumam escrever essas constantes em <code>MAIUSCULAS_COM_SUBLINHADO</code>:</p>
+
+<pre class="file" data-file="constantes.js">class Pedido {
+  static TAXA_ENTREGA = 7.5;
+  static PEDIDO_MINIMO = 20;
+
+  constructor(valor) {
+    this.valor = valor;
+  }
+
+  total() {
+    if (this.valor &gt;= Pedido.PEDIDO_MINIMO) {
+      return this.valor;
+    }
+    return this.valor + Pedido.TAXA_ENTREGA;
+  }
+}
+
+console.log(new Pedido(15).total());
+console.log(new Pedido(42).total());
+console.log(`Entrega grátis a partir de R$ ${Pedido.PEDIDO_MINIMO}`);
+</pre>
+
+<pre class="term">$ node constantes.js
+22.5
+42
+Entrega grátis a partir de R$ 20
+</pre>
+
+<p>O pedido de R$ 15 ficou abaixo do mínimo e pagou a taxa (15 + 7,5 = 22,5); o de R$ 42 não pagou. Escrever <code>Pedido.TAXA_ENTREGA</code> em vez de <code>7.5</code> no meio da conta deixa claro o que o número é, e, se a taxa mudar, a Ana troca num lugar só. (Atenção: um campo static <strong>pode</strong> ser trocado por qualquer parte do programa, como o <code>total</code> da seção anterior. As maiúsculas são só um combinado entre programadores dizendo "não mexa".)</p>
+
+<hr>
+
+<h2>3. Método de fábrica: criar objetos a partir de um texto</h2>
+<p>A lista de preços do fornecedor chega como texto: <code>Arroz 5 kg;27.90</code>. Quem sabe transformar uma linha dessas em produto? Não é um produto (ele ainda não existe), é a classe. Um método static que <strong>cria e devolve</strong> um objeto é chamado de <strong>método de fábrica</strong>:</p>
+
+<pre class="file" data-file="fabrica.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  static deTexto(linha) {
+    const [nome, preco] = linha.split(";");
+    return new Produto(nome, Number(preco));
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const linhas = ["Arroz 5 kg;27.90", "Leite 1 L;5.49", "Café 500 g;19.90"];
+
+for (const linha of linhas) {
+  const produto = Produto.deTexto(linha);
+  console.log(produto.descrever());
+}
+</pre>
+
+<pre class="term">$ node fabrica.js
+Arroz 5 kg: R$ 27.90
+Leite 1 L: R$ 5.49
+Café 500 g: R$ 19.90
+</pre>
+
+<dl class="anatomy">
+  <dt>linha.split(";")</dt><dd>Corta o texto no <code>;</code>: <code>["Arroz 5 kg", "27.90"]</code> (aula <a href="strings-split.html">split e join</a>). A <a href="desestruturacao.html">desestruturação</a> <code>const [nome, preco]</code> guarda as duas partes.</dd>
+  <dt>new Produto(nome, Number(preco))</dt><dd>Converte o preço de texto para número (aula <a href="conversao.html">Conversão</a>) e cria o produto com o construtor de sempre.</dd>
+  <dt>Produto.deTexto(linha)</dt><dd>Quem usa a classe nem precisa saber como a linha é cortada: pede um produto "a partir do texto" e recebe um pronto. O nome <code>de…</code> (em inglês costuma ser <code>from…</code>, como em <code>Array.from</code>) diz de onde o objeto vem.</dd>
+</dl>
+
+<hr>
+
+<h2>4. <code>static</code> e herança: o <code>this</code> de um método static</h2>
+<p>Os membros static também são herdados pelas classes filhas (aula <a href="heranca.html">Herança</a>). E dentro de um método static, o <code>this</code> é <strong>a classe que foi usada na chamada</strong>. Com isso, a fábrica pode escrever <code>new this(…)</code> em vez de <code>new Produto(…)</code>, e passa a servir também para as filhas:</p>
+
+<pre class="file" data-file="heranca-static.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  static deTexto(linha) {
+    const [nome, preco] = linha.split(";");
+    return new this(nome, Number(preco));
+  }
+}
+
+class Brinde extends Produto {
+  descrever() {
+    return `${this.nome}: grátis!`;
+  }
+}
+
+const caneta = Brinde.deTexto("Caneta da loja;0");
+console.log(caneta);
+console.log(caneta.descrever());
+console.log(Produto.deTexto("Leite 1 L;5.49"));
+</pre>
+
+<pre class="term">$ node heranca-static.js
+Brinde { nome: 'Caneta da loja', preco: 0 }
+Caneta da loja: grátis!
+Produto { nome: 'Leite 1 L', preco: 5.49 }
+</pre>
+
+<ul>
+  <li>O <code>Brinde</code> não escreveu nenhum <code>deTexto</code>, mas <code>Brinde.deTexto(…)</code> funcionou: herdou do <code>Produto</code>.</li>
+  <li>Na chamada <code>Brinde.deTexto(…)</code>, o <code>this</code> era <code>Brinde</code>, então <code>new this(…)</code> criou um <strong>Brinde</strong> (que sabe dizer <code>grátis!</code>). Na chamada <code>Produto.deTexto(…)</code>, criou um <code>Produto</code>.</li>
+  <li>Com <code>new Produto(…)</code> escrito à mão, a caneta teria saído como um produto comum. O <code>this</code> em geral é o assunto da aula <a href="this.html">this, call, apply e bind</a>.</li>
+</ul>
+
+<hr>
+
+<h2>5. O bloco <code>static { }</code> <span class="versao">ES2022</span></h2>
+<p>Quando preparar os campos static dá mais trabalho que um <code>=</code>, existe o <strong>bloco static</strong>: um trecho de código que roda <strong>uma vez</strong>, no momento em que a classe é criada.</p>
+
+<pre class="file" data-file="bloco.js">class Cardapio {
+  static itens = [];
+
+  static {
+    Cardapio.itens.push("Pão francês");
+    Cardapio.itens.push("Pão de queijo");
+    console.log("Cardápio montado!");
+  }
+}
+
+console.log(Cardapio.itens);
+</pre>
+
+<pre class="term">$ node bloco.js
+Cardápio montado!
+[ 'Pão francês', 'Pão de queijo' ]
+</pre>
+
+<p>Repare que <code>Cardápio montado!</code> apareceu <strong>antes</strong>, sem ninguém chamar nada e sem nenhum <code>new</code>: o bloco rodou quando o Node leu a classe. É um recurso pouco usado; você vai vê-lo mais em código de bibliotecas.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Uma função que não precisa de objeto nenhum, como o <code>formatar</code>, não <strong>precisa</strong> morar numa classe. No JavaScript, as três formas abaixo funcionam:</p>
+
+<pre class="file" data-file="formas.js">// 1. método static numa classe
+class Moeda {
+  static formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  }
+}
+
+// 2. função comum, solta no arquivo (ou exportada de um módulo)
+function formatarMoeda(valor) {
+  return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+}
+
+// 3. um objeto comum com funções dentro (como o Math)
+const moeda = {
+  formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  },
+};
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma função solta, que só faz uma conta ou formata</td><td>Função comum (e, se for usada em vários arquivos, um <a href="modulos.html">módulo</a>)</td></tr>
+<tr><td>Uma função que tem tudo a ver com uma classe e cria objetos dela (<code>Produto.deTexto</code>)</td><td>Método <code>static</code></td></tr>
+<tr><td>Um valor que é da classe toda (contador, taxa, lista de opções)</td><td>Campo <code>static</code></td></tr>
+<tr><td>Algo que muda de um objeto para outro (nome, preço)</td><td>Campo e método <strong>normais</strong> (sem <code>static</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou o método static pelo objeto</strong>
+<pre class="file" data-file="erro-instancia.js">class Moeda {
+  static formatar(valor) {
+    return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  }
+}
+
+const moeda = new Moeda();
+console.log(moeda.formatar(5.49));
+</pre>
+<pre class="term">$ node erro-instancia.js
+/home/ana/erro-instancia.js:8
+console.log(moeda.formatar(5.49));
+                  ^
+
+TypeError: moeda.formatar is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/erro-instancia.js:8:19)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/erro-instancia.js:8</dt><dd>O arquivo e a linha do problema: a 8.</dd>
+  <dt>console.log(moeda.formatar(5.49)); e o ^</dt><dd>A linha, e o <code>^</code> apontando o <code>formatar</code>.</dd>
+  <dt>TypeError: moeda.formatar is not a function</dt><dd>"<code>moeda.formatar</code> não é uma função". O objeto <code>moeda</code> (com <strong>m</strong> minúsculo) não tem <code>formatar</code>: ele é da classe <code>Moeda</code>. Pelo objeto, <code>moeda.formatar</code> vale <code>undefined</code>, e <code>undefined</code> não pode ser chamado com <code>()</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (…:8:19)</dt><dd>O erro aconteceu no código principal do arquivo, linha 8, coluna 19. O resto da pilha é o próprio Node carregando o arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> chame pela classe: <code>Moeda.formatar(5.49)</code>. Nem é preciso o <code>new Moeda()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou um método normal pela classe</strong>
+<pre class="file" data-file="erro-classe.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+console.log(Produto.descrever());
+</pre>
+<pre class="term">$ node erro-classe.js
+/home/ana/erro-classe.js:12
+console.log(Produto.descrever());
+                    ^
+
+TypeError: Produto.descrever is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/erro-classe.js:12:21)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>O erro ao contrário. O <code>descrever()</code> é de cada produto: descrever <strong>qual</strong> produto? A classe não tem nome nem preço. <strong>Como consertar:</strong> crie um objeto e chame por ele: <code>new Produto("Leite 1 L", 5.49).descrever()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>this.nome</code> dentro de um método static</strong>
+<pre class="file" data-file="erro-this.js">class Produto {
+  constructor(nome, preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+
+  static descrever() {
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+  }
+}
+
+const leite = new Produto("Leite 1 L", 5.49);
+console.log(Produto.descrever());
+</pre>
+<pre class="term">$ node erro-this.js
+/home/ana/erro-this.js:8
+    return `${this.nome}: R$ ${this.preco.toFixed(2)}`;
+                                          ^
+
+TypeError: Cannot read properties of undefined (reading 'toFixed')
+    at Produto.descrever (/home/ana/erro-this.js:8:43)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-this.js:13:21)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Não dá para ler propriedades de <code>undefined</code> (lendo <code>toFixed</code>)". Num método static, o <code>this</code> é a <strong>classe</strong> <code>Produto</code>, não o leite. A classe não tem <code>preco</code>, então <code>this.preco</code> é <code>undefined</code>, e o <code>.toFixed</code> em cima dele quebra. Ter criado o <code>leite</code> antes não ajuda: a classe não sabe de qual produto você está falando. <strong>Como consertar:</strong> se o método precisa dos dados de um produto, ele não é static (tire a palavra). Se precisa mesmo ser static, receba o produto como parâmetro: <code>static descrever(produto) { … produto.nome … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Leu o campo static com <code>this</code> num método normal</strong>
+<p>Este não dá erro nenhum, o que o torna traiçoeiro:</p>
+<pre class="file" data-file="erro-total.js">class Produto {
+  static total = 0;
+
+  constructor(nome) {
+    this.nome = nome;
+    Produto.total = Produto.total + 1;
+  }
+
+  resumo() {
+    return `${this.nome} (de ${this.total} produtos)`;
+  }
+}
+
+const arroz = new Produto("Arroz 5 kg");
+const leite = new Produto("Leite 1 L");
+console.log(leite.resumo());
+</pre>
+<pre class="term">$ node erro-total.js
+Leite 1 L (de undefined produtos)
+</pre>
+<p>No método <code>resumo()</code>, o <code>this</code> é o leite, e o leite não tem <code>total</code> (é da classe). Ler uma propriedade que não existe não é erro no JavaScript: dá <code>undefined</code>, e o <code>undefined</code> foi parar no meio do texto. <strong>Como consertar:</strong> <code>${Produto.total}</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>static</code> fora de uma classe</strong>
+<pre class="file" data-file="erro-fora.js">static function formatar(valor) {
+  return `R$ ${valor.toFixed(2)}`;
+}
+</pre>
+<pre class="term">$ node erro-fora.js
+/home/ana/erro-fora.js:1
+static function formatar(valor) {
+       ^^^^^^^^
+
+SyntaxError: Unexpected token 'function'
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)   « (mais 7 linhas at node:internal… cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Símbolo inesperado: <code>function</code>". Quem vem do Java ou do C# às vezes escreve isso. No JavaScript, <code>static</code> só tem sentido <strong>dentro</strong> de uma <code>class</code>; fora dela, o Node não entende a linha e o programa nem começa (é um <code>SyntaxError</code>). <strong>Como consertar:</strong> para uma função solta, apague o <code>static</code>; para um método static, ponha-o dentro de uma classe e tire o <code>function</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>static metodo() { … }</code></td><td>Método da classe; chame com <code>Classe.metodo()</code></td></tr>
+<tr><td><code>static campo = valor;</code></td><td>Campo da classe, criado uma vez; leia e mude com <code>Classe.campo</code></td></tr>
+<tr><td><code>static NOME_FIXO = valor;</code></td><td>Constante da classe (as maiúsculas são só um combinado)</td></tr>
+<tr><td><code>static deTexto(t) { return new this(…); }</code></td><td>Método de fábrica que também serve para as filhas</td></tr>
+<tr><td><code>static { … }</code></td><td>Bloco que roda uma vez, quando a classe é criada (ES2022)</td></tr>
+<tr><td><code>this</code> num método static</td><td>A classe usada na chamada (não um objeto)</td></tr>
+<tr><td><code>Math.max</code>, <code>Number.isInteger</code>, <code>Array.isArray</code>, <code>Array.from</code>, <code>Object.keys</code>, <code>JSON.parse</code></td><td>Static prontos do JavaScript</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>TypeError: objeto.metodo is not a function</code></td><td>O método é static: chame pela classe</td></tr>
+<tr><td><code>TypeError: Classe.metodo is not a function</code></td><td>O método é normal: chame por um objeto (ou faltou o <code>static</code>)</td></tr>
+<tr><td><code>Cannot read properties of undefined</code> dentro de um static</td><td>Usou <code>this.campo</code> de objeto num método da classe</td></tr>
+<tr><td><code>undefined</code> no lugar do contador</td><td>Leu o campo static com <code>this.campo</code>: use <code>Classe.campo</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected token 'function'</code></td><td><code>static function</code> fora de uma classe</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o método ser da classe e a chamada funcionar:</p>
+<div class="ex-code">class Calculadora {<br>&nbsp;&nbsp;<input data-answer="static" aria-label="palavra que faz o método ser da classe"> dobro(n) {<br>&nbsp;&nbsp;&nbsp;&nbsp;return n * 2;<br>&nbsp;&nbsp;}<br>}<br>console.log(<input data-answer="Calculadora" aria-label="por onde chamar">.dobro(21));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com a classe <code>Produto</code> da seção 2 (com <code>static total = 0</code> e o <code>+ 1</code> no construtor), o programa faz <code>new Produto("A", 1)</code> duas vezes e depois <code>console.log(Produto.total)</code>. O que aparece?</p>
+<div class="ex-code">Aparece <input data-answer="2" aria-label="número"></div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Qual destes é um método static?</p>
+<label><input type="radio" name="q3"> <code>Number.isInteger(7)</code></label>
+<label><input type="radio" name="q3"> <code>"Ana".toUpperCase()</code></label>
+<label><input type="radio" name="q3"> <code>[1, 2].push(3)</code></label>
+<label><input type="radio" name="q3"> <code>(5.49).toFixed(1)</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Dentro de um método <code>static</code>, o que é o <code>this</code>?</p>
+<label><input type="radio" name="q4"> O último objeto criado com <code>new</code></label>
+<label><input type="radio" name="q4"> Sempre <code>undefined</code></label>
+<label><input type="radio" name="q4"> A classe usada na chamada</label>
+<label><input type="radio" name="q4"> O objeto global</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. A Ana quer guardar a <strong>validade</strong> do leite e a do queijo, que são diferentes. Ela deve usar…</p>
+<label><input type="radio" name="q5"> um campo <code>static validade</code></label>
+<label><input type="radio" name="q5"> um campo normal, guardado com <code>this.validade</code> no construtor</label>
+<label><input type="radio" name="q5"> um bloco <code>static { }</code></label>
+<label><input type="radio" name="q5"> uma constante <code>static VALIDADE</code></label>
+</div>
+
+<h3>Missão final: a numeração dos pedidos</h3>
+
+<div class="tryjs" data-goal="out:Pedido nº 1: Ana;;out:Pedido nº 2: Caio;;out:Pedido nº 3: Bia;;src:\bstatic\s+proximoNumero\b">
+<p class="try-task"><strong>Missão:</strong> na padaria, cada pedido recebe um número que vem logo depois do anterior. Do jeito que está, todos saem com o número <code>undefined</code>. Crie na classe um campo <code>static proximoNumero = 1;</code> e, no construtor, guarde o número atual em <code>this.numero</code> e some 1 em <code>Pedido.proximoNumero</code>. A saída deve ser <code>Pedido nº 1: Ana</code>, <code>Pedido nº 2: Caio</code> e <code>Pedido nº 3: Bia</code>.</p>
+<pre class="script" data-file="main.js">class Pedido {
+  constructor(cliente) {
+    this.cliente = cliente;
+  }
+
+  etiqueta() {
+    return `Pedido nº ${this.numero}: ${this.cliente}`;
+  }
+}
+
+const p1 = new Pedido("Ana");
+const p2 = new Pedido("Caio");
+const p3 = new Pedido("Bia");
+console.log(p1.etiqueta());
+console.log(p2.etiqueta());
+console.log(p3.etiqueta());
+</pre>
+<pre class="solucao" data-file="main.js">class Pedido {
+  static proximoNumero = 1;
+
+  constructor(cliente) {
+    this.cliente = cliente;
+    this.numero = Pedido.proximoNumero;
+    Pedido.proximoNumero = Pedido.proximoNumero + 1;
+  }
+
+  etiqueta() {
+    return `Pedido nº ${this.numero}: ${this.cliente}`;
+  }
+}
+
+const p1 = new Pedido("Ana");
+const p2 = new Pedido("Caio");
+const p3 = new Pedido("Bia");
+console.log(p1.etiqueta());
+console.log(p2.etiqueta());
+console.log(p3.etiqueta());
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Pedido nº 1: Ana</code>, <code>Pedido nº 2: Caio</code> e <code>Pedido nº 3: Bia</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>static</code> marca o que é da <strong>classe</strong>, e não de cada objeto. Acesse pelo nome da classe: <code>Moeda.formatar(…)</code>, <code>Produto.total</code>.</li>
+  <li>Métodos static servem para funções que não precisam de um objeto, como formatar e criar objetos (<strong>métodos de fábrica</strong>: <code>Produto.deTexto(…)</code>). Você já usava vários: <code>Math.max</code>, <code>Number.isInteger</code>, <code>Array.isArray</code>.</li>
+  <li>Campos static guardam um valor único para a classe: um contador, uma taxa, uma lista de opções.</li>
+  <li>Dentro de um método static, <code>this</code> é a classe; dentro de um método normal, é o objeto. Por isso <code>this.total</code> num método normal dá <code>undefined</code>.</li>
+  <li>Os static são herdados pelas filhas; com <code>new this(…)</code>, a fábrica cria objetos da classe que foi chamada.</li>
+  <li>Chamar o static pelo objeto, ou o normal pela classe, dá <code>TypeError: … is not a function</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
