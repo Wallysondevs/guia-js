@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Formatando Números — toFixed, toLocaleString e Intl.NumberFormat | Guia JavaScript</title>
+<meta name="description" content="Formatar números em JavaScript para quem nunca programou: casas decimais com toFixed, o jeito brasileiro (1.234,50) com toLocaleString(&quot;pt-BR&quot;), reais com Intl.NumberFormat e currency BRL, porcentagem, 1,5 mil, unidades, zeros à esquerda com padStart, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Formatando Números</span></h1>
+
+<p class="intro">Para o computador, o salário da Ana é <code>3518.5</code>. Para a Ana, é <strong>R$ 3.518,50</strong>. O número é o mesmo; o que muda é o jeito de <strong>mostrar</strong>. O JavaScript escreve os números no formato americano (ponto nas casas decimais, sem separar os milhares), e quase nunca é assim que a gente quer exibir um preço, uma nota ou uma porcentagem. Esta aula mostra as ferramentas para transformar um número num <strong>texto bem apresentado</strong>: o <code>toFixed</code>, o <code>toLocaleString</code> e o <code>Intl.NumberFormat</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como fixar o número de casas decimais com <code>toFixed</code>, e por que o resultado é texto.</li>
+  <li>Como escrever no jeito brasileiro (<code>1.234,5</code>) com <code>toLocaleString("pt-BR")</code>.</li>
+  <li>Como mostrar dinheiro (<code>R$ 3.518,50</code>, <code>US$</code>, <code>€</code>) com <code>style: "currency"</code>.</li>
+  <li>Como controlar as casas decimais, mostrar porcentagem, números curtos (<code>2,3 mi</code>) e unidades (<code>42,195 km</code>).</li>
+  <li>Como pôr zeros à esquerda (<code>0007</code>) e alinhar colunas com <code>padStart</code> e <code>padEnd</code>.</li>
+  <li>Os erros reais: <code>toFixed is not a function</code>, o código de moeda inválido, o <code>5.toFixed</code> e as contas com texto.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>, sistema em português do Brasil), com <code>node arquivo.js</code>. O <code>toLocaleString</code> e o <code>Intl</code> são da linguagem: funcionam no Node e no navegador.</p>
+
+<hr>
+
+<h2>A ideia: o número é o mesmo, a etiqueta muda</h2>
+<p>Na prateleira da padaria, o queijo custa cinquenta e quatro reais e oitenta centavos. O dono escreve na etiqueta <strong>R$ 54,80</strong>. Um turista americano escreveria <strong>$54.80</strong>; um alemão, <strong>54,80 €</strong>. O <strong>valor</strong> não mudou: mudou só a <strong>etiqueta</strong>.</p>
+<p>No programa é a mesma coisa:</p>
+<ul>
+  <li>o <strong>número</strong> (<code>54.8</code>) é o que você usa nas contas. Ele é escrito sempre do jeito do JavaScript, com ponto;</li>
+  <li>a <strong>etiqueta</strong> (<code>"R$ 54,80"</code>) é um <strong>texto</strong>, feito na hora de mostrar. Ela não serve mais para contas.</li>
+</ul>
+<p>A regra de ouro desta aula: <strong>faça as contas com números e formate só no fim</strong>, na hora do <code>console.log</code> (ou de pôr na página).</p>
+
+<hr>
+
+<h2>1. Casas decimais: <code>toFixed</code></h2>
+<p><em>Fixed</em> quer dizer "fixo": o <code>toFixed(n)</code> devolve o número com <strong>exatamente</strong> <code>n</code> casas depois do ponto, arredondando se precisar.</p>
+
+<pre class="file" data-file="tofixed.js">const preco = 13.8915;
+
+console.log(preco.toFixed(2));
+console.log(preco.toFixed(1));
+console.log(preco.toFixed(0));
+console.log((5).toFixed(2));
+console.log(typeof preco.toFixed(2));
+</pre>
+
+<pre class="term">$ node tofixed.js
+13.89
+13.9
+14
+5.00
+string
+</pre>
+
+<dl class="anatomy">
+  <dt>preco.toFixed(2)</dt><dd>Um <strong>método</strong> do número: uma função que todo número carrega, chamada com ponto depois dele. O <code>2</code> é quantas casas você quer.</dd>
+  <dt>13.89, 13.9, 14</dt><dd>Arredondado para 2, 1 e 0 casas.</dd>
+  <dt>(5).toFixed(2) → 5.00</dt><dd>O <code>toFixed</code> também <strong>completa</strong> com zeros: ótimo para preço (<code>5.00</code>). Os parênteses em volta do 5 são necessários (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>typeof … → string</dt><dd>O resultado é um <strong>texto</strong> (<code>string</code>), não um número. É uma etiqueta.</dd>
+</dl>
+
+<p>Como o <code>toFixed</code> usa ponto, para o jeito brasileiro dá para trocar o ponto por vírgula (veja <a href="strings-substituir.html">replace</a>). Funciona, mas a seção seguinte tem um jeito melhor, que também separa os milhares:</p>
+
+<pre class="file" data-file="tofixed-virgula.js">const preco = 19.9;
+const texto = `R$ ${preco.toFixed(2).replace(".", ",")}`;
+console.log(texto);
+</pre>
+
+<pre class="term">$ node tofixed-virgula.js
+R$ 19,90
+</pre>
+
+<hr>
+
+<h2>2. O jeito brasileiro: <code>toLocaleString("pt-BR")</code></h2>
+<p><em>Locale</em> é a "localidade": o conjunto de costumes de um país e língua para escrever números, datas e moedas. O código <code>"pt-BR"</code> quer dizer "português do Brasil". O <code>toLocaleString</code> ("para texto da localidade") escreve o número do jeito daquele lugar:</p>
+
+<pre class="file" data-file="locale.js">const salario = 3518.5;
+
+console.log(salario.toLocaleString("pt-BR"));
+console.log(salario.toLocaleString("en-US"));
+console.log(salario.toLocaleString("de-DE"));
+console.log((1234567.891).toLocaleString("pt-BR"));
+</pre>
+
+<pre class="term">$ node locale.js
+3.518,5
+3,518.5
+3.518,5
+1.234.567,891
+</pre>
+
+<p>No Brasil (<code>pt-BR</code>) e na Alemanha (<code>de-DE</code>), ponto separa os milhares e vírgula separa as decimais; nos Estados Unidos (<code>en-US</code>), é o contrário. Repare que o salário saiu <code>3.518,5</code>, com uma casa só: para dinheiro, falta dizer que é dinheiro.</p>
+
+<div class="tip">
+<strong>Sempre diga a localidade</strong>
+<p>Sem nada entre os parênteses, <code>salario.toLocaleString()</code> usa a localidade do computador (ou do navegador) de quem roda o programa. No computador da Ana sai do jeito brasileiro; no de um amigo nos EUA, do jeito americano. Escrevendo <code>"pt-BR"</code>, o resultado é o mesmo em qualquer lugar.</p>
+</div>
+
+<hr>
+
+<h2>3. Dinheiro: <code>style: "currency"</code></h2>
+<p>Depois da localidade, o <code>toLocaleString</code> aceita um <a href="objetos.html">objeto</a> de <strong>opções</strong>. Para dinheiro, são duas: <code>style: "currency"</code> ("estilo: moeda") e <code>currency</code>, o código da moeda, com 3 letras maiúsculas (<code>"BRL"</code> é o real; <code>"USD"</code>, o dólar americano; <code>"EUR"</code>, o euro):</p>
+
+<pre class="file" data-file="moeda.js">const salario = 3518.5;
+
+console.log(salario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+console.log(salario.toLocaleString("en-US", { style: "currency", currency: "USD" }));
+console.log(salario.toLocaleString("pt-BR", { style: "currency", currency: "USD" }));
+console.log(salario.toLocaleString("de-DE", { style: "currency", currency: "EUR" }));
+</pre>
+
+<pre class="term">$ node moeda.js
+R$ 3.518,50
+$3,518.50
+US$ 3.518,50
+3.518,50 €
+</pre>
+
+<dl class="anatomy">
+  <dt>R$ 3.518,50</dt><dd>Real, escrito por um brasileiro: o símbolo, o ponto nos milhares, a vírgula e <strong>sempre 2 casas</strong> (o <code>,5</code> virou <code>,50</code>).</dd>
+  <dt>$3,518.50</dt><dd>Dólar, escrito por um americano.</dd>
+  <dt>US$ 3.518,50</dt><dd>Dólar, escrito por um brasileiro: a localidade decide os separadores; a moeda decide o símbolo.</dd>
+  <dt>3.518,50 €</dt><dd>Euro, escrito por um alemão: o símbolo vai depois.</dd>
+</dl>
+
+<h3>Formatando muitos números: <code>Intl.NumberFormat</code></h3>
+<p>Repetir as opções em cada linha cansa. O <code>Intl.NumberFormat</code> (<em>Intl</em> de "internacionalização") cria um <strong>formatador</strong> uma vez só; depois, você usa o <code>.format(numero)</code> dele quantas vezes quiser. Por dentro, o <code>toLocaleString</code> faz exatamente isso.</p>
+
+<pre class="file" data-file="intl.js">const real = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+const precos = [4.5, 12, 1299.9, 0.99];
+for (const preco of precos) {
+  console.log(real.format(preco));
+}
+</pre>
+
+<pre class="term">$ node intl.js
+R$ 4,50
+R$ 12,00
+R$ 1.299,90
+R$ 0,99
+</pre>
+
+<dl class="anatomy">
+  <dt>new Intl.NumberFormat("pt-BR", { … })</dt><dd>Cria o formatador com a localidade e as opções (as mesmas do <code>toLocaleString</code>). O <code>new</code> é o jeito de fabricar um objeto a partir de um molde (veja <a href="classes.html">Classes</a>).</dd>
+  <dt>const real = …</dt><dd>Guarda o formatador numa constante com um nome que diz o que ele faz.</dd>
+  <dt>real.format(preco)</dt><dd>Formata um número e devolve o texto.</dd>
+</dl>
+
+<div class="note">
+<strong>O espaço depois do R$ não é um espaço comum</strong>
+<p>Entre o <code>R$</code> e o número, o <code>Intl</code> põe um <strong>espaço inquebrável</strong> (o caractere 160, chamado em inglês <em>no-break space</em>): ele impede que o <code>R$</code> fique no fim de uma linha e o número na linha de baixo. Na tela parece igual, mas numa comparação não é:</p>
+<pre class="file" data-file="espaco.js">const texto = (3518.5).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+console.log(texto === "R$ 3.518,50");
+console.log(texto.charCodeAt(2));
+console.log(texto.replace(/\s/g, " ") === "R$ 3.518,50");
+</pre>
+<pre class="term">$ node espaco.js
+false
+160
+true
+</pre>
+<p>A comparação com um espaço comum dá <code>false</code>; o caractere da posição 2 é o 160 (o espaço comum é o 32). Se precisar comparar, troque os espaços especiais com <code>replace(/\s/g, " ")</code> (o <code>\s</code> quer dizer "qualquer espaço"; veja <a href="regex.html">Expressões Regulares</a>). Para mostrar, não precisa fazer nada.</p>
+</div>
+
+<div class="tryjs" data-goal="outre:Total: R\$\s19,90;;src:toLocaleString|NumberFormat">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Total: 19.9</code>. Faça ele mostrar <code>Total: R$ 19,90</code>, com <code>toLocaleString</code> ou <code>Intl.NumberFormat</code>.</p>
+<pre class="script" data-file="main.js">const total = 19.9;
+console.log(`Total: ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const total = 19.9;
+console.log(`Total: ${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Controlando as casas decimais</h2>
+<p>Fora do dinheiro, o <code>toLocaleString</code> mostra até 3 casas e corta os zeros do fim. Duas opções mudam isso: <code>minimumFractionDigits</code> ("mínimo de casas decimais") e <code>maximumFractionDigits</code> ("máximo de casas decimais"):</p>
+
+<pre class="file" data-file="casas.js">const opcoes = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+console.log((7).toLocaleString("pt-BR", opcoes));
+console.log((7.456).toLocaleString("pt-BR", opcoes));
+console.log((1500).toLocaleString("pt-BR", opcoes));
+console.log((7.456).toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
+</pre>
+
+<pre class="term">$ node casas.js
+7,00
+7,46
+1.500,00
+7,5
+</pre>
+
+<p>Com mínimo e máximo iguais a 2, é o <code>toFixed(2)</code> do jeito brasileiro, com milhares separados. Só o máximo, como na última linha, serve para notas (<code>7,5</code>) sem completar com zeros.</p>
+
+<hr>
+
+<h2>5. Porcentagem, números curtos e unidades</h2>
+
+<h3>Porcentagem: <code>style: "percent"</code></h3>
+<p>O número entra como <strong>fração</strong> (0.15 é 15%) e sai multiplicado por 100, com o <code>%</code>:</p>
+
+<pre class="file" data-file="porcento.js">const desconto = 0.15;
+const aprovados = 27 / 30;
+
+console.log(desconto.toLocaleString("pt-BR", { style: "percent" }));
+console.log(aprovados.toLocaleString("pt-BR", { style: "percent" }));
+console.log((2 / 3).toLocaleString("pt-BR", { style: "percent", maximumFractionDigits: 1 }));
+</pre>
+
+<pre class="term">$ node porcento.js
+15%
+90%
+66,7%
+</pre>
+
+<h3>Números curtos: <code>notation: "compact"</code></h3>
+<p>Como nas redes sociais, "1,5 mil seguidores":</p>
+
+<pre class="file" data-file="compacto.js">const curto = new Intl.NumberFormat("pt-BR", { notation: "compact" });
+
+console.log(curto.format(1500));
+console.log(curto.format(2300000));
+console.log(curto.format(7800000000));
+</pre>
+
+<pre class="term">$ node compacto.js
+1,5 mil
+2,3 mi
+7,8 bi
+</pre>
+
+<h3>Unidades: <code>style: "unit"</code></h3>
+
+<pre class="file" data-file="unidade.js">const km = new Intl.NumberFormat("pt-BR", { style: "unit", unit: "kilometer" });
+const kg = new Intl.NumberFormat("pt-BR", { style: "unit", unit: "kilogram", unitDisplay: "long" });
+
+console.log(km.format(42.195));
+console.log(kg.format(2.5));
+</pre>
+
+<pre class="term">$ node unidade.js
+42,195 km
+2,5 quilogramas
+</pre>
+
+<p>O nome da unidade vai em inglês (<code>"kilometer"</code>, <code>"kilogram"</code>, <code>"liter"</code>, <code>"celsius"</code>…), e o <code>Intl</code> escreve na língua da localidade. Com <code>unitDisplay: "long"</code> sai por extenso.</p>
+
+<hr>
+
+<h2>6. Zeros à esquerda e colunas alinhadas</h2>
+<p>O número do pedido aparece como <code>0007</code> na comanda; a senha da fila, como <code>042</code>. Para isso, transforme o número em texto e complete à esquerda com o <code>padStart</code> ("preencher no começo", veja <a href="strings-metodos.html">Métodos de String</a>):</p>
+
+<pre class="file" data-file="zeros.js">const pedido = 7;
+const senha = 42;
+
+console.log(String(pedido).padStart(4, "0"));
+console.log(`Senha ${String(senha).padStart(3, "0")}`);
+console.log((5).toLocaleString("pt-BR", { minimumIntegerDigits: 2 }));
+</pre>
+
+<pre class="term">$ node zeros.js
+0007
+Senha 042
+05
+</pre>
+
+<p><code>padStart(4, "0")</code> quer dizer: "complete com <code>"0"</code> no começo até o texto ter 4 caracteres". A última linha mostra o mesmo efeito pelo <code>Intl</code>, com <code>minimumIntegerDigits</code> ("mínimo de dígitos inteiros"). Juntando <code>padEnd</code> (preencher no fim) e <code>padStart</code>, dá para montar um cupom com as colunas alinhadas:</p>
+
+<pre class="file" data-file="tabela.js">const itens = [
+  ["Pão francês", 4.5],
+  ["Leite", 6.25],
+  ["Café 500 g", 21.9],
+  ["Queijo", 54.8]
+];
+const real = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+let total = 0;
+for (const [nome, preco] of itens) {
+  console.log(`${nome.padEnd(12, ".")} ${real.format(preco).padStart(10)}`);
+  total += preco;
+}
+console.log(`${"TOTAL".padEnd(12, ".")} ${real.format(total).padStart(10)}`);
+</pre>
+
+<pre class="term">$ node tabela.js
+Pão francês.    R$ 4,50
+Leite.......    R$ 6,25
+Café 500 g..   R$ 21,90
+Queijo......   R$ 54,80
+TOTAL.......   R$ 87,45
+</pre>
+
+<p>Repare: a soma (<code>total += preco</code>) é feita com os <strong>números</strong>; o <code>real.format</code> só entra na hora de mostrar. O <code>padStart(10)</code> sem o segundo valor completa com espaços.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> acrescente itens ao cupom (por exemplo <code>["Manteiga", 12.4]</code>) e veja o total mudar. Depois troque <code>"pt-BR"</code> e <code>"BRL"</code> por <code>"en-US"</code> e <code>"USD"</code>.</p>
+<pre class="script" data-file="main.js">const itens = [
+  ["Pão francês", 4.5],
+  ["Leite", 6.25],
+  ["Café 500 g", 21.9],
+  ["Queijo", 54.8]
+];
+const real = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+let total = 0;
+for (const [nome, preco] of itens) {
+  console.log(`${nome.padEnd(12, ".")} ${real.format(preco).padStart(10)}`);
+  total += preco;
+}
+console.log(`${"TOTAL".padEnd(12, ".")} ${real.format(total).padStart(10)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero mostrar…</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td><code>19,90</code></td><td><code>x.toFixed(2).replace(".", ",")</code> · <code>x.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })</code></td><td><code>toLocaleString</code>: também separa os milhares (<code>1.500,00</code>)</td></tr>
+<tr><td><code>R$ 19,90</code></td><td><code>`R$ ${…}`</code> montado à mão · <code>toLocaleString</code> com <code>currency: "BRL"</code> · <code>Intl.NumberFormat</code></td><td>Um valor só: <code>toLocaleString</code>. Muitos: crie um <code>Intl.NumberFormat</code> uma vez e use o <code>.format</code></td></tr>
+<tr><td><code>19.90</code> (com ponto, para um arquivo ou outro programa)</td><td><code>x.toFixed(2)</code></td><td><code>toFixed</code>: não depende de localidade</td></tr>
+<tr><td><code>15%</code></td><td><code>`${x * 100}%`</code> · <code>style: "percent"</code></td><td><code>style: "percent"</code>: arredonda e usa vírgula (<code>66,7%</code>)</td></tr>
+<tr><td><code>0007</code></td><td><code>String(n).padStart(4, "0")</code> · <code>minimumIntegerDigits: 4</code></td><td><code>padStart</code>: mais conhecido</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou <code>toFixed</code> num texto</strong>
+<pre class="file" data-file="erros.js">const preco = "19.9";
+console.log(preco.toFixed(2));
+</pre>
+<pre class="term">$ node erros.js
+/home/ana/erros.js:2
+console.log(preco.toFixed(2));
+                  ^
+
+TypeError: preco.toFixed is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/erros.js:2:19)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/erros.js:2</dt><dd>O arquivo e a linha: a linha 2.</dd>
+  <dt>console.log(preco.toFixed(2)); e o ^</dt><dd>O <code>^</code> aponta para o <code>toFixed</code>.</dd>
+  <dt>TypeError: preco.toFixed is not a function</dt><dd>"Erro de tipo: <code>preco.toFixed</code> não é uma função". O <code>preco</code> é o texto <code>"19.9"</code> (está entre aspas), e textos não têm <code>toFixed</code>: ele é um método só dos números.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/erros.js:2:19)</dt><dd>Linha 2, coluna 19, no programa principal. As linhas com <code>node:internal</code> são o Node carregando o arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p>Acontece muito com valores que vieram do teclado, de um arquivo ou de um formulário: eles chegam como texto. <strong>Como consertar:</strong> converta antes, <code>Number(preco).toFixed(2)</code> (veja <a href="conversao.html">Conversão</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Somou depois de formatar</strong>
+<pre class="file" data-file="tofixed-texto.js">const pao = 4.5;
+const leite = 6.25;
+
+const total = pao.toFixed(2) + leite.toFixed(2);
+console.log(total);
+console.log(Number(pao.toFixed(2)) + Number(leite.toFixed(2)));
+</pre>
+<pre class="term">$ node tofixed-texto.js
+4.506.25
+10.75
+</pre>
+<p>Sem nenhum erro, o total saiu <code>4.506.25</code>. Como os dois <code>toFixed</code> devolvem <strong>textos</strong>, o <code>+</code> <strong>juntou</strong> os textos em vez de somar (veja <a href="conversao-automatica.html">Conversão Automática</a>). Converter de volta (segunda linha) funciona, mas o certo é não formatar antes: <strong>some os números e formate só o total</strong>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o código da moeda, ou escreveu o símbolo</strong>
+<pre class="term">$ node erro-moeda.js
+/home/ana/erro-moeda.js:1
+console.log((10).toLocaleString("pt-BR", { style: "currency" }));
+                 ^
+
+TypeError: Currency code is required with currency style.
+    at Number.toLocaleString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-moeda.js:1:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+$ node erro-moeda2.js
+/home/ana/erro-moeda2.js:1
+console.log((10).toLocaleString("pt-BR", { style: "currency", currency: "R$" }));
+                 ^
+
+RangeError: Invalid currency code : R$
+    at Number.toLocaleString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/erro-moeda2.js:1:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>No primeiro, "o código da moeda é obrigatório com o estilo moeda": faltou o <code>currency</code>. No segundo, "código de moeda inválido: R$": o <code>currency</code> leva o <strong>código</strong> de 3 letras, não o símbolo. A linha <code>at Number.toLocaleString (&lt;anonymous&gt;)</code> mostra que o erro nasceu dentro do <code>toLocaleString</code>, chamado pela linha 1 do programa. <strong>Como consertar:</strong> <code>{ style: "currency", currency: "BRL" }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>5.toFixed(2)</code>: o ponto do número</strong>
+<pre class="term">$ node erro-ponto.js
+/home/ana/erro-ponto.js:1
+console.log(5.toFixed(2));
+            ^^
+
+SyntaxError: Invalid or unexpected token
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: símbolo inválido ou inesperado". Logo depois de um número, o JavaScript lê o ponto como o <strong>ponto decimal</strong> (<code>5.</code> é o número 5,0) e não entende o <code>toFixed</code> que vem depois. É um erro de sintaxe, então o programa nem começa a rodar. <strong>Como consertar:</strong> <code>(5).toFixed(2)</code>, ou guarde o número numa variável antes. Com números quebrados não há problema: <code>(2.5).toFixed(1)</code> e <code>2.5.toFixed(1)</code> funcionam.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>toFixed</code> arredondou "errado"</strong>
+<pre class="file" data-file="arred.js">console.log((1.005).toFixed(2));
+console.log((2.345).toFixed(2));
+console.log((2.5).toFixed(0), (3.5).toFixed(0));
+</pre>
+<pre class="term">$ node arred.js
+1.00
+2.35
+3 4
+</pre>
+<p>Pela regra da escola, <code>1.005</code> com 2 casas seria <code>1.01</code>, mas saiu <code>1.00</code>. O computador guarda <code>1.005</code> como um número binário um tiquinho <strong>menor</strong> (algo como 1,00499999…), e o <code>toFixed</code> arredonda esse número de verdade. É a mesma causa do <code>0.1 + 0.2</code> (veja <a href="numeros-especiais.html">A Precisão</a>). Para mostrar preços, isso quase nunca importa. Para contas de dinheiro que precisam ser exatas, trabalhe em <strong>centavos inteiros</strong> (<code>1005</code> centavos) e divida por 100 só na hora de mostrar.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou converter o texto formatado de volta</strong>
+<pre class="file" data-file="fmt-pt.js">console.log(Number("3.518,50"));
+console.log(Number("3518.50"));
+</pre>
+<pre class="term">$ node fmt-pt.js
+NaN
+3518.5
+</pre>
+<p>O <code>Number</code> só entende o formato do JavaScript. Mais um motivo para guardar o número e formatar só na saída. Se o texto veio de uma pessoa (<code>"3.518,50"</code>), tire os pontos e troque a vírgula antes: <code>Number(texto.replaceAll(".", "").replace(",", "."))</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado no lab</th></tr>
+<tr><td><code>(13.8915).toFixed(2)</code></td><td><code>"13.89"</code> (texto)</td></tr>
+<tr><td><code>(3518.5).toLocaleString("pt-BR")</code></td><td><code>3.518,5</code></td></tr>
+<tr><td><code>x.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })</code></td><td><code>R$ 3.518,50</code></td></tr>
+<tr><td><code>new Intl.NumberFormat("pt-BR", opções).format(x)</code></td><td>O mesmo, com um formatador reaproveitável</td></tr>
+<tr><td><code>{ minimumFractionDigits: 2, maximumFractionDigits: 2 }</code></td><td><code>7,00</code>, <code>1.500,00</code></td></tr>
+<tr><td><code>{ style: "percent" }</code></td><td><code>0.15</code> → <code>15%</code></td></tr>
+<tr><td><code>{ notation: "compact" }</code></td><td><code>2300000</code> → <code>2,3 mi</code></td></tr>
+<tr><td><code>{ style: "unit", unit: "kilometer" }</code></td><td><code>42,195 km</code></td></tr>
+<tr><td><code>String(7).padStart(4, "0")</code></td><td><code>0007</code></td></tr>
+<tr><td>Códigos de moeda</td><td><code>BRL</code> (real), <code>USD</code> (dólar), <code>EUR</code> (euro), <code>GBP</code> (libra), <code>JPY</code> (iene)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar <code>R$ 54,80</code>:</p>
+<div class="ex-code">const preco = 54.8;<br>console.log(preco.toLocaleString("<input data-answer="pt-BR" aria-label="localidade">", { style: "<input data-answer="currency" aria-label="estilo">", currency: "<input data-answer="BRL" aria-label="código da moeda">" }));</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o tipo?</h3>
+<p>O que mostra <code>console.log(typeof (9.5).toFixed(1))</code>?</p>
+<div class="ex-code">Mostra <input data-answer="string" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que mostra <code>console.log((1500).toLocaleString("pt-BR"))</code>?</p>
+<label><input type="radio" name="q3"> <code>1500</code></label>
+<label><input type="radio" name="q3"> <code>1,500</code></label>
+<label><input type="radio" name="q3"> <code>1.500</code></label>
+<label><input type="radio" name="q3"> <code>R$ 1.500,00</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>const a = (2).toFixed(2); const b = (3).toFixed(2); console.log(a + b);</code> mostra:</p>
+<label><input type="radio" name="q4"> <code>5.00</code></label>
+<label><input type="radio" name="q4"> <code>2.003.00</code></label>
+<label><input type="radio" name="q4"> <code>5</code></label>
+<label><input type="radio" name="q4"> Um erro</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para mostrar <code>0.25</code> como <code>25%</code>, qual opção usar?</p>
+<label><input type="radio" name="q5"> <code>{ style: "percent" }</code></label>
+<label><input type="radio" name="q5"> <code>{ style: "currency", currency: "%" }</code></label>
+<label><input type="radio" name="q5"> <code>{ notation: "compact" }</code></label>
+<label><input type="radio" name="q5"> <code>.toFixed(2)</code></label>
+</div>
+
+<h3>Missão final: o cupom com desconto</h3>
+
+<div class="tryjs" data-goal="outre:Total: R\$\s87,45;;out:Desconto: 10%;;outre:A pagar: R\$\s78,71">
+<p class="try-task"><strong>Missão:</strong> as contas estão prontas; falta a apresentação. Crie um formatador de reais e um de porcentagem e use-os nas três linhas, para sair <code>Total: R$ 87,45</code>, <code>Desconto: 10%</code> e <code>A pagar: R$ 78,71</code>.</p>
+<pre class="script" data-file="main.js">const precos = [4.5, 6.25, 21.9, 54.8];
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+const desconto = 0.1;
+const final = total * (1 - desconto);
+
+console.log(`Total: ${total}`);
+console.log(`Desconto: ${desconto}`);
+console.log(`A pagar: ${final}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [4.5, 6.25, 21.9, 54.8];
+const total = precos.reduce((soma, preco) =&gt; soma + preco, 0);
+const desconto = 0.1;
+const final = total * (1 - desconto);
+
+const real = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const porcento = new Intl.NumberFormat("pt-BR", { style: "percent" });
+
+console.log(`Total: ${real.format(total)}`);
+console.log(`Desconto: ${porcento.format(desconto)}`);
+console.log(`A pagar: ${real.format(final)}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ node cupom.js
+Total: R$ 87,45
+Desconto: 10%
+A pagar: R$ 78,71
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Faça as contas com <strong>números</strong> e formate só na hora de mostrar: toda formatação devolve <strong>texto</strong>.</li>
+  <li><code>x.toFixed(n)</code>: exatamente <code>n</code> casas, com ponto. Bom para arquivos e para o "jeito do computador".</li>
+  <li><code>x.toLocaleString("pt-BR")</code>: o jeito brasileiro (<code>3.518,5</code>). Com <code>{ style: "currency", currency: "BRL" }</code>: <code>R$ 3.518,50</code>.</li>
+  <li>Para formatar muitos números, crie um <code>new Intl.NumberFormat("pt-BR", opções)</code> e use o <code>.format(x)</code>.</li>
+  <li>Outras opções: <code>minimumFractionDigits</code>/<code>maximumFractionDigits</code>, <code>style: "percent"</code>, <code>notation: "compact"</code>, <code>style: "unit"</code>. Zeros à esquerda: <code>padStart</code>.</li>
+  <li>O espaço depois do <code>R$</code> é inquebrável (caractere 160); o <code>currency</code> leva o código (<code>"BRL"</code>), não o símbolo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
