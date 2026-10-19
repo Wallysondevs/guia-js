@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Métodos de String — referência com exemplos e resultados reais | Guia JavaScript</title>
+<meta name="description" content="Referência rápida dos métodos de string do JavaScript: length, at, indexOf, includes, startsWith, slice, substring, toUpperCase, trim, padStart, repeat, split, join, replace, replaceAll, match, localeCompare, normalize e mais, com exemplo, resultado real do Node.js 24 e link para a aula de cada um.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Esta é a página de consulta rápida dos <strong>métodos de string</strong>: as funções que todo texto já traz consigo, chamadas com um ponto depois do texto (<code>nome.toUpperCase()</code>). Elas medem, procuram, cortam, mudam maiúsculas, tiram espaços, dividem e substituem. Cada linha tem um exemplo, o resultado real e a aula que explica com calma.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Nos exemplos, <code>s</code> é o texto <code>const s = "Padaria do Bairro"</code>.</li>
+  <li><strong>Exemplo</strong> é o que você digitaria depois do <code>&gt;</code> do <a href="repl.html">modo interativo do Node</a>; <strong>Resultado</strong> é o que o Node.js v24.22.0 respondeu no computador da Ana. Textos aparecem entre aspas simples (<code>'Padaria'</code>): é o modo interativo avisando que o resultado é uma string.</li>
+  <li>As posições começam em <strong>0</strong>: em <code>"Padaria"</code>, o <code>P</code> é a posição 0, o primeiro <code>a</code> é a posição 1.</li>
+</ul>
+</div>
+
+<div class="warning">
+<strong>Nenhum método muda o texto original</strong>
+<p>Strings são <strong>imutáveis</strong>: não dá para mudar uma letra lá dentro. Todo método <strong>devolve um texto novo</strong>, e o original fica como estava. Para guardar o resultado, atribua de novo: <code>nome = nome.trim();</code>. Veja no lab:</p>
+<pre class="file" data-file="imutavel.js">let nome = "ana";
+nome[0] = "A";
+console.log(nome);
+
+nome.toUpperCase();
+console.log(nome);
+
+nome = nome[0].toUpperCase() + nome.slice(1);
+console.log(nome);
+</pre>
+<pre class="term">$ node imutavel.js
+ana
+ana
+Ana
+</pre>
+<p>O <code>nome[0] = "A"</code> foi ignorado sem aviso, e o <code>nome.toUpperCase()</code> sozinho calculou <code>"ANA"</code> e jogou fora. Só a última forma, que guarda o resultado em <code>nome</code>, funcionou.</p>
+</div>
+
+<p>Pule direto para o grupo que você procura:</p>
+<ul>
+  <li><a href="#tamanho">Tamanho e letras</a>: <code>length</code> <code>[i]</code> <code>at</code> <code>charAt</code></li>
+  <li><a href="#procurar">Procurar</a>: <code>indexOf</code> <code>lastIndexOf</code> <code>includes</code> <code>startsWith</code> <code>endsWith</code> <code>search</code></li>
+  <li><a href="#cortar">Cortar</a>: <code>slice</code> <code>substring</code></li>
+  <li><a href="#transformar">Transformar</a>: <code>toUpperCase</code> <code>toLowerCase</code> <code>trim</code> <code>padStart</code> <code>padEnd</code> <code>repeat</code> <code>concat</code></li>
+  <li><a href="#dividir">Dividir e juntar</a>: <code>split</code> <code>join</code></li>
+  <li><a href="#substituir">Substituir e regex</a>: <code>replace</code> <code>replaceAll</code> <code>match</code> <code>matchAll</code></li>
+  <li><a href="#comparar">Comparar e códigos</a>: <code>===</code> <code>localeCompare</code> <code>charCodeAt</code> <code>fromCharCode</code> <code>codePointAt</code> <code>normalize</code></li>
+  <li><a href="#converter">Converter e montar</a>: <code>String()</code> <code>toString</code> template strings <code>String.raw</code></li>
+  <li><a href="#erros">Quando dá errado</a></li>
+</ul>
+
+<hr>
+
+<h2 id="tamanho">Tamanho e letras</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>length</code></td><td>quantos caracteres o texto tem (é uma propriedade: sem parênteses)</td><td><code>s.length</code>, <code>"ação".length</code></td><td><code>17</code>, <code>4</code></td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td></td><td>emojis contam <strong>2</strong> (são guardados em duas partes); o <code>...</code> separa certo</td><td><code>"😀".length</code>, <code>[..."😀"].length</code></td><td><code>2</code>, <code>1</code></td><td><a href="spread-rest.html">Spread e Rest</a></td></tr>
+<tr><td><code>s[i]</code></td><td>a letra na posição <code>i</code></td><td><code>s[0]</code>, <code>s[100]</code></td><td><code>'P'</code>, <code>undefined</code></td><td><a href="strings-fatiar.html">Pedaços de String</a></td></tr>
+<tr><td><code>at(i)</code></td><td>igual ao <code>[i]</code>, mas aceita negativo: <code>-1</code> é a última <span class="versao">ES2022</span></td><td><code>s.at(0)</code>, <code>s.at(-1)</code></td><td><code>'P'</code>, <code>'o'</code></td><td><a href="strings-fatiar.html">Pedaços de String</a></td></tr>
+<tr><td><code>charAt(i)</code></td><td>o jeito antigo do <code>[i]</code></td><td><code>s.charAt(1)</code></td><td><code>'a'</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="procurar">Procurar</h2>
+
+<p>Todos diferenciam <strong>maiúsculas de minúsculas</strong>: <code>"Bairro"</code> não é <code>"bairro"</code>. Para ignorar a diferença, procure no texto convertido: <code>s.toLowerCase().includes("bairro")</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>indexOf(t)</code></td><td>a posição da <strong>primeira</strong> vez que <code>t</code> aparece, ou <code>-1</code> se não aparece</td><td><code>s.indexOf("a")</code>, <code>s.indexOf("do")</code>, <code>s.indexOf("x")</code></td><td><code>1</code>, <code>8</code>, <code>-1</code></td><td><a href="strings-buscar.html">Procurando em Strings</a></td></tr>
+<tr><td><code>lastIndexOf(t)</code></td><td>a posição da <strong>última</strong> vez</td><td><code>s.lastIndexOf("a")</code></td><td><code>12</code></td><td></td></tr>
+<tr><td><code>includes(t)</code></td><td><code>true</code> se o texto contém <code>t</code></td><td><code>s.includes("Bairro")</code>, <code>s.includes("bairro")</code></td><td><code>true</code>, <code>false</code></td><td><a href="strings-buscar.html">Procurando em Strings</a></td></tr>
+<tr><td><code>startsWith(t)</code></td><td><code>true</code> se começa com <code>t</code></td><td><code>s.startsWith("Pad")</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>endsWith(t)</code></td><td><code>true</code> se termina com <code>t</code></td><td><code>s.endsWith("rro")</code></td><td><code>true</code></td><td></td></tr>
+<tr><td><code>search(regex)</code></td><td>como o <code>indexOf</code>, mas com uma <a href="regex.html">expressão regular</a></td><td><code>s.search(/[A-Z]/g)</code></td><td><code>0</code> (a primeira maiúscula)</td><td><a href="regex-metodos.html">Regex na Prática</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="cortar">Cortar</h2>
+
+<p>O primeiro número é onde o pedaço <strong>começa</strong>; o segundo é onde ele <strong>para</strong> (essa posição já fica de fora). Sem o segundo, vai até o fim.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>slice(ini, fim)</code></td><td>o pedaço de <code>ini</code> até antes de <code>fim</code></td><td><code>s.slice(0, 7)</code>, <code>s.slice(11)</code></td><td><code>'Padaria'</code>, <code>'Bairro'</code></td><td><a href="strings-fatiar.html">Pedaços de String</a></td></tr>
+<tr><td></td><td>negativo conta do fim</td><td><code>s.slice(-6)</code>, <code>s.slice(-6, -2)</code></td><td><code>'Bairro'</code>, <code>'Bair'</code></td><td></td></tr>
+<tr><td><code>substring(ini, fim)</code></td><td>parecido com o <code>slice</code>, mas não aceita negativo e troca os números se vierem invertidos</td><td><code>s.substring(0, 7)</code>, <code>s.substring(7, 0)</code></td><td><code>'Padaria'</code>, <code>'Padaria'</code></td><td></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>slice</code> ou <code>substring</code>?</strong>
+<p>Prefira o <code>slice</code>: ele funciona igual nos arrays e aceita negativo. O <code>substr</code> (com <em>r</em> no fim) é ainda mais antigo e está marcado como obsoleto: evite.</p>
+</div>
+
+<hr>
+
+<h2 id="transformar">Transformar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>toUpperCase()</code></td><td>tudo em maiúsculas</td><td><code>s.toUpperCase()</code></td><td><code>'PADARIA DO BAIRRO'</code></td><td><a href="strings-metodos.html">Métodos de String</a></td></tr>
+<tr><td><code>toLowerCase()</code></td><td>tudo em minúsculas</td><td><code>s.toLowerCase()</code></td><td><code>'padaria do bairro'</code></td><td></td></tr>
+<tr><td><code>trim()</code></td><td>tira os espaços (e quebras de linha) das duas pontas</td><td><code>"  Ana  ".trim()</code></td><td><code>'Ana'</code></td><td><a href="strings-metodos.html">Métodos de String</a></td></tr>
+<tr><td><code>trimStart()</code></td><td>só do começo</td><td><code>"  Ana  ".trimStart()</code></td><td><code>'Ana  '</code></td><td></td></tr>
+<tr><td><code>trimEnd()</code></td><td>só do fim</td><td><code>"  Ana  ".trimEnd()</code></td><td><code>'  Ana'</code></td><td></td></tr>
+<tr><td><code>padStart(n, c)</code></td><td>completa <strong>na frente</strong> com <code>c</code> até ter <code>n</code> caracteres</td><td><code>"7".padStart(3, "0")</code></td><td><code>'007'</code></td><td><a href="strings-metodos.html">Métodos de String</a></td></tr>
+<tr><td><code>padEnd(n, c)</code></td><td>completa <strong>no fim</strong></td><td><code>"Ana".padEnd(6, ".")</code></td><td><code>'Ana...'</code></td><td></td></tr>
+<tr><td><code>repeat(n)</code></td><td>repete o texto <code>n</code> vezes</td><td><code>"ab".repeat(3)</code>, <code>"-".repeat(10)</code></td><td><code>'ababab'</code>, <code>'----------'</code></td><td></td></tr>
+<tr><td><code>concat(…)</code></td><td>junta textos (o <code>+</code> e a template string fazem o mesmo)</td><td><code>"Bom".concat(" ", "dia")</code></td><td><code>'Bom dia'</code></td><td><a href="template-strings.html">Template Strings</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="dividir">Dividir e juntar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>split(sep)</code></td><td>corta o texto em cada <code>sep</code> e devolve um <strong>array</strong></td><td><code>"pão,leite,café".split(",")</code></td><td><code>[ 'pão', 'leite', 'café' ]</code></td><td><a href="strings-split.html">Dividindo e Juntando</a></td></tr>
+<tr><td></td><td>com <code>""</code>: letra por letra</td><td><code>"Ana".split("")</code></td><td><code>[ 'A', 'n', 'a' ]</code></td><td></td></tr>
+<tr><td></td><td>dois separadores seguidos deixam um texto vazio no meio</td><td><code>"a b  c".split(" ")</code></td><td><code>[ 'a', 'b', '', 'c' ]</code></td><td></td></tr>
+<tr><td></td><td>o segundo número limita quantos pedaços</td><td><code>"pão,leite,café".split(",", 2)</code></td><td><code>[ 'pão', 'leite' ]</code></td><td></td></tr>
+<tr><td><code>join(sep)</code></td><td>o contrário (é um método de <strong>array</strong>): junta os itens com <code>sep</code> no meio</td><td><code>["pão", "leite"].join(" e ")</code></td><td><code>'pão e leite'</code></td><td><a href="strings-split.html">Dividindo e Juntando</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="substituir">Substituir e regex</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>replace(a, b)</code></td><td>troca só a <strong>primeira</strong> vez que <code>a</code> aparece</td><td><code>"banana".replace("a", "o")</code>, <code>"R$ 10,50".replace(",", ".")</code></td><td><code>'bonana'</code>, <code>'R$ 10.50'</code></td><td><a href="strings-substituir.html">Substituindo</a></td></tr>
+<tr><td><code>replaceAll(a, b)</code></td><td>troca <strong>todas</strong> <span class="versao">ES2021</span></td><td><code>"banana".replaceAll("a", "o")</code></td><td><code>'bonono'</code></td><td><a href="strings-substituir.html">Substituindo</a></td></tr>
+<tr><td></td><td>o jeito antigo de trocar todas: regex com <code>g</code></td><td><code>"banana".replace(/a/g, "o")</code></td><td><code>'bonono'</code></td><td><a href="regex-metodos.html">Regex na Prática</a></td></tr>
+<tr><td><code>match(regex)</code></td><td>com <code>g</code>: um array com todos os pedaços que casam; sem nada que case: <code>null</code></td><td><code>"tel: 11 9999-8888".match(/\d+/g)</code>, <code>"abc".match(/\d/)</code></td><td><code>[ '11', '9999', '8888' ]</code>, <code>null</code></td><td><a href="regex-metodos.html">Regex na Prática</a></td></tr>
+<tr><td><code>matchAll(regex)</code></td><td>todos os resultados, com detalhes de cada um (a regex precisa do <code>g</code>)</td><td><code>[..."a1b2".matchAll(/\d/g)].map(m =&gt; m[0])</code></td><td><code>[ '1', '2' ]</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="comparar">Comparar e códigos</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>===</code></td><td>textos iguais? Maiúscula conta</td><td><code>"Ana" === "ana"</code>, <code>"Ana".toLowerCase() === "ana"</code></td><td><code>false</code>, <code>true</code></td><td><a href="operadores-comparacao.html">Comparação</a></td></tr>
+<tr><td><code>&lt;</code> <code>&gt;</code></td><td>comparam pelo código de cada letra: letras acentuadas ficam <strong>depois</strong> do <code>z</code></td><td><code>"é" &lt; "f"</code></td><td><code>false</code></td><td></td></tr>
+<tr><td><code>localeCompare(t)</code></td><td>compara na ordem do dicionário: negativo se vem antes, positivo se vem depois, <code>0</code> se igual</td><td><code>"a".localeCompare("b")</code>, <code>"b".localeCompare("a")</code>, <code>"é".localeCompare("f", "pt-BR")</code></td><td><code>-1</code>, <code>1</code>, <code>-1</code></td><td><a href="sort.html">Ordenando</a></td></tr>
+<tr><td><code>charCodeAt(i)</code></td><td>o código da letra na posição <code>i</code></td><td><code>"A".charCodeAt(0)</code></td><td><code>65</code></td><td></td></tr>
+<tr><td><code>String.fromCharCode(…)</code></td><td>o contrário: monta o texto a partir dos códigos</td><td><code>String.fromCharCode(65, 110, 97)</code></td><td><code>'Ana'</code></td><td></td></tr>
+<tr><td><code>codePointAt(i)</code></td><td>o código completo (funciona com emoji)</td><td><code>"😀".codePointAt(0)</code></td><td><code>128512</code></td><td></td></tr>
+<tr><td><code>normalize("NFD")</code></td><td>separa a letra do acento (o <code>ç</code> vira <code>c</code> + cedilha); útil para tirar acentos</td><td><code>"ação".normalize("NFD").length</code>, <code>"ação".normalize("NFD").replace(/[\u0300-\u036f]/g, "")</code></td><td><code>6</code>, <code>'acao'</code></td><td><a href="regex-metodos.html">Regex na Prática</a></td></tr>
+<tr><td><code>isWellFormed()</code></td><td><code>true</code> se o texto não tem pedaços de emoji quebrados <span class="versao">ES2024</span></td><td><code>s.isWellFormed()</code></td><td><code>true</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="converter">Converter e montar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>String(x)</code></td><td>transforma qualquer valor em texto (até <code>null</code>)</td><td><code>String(42)</code>, <code>String(null)</code></td><td><code>'42'</code>, <code>'null'</code></td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>x.toString()</code></td><td>o mesmo, como método; nos números, aceita a base</td><td><code>(42).toString()</code>, <code>(255).toString(16)</code></td><td><code>'42'</code>, <code>'ff'</code></td><td></td></tr>
+<tr><td><code>`…${ }…`</code></td><td>template string: põe o valor de uma expressão dentro do texto</td><td><code>`Total: ${2 * 5} reais`</code></td><td><code>'Total: 10 reais'</code></td><td><a href="template-strings.html">Template Strings</a></td></tr>
+<tr><td><code>String.raw`…`</code></td><td>mantém a barra invertida como está (útil em caminhos do Windows); o modo interativo mostra a barra dobrada, mas o texto tem uma só</td><td><code>String.raw`C:\novo`</code></td><td><code>'C:\\novo'</code></td><td><a href="strings-escape.html">Caracteres Especiais</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="tryjs" data-goal="out:Olá, ANA!;;src:trim\(\)">
+<p class="try-task"><strong>Missão:</strong> o nome chegou com espaços sobrando e em minúsculas, e a saudação saiu <code>Olá,   ana  !</code>. Use <code>trim()</code> e <code>toUpperCase()</code> dentro do <code>${ }</code> para que saia <code>Olá, ANA!</code>.</p>
+<pre class="script" data-file="main.js">const nome = "  ana  ";
+
+console.log(`Olá, ${nome}!`);
+</pre>
+<pre class="solucao" data-file="main.js">const nome = "  ana  ";
+
+console.log(`Olá, ${nome.trim().toUpperCase()}!`);
+</pre>
+</div>
+
+<p>No lab, o programa original mostrou <code>Olá,   ana  !</code> e a solução, <code>Olá, ANA!</code>. Repare que os dois métodos foram <strong>encadeados</strong>: o <code>trim()</code> devolve <code>"ana"</code>, e o <code>toUpperCase()</code> é chamado nesse texto novo.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Livre:</strong> teste os métodos com o nome da sua rua, do seu bairro ou da sua loja preferida. Antes de rodar, tente adivinhar cada resultado.</p>
+<pre class="script" data-file="main.js">const loja = "Padaria do Bairro";
+
+console.log(loja.length);
+console.log(loja.toUpperCase());
+console.log(loja.slice(0, 7));
+console.log(loja.includes("Bairro"));
+console.log(loja.split(" "));
+console.log(loja.replaceAll("a", "4"));
+console.log("7".padStart(3, "0"));
+</pre>
+</div>
+
+<p>Rodado no lab, sem mudar nada:</p>
+
+<pre class="term">$ node livre-str.js
+17
+PADARIA DO BAIRRO
+Padaria
+true
+[ 'Padaria', 'do', 'Bairro' ]
+P4d4ri4 do B4irro
+007
+</pre>
+
+<p>O <code>console.log</code> mostra os textos <strong>sem</strong> aspas (diferente do modo interativo), mas o array do <code>split</code> continua com os textos entre aspas simples.</p>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Mensagem do Node</th><th>O que aconteceu</th></tr>
+<tr><td><code>"abc".toUppercase()</code></td><td><code>TypeError: "abc".toUppercase is not a function</code></td><td>"não é uma função": o nome do método está errado. É <code>toUpperCase</code>, com o <code>C</code> maiúsculo. O JavaScript diferencia maiúsculas de minúsculas também nos nomes.</td></tr>
+<tr><td><code>nada.length</code> (com <code>const nada = null</code>)</td><td><code>TypeError: Cannot read properties of null (reading 'length')</code></td><td>"não dá para ler propriedades de <code>null</code>": a variável não tem um texto. Confira de onde ela veio, ou use <code>nada?.length</code> (<a href="optional-chaining.html">?. e ??</a>).</td></tr>
+<tr><td><code>"abc"[1] = "X"</code></td><td>nenhuma: o modo interativo mostrou <code>'X'</code>, mas o texto não mudou</td><td>Strings são imutáveis (veja o quadro no começo da página). Monte um texto novo com <code>slice</code> e <code>+</code>.</td></tr>
+</table>
+</div>
+
+<p>Mais mensagens, explicadas em português, em <a href="ref-erros.html">Mensagens de Erro Comuns</a>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Os métodos <strong>nunca</strong> mudam o texto original: guarde o resultado (<code>nome = nome.trim();</code>).</li>
+  <li>Tamanho e letras: <code>length</code>, <code>s[i]</code>, <code>at(-1)</code> para a última.</li>
+  <li>Procurar: <code>includes</code>, <code>startsWith</code>, <code>endsWith</code> (dão <code>true</code>/<code>false</code>); <code>indexOf</code> dá a posição ou <code>-1</code>.</li>
+  <li>Cortar: <code>slice(ini, fim)</code>, com negativos contando do fim.</li>
+  <li>Transformar: <code>toUpperCase</code>, <code>toLowerCase</code>, <code>trim</code>, <code>padStart</code>, <code>repeat</code>.</li>
+  <li>Dividir e juntar: <code>split</code> (texto → array) e <code>join</code> (array → texto).</li>
+  <li>Substituir: <code>replace</code> (a primeira), <code>replaceAll</code> (todas); com regex, <code>match</code> e <code>matchAll</code>.</li>
+  <li>Ordem de dicionário com acentos: <code>localeCompare</code>, não <code>&lt;</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
