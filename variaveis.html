@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Variáveis (let) — guardar um valor com nome e mudar depois | Guia JavaScript</title>
+<meta name="description" content="Variáveis com let para quem nunca programou: a caixa com etiqueta, let nome = valor, usar a variável, mudar o valor (sem let), paes = paes + 10, a variável sem valor (undefined), o bloco { } e os erros reais do Node.js 24: is not defined, Cannot access before initialization, has already been declared.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Variáveis (let)</span></h1>
+
+<p class="intro">Até agora, os seus programas escreveram valores "soltos": <code>console.log(6)</code>, <code>console.log("Ana")</code>. Mas um programa de verdade precisa <strong>lembrar</strong> das coisas: quantos pães sobraram, quanto custa o leite, o nome de quem está usando. Para guardar um valor e usá-lo depois existe a <strong>variável</strong>. Nesta aula você vai criar variáveis com a palavra <code>let</code> (em inglês, "deixe", no sentido de "deixe <code>paes</code> valer 6").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma variável: uma caixa com uma etiqueta.</li>
+  <li>Como criar uma com <code>let nome = valor;</code> e como usar o valor guardado.</li>
+  <li>Como <strong>mudar</strong> o valor depois (sem repetir o <code>let</code>) e como somar ao valor que já estava lá: <code>paes = paes + 10</code>.</li>
+  <li>O que vale uma variável criada sem valor (<code>undefined</code>).</li>
+  <li>Que uma variável <code>let</code> só existe dentro do bloco <code>{ }</code> onde foi criada.</li>
+  <li>Os erros reais mais comuns: usar antes de criar, nome digitado errado, criar duas vezes, nome com espaço.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: uma caixa com etiqueta</h2>
+<p>Na cozinha da Ana há várias caixinhas de plástico. Em cada uma ela colou uma <strong>etiqueta</strong>: "açúcar", "café", "pães". Quando quer saber quantos pães tem, ela não precisa lembrar de onde guardou: procura a caixa com a etiqueta "pães" e olha o que tem dentro.</p>
+<p>Uma variável é exatamente isso:</p>
+<ul>
+  <li>a <strong>etiqueta</strong> é o <strong>nome</strong> da variável (<code>paes</code>);</li>
+  <li>o que tem <strong>dentro</strong> da caixa é o <strong>valor</strong> (<code>6</code>);</li>
+  <li>o conteúdo pode <strong>mudar</strong>: a Ana come dois pães e a caixa passa a ter 4, mas a etiqueta continua a mesma.</li>
+</ul>
+<p>Por isso o nome "variável": o valor pode <strong>variar</strong> ao longo do programa. A caixa fica na memória do computador, e quem cuida dela é o JavaScript; você só precisa saber a etiqueta.</p>
+
+<hr>
+
+<h2>1. Criando uma variável</h2>
+
+<pre class="file" data-file="caixa.js">let paes = 6;
+console.log(paes);
+console.log("A Ana comprou", paes, "pães.");
+</pre>
+
+<dl class="anatomy">
+  <dt>let</dt><dd>A palavra que <strong>cria</strong> a variável. Os programadores dizem que ela <strong>declara</strong> a variável: avisa ao JavaScript "vai existir uma caixa com este nome". Só se escreve <code>let</code> na <strong>primeira</strong> vez.</dd>
+  <dt>paes</dt><dd>O <strong>nome</strong> (a etiqueta). Sem acento e sem espaço; as regras completas estão em <a href="nomes-variaveis.html">Nomes de Variáveis</a>.</dd>
+  <dt>=</dt><dd>O sinal de <strong>atribuição</strong>: "guarde na caixa o valor da direita". Atenção: aqui o <code>=</code> <strong>não</strong> é o "igual" da matemática; leia como "<code>paes</code> <strong>recebe</strong> 6".</dd>
+  <dt>6</dt><dd>O <strong>valor</strong> guardado. Pode ser um número, um texto entre aspas, <code>true</code>/<code>false</code>… (os tipos de valor estão em <a href="tipos-de-dados.html">Os Tipos de Dados</a>).</dd>
+  <dt>;</dt><dd>Fecha a instrução.</dd>
+  <dt>console.log(paes)</dt><dd>Usar a variável: onde você escreve o <strong>nome</strong>, o JavaScript põe o <strong>valor</strong> que está na caixa. Repare que <code>paes</code> vai <strong>sem aspas</strong>.</dd>
+</dl>
+
+<pre class="term">$ node caixa.js
+6
+A Ana comprou 6 pães.
+</pre>
+
+<p>Na segunda linha, o <code>console.log</code> recebeu três valores separados por vírgula: o texto <code>"A Ana comprou"</code>, o valor da variável (6) e o texto <code>"pães."</code>. Ele os escreveu com um espaço entre cada um.</p>
+
+<h3>Com aspas é texto; sem aspas é a variável</h3>
+<p>Uma diferença pequena na escrita, uma diferença grande no resultado:</p>
+
+<pre class="file" data-file="aspas.js">let nome = "Ana";
+console.log("nome");
+console.log(nome);
+</pre>
+
+<pre class="term">$ node aspas.js
+nome
+Ana
+</pre>
+
+<p><code>"nome"</code>, entre aspas, é a palavra <em>nome</em>, letra por letra. <code>nome</code>, sem aspas, é a <strong>etiqueta</strong> da caixa: o JavaScript abre a caixa e usa o que tem dentro, <code>Ana</code>.</p>
+
+<hr>
+
+<h2>2. Mudando o valor</h2>
+<p>Depois de criada, a variável pode receber um valor novo. Agora <strong>sem</strong> o <code>let</code>: a caixa já existe, você só está trocando o conteúdo.</p>
+
+<pre class="file" data-file="mudar.js">let paes = 6;
+console.log("De manhã:", paes);
+paes = 4;
+console.log("Depois do café:", paes);
+paes = paes + 10;
+console.log("Depois da padaria:", paes);
+</pre>
+
+<pre class="term">$ node mudar.js
+De manhã: 6
+Depois do café: 4
+Depois da padaria: 14
+</pre>
+
+<dl class="anatomy">
+  <dt>paes = 4;</dt><dd>Joga fora o 6 e guarda 4. O valor antigo <strong>se perde</strong>: a caixa guarda um valor de cada vez.</dd>
+  <dt>paes = paes + 10;</dt><dd>A linha que mais confunde quem começa, porque na matemática "<em>x = x + 10</em>" é impossível. Na programação ela se lê da <strong>direita para a esquerda</strong>: primeiro o JavaScript calcula <code>paes + 10</code> com o valor de agora (4 + 10 = 14); <strong>depois</strong> guarda o resultado na caixa <code>paes</code>.</dd>
+</dl>
+
+<p>Esse "pegar o valor atual, mudar e guardar de volta" aparece o tempo todo: somar pontos num jogo, juntar o total de uma compra, contar clientes. Veja os pontos de um jogo subindo de 10 em 10:</p>
+
+<pre class="file" data-file="mesa.js">let pontos = 0;
+console.log("Pontos:", pontos);
+pontos = pontos + 10;
+console.log("Pontos:", pontos);
+pontos = pontos + 10;
+console.log("Pontos:", pontos);
+</pre>
+
+<pre class="term">$ node mesa.js
+Pontos: 0
+Pontos: 10
+Pontos: 20
+</pre>
+
+<p>(Existe um atalho para <code>pontos = pontos + 10</code>, que é <code>pontos += 10</code>; ele tem aula própria: <a href="atribuicao.html">Atribuição</a>.)</p>
+
+<div class="tryjs" data-goal="out:Sobraram: 4;;src:^\s*paes\s*=;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana comeu 2 pães. No lugar do comentário, escreva uma linha que tire 2 da variável <code>paes</code> (sem criar outra variável), para o programa mostrar <code>Sobraram: 4</code>.</p>
+<pre class="script" data-file="main.js">let paes = 6;
+console.log("Pães no cesto:", paes);
+// a Ana comeu 2 pães: escreva a linha aqui
+
+console.log("Sobraram:", paes);
+</pre>
+<pre class="solucao" data-file="main.js">let paes = 6;
+console.log("Pães no cesto:", paes);
+// a Ana comeu 2 pães: escreva a linha aqui
+paes = paes - 2;
+console.log("Sobraram:", paes);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Uma variável a partir de outras</h2>
+<p>O valor guardado pode ser o resultado de uma conta com outras variáveis. A Ana compra 6 pães de R$ 0,75 (no JavaScript, as casas decimais usam <strong>ponto</strong>: <code>0.75</code>):</p>
+
+<pre class="file" data-file="conta.js">let preco = 0.75;
+let quantidade = 6;
+let total = preco * quantidade;
+console.log("Total:", total);
+quantidade = 10;
+console.log("Total depois de mudar a quantidade:", total);
+total = preco * quantidade;
+console.log("Total recalculado:", total);
+</pre>
+
+<pre class="term">$ node conta.js
+Total: 4.5
+Total depois de mudar a quantidade: 4.5
+Total recalculado: 7.5
+</pre>
+
+<p>O <code>*</code> é a multiplicação (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). E repare na <strong>segunda</strong> linha da saída: a quantidade mudou para 10, mas o total continuou 4.5. Por quê?</p>
+<p>Porque a variável guarda um <strong>valor</strong>, e não a <strong>conta</strong>. Na linha 3, o JavaScript calculou <code>0.75 * 6</code>, obteve <code>4.5</code> e guardou o 4.5 na caixa <code>total</code>. A caixa não "lembra" de onde o número veio. Se a quantidade mudar, você precisa <strong>refazer a conta</strong> (linha 7). É diferente de uma planilha, onde a célula do total se atualiza sozinha.</p>
+
+<hr>
+
+<h2>4. Variável sem valor: <code>undefined</code></h2>
+<p>Dá para criar a caixa vazia e encher depois:</p>
+
+<pre class="file" data-file="vazia.js">let troco;
+console.log(troco);
+troco = 2.5;
+console.log(troco);
+</pre>
+
+<pre class="term">$ node vazia.js
+undefined
+2.5
+</pre>
+
+<p>Uma variável criada sem valor vale <code>undefined</code> ("indefinido"): é o jeito do JavaScript dizer "esta caixa existe, mas ainda não tem nada dentro". Não é um erro; o <code>undefined</code> é um valor de verdade, que você vai conhecer melhor em <a href="null-undefined.html">null e undefined</a>.</p>
+
+<h3>A caixa aceita qualquer tipo de valor</h3>
+<p>No JavaScript, a mesma variável pode guardar um número e, depois, um texto. Ninguém reclama:</p>
+
+<pre class="file" data-file="tipos.js">let coisa = 10;
+console.log(coisa);
+coisa = "dez";
+console.log(coisa);
+coisa = true;
+console.log(coisa);
+</pre>
+
+<pre class="term">$ node tipos.js
+10
+dez
+true
+</pre>
+
+<p>Poder não quer dizer dever: uma variável que começa como número e vira texto no meio do programa é uma fonte clássica de confusão. Na prática, cada variável guarda <strong>um tipo de coisa</strong> do começo ao fim. (Linguagens como o TypeScript, que você vai conhecer em <a href="typescript.html">TypeScript</a>, existem justamente para proibir essa troca.)</p>
+
+<hr>
+
+<h2>5. Várias variáveis numa linha</h2>
+<p>Um <code>let</code> só pode criar várias variáveis, separadas por vírgula:</p>
+
+<pre class="file" data-file="varias.js">let nome = "Ana", idade = 30, cidade = "Recife";
+console.log(nome, idade, cidade);
+</pre>
+
+<pre class="term">$ node varias.js
+Ana 30 Recife
+</pre>
+
+<p>Funciona, mas a maioria dos programadores prefere <strong>uma variável por linha</strong>: fica mais fácil de ler e de apagar uma delas depois.</p>
+
+<hr>
+
+<h2>6. A variável vive dentro do seu bloco <code>{ }</code></h2>
+<p>Um trecho de código entre chaves <code>{ }</code> é um <strong>bloco</strong>. Uma variável criada com <code>let</code> dentro de um bloco só existe <strong>ali dentro</strong>; quando o bloco termina, a caixa é jogada fora:</p>
+
+<pre class="file" data-file="bloco.js">let saldo = 100;
+{
+  let bonus = 20;
+  saldo = saldo + bonus;
+  console.log("Dentro do bloco:", saldo, bonus);
+}
+console.log("Fora do bloco:", saldo);
+console.log(bonus);
+</pre>
+
+<pre class="term">$ node bloco.js
+Dentro do bloco: 120 20
+Fora do bloco: 120
+/home/ana/bloco.js:8
+console.log(bonus);
+            ^
+
+ReferenceError: bonus is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/bloco.js:8:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+
+<p>O <code>saldo</code> foi criado <strong>fora</strong> do bloco, então continua existindo depois dele (com o valor 120). O <code>bonus</code> foi criado <strong>dentro</strong>, então na linha 8 ele não existe mais: <code>bonus is not defined</code> ("<code>bonus</code> não está definido"). Um bloco sozinho, assim, é raro; você vai ver blocos o tempo todo no <a href="if.html">if</a>, nos laços e nas funções. Os detalhes estão na aula <a href="escopo.html">Escopo</a>.</p>
+
+<hr>
+
+<h2>7. <code>let</code> no modo interativo</h2>
+<p>No modo interativo do Node (o <code>&gt;</code>, veja <a href="repl.html">O Modo Interativo</a>), cada linha que você digita é executada na hora, e o Node mostra o resultado:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; let paes = 6
+undefined
+&gt; paes
+6
+&gt; paes = paes + 2
+8
+&gt; paes
+8
+&gt; let paes = 1
+Uncaught SyntaxError: Identifier 'paes' has already been declared
+&gt; let troco
+undefined
+&gt; troco
+undefined
+&gt; .exit
+</pre>
+
+<dl class="anatomy">
+  <dt>&gt; let paes = 6 → undefined</dt><dd>Esse <code>undefined</code> <strong>não</strong> quer dizer que <code>paes</code> ficou vazia. O modo interativo sempre mostra o "resultado" da linha, e uma linha com <code>let</code> não tem resultado: por isso <code>undefined</code>. Quando você digita <code>paes</code>, aparece o 6.</dd>
+  <dt>&gt; paes = paes + 2 → 8</dt><dd>Uma atribuição tem resultado: o valor que foi guardado.</dd>
+  <dt>Uncaught SyntaxError: Identifier 'paes' has already been declared</dt><dd>Não dá para criar a mesma variável duas vezes (o erro aparece de novo em <a href="#errado">Quando dá errado</a>). O <code>Uncaught</code> ("não capturado") é como o modo interativo começa as mensagens de erro.</dd>
+  <dt>&gt; let troco → undefined, e troco → undefined</dt><dd>Aqui, sim, a caixa está vazia.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de criar uma variável</h2>
+<p>O <code>let</code> não é a única palavra que cria variáveis. Existem três:</p>
+
+<pre class="file" data-file="formas.js">let quantidade = 6;        // pode mudar depois
+const preco = 0.75;        // não pode mudar: uma constante
+var cliente = "Ana";       // o jeito antigo: evite
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Pode receber outro valor?</th><th>Quando usar</th></tr>
+<tr><td><code>const</code></td><td>Não</td><td><strong>Por padrão.</strong> A maior parte dos valores de um programa não muda depois de criada (aula <a href="const.html">Constantes (const)</a>).</td></tr>
+<tr><td><code>let</code></td><td>Sim</td><td>Quando o valor <strong>vai mudar</strong>: contadores, totais, pontos, o saldo.</td></tr>
+<tr><td><code>var</code></td><td>Sim</td><td><strong>Nunca</strong> em código novo. Ela existe desde 1995 e tem comportamentos estranhos; aparece em código antigo (aula <a href="var.html">var: o Jeito Antigo</a>).</td></tr>
+</table>
+</div>
+
+<p>Nesta aula usamos <code>let</code> em tudo para você ver as caixas mudando. Na próxima aula você vai ver que, quando o valor não muda, <code>const</code> é a escolha melhor.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou a variável antes de criá-la</strong>
+<pre class="file" data-file="antes.js">console.log(paes);
+let paes = 6;
+</pre>
+<pre class="term">$ node antes.js
+/home/ana/antes.js:1
+console.log(paes);
+            ^
+
+ReferenceError: Cannot access 'paes' before initialization
+    at Object.&lt;anonymous&gt; (/home/ana/antes.js:1:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/antes.js:1</dt><dd>O erro está no arquivo <code>antes.js</code>, linha 1.</dd>
+  <dt>console.log(paes); e o ^</dt><dd>A linha com o problema, e a setinha embaixo do <code>paes</code>.</dd>
+  <dt>ReferenceError: Cannot access 'paes' before initialization</dt><dd>"Erro de referência: não é possível acessar <code>paes</code> antes da inicialização". O JavaScript lê o arquivo de cima para baixo; na linha 1, a caixa <code>paes</code> ainda não recebeu valor (isso só acontece na linha 2). Repare que o JavaScript <strong>sabe</strong> que a variável vai existir (ele cita o nome dela); só não deixa você usá-la cedo demais.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/antes.js:1:13)</dt><dd>De novo o lugar: linha 1, coluna 13 (a posição do <code>paes</code> na linha).</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> crie a variável antes de usar: troque as duas linhas de lugar.</p>
+</div>
+
+<div class="cenario">
+<strong>Digitou o nome errado</strong>
+<pre class="file" data-file="naoexiste.js">let preco = 0.75;
+console.log(precoo);
+</pre>
+<pre class="term">$ node naoexiste.js
+/home/ana/naoexiste.js:2
+console.log(precoo);
+            ^
+
+ReferenceError: precoo is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/naoexiste.js:2:13)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>precoo</code> não está definido". Para o JavaScript, <code>precoo</code> (com dois <code>o</code>) é outra etiqueta, e nenhuma caixa tem essa etiqueta. Compare com o erro anterior: lá a mensagem era <code>Cannot access … before initialization</code> (a variável existe mais para baixo); aqui é <code>is not defined</code> (ela não existe em lugar nenhum). O mesmo acontece com <code>Preco</code> (maiúscula) no lugar de <code>preco</code>. <strong>Como consertar:</strong> escreva o nome exatamente como foi criado.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou a mesma variável duas vezes</strong>
+<pre class="file" data-file="duas.js">let paes = 6;
+let paes = 8;
+console.log(paes);
+</pre>
+<pre class="term">$ node duas.js
+/home/ana/duas.js:2
+let paes = 8;
+    ^
+
+SyntaxError: Identifier 'paes' has already been declared
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: o identificador <code>paes</code> já foi declarado". <em>Identificador</em> é o nome técnico do nome da variável. É um erro <strong>de sintaxe</strong>: o Node o encontra antes de rodar qualquer linha, e por isso nem o <code>console.log</code> aparece. <strong>Como consertar:</strong> para mudar o valor, tire o <code>let</code> da segunda linha: <code>paes = 8;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome com espaço, ou começando com número</strong>
+<pre class="file" data-file="espaco.js">let preco pao = 0.75;
+</pre>
+<pre class="term">$ node espaco.js
+/home/ana/espaco.js:1
+let preco pao = 0.75;
+          ^^^
+
+SyntaxError: Unexpected identifier 'pao'
+    «  … linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p>"Identificador inesperado <code>pao</code>". O JavaScript leu <code>let preco</code>, esperava um <code>=</code> (ou o fim da instrução) e encontrou outra palavra. Nome de variável é <strong>uma palavra só</strong>. Com <code>let 2paes = 2;</code> a mensagem é <code>SyntaxError: Invalid or unexpected token</code>: nome não pode começar com número. <strong>Como consertar:</strong> <code>let precoPao = 0.75;</code> (as regras de nomes estão em <a href="nomes-variaveis.html">Nomes de Variáveis</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>let</code>… e funcionou</strong>
+<pre class="file" data-file="semlet.js">paes = 6;
+console.log(paes);
+</pre>
+<pre class="term">$ node semlet.js
+6
+</pre>
+<p>Este é traiçoeiro: sem o <code>let</code>, o JavaScript antigo cria a variável "por conta própria", em um lugar global, visível no programa inteiro. Parece prático, mas um nome digitado errado (<code>totl = 10</code>) vira uma variável nova sem nenhum aviso. Com o <strong>modo estrito</strong> ligado (a linha <code>"use strict";</code> no começo do arquivo, ou nos módulos, que já nascem estritos), o mesmo programa dá erro:</p>
+<pre class="term">$ node semlet2.js
+/home/ana/semlet2.js:2
+paes = 6;
+     ^
+
+ReferenceError: paes is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/semlet2.js:2:6)
+    «  … mais 7 linhas "at" de dentro do Node (cortadas aqui)
+
+Node.js v24.22.0
+</pre>
+<p><strong>Como consertar:</strong> crie sempre a variável com <code>let</code> (ou <code>const</code>). O modo estrito tem aula própria: <a href="strict-mode.html">Modo Estrito</a>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Total: 7.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não roda. Leia a mensagem de erro, conserte e rode de novo, até aparecer <code>Total: 7.5</code>. (São dois erros; o Node mostra um de cada vez.)</p>
+<pre class="script" data-file="main.js">let preco = 0.75;
+let quantidade = 6;
+let quantidade = 10;
+let total = preco * quantidade;
+console.log("Total:", totall);
+</pre>
+<pre class="solucao" data-file="main.js">let preco = 0.75;
+let quantidade = 6;
+quantidade = 10;
+let total = preco * quantidade;
+console.log("Total:", total);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>let nome = valor;</code></td><td>Cria a variável e guarda o primeiro valor</td></tr>
+<tr><td><code>let nome;</code></td><td>Cria a variável vazia (vale <code>undefined</code>)</td></tr>
+<tr><td><code>nome = outroValor;</code></td><td>Troca o valor (sem <code>let</code>: a variável já existe)</td></tr>
+<tr><td><code>nome = nome + 10;</code></td><td>Pega o valor atual, soma 10 e guarda de volta</td></tr>
+<tr><td><code>let total = preco * quantidade;</code></td><td>Guarda o <strong>resultado</strong> de uma conta (não a conta)</td></tr>
+<tr><td><code>let a = 1, b = 2;</code></td><td>Várias variáveis num <code>let</code> (prefira uma por linha)</td></tr>
+<tr><td><code>{ let x = 1; }</code></td><td>Variável que só existe dentro do bloco</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>ReferenceError: x is not defined</code></td><td>Nome digitado errado, variável de outro bloco, ou nunca criada</td></tr>
+<tr><td><code>ReferenceError: Cannot access 'x' before initialization</code></td><td>Usou a variável numa linha acima do <code>let</code> dela</td></tr>
+<tr><td><code>SyntaxError: Identifier 'x' has already been declared</code></td><td>Dois <code>let</code> com o mesmo nome; para mudar o valor, tire o segundo <code>let</code></td></tr>
+<tr><td><code>SyntaxError: Unexpected identifier</code></td><td>Espaço no meio do nome</td></tr>
+<tr><td>A variável mostra <code>undefined</code></td><td>Foi criada sem valor e ainda não recebeu nenhum</td></tr>
+<tr><td>O total não mudou depois de mudar a quantidade</td><td>A variável guarda o resultado, não a conta: refaça a conta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para criar a variável <code>leite</code> com o valor 2 e depois mudá-la para 5:</p>
+<div class="ex-code"><input data-answer="let" aria-label="palavra que cria a variável"> leite = 2;<br>leite <input data-answer="=" aria-label="sinal de atribuição"> 5;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o valor?</h3>
+<pre class="file" data-file="ex2.js">let x = 3;
+x = x + 4;
+x = x * 2;
+console.log(x);
+</pre>
+<div class="ex-code">O programa mostra <input data-answer="14" aria-label="valor mostrado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que este programa mostra? <code>let total = 2 * 5;</code> / <code>let n = 10;</code> / <code>console.log(total);</code></p>
+<label><input type="radio" name="q3"> <code>2 * 5</code></label>
+<label><input type="radio" name="q3"> <code>10</code></label>
+<label><input type="radio" name="q3"> <code>total</code></label>
+<label><input type="radio" name="q3"> <code>undefined</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual linha dá <code>SyntaxError: Identifier 'nome' has already been declared</code>, se <code>nome</code> já foi criado com <code>let</code>?</p>
+<label><input type="radio" name="q4"> <code>nome = "Bia";</code></label>
+<label><input type="radio" name="q4"> <code>console.log(nome);</code></label>
+<label><input type="radio" name="q4"> <code>let nome = "Bia";</code></label>
+<label><input type="radio" name="q4"> <code>nome = nome + "!";</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>let troco;</code> / <code>console.log(troco);</code> mostra:</p>
+<label><input type="radio" name="q5"> <code>undefined</code></label>
+<label><input type="radio" name="q5"> <code>0</code></label>
+<label><input type="radio" name="q5"> <code>ReferenceError: troco is not defined</code></label>
+<label><input type="radio" name="q5"> Nada</label>
+</div>
+
+<h3>Missão final: a mesada da Ana</h3>
+
+<div class="tryjs" data-goal="out:Saldo final: 55;;src:\blet\s+saldo\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> crie a variável <code>saldo</code> com <code>let</code>, valendo 50. Depois, a Ana ganha 20 de mesada (some 20 ao saldo) e gasta 15 no lanche (tire 15 do saldo). No fim, o programa já mostra o saldo: tem de aparecer <code>Saldo final: 55</code>.</p>
+<pre class="script" data-file="main.js">// 1) crie o saldo, valendo 50
+
+// 2) some a mesada (20)
+
+// 3) tire o lanche (15)
+
+console.log("Saldo final:", saldo);
+</pre>
+<pre class="solucao" data-file="main.js">// 1) crie o saldo, valendo 50
+let saldo = 50;
+// 2) some a mesada (20)
+saldo = saldo + 20;
+// 3) tire o lanche (15)
+saldo = saldo - 15;
+console.log("Saldo final:", saldo);
+</pre>
+</div>
+
+<p>Rodando a solução no lab:</p>
+<pre class="term">$ node mesada.js
+Saldo final: 55
+</pre>
+<p>E se você rodar o código inicial sem mexer em nada? A variável <code>saldo</code> não existe, e sai <code>ReferenceError: saldo is not defined</code>, o mesmo erro do nome digitado errado.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma variável é uma <strong>caixa com etiqueta</strong>: o nome é a etiqueta e o valor é o conteúdo.</li>
+  <li><code>let nome = valor;</code> cria a variável. Para mudar o valor depois, escreva <strong>sem</strong> o <code>let</code>: <code>nome = novoValor;</code>.</li>
+  <li>O <code>=</code> quer dizer "recebe". <code>paes = paes + 10</code> calcula a direita primeiro e guarda o resultado na esquerda.</li>
+  <li>A variável guarda o <strong>valor</strong>, não a conta: se uma parte da conta mudar, refaça a conta.</li>
+  <li>Sem valor, a variável vale <code>undefined</code>. Criada dentro de <code>{ }</code>, ela só existe lá dentro.</li>
+  <li>Erros comuns: <code>is not defined</code> (nome errado ou inexistente), <code>Cannot access … before initialization</code> (usou antes do <code>let</code>), <code>has already been declared</code> (dois <code>let</code> com o mesmo nome).</li>
+  <li><code>const</code> por padrão, <code>let</code> quando o valor muda, <code>var</code> nunca: é o assunto das duas próximas aulas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
