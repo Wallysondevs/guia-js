@@ -1591,7 +1591,14 @@
     // o Node escreve "Error [ERR_MODULE_NOT_FOUND]: …"
     return e;
   }
+  var origemBlob = {}; // url do blob → { esp, alvo, cjs }
   function resolverESM(esp, de) {
+    var u = resolverESM0(esp, de);
+    if (!origemBlob[u]) origemBlob[u] = { esp: esp, alvo: null, cjs: false };
+    origemBlob[u].esp = esp;
+    return u;
+  }
+  function resolverESM0(esp, de) {
     var emb = nomeEmbutido(esp);
     if (emb !== null) return moduloEmbutidoESM(emb);
     if (!/^\.{0,2}\//.test(esp) && !/^file:/.test(esp)) throw erroEsmNaoAchou(esp, de);
@@ -1602,9 +1609,35 @@
     if (t === "cjs" || (t === "auto" && !pareceESM(texto(vfs.arq[alvo])))) {
       var exp = carregarCJS(alvo, null);
       var chaves = exp && typeof exp === "object" ? Object.keys(exp).filter(idValido) : [];
-      return urlDe("const m = globalThis.__jsNodeCJS(" + JSON.stringify(alvo) + ");\nexport default m;\n" + chaves.map(function (k) { return "export const " + k + " = m[" + JSON.stringify(k) + "];"; }).join("\n"));
+      return marcarCJS(urlDe("const m = globalThis.__jsNodeCJS(" + JSON.stringify(alvo) + ");\nexport default m;\n" + chaves.map(function (k) { return "export const " + k + " = m[" + JSON.stringify(k) + "];"; }).join("\n")));
     }
     return urlModuloESM(alvo);
+  }
+  function marcarCJS(u) { origemBlob[u] = { esp: null, cjs: true }; return u; }
+  // "The requested module 'blob:…' does not provide an export named 'x'" → a mensagem do Node, com a linha do import
+  function erroLigacao(e) {
+    var m = /^The requested module '([^']+)' does not provide an export named '([^']+)'$/.exec(String(e && e.message || ""));
+    if (!m) return null;
+    var o = origemBlob[m[1]] || {}, esp = o.esp || m[1], nome = m[2];
+    var msg = o.cjs && nome !== "default"
+      ? "Named export '" + nome + "' not found. The requested module '" + esp + "' is a CommonJS module, which may not support all module.exports as named exports.\nCommonJS modules can always be imported via the default export, for example using:\n\nimport pkg from '" + esp + "';\nconst { " + nome + " } = pkg;\n"
+      : "The requested module '" + esp + "' does not provide an export named '" + nome + "'";
+    var cab = "";
+    Object.keys(urlsESM).some(function (arq) {
+      var linhas = (fontes[arq] || "").split("\n");
+      for (var i = 0; i < linhas.length; i++) {
+        var l = linhas[i];
+        if (l.indexOf("import") < 0 || (l.indexOf("\"" + esp + "\"") < 0 && l.indexOf("'" + esp + "'") < 0)) continue;
+        var re = nome === "default" ? /\bimport\s+([\w$]+)/ : new RegExp("[{,]\\s*(" + nome.replace(/\$/g, "\\$") + ")\\b");
+        var x = re.exec(l);
+        if (!x) continue;
+        var col = x.index + x[0].indexOf(x[1]);
+        cab = "file://" + arq + ":" + (i + 1) + "\n" + l + "\n" + espacos(col) + setas(x[1].length) + "\n";
+        return true;
+      }
+      return false;
+    });
+    return cab + "SyntaxError: " + msg + "\n    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)\n    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js " + NODE_VERSAO + "\n";
   }
   function pareceESM(c) { return /(^|[\n;])\s*(import\s*[\w${*"']|export\s)/.test(c.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "")); }
   function reescreverImportsDinamicos(codigo, arq) {
@@ -1636,9 +1669,10 @@
   // descartável compila o mesmo texto e o evento de erro traz a linha e a coluna
   function posicaoSintaxe(codigo) {
     return new NativePromise(function (ok) {
-      var w, url = urlDe(codigo), feito = false;
+      var w, feito = false;
       function fim(v) { if (feito) return; feito = true; try { w && w.terminate(); } catch (e) {} ok(v); }
-      try { w = new Worker(url); } catch (e) { fim(null); return; }
+      try { w = new Worker(urlDe(codigo + "\n;postMessage(0);")); } catch (e) { fim(null); return; }
+      w.onmessage = function () { fim(null); };
       w.onerror = function (ev) { ev.preventDefault && ev.preventDefault(); fim(ev.lineno ? { linha: ev.lineno, coluna: ev.colno, msg: String(ev.message || "").replace(/^Uncaught /, "") } : null); };
       nSetTimeout(function () { fim(null); }, 3000);
     });
@@ -1718,6 +1752,8 @@
     import(url).then(function () { principalPendente = false; G.__jsNodeInicioESM(); talvezFim(); }, function (e) {
       principalPendente = false;
       if (carregandoESM) { carregandoESM = false; ativos--; }
+      var lig = e && e.name === "SyntaxError" ? erroLigacao(e) : null;
+      if (lig) { terminarComSintaxe(lig); return; }
       if (e && e.name === "SyntaxError" && !(e instanceof Error && posicoes.has(e) && framesUsuario(e))) {
         segurar();
         if (erroCJS) { erroSintaxe(erroCJS, arq, false).then(terminarComSintaxe); return; }
