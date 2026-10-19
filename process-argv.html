@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript process.argv — argumentos da linha de comando no Node.js | Guia JavaScript</title>
+<meta name="description" content="process.argv do Node.js para quem nunca programou: o que são argumentos da linha de comando, process.argv[2], slice(2), aspas para textos com espaço, converter com Number, valor padrão com ??, mensagem de uso com process.exit(1), opções como --maiusculas, util.parseArgs, npm start -- e os erros reais (undefined, NaN, Cannot read properties of undefined).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">process.argv</span></h1>
+
+<p class="intro">Até agora, para o programa usar outro nome ou outro número, você mudava o código. Mas os programas de verdade recebem informações <strong>na hora de rodar</strong>: em <code>npm install lodash</code>, o <code>lodash</code> é uma informação que o npm recebeu; em <code>node vitrine.js</code>, o <code>vitrine.js</code> é uma informação que o node recebeu. Essas palavras que vêm depois do comando são os <strong>argumentos da linha de comando</strong>, e no Node o seu programa as encontra em <code>process.argv</code>. É um recurso <strong>só do Node</strong>: no navegador não existe linha de comando.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é <code>process.argv</code> e o que há em cada posição dele.</li>
+  <li>Como pegar o primeiro argumento (<code>process.argv[2]</code>) e todos de uma vez (<code>process.argv.slice(2)</code>).</li>
+  <li>Por que os números chegam como texto (<code>"2" + "3"</code> dá <code>"23"</code>) e como converter.</li>
+  <li>Como lidar com o argumento que falta: valor padrão com <code>??</code> ou mensagem de uso com <code>process.exit(1)</code>.</li>
+  <li>Aspas para textos com espaço e o cuidado com o <code>$</code>.</li>
+  <li>Opções do tipo <code>--maiusculas</code>, à mão e com o <code>parseArgs</code> do Node.</li>
+  <li>Como passar argumentos pelo <code>npm start --</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas rodaram no <strong>Node.js v24.22.0</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta dela e executados com <code>node arquivo.js</code> seguido dos argumentos.</p>
+
+<hr>
+
+<h2>A ideia: o bilhete junto com o pedido</h2>
+<p>Na padaria, o forno não muda: o que muda é o pedido. A Ana não reescreve a receita a cada cliente; ela recebe um bilhete, "<em>3 pães de queijo para a Bia</em>", e a mesma receita atende a todos. Com o programa é igual: o código fica igual, e o bilhete vai junto no comando.</p>
+
+<pre class="term">$ node saudacao.js Ana   « "Ana" é o bilhete
+Bom dia, Ana!
+</pre>
+
+<p>O terminal separa o que você digitou <strong>nos espaços</strong> e entrega as palavras ao Node, que as guarda num array: o <code>process.argv</code> (<em>argument vector</em>, "lista de argumentos"). O <code>process</code> é um objeto que o Node cria sozinho, com informações sobre o programa que está rodando (você vai ver outras partes dele em <a href="process-env.html">process.env e process.exit</a>).</p>
+
+<hr>
+
+<h2>1. O que tem dentro do <code>process.argv</code></h2>
+<p>O jeito mais fácil de entender é mostrar o array inteiro:</p>
+
+<pre class="file" data-file="argumentos.js">console.log(process.argv);
+</pre>
+
+<pre class="term">$ node argumentos.js
+[ '/usr/local/bin/node', '/home/ana/argumentos.js' ]
+$ node argumentos.js Ana 30 padaria
+[
+  '/usr/local/bin/node',
+  '/home/ana/argumentos.js',
+  'Ana',
+  '30',
+  'padaria'
+]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Posição</th><th>Valor</th><th>O que é</th></tr>
+<tr><td><code>process.argv[0]</code></td><td><code>'/usr/local/bin/node'</code></td><td>Onde está o programa <code>node</code> no computador</td></tr>
+<tr><td><code>process.argv[1]</code></td><td><code>'/home/ana/argumentos.js'</code></td><td>O caminho completo do seu arquivo</td></tr>
+<tr><td><code>process.argv[2]</code></td><td><code>'Ana'</code></td><td>O <strong>primeiro</strong> argumento seu</td></tr>
+<tr><td><code>process.argv[3]</code></td><td><code>'30'</code></td><td>O segundo</td></tr>
+<tr><td><code>process.argv[4]</code></td><td><code>'padaria'</code></td><td>O terceiro</td></tr>
+</table>
+</div>
+
+<p>Três coisas para guardar:</p>
+<ul>
+  <li>As posições 0 e 1 estão <strong>sempre</strong> ocupadas, pelo <code>node</code> e pelo arquivo. Os seus argumentos começam na posição <strong>2</strong>. (Os caminhos das posições 0 e 1 mudam de um computador para outro; ninguém escreve programa que dependa deles.)</li>
+  <li>Todos os valores são <strong>strings</strong>, até o <code>'30'</code> (repare nas aspas).</li>
+  <li>Sem argumentos, o array tem só os dois primeiros itens.</li>
+</ul>
+
+<h3>Espaços e aspas</h3>
+<p>Como o terminal separa nos espaços, "pão de queijo" vira três argumentos. Para mandar um texto com espaços como <strong>um</strong> argumento, ponha-o entre aspas:</p>
+
+<pre class="term">$ node argumentos.js pão de queijo
+[
+  '/usr/local/bin/node',
+  '/home/ana/argumentos.js',
+  'pão',
+  'de',
+  'queijo'
+]
+$ node argumentos.js "pão de queijo"
+[ '/usr/local/bin/node', '/home/ana/argumentos.js', 'pão de queijo' ]
+</pre>
+
+<p>As aspas não chegam ao programa: o terminal as usa para saber onde o argumento começa e termina, e as tira.</p>
+
+<hr>
+
+<h2>2. Pegando um argumento: <code>process.argv[2]</code></h2>
+
+<pre class="file" data-file="saudacao.js">const nome = process.argv[2];
+console.log(`Bom dia, ${nome}!`);
+</pre>
+
+<dl class="anatomy">
+  <dt>process.argv[2]</dt><dd>O item na posição 2 do array, ou seja, o primeiro argumento depois do nome do arquivo (veja <a href="arrays-acessar.html">Acessando e Alterando Itens</a>).</dd>
+  <dt>const nome = …</dt><dd>Guarda o argumento numa variável com um nome que diz o que ele é. <code>process.argv[2]</code> espalhado pelo código fica difícil de ler; <code>nome</code>, não.</dd>
+</dl>
+
+<pre class="term">$ node saudacao.js Ana
+Bom dia, Ana!
+$ node saudacao.js Bia
+Bom dia, Bia!
+$ node saudacao.js
+Bom dia, undefined!
+</pre>
+
+<p>O mesmo programa, sem mudar uma letra, cumprimentou a Ana e a Bia. Na terceira vez, sem argumento, a posição 2 não existia, e um item que não existe vale <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>). Não deu erro, mas a mensagem ficou estranha. A <a href="#faltou">seção 5</a> resolve isso.</p>
+
+<div class="tryjs" data-args="Ana">
+<p class="try-task"><strong>Experimente:</strong> no editor, o atributo da caixa faz o papel do terminal e manda <code>Ana</code> como argumento. Rode, depois troque o texto do <code>console.log</code> para mostrar também <code>process.argv.length</code> (quantos itens há no array: os dois fixos mais o seu).</p>
+<pre class="script" data-file="main.js">const nome = process.argv[2];
+console.log(`Bom dia, ${nome}!`);
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os números chegam como texto</h2>
+<p>A Ana quer somar dois números passados no comando:</p>
+
+<pre class="file" data-file="soma.js">const a = process.argv[2];
+const b = process.argv[3];
+console.log(a + b);
+console.log(typeof a);
+</pre>
+
+<pre class="term">$ node soma.js 2 3
+23
+string
+</pre>
+
+<p>Deu <code>23</code>, não <code>5</code>. O <code>typeof</code> mostra por quê: <code>a</code> é uma <strong>string</strong>, <code>"2"</code>, e o <code>+</code> entre duas strings <strong>junta</strong> os textos (veja <a href="conversao-automatica.html">Conversão Automática</a>). Tudo o que vem do terminal é texto. Para fazer conta, converta com <code>Number()</code> (veja <a href="conversao.html">Conversão</a>):</p>
+
+<pre class="file" data-file="soma2.js">const a = Number(process.argv[2]);
+const b = Number(process.argv[3]);
+console.log(`${a} + ${b} = ${a + b}`);
+</pre>
+
+<pre class="term">$ node soma2.js 2 3
+2 + 3 = 5
+$ node soma2.js 2 três
+2 + NaN = NaN
+</pre>
+
+<p>Com <code>2 três</code>, o <code>Number("três")</code> não sabe converter e devolve <code>NaN</code> ("não é um número"; veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>). Na <a href="#errado">seção Quando dá errado</a> você vê como avisar a pessoa.</p>
+
+<div class="tryjs" data-args="2 3" data-goal="out:2 + 3 = 5">
+<p class="try-task"><strong>Missão:</strong> a caixa roda o programa como <code>node main.js 2 3</code>. Hoje ele mostra <code>2 + 3 = 23</code>. Converta os argumentos para número, para aparecer <code>2 + 3 = 5</code>.</p>
+<pre class="script" data-file="main.js">const a = process.argv[2];
+const b = process.argv[3];
+console.log(`${a} + ${b} = ${a + b}`);
+</pre>
+<pre class="solucao" data-file="main.js">const a = Number(process.argv[2]);
+const b = Number(process.argv[3]);
+console.log(`${a} + ${b} = ${a + b}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Todos os argumentos: <code>process.argv.slice(2)</code></h2>
+<p>Quando não se sabe quantos argumentos virão (a lista de compras pode ter 2 itens ou 20), corte fora as duas primeiras posições com o <code>slice(2)</code> ("fatiar a partir da posição 2"; veja <a href="arrays-splice.html">splice e slice</a>). Sobra um array só com os seus argumentos:</p>
+
+<pre class="file" data-file="todos.js">const itens = process.argv.slice(2);
+console.log(`A Ana vai comprar ${itens.length} itens:`);
+for (const item of itens) {
+  console.log(`- ${item}`);
+}
+</pre>
+
+<pre class="term">$ node todos.js leite pão café
+A Ana vai comprar 3 itens:
+- leite
+- pão
+- café
+$ node todos.js
+A Ana vai comprar 0 itens:
+</pre>
+
+<p>Sem argumentos, o <code>slice(2)</code> devolve um array vazio, <code>[]</code>, e o <code>for … of</code> não dá nenhuma volta.</p>
+
+<h3>Dando nome a cada posição: desestruturação</h3>
+<p>Quando os argumentos têm papéis fixos (o primeiro é o preço, o segundo é o valor pago), a <a href="desestruturacao.html">desestruturação</a> dá um nome a cada um numa linha só:</p>
+
+<pre class="file" data-file="trecho.js">const [precoTexto, pagoTexto] = process.argv.slice(2);
+</pre>
+
+<p>É o mesmo que <code>const precoTexto = process.argv[2];</code> e <code>const pagoTexto = process.argv[3];</code>. O programa completo está logo abaixo.</p>
+
+<hr>
+
+<h2 id="faltou">5. E se o argumento faltar?</h2>
+
+<h3>Jeito 1: um valor padrão com <code>??</code></h3>
+<p>Se dá para seguir com um valor qualquer, use o <code>??</code> (veja <a href="optional-chaining.html">?. e ??</a>): "use o argumento; se ele for <code>undefined</code>, use este outro".</p>
+
+<pre class="file" data-file="padrao.js">const nome = process.argv[2] ?? "freguês";
+console.log(`Bom dia, ${nome}!`);
+</pre>
+
+<pre class="term">$ node padrao.js
+Bom dia, freguês!
+$ node padrao.js Ana
+Bom dia, Ana!
+</pre>
+
+<h3>Jeito 2: explicar o uso e sair com erro</h3>
+<p>Se o argumento é indispensável, o programa deve <strong>parar e explicar</strong> como se usa. É o que os programas de terminal fazem: mostram uma linha "Uso: …" e terminam com código de saída 1 ("deu errado").</p>
+
+<pre class="file" data-file="troco.js">const [precoTexto, pagoTexto] = process.argv.slice(2);
+
+if (precoTexto === undefined || pagoTexto === undefined) {
+  console.error("Uso: node troco.js PREÇO VALOR_PAGO");
+  console.error("Exemplo: node troco.js 7.50 10");
+  process.exit(1);
+}
+
+const preco = Number(precoTexto);
+const pago = Number(pagoTexto);
+console.log(`Troco: R$ ${(pago - preco).toFixed(2)}`);
+</pre>
+
+<dl class="anatomy">
+  <dt>if (precoTexto === undefined || pagoTexto === undefined)</dt><dd>"Se faltou o preço <strong>ou</strong> faltou o valor pago…"</dd>
+  <dt>console.error(…)</dt><dd>Escreve a mensagem na saída de <strong>erros</strong> (veja <a href="console-outros.html">console.error, warn e table</a>). No terminal aparece igual ao <code>console.log</code>.</dd>
+  <dt>process.exit(1)</dt><dd>Encerra o programa <strong>ali mesmo</strong>, com o código de saída 1. As linhas de baixo não rodam. Os detalhes estão em <a href="process-env.html">process.env e process.exit</a>.</dd>
+  <dt>(pago - preco).toFixed(2)</dt><dd>A conta, com duas casas decimais (veja <a href="numeros-formatar.html">Formatando Números</a>). O <code>-</code> já converte texto em número sozinho, mas o <code>Number()</code> deixa a intenção clara.</dd>
+</dl>
+
+<pre class="term">$ node troco.js 7.50 10
+Troco: R$ 2.50
+$ node troco.js 7.50
+Uso: node troco.js PREÇO VALOR_PAGO
+Exemplo: node troco.js 7.50 10
+$ echo $?
+1
+</pre>
+
+<p>O <code>echo $?</code> mostra o código de saída do último comando: <code>1</code>, porque faltou o valor pago.</p>
+
+<hr>
+
+<h2>6. Opções: <code>--maiusculas</code></h2>
+<p>Muitos comandos aceitam <strong>opções</strong> que começam com <code>--</code> (ou <code>-</code> e uma letra), como o <code>--save-dev</code> do npm. São argumentos como os outros; o programa é que decide o que fazer com eles.</p>
+
+<h3>À mão, com <code>includes</code> e <code>filter</code></h3>
+
+<pre class="file" data-file="lista.js">const args = process.argv.slice(2);
+const maiusculas = args.includes("--maiusculas");
+const itens = args.filter((a) =&gt; !a.startsWith("--"));
+for (const item of itens) {
+  console.log(maiusculas ? item.toUpperCase() : item);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>args.includes("--maiusculas")</dt><dd><code>true</code> se a opção apareceu em qualquer posição (veja <a href="arrays-buscar.html">Procurando</a>).</dd>
+  <dt>args.filter((a) =&gt; !a.startsWith("--"))</dt><dd>Fica com os argumentos que <strong>não</strong> começam com <code>--</code>: os itens da lista (veja <a href="filter.html">filter</a>).</dd>
+  <dt>maiusculas ? item.toUpperCase() : item</dt><dd>Com a opção, o item em maiúsculas; sem ela, como veio (veja <a href="ternario.html">O Operador Ternário</a>).</dd>
+</dl>
+
+<pre class="term">$ node lista.js leite pão
+leite
+pão
+$ node lista.js leite --maiusculas pão
+LEITE
+PÃO
+</pre>
+
+<h3>Com o <code>parseArgs</code> do Node</h3>
+<p>Quando as opções aumentam (opção com valor, letra curta, valor padrão), fazer tudo à mão cansa. O Node traz pronto o <code>parseArgs</code> ("analisar os argumentos"), no módulo <code>node:util</code>:</p>
+
+<pre class="file" data-file="opcoes.js">const { parseArgs } = require("node:util");
+
+const { values, positionals } = parseArgs({
+  options: {
+    maiusculas: { type: "boolean", short: "m" },
+    vezes: { type: "string", short: "v", default: "1" },
+  },
+  allowPositionals: true,
+});
+
+console.log(values);
+console.log(positionals);
+</pre>
+
+<dl class="anatomy">
+  <dt>options</dt><dd>As opções que o programa aceita. <code>maiusculas</code> é do tipo <code>"boolean"</code> (liga/desliga: <code>--maiusculas</code> ou <code>-m</code>). <code>vezes</code> é do tipo <code>"string"</code>: espera um valor depois (<code>--vezes 3</code>), e vale <code>"1"</code> se não vier.</dd>
+  <dt>allowPositionals: true</dt><dd>"Permitir argumentos soltos": os que não são opção (<code>leite</code>, <code>pão</code>).</dd>
+  <dt>values / positionals</dt><dd>O resultado: um objeto com as opções e um array com os argumentos soltos.</dd>
+</dl>
+
+<pre class="term">$ node opcoes.js leite pão
+[Object: null prototype] { vezes: '1' }
+[ 'leite', 'pão' ]
+$ node opcoes.js leite -m --vezes 3 pão
+[Object: null prototype] { maiusculas: true, vezes: '3' }
+[ 'leite', 'pão' ]
+</pre>
+
+<p>O <code>[Object: null prototype]</code> é um detalhe técnico do objeto que o <code>parseArgs</code> cria; para você, ele funciona como um objeto comum: <code>values.vezes</code>, <code>values.maiusculas</code>. Repare que o <code>3</code> chegou como <code>'3'</code>, texto, como todo argumento.</p>
+
+<hr>
+
+<h2>7. Argumentos pelo <code>npm start</code></h2>
+<p>Num projeto com <code>"start": "node index.js"</code> no <code>package.json</code> (veja <a href="package-json.html">O package.json</a>), os argumentos vão depois de <code>--</code>, que diz ao npm "daqui em diante, não é para você, é para o programa":</p>
+
+<pre class="term">$ npm start
+
+&gt; saudar@1.0.0 start
+&gt; node index.js
+
+Bom dia, freguês!
+$ npm start -- Ana
+
+&gt; saudar@1.0.0 start
+&gt; node index.js Ana
+
+Bom dia, Ana!
+</pre>
+
+<p>A segunda linha com <code>&gt;</code> mostra o comando que o npm montou: <code>node index.js Ana</code>. No npm 11 da Ana, <code>npm start Bia</code> (sem o <code>--</code>) também chegou ao programa (<code>&gt; node index.js Bia</code>). Com uma <strong>opção</strong>, não: sem o <code>--</code>, o npm acha que ela é para ele.</p>
+
+<pre class="term">$ npm start --maiusculas
+npm warn Unknown cli config "--maiusculas". This will stop working in the next major version of npm.
+
+&gt; saudar@1.0.0 start
+&gt; node index.js
+
+Bom dia, freguês!
+$ npm start -- --maiusculas
+
+&gt; saudar@1.0.0 start
+&gt; node index.js --maiusculas
+
+Bom dia, --maiusculas!
+</pre>
+
+<p>No primeiro, o npm avisou "configuração desconhecida: <code>--maiusculas</code>" e <strong>não</strong> a passou adiante (o comando montado é só <code>node index.js</code>). No segundo, com o <code>--</code>, ela chegou ao programa. Por isso, use sempre o <code>--</code>.</p>
+
+<hr>
+
+<h2>Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td>O primeiro argumento</td><td><code>process.argv[2]</code></td><td>Programas com um argumento só</td></tr>
+<tr><td>Vários, com papéis fixos</td><td><code>const [a, b] = process.argv.slice(2);</code></td><td>Preço e valor pago, origem e destino…</td></tr>
+<tr><td>Todos, em quantidade livre</td><td><code>process.argv.slice(2)</code> + <code>for … of</code></td><td>Listas: itens, arquivos, nomes</td></tr>
+<tr><td>Um valor quando falta</td><td><code>process.argv[2] ?? "padrão"</code></td><td>O argumento é opcional</td></tr>
+<tr><td>Parar quando falta</td><td><code>if (…) { console.error("Uso: …"); process.exit(1); }</code></td><td>O argumento é obrigatório</td></tr>
+<tr><td>Uma opção liga/desliga</td><td><code>args.includes("--opcao")</code></td><td>Uma ou duas opções simples</td></tr>
+<tr><td>Muitas opções</td><td><code>parseArgs</code> (<code>node:util</code>)</td><td>Opções com valor, letras curtas, padrões</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<h3>1. <code>Cannot read properties of undefined</code>: usou o argumento que não veio</h3>
+<pre class="file" data-file="grita.js">const nome = process.argv[2];
+console.log(`BOM DIA, ${nome.toUpperCase()}!`);
+</pre>
+<pre class="term">$ node grita.js ana
+BOM DIA, ANA!
+$ node grita.js
+/home/ana/grita.js:2
+console.log(`BOM DIA, ${nome.toUpperCase()}!`);
+                             ^
+
+TypeError: Cannot read properties of undefined (reading 'toUpperCase')
+    at Object.&lt;anonymous&gt; (/home/ana/grita.js:2:30)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «… mais 6 linhas at node:internal/… cortadas …»
+
+Node.js v24.22.0
+</pre>
+<dl class="anatomy">
+  <dt>/home/ana/grita.js:2</dt><dd>O arquivo e a linha do erro: linha 2.</dd>
+  <dt>a linha do código e o ^</dt><dd>O <code>^</code> aponta para o <code>toUpperCase</code>, a coluna 30.</dd>
+  <dt>TypeError: Cannot read properties of undefined (reading 'toUpperCase')</dt><dd>"Erro de tipo: não dá para ler propriedades de <code>undefined</code> (lendo 'toUpperCase')". Sem argumento, <code>nome</code> é <code>undefined</code>, e <code>undefined</code> não tem o método <code>toUpperCase</code>. Com <code>Bom dia, ${nome}</code> (seção 2) não deu erro porque só <strong>mostrar</strong> o <code>undefined</code> funciona; <strong>usar</strong> um método dele, não.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/grita.js:2:30)</dt><dd>De novo o lugar: linha 2, coluna 30. As outras linhas <code>at</code> são de dentro do Node.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Conserto:</strong> um valor padrão (<code>process.argv[2] ?? "freguês"</code>) ou a mensagem de uso com <code>process.exit(1)</code>, como na <a href="#faltou">seção 5</a>.</p>
+</div>
+
+<div class="cenario">
+<h3>2. <code>NaN</code>: o argumento não era número</h3>
+<p>Brasileiro escreve <code>7,50</code> com vírgula, mas o <code>Number()</code> só entende ponto:</p>
+<pre class="term">$ node troco.js 7,50 10
+Troco: R$ NaN
+</pre>
+<p>Não houve erro: o programa rodou e mostrou um resultado sem sentido. <strong>Conserto:</strong> confira com <code>Number.isNaN(preco)</code> e explique o uso (como na seção 5), ou troque a vírgula por ponto antes de converter: <code>Number(precoTexto.replace(",", "."))</code> (veja <a href="strings-substituir.html">replace</a>).</p>
+</div>
+
+<div class="cenario">
+<h3>3. O <code>$</code> sumiu do argumento</h3>
+<pre class="file" data-file="preco.js">console.log(process.argv.slice(2));
+</pre>
+<pre class="term">$ node preco.js R$5 "R$ 5" 'R$ 5'
+[ 'R', 'R$ 5', 'R$ 5' ]
+</pre>
+<p>No primeiro, sem aspas, o terminal entendeu <code>$5</code> como uma variável <strong>dele</strong> (que estava vazia) e entregou só <code>R</code>. O programa nem ficou sabendo. Com aspas, o <code>$</code> seguido de espaço passou. <strong>Regra prática:</strong> argumento com <code>$</code>, <code>&amp;</code>, <code>*</code>, <code>!</code> ou espaço vai entre aspas <strong>simples</strong> (<code>'R$5'</code>), que o terminal não mexe em nada.</p>
+</div>
+
+<div class="cenario">
+<h3>4. <code>ERR_PARSE_ARGS_UNKNOWN_OPTION</code>: uma opção que o programa não conhece</h3>
+<pre class="term">$ node opcoes.js leite --cor azul
+node:internal/util/parse_args/parse_args:102
+      throw new ERR_PARSE_ARGS_UNKNOWN_OPTION(
+      ^
+
+TypeError [ERR_PARSE_ARGS_UNKNOWN_OPTION]: Unknown option '--cor'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- "--cor"
+    at checkOptionUsage (node:internal/util/parse_args/parse_args:102:13)
+    «… mais 3 linhas at … de dentro do Node cortadas …»
+    at Object.&lt;anonymous&gt; (/home/ana/opcoes.js:3:33)
+    «… mais 4 linhas at node:internal/… cortadas …»
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19) {
+  code: 'ERR_PARSE_ARGS_UNKNOWN_OPTION'
+}
+
+Node.js v24.22.0
+</pre>
+<p>"Opção desconhecida: <code>--cor</code>". O <code>parseArgs</code> é rigoroso: só aceita as opções que você listou em <code>options</code>, e reclama de qualquer outra, para a pessoa perceber que digitou errado. A sua linha no erro é <code>opcoes.js:3:33</code>, a chamada do <code>parseArgs</code>. <strong>Conserto:</strong> acrescentar <code>cor: { type: "string" }</code> nas opções, se ela deve existir, ou digitar a opção certa. (Para casos assim, dá para cercar o <code>parseArgs</code> com um <a href="try-catch.html">try … catch</a> e mostrar uma mensagem de uso.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que dá</th></tr>
+<tr><td><code>process.argv</code></td><td>Array: <code>[caminho do node, caminho do arquivo, arg1, arg2, …]</code></td></tr>
+<tr><td><code>process.argv[2]</code></td><td>O primeiro argumento (ou <code>undefined</code>)</td></tr>
+<tr><td><code>process.argv.slice(2)</code></td><td>Só os seus argumentos (ou <code>[]</code>)</td></tr>
+<tr><td><code>Number(process.argv[2])</code></td><td>O argumento como número (<code>NaN</code> se não for)</td></tr>
+<tr><td><code>process.argv[2] ?? "x"</code></td><td>O argumento, ou <code>"x"</code> se faltar</td></tr>
+<tr><td><code>process.argv.includes("--opcao")</code></td><td><code>true</code> se a opção veio</td></tr>
+<tr><td><code>parseArgs({ options, allowPositionals })</code></td><td><code>{ values, positionals }</code> (do <code>node:util</code>)</td></tr>
+<tr><td><code>node x.js "pão de queijo"</code></td><td>Um argumento só, com espaços</td></tr>
+<tr><td><code>npm start -- Ana</code></td><td>Passa <code>Ana</code> ao programa do script <code>start</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual posição?</h3>
+<p>Com <code>node pedido.js broa 4</code>, complete para pegar o <code>4</code>:</p>
+<div class="ex-code">const quantidade = process.argv[<input data-answer="3" aria-label="posição">];</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O programa <code>junta.js</code> tem <code>console.log(process.argv[2] + process.argv[3]);</code>. O que <code>node junta.js 10 5</code> mostra?</p>
+<div class="ex-code">Mostra <input data-answer="105" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual comando entrega <strong>um</strong> argumento só, <code>pão de queijo</code>, ao programa?</p>
+<label><input type="radio" name="q3"> <code>node x.js pão de queijo</code></label>
+<label><input type="radio" name="q3"> <code>node x.js "pão de queijo"</code></label>
+<label><input type="radio" name="q3"> <code>node x.js pão-de-queijo</code></label>
+<label><input type="radio" name="q3"> <code>node x.js [pão de queijo]</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>node todos.js</code> (sem argumentos), o que vale <code>process.argv.slice(2)</code>?</p>
+<label><input type="radio" name="q4"> <code>undefined</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> <code>[]</code>, um array vazio</label>
+<label><input type="radio" name="q4"> <code>[ 'todos.js' ]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O programa precisa <strong>obrigatoriamente</strong> de um nome de arquivo como argumento. O que ele faz quando não vem nenhum?</p>
+<label><input type="radio" name="q5"> Mostra "Uso: …" com <code>console.error</code> e sai com <code>process.exit(1)</code></label>
+<label><input type="radio" name="q5"> Continua com <code>undefined</code> e torce para dar certo</label>
+<label><input type="radio" name="q5"> Usa <code>process.argv[0]</code> no lugar</label>
+<label><input type="radio" name="q5"> Abre o navegador</label>
+</div>
+
+<h3>Missão final: a lista numerada</h3>
+
+<div class="tryjs" data-args="leite pão café" data-goal="out:1. leite;;out:3. café;;src:process\.argv">
+<p class="try-task"><strong>Missão:</strong> a caixa roda <code>node main.js leite pão café</code>. Faça o programa mostrar os itens numerados, um por linha: <code>1. leite</code>, <code>2. pão</code>, <code>3. café</code>. Pegue os itens com <code>process.argv.slice(2)</code> (não escreva os nomes no código). Dica: um <code>for</code> com contador, ou o <code>entries()</code> do array no <code>for … of</code>.</p>
+<pre class="script" data-file="main.js">// pegue os itens dos argumentos e mostre numerados
+
+</pre>
+<pre class="solucao" data-file="main.js">const itens = process.argv.slice(2);
+for (let i = 0; i &lt; itens.length; i++) {
+  console.log(`${i + 1}. ${itens[i]}`);
+}
+</pre>
+</div>
+
+<p>No lab, a solução saiu assim:</p>
+
+<pre class="term">$ node numerada.js leite pão café
+1. leite
+2. pão
+3. café
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Argumentos da linha de comando são as palavras depois de <code>node arquivo.js</code>. No Node, chegam no array <code>process.argv</code> (só no Node; o navegador não tem).</li>
+  <li>As posições 0 e 1 são o <code>node</code> e o arquivo; os seus argumentos começam em <code>process.argv[2]</code>. <code>process.argv.slice(2)</code> dá todos eles.</li>
+  <li>Todo argumento é <strong>string</strong>: converta com <code>Number()</code> antes de fazer conta, e cuide do <code>NaN</code>.</li>
+  <li>O terminal separa nos espaços: texto com espaço (ou com <code>$</code>) vai entre aspas, de preferência simples.</li>
+  <li>Argumento que falta vale <code>undefined</code>: use um padrão com <code>??</code> ou explique o uso e saia com <code>process.exit(1)</code>.</li>
+  <li>Opções (<code>--maiusculas</code>) se tratam com <code>includes</code>/<code>filter</code> ou com o <code>parseArgs</code> do <code>node:util</code>. Pelo npm: <code>npm start -- argumentos</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
