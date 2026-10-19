@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Math — arredondar, maior, menor, raiz e π | Guia JavaScript</title>
+<meta name="description" content="O objeto Math do JavaScript para quem nunca programou: Math.round, floor, ceil e trunc (inclusive com negativos), arredondar para 2 casas, Math.max e Math.min com arrays (…), Math.abs, pow, sqrt, Math.PI, e os erros reais do Node.js 24 (math is not defined, Math is not a constructor, NaN).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Math</span></h1>
+
+<p class="intro">Os <a href="operadores-aritmeticos.html">operadores aritméticos</a> (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>**</code>) fazem as contas de escola. Para o resto (arredondar um preço, achar a maior nota da turma, calcular a área de uma pizza, tirar uma raiz quadrada) o JavaScript traz uma <strong>caixa de ferramentas pronta</strong>, que já vem em todo programa, sem instalar nada: o objeto <code>Math</code> ("matemática", em inglês).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o <code>Math</code> e como se usa uma ferramenta dele: <code>Math.nome(valor)</code>.</li>
+  <li>Os quatro jeitos de arredondar: <code>Math.round</code>, <code>Math.floor</code>, <code>Math.ceil</code> e <code>Math.trunc</code>, e a diferença entre eles com números negativos.</li>
+  <li>Como arredondar para 2 casas decimais.</li>
+  <li>Como achar o maior e o menor valor com <code>Math.max</code> e <code>Math.min</code>, inclusive de um array.</li>
+  <li><code>Math.abs</code>, <code>Math.pow</code>, <code>Math.sqrt</code>, <code>Math.PI</code> e outras ferramentas.</li>
+  <li>Os erros reais: <code>math is not defined</code>, <code>Math is not a constructor</code> e os <code>NaN</code> que aparecem sem erro.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. O <code>Math</code> é da linguagem JavaScript: funciona igual no Node e no navegador.</p>
+
+<hr>
+
+<h2>A ideia: a calculadora científica na gaveta</h2>
+<p>Na gaveta da padaria tem uma calculadora científica. Ninguém precisa montar uma: ela já está lá, com os botões prontos (<kbd>√</kbd>, <kbd>π</kbd>, <kbd>x²</kbd>…). Você só aperta o botão certo e informa o número. O <code>Math</code> é essa calculadora:</p>
+<ul>
+  <li>ele já existe em todo programa (é um objeto <strong>embutido</strong>, em inglês <em>built-in</em>);</li>
+  <li>cada "botão" é uma função guardada dentro dele, que você chama com <strong>ponto</strong>: <code>Math.round(2.7)</code> quer dizer "o botão <code>round</code> da calculadora <code>Math</code>, aplicado a 2.7";</li>
+  <li>ele também guarda algumas constantes famosas, como o π: <code>Math.PI</code> (sem parênteses, porque não é um botão, é um valor).</li>
+</ul>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; Math.PI
+3.141592653589793
+&gt; Math.round(4.5)
+5
+&gt; Math.floor(4.9)
+4
+&gt; typeof Math
+'object'
+&gt; Math
+Object [Math] {}
+&gt; .exit
+</pre>
+
+<p>O <code>typeof Math</code> responde <code>'object'</code>: o <code>Math</code> é um <a href="objetos.html">objeto</a>, só que um objeto especial, que você não cria. O <code>Object [Math] {}</code> parece vazio porque o Node não lista as ferramentas embutidas, mas elas estão lá. Escreva sempre com <strong>M maiúsculo</strong>: o JavaScript diferencia maiúsculas de minúsculas.</p>
+
+<hr>
+
+<h2>1. Arredondar: <code>round</code>, <code>floor</code>, <code>ceil</code> e <code>trunc</code></h2>
+<p>A balança da padaria marcou 2,7 kg de pão. Existem quatro jeitos de transformar isso num número inteiro, e cada um serve para uma coisa:</p>
+
+<pre class="file" data-file="arredondar.js">const peso = 2.7;
+
+console.log(Math.round(peso));
+console.log(Math.floor(peso));
+console.log(Math.ceil(peso));
+console.log(Math.trunc(peso));
+</pre>
+
+<pre class="term">$ node arredondar.js
+3
+2
+3
+2
+</pre>
+
+<dl class="anatomy">
+  <dt>Math.round(peso) → 3</dt><dd><em>round</em> = "arredondar". O arredondamento da escola: vai para o inteiro <strong>mais perto</strong>. 2,7 está mais perto de 3. Quando está bem no meio (<code>4.5</code>), sobe: <code>5</code>.</dd>
+  <dt>Math.floor(peso) → 2</dt><dd><em>floor</em> = "chão". Sempre <strong>para baixo</strong>, para o inteiro menor ou igual.</dd>
+  <dt>Math.ceil(peso) → 3</dt><dd><em>ceil</em> (de <em>ceiling</em>) = "teto". Sempre <strong>para cima</strong>, para o inteiro maior ou igual.</dd>
+  <dt>Math.trunc(peso) → 2</dt><dd><em>trunc</em> (de <em>truncate</em>) = "cortar". Joga fora a parte depois do ponto, sem pensar em cima ou baixo.</dd>
+</dl>
+
+<p>Com números positivos, <code>floor</code> e <code>trunc</code> dão o mesmo resultado. A diferença aparece com <strong>negativos</strong>, como a temperatura de −2,7 °C numa madrugada fria:</p>
+
+<pre class="file" data-file="negativos.js">const temperatura = -2.7;
+
+console.log(Math.round(temperatura));
+console.log(Math.floor(temperatura));
+console.log(Math.ceil(temperatura));
+console.log(Math.trunc(temperatura));
+console.log(Math.round(2.5), Math.round(-2.5));
+</pre>
+
+<pre class="term">$ node negativos.js
+-3
+-3
+-2
+-2
+3 -2
+</pre>
+
+<p>Pense numa régua (uma <strong>reta numérica</strong>): "para baixo" é para a esquerda, para o lado dos números menores. −3 é <strong>menor</strong> que −2,7, então o <code>floor</code> (chão) vai para −3. Já o <code>trunc</code> só corta o <code>.7</code> e fica com −2. Veja também a última linha: no meio exato, o <code>Math.round</code> sempre vai para o lado <strong>maior</strong>, então <code>2.5</code> vira <code>3</code>, mas <code>-2.5</code> vira <code>-2</code> (e não −3, como muita gente espera).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th><code>round</code></th><th><code>floor</code> (para baixo)</th><th><code>ceil</code> (para cima)</th><th><code>trunc</code> (corta)</th></tr>
+<tr><td><code>2.7</code></td><td>3</td><td>2</td><td>3</td><td>2</td></tr>
+<tr><td><code>-2.7</code></td><td>-3</td><td>-3</td><td>-2</td><td>-2</td></tr>
+<tr><td><code>2.5</code></td><td>3</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td><code>-2.5</code></td><td>-2</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+</div>
+
+<h3>Para que serve cada um: os sacos de pão</h3>
+<p>A padaria precisa embalar 50 pães em sacos de 12. Quantos sacos usar? Aqui arredondar para o mais perto daria a resposta errada: o que sobra também precisa de saco.</p>
+
+<pre class="file" data-file="caixas.js">const paes = 50;
+const porSaco = 12;
+
+const sacos = Math.ceil(paes / porSaco);
+const sacosCheios = Math.floor(paes / porSaco);
+const sobra = paes % porSaco;
+
+console.log(`Sacos necessários: ${sacos}`);
+console.log(`Sacos cheios: ${sacosCheios}, e sobram ${sobra} pães`);
+</pre>
+
+<pre class="term">$ node caixas.js
+Sacos necessários: 5
+Sacos cheios: 4, e sobram 2 pães
+</pre>
+
+<p><code>50 / 12</code> dá 4,1666…. O <code>Math.ceil</code> sobe para <strong>5</strong> sacos (4 cheios e 1 com os 2 pães que sobram); o <code>Math.floor</code> conta só os sacos <strong>cheios</strong>; e o <code>%</code> (o resto da divisão, veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>) diz quantos pães sobram.</p>
+
+<div class="tryjs" data-goal="out:Caixas: 3;;src:Math\.ceil">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 30 ovos e quer guardar em caixas de 12. O programa diz 2 caixas, mas aí sobram ovos fora da caixa. Troque o arredondamento para o programa responder <code>Caixas: 3</code>.</p>
+<pre class="script" data-file="main.js">const ovos = 30;
+const porCaixa = 12;
+
+const caixas = Math.floor(ovos / porCaixa);
+console.log(`Caixas: ${caixas}`);
+</pre>
+<pre class="solucao" data-file="main.js">const ovos = 30;
+const porCaixa = 12;
+
+const caixas = Math.ceil(ovos / porCaixa);
+console.log(`Caixas: ${caixas}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Arredondar para 2 casas decimais</h2>
+<p>O <code>Math.round</code> só arredonda para inteiro. Para dinheiro, a gente quer 2 casas. O truque: multiplicar por 100, arredondar, e dividir por 100 de volta.</p>
+
+<pre class="file" data-file="duas-casas.js">const precoKg = 18.9;
+const peso = 0.735;
+const preco = precoKg * peso;
+
+console.log(preco);
+console.log(Math.round(preco * 100) / 100);
+console.log(preco.toFixed(2));
+</pre>
+
+<pre class="term">$ node duas-casas.js
+13.891499999999999
+13.89
+13.89
+</pre>
+
+<dl class="anatomy">
+  <dt>13.891499999999999</dt><dd>O preço de 735 g de um pão de R$ 18,90 o quilo, com todas as casas que a conta gerou (e um "999…" no fim, por causa da precisão dos números do computador: veja <a href="numeros-especiais.html">NaN, Infinity e a Precisão</a>).</dd>
+  <dt>Math.round(preco * 100) / 100</dt><dd><code>preco * 100</code> = 1389,15 → <code>Math.round</code> = 1389 → dividido por 100 = <strong>13.89</strong>. O resultado é um <strong>número</strong>, que você pode usar em outras contas.</dd>
+  <dt>preco.toFixed(2)</dt><dd>Outro caminho, que não é do <code>Math</code>: um método dos próprios números que devolve um <strong>texto</strong> (<code>"13.89"</code>) com exatamente 2 casas. É o jeito de <strong>mostrar</strong> o valor; ele tem aula própria em <a href="numeros-formatar.html">Formatando Números</a>.</dd>
+</dl>
+
+<p>Para 1 casa, troque o 100 por 10; para 3 casas, por 1000.</p>
+
+<hr>
+
+<h2>3. O maior e o menor: <code>Math.max</code> e <code>Math.min</code></h2>
+
+<pre class="file" data-file="maxmin.js">const notas = [7.5, 9, 4, 8.5];
+
+console.log(Math.max(7.5, 9, 4, 8.5));
+console.log(Math.min(7.5, 9, 4, 8.5));
+console.log(Math.max(...notas));
+console.log(Math.min(...notas));
+console.log(Math.max(notas));
+console.log(Math.max());
+</pre>
+
+<pre class="term">$ node maxmin.js
+9
+4
+9
+4
+NaN
+-Infinity
+</pre>
+
+<dl class="anatomy">
+  <dt>Math.max(7.5, 9, 4, 8.5) → 9</dt><dd><em>max</em> = "máximo". Recebe <strong>quantos números você quiser</strong>, separados por vírgula, e devolve o maior. O <code>Math.min</code> ("mínimo") devolve o menor.</dd>
+  <dt>Math.max(...notas) → 9</dt><dd>Quando os números estão num <a href="arrays.html">array</a>, os três pontinhos (<code>...</code>, o <strong>spread</strong>, "espalhar") tiram os itens de dentro do array e entregam um por um, como se você tivesse digitado <code>Math.max(7.5, 9, 4, 8.5)</code>. Veja <a href="spread-rest.html">Spread e Rest</a>.</dd>
+  <dt>Math.max(notas) → NaN</dt><dd>Sem os três pontos, o <code>Math.max</code> recebe <strong>um</strong> valor só, que é o array inteiro. Um array não é um número, então a resposta é <code>NaN</code> ("não é um número"). <strong>Não aparece erro</strong>: é um engano silencioso. Veja <a href="#errado">Quando dá errado</a>.</dd>
+  <dt>Math.max() → -Infinity</dt><dd>Sem nenhum número, o "maior de nada" é <code>-Infinity</code> (menos infinito). Acontece com <code>Math.max(...[])</code>, um array vazio. O <code>Math.min()</code> vazio dá <code>Infinity</code>.</dd>
+</dl>
+
+<h3>Um uso esperto: manter um valor dentro de um limite</h3>
+<p>Nota tem de ficar entre 0 e 10. Juntando <code>max</code> e <code>min</code>, dá para "prender" qualquer valor dentro de um intervalo:</p>
+
+<pre class="file" data-file="limitar.js">function limitar(valor, minimo, maximo) {
+  return Math.min(Math.max(valor, minimo), maximo);
+}
+
+console.log(limitar(12, 0, 10));
+console.log(limitar(-3, 0, 10));
+console.log(limitar(7.5, 0, 10));
+</pre>
+
+<pre class="term">$ node limitar.js
+10
+0
+7.5
+</pre>
+
+<p>De dentro para fora: <code>Math.max(valor, 0)</code> não deixa passar nada abaixo de 0; depois, <code>Math.min(…, 10)</code> não deixa passar nada acima de 10.</p>
+
+<hr>
+
+<h2>4. Distância até o zero: <code>Math.abs</code></h2>
+<p><em>abs</em> vem de "absoluto": o <strong>valor absoluto</strong> é o número sem o sinal, a distância dele até o zero. Útil quando o sinal atrapalha a frase:</p>
+
+<pre class="file" data-file="saldo.js">const saldoInicial = 120;
+const gastos = 155.5;
+const diferenca = saldoInicial - gastos;
+
+console.log(`Diferença: ${diferenca}`);
+console.log(`A Ana ficou devendo R$ ${Math.abs(diferenca)}`);
+</pre>
+
+<pre class="term">$ node saldo.js
+Diferença: -35.5
+A Ana ficou devendo R$ 35.5
+</pre>
+
+<hr>
+
+<h2>5. Potência, raiz e π</h2>
+
+<pre class="file" data-file="potencias.js">console.log(Math.pow(2, 10));
+console.log(2 ** 10);
+console.log(Math.sqrt(81));
+console.log(Math.cbrt(27));
+console.log(Math.sqrt(-4));
+console.log(Math.abs(-15));
+console.log(Math.sign(-15), Math.sign(0), Math.sign(15));
+</pre>
+
+<pre class="term">$ node potencias.js
+1024
+1024
+9
+3
+NaN
+15
+-1 0 1
+</pre>
+
+<dl class="anatomy">
+  <dt>Math.pow(2, 10) e 2 ** 10</dt><dd><em>pow</em> de <em>power</em>, "potência": 2 elevado a 10. O operador <code>**</code> faz a mesma coisa e é o jeito mais usado hoje.</dd>
+  <dt>Math.sqrt(81) → 9</dt><dd><em>sqrt</em> de <em>square root</em>, "raiz quadrada". O <code>Math.cbrt</code> (<em>cube root</em>) é a raiz cúbica.</dd>
+  <dt>Math.sqrt(-4) → NaN</dt><dd>Não existe raiz quadrada de número negativo entre os números comuns: o resultado é <code>NaN</code>, sem erro.</dd>
+  <dt>Math.sign(…)</dt><dd>O "sinal": <code>-1</code> para negativos, <code>0</code> para zero e <code>1</code> para positivos.</dd>
+</dl>
+
+<p>O <code>Math.PI</code> é o π (3,14159…), a razão entre o contorno e o diâmetro de qualquer círculo. A área de um círculo é π vezes o raio ao quadrado. Quanto de pizza vem numa pizza grande de 35 cm?</p>
+
+<pre class="file" data-file="pizza.js">const diametro = 35;
+const raio = diametro / 2;
+const area = Math.PI * raio ** 2;
+
+console.log(Math.PI);
+console.log(`Área da pizza: ${area} cm²`);
+console.log(`Área da pizza: ${Math.round(area)} cm²`);
+</pre>
+
+<pre class="term">$ node pizza.js
+3.141592653589793
+Área da pizza: 962.1127501618741 cm²
+Área da pizza: 962 cm²
+</pre>
+
+<p>O <code>raio ** 2</code> é calculado antes da multiplicação, porque a potência tem precedência maior (veja <a href="precedencia.html">Precedência dos Operadores</a>). Outras constantes: <code>Math.E</code> (o número de Euler, <code>2.718281828459045</code> no lab) e <code>Math.SQRT2</code> (a raiz de 2).</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> calcule a área de uma pizza broto de 25 cm. Quantas vezes a pizza de 35 cm é maior que a de 25? (Divida uma área pela outra.) Teste também <code>Math.hypot(3, 4)</code>, que calcula a diagonal de um retângulo de 3 por 4 (no lab deu <code>5</code>).</p>
+<pre class="script" data-file="main.js">const diametro = 35;
+const raio = diametro / 2;
+const area = Math.PI * raio ** 2;
+
+console.log(`Área da pizza: ${Math.round(area)} cm²`);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td>Potência</td><td><code>Math.pow(2, 10)</code> · <code>2 ** 10</code></td><td><code>**</code>: mais curto e mais comum hoje</td></tr>
+<tr><td>Tirar a parte decimal</td><td><code>Math.trunc(x)</code> · <code>Math.floor(x)</code> · <code>parseInt(x)</code></td><td><code>Math.trunc</code>: diz o que faz. <code>floor</code> só é igual com positivos; <code>parseInt</code> é para converter <strong>texto</strong> (veja <a href="conversao.html">Conversão</a>)</td></tr>
+<tr><td>Arredondar para 2 casas</td><td><code>Math.round(x * 100) / 100</code> · <code>x.toFixed(2)</code></td><td><code>Math.round</code> quando o resultado vai entrar em outra conta (é número); <code>toFixed</code> para mostrar (é texto)</td></tr>
+<tr><td>Maior valor de um array</td><td><code>Math.max(...lista)</code> · um <code>for</code> comparando · <a href="reduce.html">reduce</a></td><td><code>Math.max(...lista)</code>: curto e claro. Para arrays enormes (centenas de milhares de itens), um laço</td></tr>
+<tr><td>Raiz quadrada</td><td><code>Math.sqrt(x)</code> · <code>x ** 0.5</code></td><td><code>Math.sqrt</code>: mais legível</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>math</code> com m minúsculo</strong>
+<pre class="file" data-file="minusculo.js">console.log(math.round(2.7));
+</pre>
+<pre class="term">$ node minusculo.js
+/home/ana/minusculo.js:1
+console.log(math.round(2.7));
+            ^
+
+ReferenceError: math is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/minusculo.js:1:13)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/minusculo.js:1</dt><dd>O arquivo e a linha do problema.</dd>
+  <dt>console.log(math.round(2.7)); e o ^</dt><dd>A linha, com o <code>^</code> embaixo do <code>math</code>.</dd>
+  <dt>ReferenceError: math is not defined</dt><dd>"Erro de referência: <code>math</code> não está definido". Para o JavaScript, <code>math</code> e <code>Math</code> são nomes diferentes, e não existe nada chamado <code>math</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/minusculo.js:1:13)</dt><dd>O erro foi no programa principal, linha 1, coluna 13. As linhas seguintes, com <code>node:internal</code>, são o Node carregando o arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>Math</code>, com M maiúsculo. O mesmo vale para o resto do nome: <code>Math.Round</code> ou <code>Math.ROUND</code> também não existem (aí o erro é <code>TypeError: Math.Round is not a function</code>, porque o <code>Math</code> existe, mas não tem nada com esse nome).</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou criar um <code>Math</code> com <code>new</code></strong>
+<pre class="file" data-file="new-math.js">const calculadora = new Math();
+</pre>
+<pre class="term">$ node new-math.js
+/home/ana/new-math.js:1
+const calculadora = new Math();
+                    ^
+
+TypeError: Math is not a constructor
+    at Object.&lt;anonymous&gt; (/home/ana/new-math.js:1:21)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>"<code>Math</code> não é um construtor": não dá para fabricar outro <code>Math</code>, como se faz com <code>new Date()</code>. Existe uma calculadora só, e ela já está pronta. <strong>Como consertar:</strong> use direto: <code>Math.round(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou o array sem os três pontos: <code>NaN</code></strong>
+<p>Na seção 3, <code>Math.max(notas)</code> deu <code>NaN</code> sem nenhum erro. <strong>Como consertar:</strong> <code>Math.max(...notas)</code>. Se o array puder estar vazio, lembre que o resultado será <code>-Infinity</code>: teste <code>notas.length === 0</code> antes.</p>
+</div>
+
+<div class="cenario">
+<strong>Mandou texto em vez de número</strong>
+<pre class="file" data-file="texto.js">console.log(Math.round("2.7"));
+console.log(Math.round("2,7"));
+console.log(Math.max(5, "10", 3));
+console.log(Math.max(5, "dez", 3));
+</pre>
+<pre class="term">$ node texto.js
+3
+NaN
+10
+NaN
+</pre>
+<p>As ferramentas do <code>Math</code> tentam converter texto em número sozinhas (veja <a href="conversao-automatica.html">Conversão Automática</a>). <code>"2.7"</code> (com ponto) dá certo; <code>"2,7"</code> (com vírgula, como se escreve no Brasil) e <code>"dez"</code> viram <code>NaN</code>, e um único <code>NaN</code> estraga o <code>Math.max</code> inteiro. <strong>Como consertar:</strong> converta e confira o que veio do teclado ou de um arquivo antes (<code>Number(texto.replace(",", "."))</code>), como em <a href="conversao.html">Conversão</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="sem-parenteses.js">console.log(Math.round);
+console.log(Math.round + 1);
+</pre>
+<pre class="term">$ node sem-parenteses.js
+[Function: round]
+function round() { [native code] }1
+</pre>
+<p>Sem os parênteses, você não <strong>apertou o botão</strong>, só apontou para ele: o Node mostra a própria função (<code>[Function: round]</code>). Somada com 1, a função vira texto e sai essa linha esquisita. <strong>Como consertar:</strong> <code>Math.round(valor)</code>. (Já o <code>Math.PI</code> não leva parênteses: ele é um valor, não uma função.)</p>
+</div>
+
+<div class="tryjs" data-goal="out:Maior nota: 9;;src:\.\.\.\s*notas">
+<p class="try-task"><strong>Missão:</strong> este programa mostra <code>Maior nota: NaN</code>. Conserte para ele achar a maior nota do array.</p>
+<pre class="script" data-file="main.js">const notas = [7.5, 9, 4, 8.5];
+console.log(`Maior nota: ${Math.max(notas)}`);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [7.5, 9, 4, 8.5];
+console.log(`Maior nota: ${Math.max(...notas)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Exemplo (saída no lab)</th></tr>
+<tr><td><code>Math.round(x)</code></td><td>Arredonda para o inteiro mais perto (no meio, para cima)</td><td><code>Math.round(2.7)</code> → <code>3</code></td></tr>
+<tr><td><code>Math.floor(x)</code></td><td>Para baixo (o chão)</td><td><code>Math.floor(2.7)</code> → <code>2</code>; <code>Math.floor(-2.7)</code> → <code>-3</code></td></tr>
+<tr><td><code>Math.ceil(x)</code></td><td>Para cima (o teto)</td><td><code>Math.ceil(50 / 12)</code> → <code>5</code></td></tr>
+<tr><td><code>Math.trunc(x)</code></td><td>Corta a parte decimal</td><td><code>Math.trunc(-2.7)</code> → <code>-2</code></td></tr>
+<tr><td><code>Math.max(a, b, …)</code> / <code>Math.min(…)</code></td><td>O maior / o menor</td><td><code>Math.max(...[7.5, 9, 4])</code> → <code>9</code></td></tr>
+<tr><td><code>Math.abs(x)</code></td><td>Valor absoluto (sem sinal)</td><td><code>Math.abs(-15)</code> → <code>15</code></td></tr>
+<tr><td><code>Math.pow(b, e)</code> / <code>b ** e</code></td><td>Potência</td><td><code>2 ** 10</code> → <code>1024</code></td></tr>
+<tr><td><code>Math.sqrt(x)</code> / <code>Math.cbrt(x)</code></td><td>Raiz quadrada / cúbica</td><td><code>Math.sqrt(81)</code> → <code>9</code></td></tr>
+<tr><td><code>Math.sign(x)</code></td><td>Sinal: -1, 0 ou 1</td><td><code>Math.sign(-15)</code> → <code>-1</code></td></tr>
+<tr><td><code>Math.hypot(a, b)</code></td><td>Diagonal (hipotenusa)</td><td><code>Math.hypot(3, 4)</code> → <code>5</code></td></tr>
+<tr><td><code>Math.PI</code> / <code>Math.E</code></td><td>As constantes π e e</td><td><code>3.141592653589793</code> / <code>2.718281828459045</code></td></tr>
+<tr><td><code>Math.random()</code></td><td>Um número aleatório</td><td>Aula própria: <a href="math-random.html">Números Aleatórios</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto dá?</h3>
+<p>Escreva o resultado de cada linha:</p>
+<div class="ex-code">Math.floor(9.99) → <input data-answer="9" aria-label="resultado de floor"><br>Math.ceil(9.01) → <input data-answer="10" aria-label="resultado de ceil"><br>Math.round(9.5) → <input data-answer="10" aria-label="resultado de round"><br>Math.trunc(-9.99) → <input data-answer="-9" aria-label="resultado de trunc"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para achar a menor temperatura do array:</p>
+<div class="ex-code">const temperaturas = [18, 12.5, 21];<br>console.log(Math.<input data-answer="min" aria-label="nome da função">(<input data-answer="..." aria-label="o que vem antes do nome do array">temperaturas));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Uma van leva 15 pessoas. Para levar 40 pessoas, quantas vans são necessárias, e qual função calcula isso a partir de <code>40 / 15</code>?</p>
+<label><input type="radio" name="q3"> 2, com <code>Math.floor</code></label>
+<label><input type="radio" name="q3"> 3, com <code>Math.round</code></label>
+<label><input type="radio" name="q3"> 3, com <code>Math.ceil</code></label>
+<label><input type="radio" name="q3"> 2, com <code>Math.trunc</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que mostra <code>console.log(Math.max([3, 8, 5]))</code>?</p>
+<label><input type="radio" name="q4"> <code>8</code></label>
+<label><input type="radio" name="q4"> <code>NaN</code></label>
+<label><input type="radio" name="q4"> <code>[3, 8, 5]</code></label>
+<label><input type="radio" name="q4"> Um erro <code>TypeError</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual linha arredonda <code>preco</code> para 2 casas e devolve um <strong>número</strong>?</p>
+<label><input type="radio" name="q5"> <code>Math.round(preco, 2)</code></label>
+<label><input type="radio" name="q5"> <code>preco.toFixed(2)</code></label>
+<label><input type="radio" name="q5"> <code>Math.round(preco) / 100</code></label>
+<label><input type="radio" name="q5"> <code>Math.round(preco * 100) / 100</code></label>
+</div>
+
+<h3>Missão final: o boletim</h3>
+
+<div class="tryjs" data-goal="out:Maior: 9.5;;out:Menor: 4;;out:Média: 7.1;;src:Math\.max;;src:Math\.min;;src:Math\.round">
+<p class="try-task"><strong>Missão:</strong> complete o boletim da turma: a <strong>maior</strong> nota (<code>Math.max</code>), a <strong>menor</strong> (<code>Math.min</code>) e a <strong>média arredondada para 1 casa</strong> (<code>Math.round</code>, multiplicando e dividindo por 10). A soma já está pronta.</p>
+<pre class="script" data-file="main.js">const notas = [7, 9.5, 4, 8, 6.9];
+const soma = notas.reduce((total, nota) =&gt; total + nota, 0);
+const media = soma / notas.length;
+
+const maior = 0; // troque
+const menor = 0; // troque
+const mediaArredondada = media; // troque
+
+console.log(`Maior: ${maior}`);
+console.log(`Menor: ${menor}`);
+console.log(`Média: ${mediaArredondada}`);
+</pre>
+<pre class="solucao" data-file="main.js">const notas = [7, 9.5, 4, 8, 6.9];
+const soma = notas.reduce((total, nota) =&gt; total + nota, 0);
+const media = soma / notas.length;
+
+const maior = Math.max(...notas);
+const menor = Math.min(...notas);
+const mediaArredondada = Math.round(media * 10) / 10;
+
+console.log(`Maior: ${maior}`);
+console.log(`Menor: ${menor}`);
+console.log(`Média: ${mediaArredondada}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Maior: 9.5</code>, <code>Menor: 4</code> e <code>Média: 7.1</code> (a média sem arredondar era <code>7.08</code>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Math</code> é um objeto embutido, pronto em todo programa (no Node e no navegador), com ferramentas de matemática: <code>Math.nome(valor)</code>. Escreva com M maiúsculo e não use <code>new</code>.</li>
+  <li>Arredondar: <code>round</code> (o mais perto), <code>floor</code> (para baixo), <code>ceil</code> (para cima), <code>trunc</code> (corta). Com negativos, "para baixo" é para o lado dos menores: <code>Math.floor(-2.7)</code> é <code>-3</code>.</li>
+  <li>2 casas: <code>Math.round(x * 100) / 100</code> (número) ou <code>x.toFixed(2)</code> (texto, para mostrar).</li>
+  <li><code>Math.max</code> e <code>Math.min</code> recebem números separados por vírgula; com um array, use <code>...</code>: <code>Math.max(...notas)</code>.</li>
+  <li><code>Math.abs</code> tira o sinal, <code>**</code> (ou <code>Math.pow</code>) faz potência, <code>Math.sqrt</code> tira a raiz, <code>Math.PI</code> é o π.</li>
+  <li>Muitos enganos com o <code>Math</code> não dão erro: dão <code>NaN</code> (array sem <code>...</code>, texto com vírgula, raiz de negativo). Se aparecer <code>NaN</code>, confira o que entrou na função.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
