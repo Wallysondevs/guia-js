@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Introdução — o que é JavaScript e para que serve | Guia JavaScript</title>
+<meta name="description" content="O que é JavaScript, para quem nunca programou: o que é programar, a linguagem da Web e do Node.js, interpretada e com compilação JIT, a história de 1995 até o ECMAScript 2025, a diferença entre JavaScript e Java, e os primeiros erros reais do Node.js 24 explicados em português, com missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Introdução</span></h1>
+
+<p class="intro">Bem-vindo ao Guia JavaScript! O JavaScript é a linguagem de programação que faz as páginas da internet <strong>se mexerem</strong>: o botão que curte uma foto, o carrinho de compras que soma sozinho, o mapa que você arrasta com o dedo. E, com o <strong>Node.js</strong>, ele também roda fora do navegador, no terminal do seu computador. Esta aula conta o que é programar, o que o JavaScript tem de especial e de onde ele veio. Você não precisa saber nada antes: começamos do zero.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é programar e o que é uma linguagem de programação.</li>
+  <li>O que é o JavaScript e os dois lugares onde ele roda: o <strong>navegador</strong> e o <strong>Node.js</strong>.</li>
+  <li>O que quer dizer "linguagem interpretada" e o que o <strong>motor</strong> (V8) faz com o seu código.</li>
+  <li>Um pouco de história: de 1995 até o <strong>ECMAScript 2025</strong>, a versão que este guia ensina.</li>
+  <li>Por que JavaScript <strong>não é</strong> Java, apesar do nome.</li>
+  <li>Os primeiros erros reais do Node.js, explicados em português.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram rodados com o <strong>Node.js 24 LTS</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta pessoal dela, com o comando <code>node arquivo.js</code>. Cada caixa "Experimente" roda o JavaScript de verdade do seu navegador (aula <a href="simulador.html">O Editor do Guia</a>).</p>
+
+<hr>
+
+<h2>Primeiro: o que é programar?</h2>
+<p>Pense numa <strong>receita de bolo</strong>. Ela é uma lista de passos, na ordem certa, escrita de um jeito que qualquer pessoa consegue seguir: "ligue o forno", "misture os ingredientes", "asse por 40 minutos". Quem segue a receita não precisa inventar nada: só faz o que está escrito, um passo depois do outro.</p>
+
+<p><strong>Programar</strong> é escrever uma receita para o computador. A diferença é que o computador é um cozinheiro muito obediente e muito literal: ele faz <strong>exatamente</strong> o que está escrito, nem mais, nem menos. Se você esquecer um passo, ele não completa sozinho; se escrever uma palavra errada, ele para e reclama.</p>
+
+<p>E como o computador não entende português, a receita precisa ser escrita numa língua que ele entenda: uma <strong>linguagem de programação</strong>. O JavaScript é uma delas. Veja uma receita de verdade, em JavaScript:</p>
+
+<pre class="file" data-file="receita.js">console.log("1. Ligue o forno");
+console.log("2. Misture os ingredientes");
+console.log("3. Asse por 40 minutos");
+</pre>
+
+<p>Cada linha é um passo. O <code>console.log</code> (em inglês, "registrar no console") é o jeito de o programa <strong>mostrar</strong> alguma coisa na tela; ele tem uma aula inteira só para ele: <a href="console-log.html">console.log()</a>. Na máquina da Ana, o programa rodou assim:</p>
+
+<pre class="term">$ node receita.js
+1. Ligue o forno
+2. Misture os ingredientes
+3. Asse por 40 minutos
+</pre>
+
+<dl class="anatomy">
+  <dt>$ node receita.js</dt><dd>O comando que a Ana digitou no terminal: "Node.js, rode o arquivo <code>receita.js</code>". O <code>$</code> não se digita: é o terminal avisando que está pronto. A aula <a href="executar.html">Rodando um Programa</a> mostra isso passo a passo.</dd>
+  <dt>As três linhas de baixo</dt><dd>A <strong>saída</strong> do programa: o que ele mostrou. Uma linha para cada <code>console.log</code>, na ordem em que estão no arquivo, de cima para baixo, como uma receita.</dd>
+</dl>
+
+<div class="tryjs" data-goal="out:4. Espere esfriar;;semerro">
+<p class="try-task"><strong>Missão:</strong> a receita esqueceu um passo. Acrescente uma quarta linha, igual às outras, que mostre <code>4. Espere esfriar</code>. Depois clique em Rodar.</p>
+<pre class="script" data-file="main.js">console.log("1. Ligue o forno");
+console.log("2. Misture os ingredientes");
+console.log("3. Asse por 40 minutos");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("1. Ligue o forno");
+console.log("2. Misture os ingredientes");
+console.log("3. Asse por 40 minutos");
+console.log("4. Espere esfriar");
+</pre>
+</div>
+
+<hr>
+
+<h2>A linguagem da Web</h2>
+<p>Toda página da internet é feita de três camadas, cada uma com a sua linguagem. Pense numa casa:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linguagem</th><th>Na casa</th><th>Na página</th></tr>
+<tr><td><strong>HTML</strong></td><td>As paredes e os cômodos</td><td>O conteúdo: títulos, textos, imagens, botões</td></tr>
+<tr><td><strong>CSS</strong></td><td>A pintura e a decoração</td><td>A aparência: cores, tamanhos, posições</td></tr>
+<tr><td><strong>JavaScript</strong></td><td>A parte elétrica: o interruptor que acende a luz, a campainha que toca</td><td>O comportamento: o que acontece quando você clica, digita, rola a página</td></tr>
+</table>
+</div>
+
+<p>HTML e CSS <strong>descrevem</strong> a página; o JavaScript a faz <strong>agir</strong>. Ele é a única linguagem de programação que todos os navegadores (Chrome, Edge, Firefox, Safari) entendem sozinhos, sem instalar nada. Por isso, quem quer trabalhar com sites acaba aprendendo JavaScript.</p>
+
+<p>No grupo "A Página Web" deste guia você vai escrever JavaScript dentro de páginas, com botões e caixas de texto de verdade. Antes disso, nos níveis 1 e 2, você aprende a <strong>linguagem</strong> em si, do jeito mais simples: no terminal, com o Node.js.</p>
+
+<h2>Fora do navegador: o Node.js</h2>
+<p>Durante muitos anos, JavaScript só rodava dentro do navegador. Em <strong>2009</strong>, o programador Ryan Dahl pegou o "motor" de JavaScript do Google Chrome e o colocou num programa que roda direto no computador, sem navegador: o <strong>Node.js</strong>. Com ele, JavaScript passou a servir também para programas de terminal, servidores de sites, ferramentas e automações.</p>
+
+<p>É com o Node.js que você vai rodar os programas deste guia: você escreve um arquivo <code>.js</code>, digita <code>node arquivo.js</code> e vê a saída no terminal. A comparação completa entre os dois lugares está na próxima aula, <a href="onde-roda.html">Onde o JavaScript Roda</a>, e a instalação, em <a href="instalar.html">Instalar o Node.js</a>.</p>
+
+<div class="note">
+<strong>Uma linguagem, vários "donos da casa"</strong>
+<p>A linguagem é a mesma nos dois lugares: <code>console.log</code>, as contas, os textos, as decisões, as repetições. O que muda são os "extras" que cada lugar oferece. O navegador tem a página (<code>document</code>) e as janelinhas (<code>alert</code>); o Node.js tem os arquivos do computador (<code>fs</code>) e o terminal (<code>process</code>). O guia sempre avisa quando algo é <strong>só do Node</strong> ou <strong>só do navegador</strong>.</p>
+</div>
+
+<hr>
+
+<h2>O JavaScript é uma linguagem interpretada</h2>
+<p>O computador, lá no fundo, só entende números: instruções de máquina, zeros e uns. Ninguém escreve programas assim. Você escreve em JavaScript, que é quase inglês (<code>console.log</code>, <code>if</code>, <code>for</code>), e alguém precisa <strong>traduzir</strong>.</p>
+
+<p>Em algumas linguagens (como C), você traduz o programa inteiro antes, com um <strong>compilador</strong>, e ganha um arquivo executável. No JavaScript não tem esse passo: você entrega o arquivo <code>.js</code> do jeito que escreveu e o <strong>motor</strong> de JavaScript lê, traduz e executa na hora. Por isso se diz que o JavaScript é uma linguagem <strong>interpretada</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Motor</th><th>Onde está</th></tr>
+<tr><td><strong>V8</strong></td><td>Google Chrome, Microsoft Edge, Opera… e o <strong>Node.js</strong></td></tr>
+<tr><td><strong>SpiderMonkey</strong></td><td>Mozilla Firefox</td></tr>
+<tr><td><strong>JavaScriptCore</strong></td><td>Safari (Apple)</td></tr>
+</table>
+</div>
+
+<h3>Por dentro: a tradução esperta (JIT)</h3>
+<p>Os motores modernos são mais espertos que um simples "lê uma linha, faz uma linha". O V8 primeiro confere se o arquivo inteiro está escrito corretamente; depois começa a executar; e, quando percebe que um trecho roda muitas vezes (uma conta repetida mil vezes, por exemplo), ele <strong>compila</strong> esse trecho para instruções de máquina, enquanto o programa roda. Isso se chama compilação <strong>JIT</strong> (do inglês <em>just in time</em>, "bem na hora") e é o motivo de o JavaScript de hoje ser rápido. Para você, nada muda: escreve o <code>.js</code> e roda.</p>
+
+<p>Uma consequência que você vai sentir já nas primeiras aulas: como o motor confere a escrita do arquivo inteiro <strong>antes</strong> de rodar, um erro de escrita numa linha impede o programa todo de começar, até as linhas certas. Você vai ver isso acontecer em <a href="#errado">Quando dá errado</a>.</p>
+
+<h3>O lado bom e o lado ruim</h3>
+<ul>
+  <li><strong>Bom:</strong> escreveu, rodou. Não há passo de compilação para lembrar, e o mesmo arquivo roda em qualquer computador que tenha Node.js, e em qualquer navegador.</li>
+  <li><strong>Bom:</strong> o JavaScript é <strong>dinâmico</strong>: uma variável pode guardar um número agora e um texto depois, sem você declarar o tipo. É menos coisa para escrever no começo.</li>
+  <li><strong>Ruim:</strong> muitos erros só aparecem quando a linha com problema é executada. Um nome escrito errado numa parte do programa que raramente roda pode ficar escondido por meses.</li>
+  <li><strong>Ruim:</strong> o lado dinâmico tem pegadinhas: <code>"2" + 2</code> dá <code>"22"</code>, e não <code>4</code>. O guia mostra todas, com calma, em <a href="conversao-automatica.html">Conversão Automática</a>.</li>
+</ul>
+
+<hr>
+
+<h2>Um pouco de história</h2>
+<p>Em <strong>1995</strong>, a empresa Netscape fazia o navegador mais usado do mundo, o Netscape Navigator, e queria uma linguagem simples para deixar as páginas menos paradas. O programador <strong>Brendan Eich</strong> criou o primeiro protótipo em poucos dias. A linguagem se chamou primeiro <em>Mocha</em>, depois <em>LiveScript</em> e, por fim, <strong>JavaScript</strong>, e apareceu pela primeira vez no Navigator 2.0.</p>
+
+<p>O nome "JavaScript" foi uma jogada de marketing: a linguagem <strong>Java</strong>, de outra empresa, estava na moda, e a Netscape aproveitou a fama. As duas linguagens não têm parentesco (veja a seção seguinte).</p>
+
+<p>A Microsoft fez a sua própria versão para o Internet Explorer 3.0, chamada JScript. Para que o mesmo código funcionasse em todos os navegadores, a linguagem foi entregue a uma organização de padrões, a <strong>Ecma International</strong>, que escreveu a "lei" oficial da linguagem: a especificação <strong>ECMA-262</strong>, cuja linguagem se chama <strong>ECMAScript</strong>. A primeira edição saiu em junho de 1997.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ano</th><th>O que aconteceu</th></tr>
+<tr><td>1995</td><td>Brendan Eich cria o JavaScript na Netscape; ele aparece no Navigator 2.0</td></tr>
+<tr><td>1997</td><td>Sai a 1ª edição do padrão ECMAScript (ECMA-262)</td></tr>
+<tr><td>2009</td><td>ECMAScript 5 (5ª edição) e o nascimento do Node.js</td></tr>
+<tr><td>2015</td><td><strong>ECMAScript 2015</strong> (a 6ª edição, também chamada <strong>ES6</strong>): a grande reforma, com <code>let</code>, <code>const</code>, arrow functions, classes, módulos, promises</td></tr>
+<tr><td>2016 em diante</td><td>Uma edição nova <strong>por ano</strong>, sempre em junho, com o ano no nome: ES2016, ES2017…</td></tr>
+<tr><td>2025</td><td><strong>ECMAScript 2025</strong> (16ª edição): a versão que este guia ensina</td></tr>
+<tr><td>2026</td><td>ECMAScript 2026 (17ª edição, junho de 2026)</td></tr>
+</table>
+</div>
+
+<p>Por isso você vai ouvir dois nomes: <strong>ECMAScript</strong> é o nome do padrão, a "lei"; <strong>JavaScript</strong> é o nome que todo mundo usa no dia a dia. Quando alguém fala "ES6" ou "ES2025", está falando de uma edição do padrão. As datas desta tabela estão na própria especificação e na página da ECMA-262 no site da Ecma International.</p>
+
+<div class="note">
+<strong>Um JavaScript "antigo" e um "moderno"</strong>
+<p>Como a linguagem mudou muito em 2015, você vai encontrar na internet dois estilos: o antigo, com <code>var</code> e <code>function</code> para tudo, e o moderno, com <code>let</code>, <code>const</code> e <code>=&gt;</code>. Este guia ensina o <strong>moderno</strong>, e mostra o antigo só para você reconhecê-lo em código dos outros (por exemplo, em <a href="var.html">var: o Jeito Antigo</a>). Recursos novos aparecem marcados assim: <span class="versao">ES2025</span>.</p>
+</div>
+
+<hr>
+
+<h2>JavaScript não é Java</h2>
+<p>É a confusão mais comum de quem está começando. Os nomes são parecidos e a escrita lembra um pouco (as chaves <code>{ }</code>, o ponto e vírgula), mas são linguagens diferentes, de empresas diferentes, com usos diferentes. Como diz a piada, "Java está para JavaScript assim como carro está para carpete".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>JavaScript</th><th>Java</th></tr>
+<tr><td>Como roda</td><td>O motor lê o <code>.js</code> e executa (com JIT)</td><td>Compila o <code>.java</code> para <em>bytecode</em> e roda numa máquina virtual (JVM)</td></tr>
+<tr><td>Tipos</td><td><strong>Dinâmicos</strong>: não se declara o tipo da variável</td><td><strong>Estáticos</strong>: cada variável tem um tipo declarado (<code>int</code>, <code>String</code>…)</td></tr>
+<tr><td>Onde roda</td><td>Em todo navegador, e no computador com o Node.js</td><td>No computador e em servidores; nos navegadores, não</td></tr>
+<tr><td>Mostrar "Olá"</td><td><code>console.log("Olá");</code></td><td><code>System.out.println("Olá");</code></td></tr>
+</table>
+</div>
+
+<p>Um código de Java não funciona no Node.js. Você vai ver a mensagem real em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>Onde o JavaScript está hoje</h2>
+<ul>
+  <li><strong>Em praticamente todo site</strong>: menus, formulários, carrinhos de compras, mapas, jogos no navegador.</li>
+  <li><strong>Em servidores</strong>, com o Node.js: o programa que recebe o seu pedido quando você abre um site pode ser JavaScript.</li>
+  <li><strong>Em programas de computador</strong>: vários aplicativos de desktop são feitos com tecnologias da web (HTML, CSS e JavaScript) por baixo; o editor de código VS Code é um exemplo.</li>
+  <li><strong>Em aplicativos de celular</strong>, com ferramentas que transformam código JavaScript em apps.</li>
+  <li><strong>Em ferramentas</strong>: o próprio Node.js vem com o <strong>npm</strong>, a maior coleção de bibliotecas prontas do mundo (aula <a href="npm.html">npm</a>).</li>
+</ul>
+
+<p>Para mostrar onde você vai chegar, este é um programa que a Ana vai saber escrever (e entender linha por linha) depois de algumas aulas. Ele soma a lista de compras:</p>
+
+<pre class="file" data-file="compras.js">const itens = ["pão", "leite", "café"];
+const precos = [7.5, 5.2, 18.9];
+let total = 0;
+
+for (let i = 0; i &lt; itens.length; i++) {
+  console.log(`${itens[i]}: R$ ${precos[i]}`);
+  total = total + precos[i];
+}
+
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+
+<pre class="term">$ node compras.js
+pão: R$ 7.5
+leite: R$ 5.2
+café: R$ 18.9
+Total: R$ 31.60
+</pre>
+
+<p>Não se preocupe em entender agora. Os colchetes <code>[ ]</code> são <a href="arrays.html">arrays</a> (listas), o <code>for</code> é uma <a href="for.html">repetição</a>, o texto com crase e <code>${ }</code> é uma <a href="template-strings.html">template string</a>, e o <code>toFixed(2)</code> mostra duas casas decimais. Cada coisa tem a sua aula.</p>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> rode o programa da lista de compras. Depois troque um preço (por exemplo, o do café) e rode de novo para ver o total mudar. Não há missão: mexa à vontade.</p>
+<pre class="script" data-file="main.js">const itens = ["pão", "leite", "café"];
+const precos = [7.5, 5.2, 18.9];
+let total = 0;
+
+for (let i = 0; i &lt; itens.length; i++) {
+  console.log(`${itens[i]}: R$ ${precos[i]}`);
+  total = total + precos[i];
+}
+
+console.log(`Total: R$ ${total.toFixed(2)}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Que JavaScript este guia ensina</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O quê</th><th>Versão</th><th>Onde</th></tr>
+<tr><td>A linguagem</td><td><strong>ECMAScript 2025</strong></td><td>Todas as aulas</td></tr>
+<tr><td>O programa que roda os arquivos</td><td><strong>Node.js 24 LTS</strong></td><td>Níveis 1 e 2, e tudo o que é de terminal</td></tr>
+<tr><td>O navegador</td><td>Qualquer navegador atual (Chrome, Edge, Firefox, Safari)</td><td>"A Página Web" e os projetos para a web</td></tr>
+</table>
+</div>
+
+<p>O <strong>LTS</strong> (do inglês <em>Long Term Support</em>, "suporte de longo prazo") é a versão do Node.js recomendada para o dia a dia: recebe correções por anos. Na máquina da Ana, o Node.js se apresenta assim:</p>
+
+<pre class="file" data-file="versao.js">console.log("Node.js", process.version);
+</pre>
+
+<pre class="term">$ node versao.js
+Node.js v24.22.0
+</pre>
+
+<p>O <code>process.version</code> é <strong>só do Node</strong> (no navegador não existe <code>process</code>). O número do meio e o do fim mudam a cada atualização (<code>24.22.0</code>, <code>24.23.0</code>…); o que importa é o <strong>24</strong> do começo. A aula <a href="instalar.html">Instalar o Node.js</a> mostra como ter o seu.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>O computador é literal: qualquer letra fora do lugar e ele para. As mensagens de erro do Node.js saem em <strong>inglês</strong>; aqui elas aparecem como saíram na máquina da Ana e explicadas em português. A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> aprofunda o assunto.</p>
+
+<div class="cenario">
+<strong><code>Console</code> com C maiúsculo</strong>
+<pre class="file" data-file="maiuscula.js">Console.log("Olá, mundo!");
+</pre>
+<pre class="term">$ node maiuscula.js
+/home/ana/maiuscula.js:1
+Console.log("Olá, mundo!");
+^
+
+ReferenceError: Console is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/maiuscula.js:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    «  mais 6 linhas "at … (node:internal/…)" cortadas: são do próprio Node
+
+Node.js v24.22.0
+$ echo $?
+1
+</pre>
+<p>É a primeira mensagem de erro do guia, então vamos ler parte por parte:</p>
+<dl class="anatomy">
+  <dt>/home/ana/maiuscula.js:1</dt><dd>O <strong>arquivo</strong> (com a pasta inteira) e a <strong>linha</strong> do problema: linha 1. É a informação mais útil da mensagem: abra o arquivo e vá direto nessa linha.</dd>
+  <dt>Console.log("Olá, mundo!");</dt><dd>A própria linha com problema, copiada do seu arquivo.</dd>
+  <dt>^</dt><dd>O "chapeuzinho" aponta a <strong>coluna</strong> onde o problema começa: bem embaixo do <code>C</code> de <code>Console</code>.</dd>
+  <dt>ReferenceError: Console is not defined</dt><dd>O <strong>tipo</strong> do erro e a mensagem. <code>ReferenceError</code> é "erro de referência": você citou um nome que não existe. "Console is not defined" quer dizer "Console não está definido". O nome certo é <code>console</code>, tudo minúsculo.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/maiuscula.js:1:1)</dt><dd>O caminho que o programa fez até o erro, começando pelo seu arquivo: linha 1, coluna 1. As linhas <code>at … (node:internal/…)</code> que vêm depois são do próprio Node.js; pode ignorar.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.js que rodou o programa. Ela aparece no fim de todo erro que derruba o programa.</dd>
+  <dt>echo $? → 1</dt><dd>O <strong>código de saída</strong> (o <code>$?</code> do terminal guarda o do último comando): <code>1</code> quer dizer "terminou com erro"; um programa que deu certo termina com <code>0</code>.</dd>
+</dl>
+<p>O JavaScript diferencia maiúsculas de minúsculas: <code>console</code>, <code>Console</code> e <code>CONSOLE</code> são três nomes diferentes, e só o primeiro existe. <strong>Como consertar:</strong> escreva <code>console.log</code>, tudo minúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto sem aspas</strong>
+<pre class="file" data-file="aspas.js">console.log(Olá, mundo!);
+</pre>
+<pre class="term">$ node aspas.js
+/home/ana/aspas.js:1
+console.log(Olá, mundo!);
+                 ^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p><code>SyntaxError</code> é um <strong>erro de sintaxe</strong>: o código não está escrito do jeito que o JavaScript entende. "missing ) after argument list" quer dizer "faltou um <code>)</code> depois da lista de argumentos". Sem aspas, <code>Olá</code> não é um texto, é um <strong>nome</strong>; o JavaScript leu <code>Olá, mundo</code> como dois nomes separados por vírgula e, quando chegou no <code>!</code>, esperava o parêntese fechar ali. Os <code>^^^^^</code> marcam onde ele se perdeu. Repare que desta vez não há <code>at Object.&lt;anonymous&gt;</code> com o seu arquivo: o erro de sintaxe é achado <strong>antes</strong> de o programa começar a rodar. <strong>Como consertar:</strong> todo texto vai entre aspas: <code>console.log("Olá, mundo!");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escrevendo Java em vez de JavaScript</strong>
+<pre class="file" data-file="java.js">System.out.println("Olá, mundo!");
+</pre>
+<pre class="term">$ node java.js
+/home/ana/java.js:1
+System.out.println("Olá, mundo!");
+^
+
+ReferenceError: System is not defined
+    at Object.&lt;anonymous&gt; (/home/ana/java.js:1:1)
+    «  mais 7 linhas "at … (node:internal/…)" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>A Ana copiou um "Olá, mundo" de um site de Java. Para o JavaScript, <code>System</code> é um nome desconhecido: o mesmo <code>ReferenceError</code> do primeiro cenário. Isso acontece muito ao procurar exemplos na internet: confira se a página é de <strong>JavaScript</strong>. <strong>Como consertar:</strong> <code>console.log("Olá, mundo!");</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="semerro;;out:Bolo pronto!">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>dois</strong> erros. Clique em Rodar, leia a mensagem, conserte e rode de novo até aparecerem as duas linhas.</p>
+<pre class="script" data-file="main.js">console.log("Receita da Ana");
+Console.log(Bolo pronto!);
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Receita da Ana");
+console.log("Bolo pronto!");
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>O que é</th></tr>
+<tr><td>Programa</td><td>Uma receita de passos para o computador seguir, na ordem</td></tr>
+<tr><td>JavaScript</td><td>A linguagem de programação da Web, que também roda no computador com o Node.js</td></tr>
+<tr><td>ECMAScript</td><td>O nome do padrão oficial da linguagem (ECMA-262); ES2025 = edição de 2025</td></tr>
+<tr><td>Node.js</td><td>O programa que roda JavaScript fora do navegador: <code>node arquivo.js</code></td></tr>
+<tr><td>Motor (V8)</td><td>A parte que lê e executa o JavaScript; o V8 está no Chrome, no Edge e no Node.js</td></tr>
+<tr><td>Interpretada</td><td>Você entrega o <code>.js</code> como escreveu, sem compilar antes; o motor traduz na hora</td></tr>
+<tr><td><code>console.log(...)</code></td><td>Mostra um valor na tela (no terminal ou no Console do navegador)</td></tr>
+<tr><td><code>.js</code></td><td>A extensão dos arquivos de JavaScript</td></tr>
+<tr><td><code>ReferenceError: X is not defined</code></td><td>Usou um nome que não existe (escrito errado, com maiúscula, ou de outra linguagem)</td></tr>
+<tr><td><code>SyntaxError: …</code></td><td>Erro de escrita: o programa inteiro não roda</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Numa página da internet, qual camada cuida do <strong>comportamento</strong> (o que acontece quando você clica)?</p>
+<label><input type="radio" name="q1"> HTML</label>
+<label><input type="radio" name="q1"> CSS</label>
+<label><input type="radio" name="q1"> JavaScript</label>
+<label><input type="radio" name="q1"> Java</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O que é o Node.js?</p>
+<label><input type="radio" name="q2"> Uma linguagem diferente do JavaScript</label>
+<label><input type="radio" name="q2"> Um programa que roda JavaScript fora do navegador</label>
+<label><input type="radio" name="q2"> Um navegador da Google</label>
+<label><input type="radio" name="q2"> O nome antigo do JavaScript</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual frase sobre JavaScript e Java está certa?</p>
+<label><input type="radio" name="q3"> JavaScript é a versão para navegador do Java</label>
+<label><input type="radio" name="q3"> Java é a versão nova do JavaScript</label>
+<label><input type="radio" name="q3"> Código de Java roda no Node.js</label>
+<label><input type="radio" name="q3"> São linguagens diferentes; o nome parecido foi marketing</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que é o ECMAScript?</p>
+<label><input type="radio" name="q4"> O nome do padrão oficial da linguagem JavaScript</label>
+<label><input type="radio" name="q4"> Um concorrente do JavaScript</label>
+<label><input type="radio" name="q4"> O motor de JavaScript do Firefox</label>
+<label><input type="radio" name="q4"> Um programa para instalar o Node.js</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que mostra a mensagem <code>ReferenceError: Console is not defined</code>?</p>
+<label><input type="radio" name="q5"> Que faltou instalar o Node.js</label>
+<label><input type="radio" name="q5"> Que o nome foi escrito com maiúscula e esse nome não existe</label>
+<label><input type="radio" name="q5"> Que faltou o ponto e vírgula</label>
+<label><input type="radio" name="q5"> Que o arquivo não tem a extensão <code>.js</code></label>
+</div>
+
+<div class="exercise">
+<h3>6. O comando</h3>
+<p>Complete o comando que roda o arquivo <code>ola.js</code> no terminal:</p>
+<div class="ex-code">$ <input data-answer="node" aria-label="comando"> ola.js</div>
+</div>
+
+<div class="exercise">
+<h3>7. A extensão</h3>
+<p>Qual é a extensão dos arquivos de JavaScript (com o ponto)?</p>
+<div class="ex-code">receita<input data-answer=".js" aria-label="extensão"></div>
+</div>
+
+<div class="exercise">
+<h3>8. O motor</h3>
+<p>Qual é o nome do motor de JavaScript que o Node.js e o Chrome usam?</p>
+<div class="ex-code">Motor: <input data-answer="V8|v8" aria-label="motor"></div>
+</div>
+
+<h3>Missão final: apresente-se</h3>
+
+<div class="tryjs" data-goal="out:e vou aprender JavaScript!;;src:Meu nome é (?!\?\?\?);;semerro">
+<p class="try-task"><strong>Missão:</strong> troque os <code>???</code> pelo seu nome e acrescente uma linha que mostre <code>e vou aprender JavaScript!</code>.</p>
+<pre class="script" data-file="main.js">console.log("Meu nome é ???");
+</pre>
+<pre class="solucao" data-file="main.js">console.log("Meu nome é Ana");
+console.log("e vou aprender JavaScript!");
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Programar é escrever uma receita de passos para o computador, numa <strong>linguagem de programação</strong>. O computador faz exatamente o que está escrito.</li>
+  <li>O <strong>JavaScript</strong> é a linguagem que dá comportamento às páginas da Web (junto com o HTML e o CSS) e, com o <strong>Node.js</strong>, roda também no terminal.</li>
+  <li>Ele é <strong>interpretado</strong>: o motor (V8 no Chrome e no Node.js) lê o <code>.js</code> e executa, compilando na hora (JIT) os trechos que rodam muito.</li>
+  <li>Nasceu em 1995, na Netscape, criado por Brendan Eich. O padrão oficial se chama <strong>ECMAScript</strong>; desde 2015 sai uma edição por ano. Este guia ensina o <strong>ECMAScript 2025</strong> com o <strong>Node.js 24 LTS</strong>.</li>
+  <li>JavaScript <strong>não é</strong> Java: são linguagens diferentes.</li>
+  <li>Os primeiros erros: um nome que não existe dá <code>ReferenceError: … is not defined</code>; um erro de escrita dá <code>SyntaxError</code> e impede o programa inteiro de rodar. A mensagem sempre diz o arquivo e a linha.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
