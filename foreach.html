@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript forEach — chamando uma função para cada item do array | Guia JavaScript</title>
+<meta name="description" content="O método forEach do JavaScript para quem nunca programou: entregar uma arrow function que roda para cada item, o item, a posição e o array que ela recebe, passar uma função com nome, somar com forEach, por que ele devolve undefined e não para com break, o return que só pula o item, a pegadinha do forEach(console.log), forEach × for … of, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">forEach</span></h1>
+
+<p class="intro">Na aula <a href="for-of.html">for … of</a>, você percorreu um array com um laço. Os arrays também têm um método que faz isso por você: o <code>forEach</code> (em inglês, "para cada"). Em vez de escrever o laço, você entrega ao array uma <strong>função</strong> dizendo o que fazer com um item, e ele mesmo chama essa função para cada um dos seus itens. É o primeiro de uma família de métodos que trabalham assim (<a href="map.html">map</a>, <a href="filter.html">filter</a>, <a href="reduce.html">reduce</a>), e entender o <code>forEach</code> é o caminho para entender todos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um <code>forEach</code> com uma arrow function, e o que é cada parte.</li>
+  <li>Os três valores que a função recebe: o <strong>item</strong>, a <strong>posição</strong> e o <strong>array</strong>.</li>
+  <li>A passar uma função que já tem nome, em vez de escrever uma ali.</li>
+  <li>A somar e contar com <code>forEach</code>.</li>
+  <li>Por que o <code>forEach</code> devolve <code>undefined</code>, não para com <code>break</code>, e o que o <code>return</code> faz dentro dele.</li>
+  <li>A pegadinha do <code>forEach(console.log)</code>.</li>
+  <li>Quando usar <code>forEach</code> e quando usar <code>for … of</code>.</li>
+  <li>Os erros reais mais comuns: <code>Illegal break statement</code>, <code>undefined is not a function</code>, <code>forEach is not a function</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o bilhete de instruções</h2>
+<p>A Ana vai viajar e deixa as plantas aos cuidados da vizinha. Ela poderia escrever: "regue a samambaia; depois regue a violeta; depois regue a orquídea…". Em vez disso, entrega a lista das plantas e <strong>um bilhete só</strong>: "Para cada planta da lista: regue com um copo d'água". A vizinha pega o bilhete e repete as instruções para cada planta, uma de cada vez.</p>
+<p>No <code>forEach</code>, a lista é o array, e o bilhete é uma <strong>função</strong>. O array "lê" o bilhete uma vez para cada item, entregando o item da vez. Uma função entregue a outra para ser chamada depois se chama <strong>callback</strong> (em inglês, "chamar de volta"); você já usou uma no <a href="arrays-buscar.html">find</a>, e o assunto tem aula própria: <a href="funcoes-valores.html">Funções como Valores</a>.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>forEach</code></h2>
+
+<pre class="file" data-file="plantas.js">const plantas = ["samambaia", "violeta", "orquídea"];
+
+plantas.forEach((planta) =&gt; {
+  console.log(`Regando a ${planta}...`);
+});
+console.log("Todas regadas!");
+</pre>
+
+<dl class="anatomy">
+  <dt>plantas.forEach( … )</dt><dd>"Para cada item de <code>plantas</code>…". O <code>forEach</code> é um método do array, como o <code>push</code>; entre os parênteses vai a função.</dd>
+  <dt>(planta) =&gt; { … }</dt><dd>Uma <a href="arrow-functions.html">arrow function</a>: o "bilhete". O <code>planta</code> é o <strong>parâmetro</strong> (veja <a href="parametros.html">Parâmetros</a>): a cada chamada, o <code>forEach</code> põe nele o item da vez. Como no <code>for … of</code>, o costume é usar o singular do nome do array.</dd>
+  <dt>console.log(`Regando a ${planta}...`);</dt><dd>O corpo da função: o que fazer com cada item.</dd>
+  <dt>});</dt><dd>Atenção à ordem dos fechamentos: <code>}</code> fecha a função, <code>)</code> fecha os parênteses do <code>forEach</code>, e <code>;</code> encerra a instrução. Esquecer um deles é o erro de digitação mais comum com <code>forEach</code>.</dd>
+</dl>
+
+<pre class="term">$ node plantas.js
+Regando a samambaia...
+Regando a violeta...
+Regando a orquídea...
+Todas regadas!
+</pre>
+
+<p>A função rodou 3 vezes, uma por planta, na ordem do array. Só depois que o <code>forEach</code> terminou de passar por todas é que o <code>Todas regadas!</code> apareceu.</p>
+
+<h3>A forma curta</h3>
+<p>Quando o corpo tem uma linha só, dá para tirar as chaves (e, com um parâmetro só, até os parênteses dele), como você viu em <a href="arrow-functions.html">Arrow Functions</a>:</p>
+
+<pre class="file" data-file="curta.js">const plantas = ["samambaia", "violeta", "orquídea"];
+plantas.forEach((planta) =&gt; console.log(`Regando a ${planta}...`));
+plantas.forEach(planta =&gt; console.log(planta.toUpperCase()));
+</pre>
+
+<pre class="term">$ node curta.js
+Regando a samambaia...
+Regando a violeta...
+Regando a orquídea...
+SAMAMBAIA
+VIOLETA
+ORQUÍDEA
+</pre>
+
+<p>Neste guia, os parênteses em volta do parâmetro ficam sempre: <code>(planta) =&gt;</code>. É o que os formatadores de código mais usados fazem, e fica mais fácil de acrescentar um segundo parâmetro depois, como na próxima seção.</p>
+
+<div class="tryjs" data-goal="out:Bom dia, Ana!;;out:Bom dia, Bia!;;out:Bom dia, Caio!;;src:\.forEach\(">
+<p class="try-task"><strong>Missão:</strong> use o <code>forEach</code> para dar bom dia a cada aluno: <code>Bom dia, Ana!</code>, e assim por diante.</p>
+<pre class="script" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+// escreva o forEach aqui
+
+</pre>
+<pre class="solucao" data-file="main.js">const alunos = ["Ana", "Bia", "Caio"];
+// escreva o forEach aqui
+alunos.forEach((aluno) =&gt; {
+  console.log(`Bom dia, ${aluno}!`);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O item, a posição e o array</h2>
+<p>O <code>forEach</code> entrega <strong>três</strong> valores a cada chamada, nesta ordem: o item, a posição dele e o próprio array. Você recebe só os que quiser, escrevendo mais parâmetros:</p>
+
+<pre class="file" data-file="tres.js">const alunos = ["Ana", "Bia", "Caio"];
+
+alunos.forEach((aluno, i) =&gt; {
+  console.log(`${i + 1}. ${aluno}`);
+});
+
+alunos.forEach((aluno, i, lista) =&gt; {
+  console.log(`${aluno} é ${i + 1}º de ${lista.length}`);
+});
+</pre>
+
+<dl class="anatomy">
+  <dt>(aluno, i)</dt><dd>O primeiro parâmetro recebe o item; o segundo, a posição (começando do 0). Os nomes são escolha sua; <code>i</code> (de "índice") é o tradicional. O que manda é a <strong>ordem</strong>: o primeiro é sempre o item, o segundo sempre a posição.</dd>
+  <dt>(aluno, i, lista)</dt><dd>O terceiro recebe o array inteiro. É raro precisar dele, já que o array está ali mesmo na variável <code>alunos</code>.</dd>
+</dl>
+
+<pre class="term">$ node tres.js
+1. Ana
+2. Bia
+3. Caio
+Ana é 1º de 3
+Bia é 2º de 3
+Caio é 3º de 3
+</pre>
+
+<p>Essa é uma vantagem do <code>forEach</code> sobre o <code>for … of</code>: a posição vem de graça, sem o <code>entries()</code>.</p>
+
+<hr>
+
+<h2>3. Uma função que já tem nome</h2>
+<p>O bilhete não precisa ser escrito ali na hora. Se você já tem uma função pronta (veja <a href="funcoes.html">Funções</a>), entregue <strong>o nome dela</strong>, sem parênteses:</p>
+
+<pre class="file" data-file="nomeada.js">function regar(planta) {
+  console.log(`Regando a ${planta} com um copo d'água.`);
+}
+
+const plantas = ["samambaia", "violeta", "orquídea"];
+plantas.forEach(regar);
+</pre>
+
+<pre class="term">$ node nomeada.js
+Regando a samambaia com um copo d'água.
+Regando a violeta com um copo d'água.
+Regando a orquídea com um copo d'água.
+</pre>
+
+<p>Repare: <code>forEach(regar)</code>, e não <code>forEach(regar())</code>. Sem os parênteses, você entrega a <strong>função</strong> para o <code>forEach</code> chamar depois. Com os parênteses, você mesmo a chamaria na hora (uma vez só, sem planta nenhuma) e entregaria o resultado dela ao <code>forEach</code>, o que dá erro (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>4. Somar e contar com <code>forEach</code></h2>
+<p>Como no <code>for … of</code>, uma variável criada <strong>antes</strong> pode ir acumulando. A função de dentro enxerga as variáveis de fora:</p>
+
+<pre class="file" data-file="soma.js">const vendas = [120, 98, 143, 110, 87];
+let total = 0;
+let diasBons = 0;
+
+vendas.forEach((venda) =&gt; {
+  total += venda;
+  if (venda &gt;= 110) {
+    diasBons++;
+  }
+});
+
+console.log(`Total da semana: ${total} pães`);
+console.log(`Dias com 110 ou mais: ${diasBons}`);
+</pre>
+
+<pre class="term">$ node soma.js
+Total da semana: 558 pães
+Dias com 110 ou mais: 3
+</pre>
+
+<p>Funciona, mas para somar existe um método feito sob medida, o <a href="reduce.html">reduce</a>, e para contar os que obedecem a uma regra, o <a href="filter.html">filter</a> com <code>length</code>. O <code>forEach</code> é o mais genérico: ele só "faz alguma coisa" com cada item.</p>
+
+<div class="tryjs" data-goal="out:Total: R$ 27.5;;src:\.forEach\(">
+<p class="try-task"><strong>Missão:</strong> some os preços dos pães com <code>forEach</code>.</p>
+<pre class="script" data-file="main.js">const precos = [2.5, 8, 4, 13];
+let total = 0;
+// some com forEach aqui
+
+console.log(`Total: R$ ${total}`);
+</pre>
+<pre class="solucao" data-file="main.js">const precos = [2.5, 8, 4, 13];
+let total = 0;
+// some com forEach aqui
+precos.forEach((preco) =&gt; {
+  total += preco;
+});
+console.log(`Total: R$ ${total}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>5. O que o <code>forEach</code> não faz</h2>
+
+<h3>Ele devolve <code>undefined</code></h3>
+<p>O <code>forEach</code> só "faz": ele não monta nenhum resultado. O que ele devolve é sempre <code>undefined</code>, mesmo que a função de dentro tenha <code>return</code>:</p>
+
+<pre class="file" data-file="devolve.js">const notas = [7, 8, 6];
+const resultado = notas.forEach((nota) =&gt; nota + 1);
+console.log(resultado);
+console.log(notas);
+</pre>
+
+<pre class="term">$ node devolve.js
+undefined
+[ 7, 8, 6 ]
+</pre>
+
+<p>Se você quer um array novo com os resultados (cada nota mais 1), o método certo é o <a href="map.html">map</a>, da próxima aula.</p>
+
+<h3>Ele não para no meio</h3>
+<p>O <code>forEach</code> sempre passa por <strong>todos</strong> os itens. Não existe <code>break</code> para ele (o Node recusa o programa, como você vai ver em <a href="#errado">Quando dá errado</a>). E um <code>return</code> dentro da função só termina <strong>aquela chamada</strong>: o <code>forEach</code> segue com o próximo item, como um <code>continue</code>:</p>
+
+<pre class="file" data-file="return.js">const pedidos = ["pão", "", "café", "FIM", "bolo"];
+
+pedidos.forEach((pedido) =&gt; {
+  if (pedido === "" || pedido === "FIM") {
+    return;
+  }
+  console.log(`Separando: ${pedido}`);
+});
+</pre>
+
+<pre class="term">$ node return.js
+Separando: pão
+Separando: café
+Separando: bolo
+</pre>
+
+<p>O <code>return</code> no <code>"FIM"</code> não parou nada: o bolo foi separado do mesmo jeito. Se você precisa parar no meio, use o <a href="for-of.html">for … of</a> com <code>break</code>, ou um método que para sozinho quando acha o que procura (<a href="arrays-buscar.html">find</a>, <code>some</code>).</p>
+
+<hr>
+
+<h2>6. A pegadinha do <code>forEach(console.log)</code></h2>
+<p>Já que dá para passar uma função pelo nome, que tal passar o próprio <code>console.log</code>? Parece uma ótima ideia:</p>
+
+<pre class="file" data-file="pegadinha.js">const frutas = ["maçã", "uva"];
+frutas.forEach(console.log);
+</pre>
+
+<pre class="term">$ node pegadinha.js
+maçã 0 [ 'maçã', 'uva' ]
+uva 1 [ 'maçã', 'uva' ]
+</pre>
+
+<p>Lembra dos três valores da seção 2? O <code>forEach</code> chamou <code>console.log(item, posição, array)</code>, e o <code>console.log</code> mostra tudo o que recebe. Para mostrar só o item, escreva a função: <code>frutas.forEach((fruta) =&gt; console.log(fruta));</code>.</p>
+
+<hr>
+
+<h2>7. No modo interativo</h2>
+<p>No modo interativo (veja <a href="repl.html">O Modo Interativo</a>), o <code>forEach</code> mostra o que a função escreve e, no fim, o <code>undefined</code> que ele devolve:</p>
+
+<pre class="term">$ node
+Welcome to Node.js v24.22.0.
+Type ".help" for more information.
+&gt; const n = [1, 2, 3]
+undefined
+&gt; n.forEach((x) =&gt; console.log(x * 10))
+10
+20
+30
+undefined
+&gt; .exit
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: <code>forEach</code> ou <code>for … of</code>?</h2>
+<p>Os dois percorrem o array inteiro, na ordem. O resultado é o mesmo:</p>
+
+<pre class="file" data-file="formas.js">const alunos = ["Ana", "Bia", "Caio"];
+
+alunos.forEach((aluno, i) =&gt; {
+  console.log(`${i}: ${aluno}`);
+});
+
+for (const [i, aluno] of alunos.entries()) {
+  console.log(`${i}: ${aluno}`);
+}
+</pre>
+
+<pre class="term">$ node formas.js
+0: Ana
+1: Bia
+2: Caio
+0: Ana
+1: Bia
+2: Caio
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Fazer algo com cada item, já tendo uma função pronta</td><td><code>lista.forEach(funcao)</code></td></tr>
+<tr><td>Precisar da posição sem complicar</td><td><code>forEach((item, i) =&gt; …)</code></td></tr>
+<tr><td>Parar no meio (<code>break</code>)</td><td><code>for … of</code> (o <code>forEach</code> não para)</td></tr>
+<tr><td>Percorrer uma string ou outro iterável que não é array</td><td><code>for … of</code> (strings não têm <code>forEach</code>)</td></tr>
+<tr><td>Usar <code>await</code> dentro do laço (aula <a href="async-await.html">async e await</a>)</td><td><code>for … of</code></td></tr>
+<tr><td>Montar um array novo transformado</td><td><a href="map.html">map</a> (não <code>forEach</code> + <code>push</code>)</td></tr>
+<tr><td>Montar um array com só alguns itens</td><td><a href="filter.html">filter</a></td></tr>
+<tr><td>Somar tudo num valor só</td><td><a href="reduce.html">reduce</a> (ou um <code>for … of</code> com acumulador)</td></tr>
+</table>
+</div>
+
+<p>Na dúvida entre os dois, muitas equipes preferem o <code>for … of</code> pelo <code>break</code> e pelo <code>await</code>. O <code>forEach</code> brilha quando a função já existe e tem um bom nome: <code>pedidos.forEach(imprimirEtiqueta)</code> se lê quase como português.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>break</code> dentro do <code>forEach</code></strong>
+<pre class="file" data-file="break.js">const pedidos = ["pão", "café", "FIM", "bolo"];
+pedidos.forEach((pedido) =&gt; {
+  if (pedido === "FIM") {
+    break;
+  }
+  console.log(pedido);
+});
+</pre>
+<pre class="term">$ node break.js
+/home/ana/break.js:4
+    break;
+    ^^^^^
+
+SyntaxError: Illegal break statement
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « e mais 7 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/break.js:4 e os ^^^^^</dt><dd>O Node sublinhou a palavra <code>break</code> inteira, na linha 4.</dd>
+  <dt>SyntaxError: Illegal break statement</dt><dd>"Erro de sintaxe: instrução <code>break</code> ilegal". O <code>break</code> só pode sair de um <strong>laço</strong> (ou de um <code>switch</code>), e aqui ele está dentro de uma <strong>função</strong>: a arrow function não é um laço. Quem repete é o <code>forEach</code>, por dentro, e o <code>break</code> não consegue alcançá-lo.</dd>
+  <dt>at wrapSafe (node:internal/…)</dt><dd>Como em todo erro de sintaxe, a pilha só tem linhas internas do Node, e o programa nem começou: nenhum pedido foi mostrado.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se precisa parar no meio, troque por <code>for (const pedido of pedidos)</code>, onde o <code>break</code> funciona. Se queria só pular aquele item, use <code>return;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou a função em vez de entregá-la</strong>
+<pre class="file" data-file="chamou.js">function regar(planta) {
+  console.log(`Regando a ${planta}.`);
+}
+const plantas = ["samambaia", "violeta"];
+plantas.forEach(regar());
+</pre>
+<pre class="term">$ node chamou.js
+Regando a undefined.
+/home/ana/chamou.js:5
+plantas.forEach(regar());
+        ^
+
+TypeError: undefined is not a function
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/chamou.js:5:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Regando a undefined.</dt><dd>Antes do erro, a função rodou <strong>uma vez</strong>: o <code>regar()</code> com parênteses foi chamado na hora, sem planta nenhuma, então <code>planta</code> valia <code>undefined</code>.</dd>
+  <dt>TypeError: undefined is not a function</dt><dd>A função <code>regar</code> não tem <code>return</code>, então devolveu <code>undefined</code>, e foi isso que o <code>forEach</code> recebeu. Quando ele tentou chamar esse "bilhete" para a primeira planta: "<code>undefined</code> não é uma função".</dd>
+  <dt>at Array.forEach (&lt;anonymous&gt;)</dt><dd>O erro aconteceu dentro do <code>forEach</code> (código do próprio JavaScript). A linha de baixo, <code>/home/ana/chamou.js:5:9</code>, é a linha do seu arquivo que o chamou.</dd>
+</dl>
+<p><strong>Como consertar:</strong> entregue a função sem chamá-la: <code>plantas.forEach(regar);</code>. O mesmo erro aparece com <code>plantas.forEach()</code>, sem nada entre os parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong><code>forEach</code> numa string</strong>
+<pre class="file" data-file="string.js">const palavra = "pão";
+palavra.forEach((letra) =&gt; console.log(letra));
+</pre>
+<pre class="term">$ node string.js
+/home/ana/string.js:2
+palavra.forEach((letra) =&gt; console.log(letra));
+        ^
+
+TypeError: palavra.forEach is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/string.js:2:9)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)  « e mais 6 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de tipo: <code>palavra.forEach</code> não é uma função". O <code>forEach</code> é dos arrays; as strings não têm. <strong>Como consertar:</strong> percorra a string com <code>for (const letra of palavra)</code> (aula <a href="for-of.html">for … of</a>), ou transforme-a num array de letras antes: <code>Array.from(palavra).forEach(…)</code>. O mesmo erro aparece com o nome escrito errado: <code>foreach</code>, com o <code>e</code> minúsculo, dá <code>palavra.foreach is not a function</code> também num array.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>)</code> do fim</strong>
+<pre class="file" data-file="parenteses.js">const plantas = ["samambaia", "violeta"];
+plantas.forEach((planta) =&gt; {
+  console.log(planta);
+};
+</pre>
+<pre class="term">$ node parenteses.js
+/home/ana/parenteses.js:4
+};
+^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1861:18)  « e mais 7 linhas internas do Node (node:internal/…), cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"Erro de sintaxe: falta <code>)</code> depois da lista de argumentos". A <code>}</code> da linha 4 fechou a função, mas o parêntese que abriu em <code>forEach(</code> continuou aberto; o Node achou o <code>;</code> antes do <code>)</code>. <strong>Como consertar:</strong> o fim de um <code>forEach</code> com chaves é sempre <code>});</code>: a chave da função, o parêntese do <code>forEach</code>, o ponto e vírgula.</p>
+</div>
+
+<div class="tryjs" data-goal="out:1. samambaia;;out:2. violeta;;out:3. orquídea;;semerro;;src:\.forEach\(">
+<p class="try-task"><strong>Missão:</strong> o programa devia numerar as plantas a partir de 1, mas dá erro. Rode, leia a mensagem e conserte.</p>
+<pre class="script" data-file="main.js">const plantas = ["samambaia", "violeta", "orquídea"];
+plantas.forEach((planta) =&gt; {
+  console.log(`${i + 1}. ${planta}`);
+});
+</pre>
+<pre class="solucao" data-file="main.js">const plantas = ["samambaia", "violeta", "orquídea"];
+plantas.forEach((planta, i) =&gt; {
+  console.log(`${i + 1}. ${planta}`);
+});
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista.forEach((item) =&gt; { … });</code></td><td>Chama a função uma vez para cada item, na ordem</td></tr>
+<tr><td><code>lista.forEach((item, i) =&gt; …)</code></td><td>Recebe também a posição</td></tr>
+<tr><td><code>lista.forEach((item, i, arr) =&gt; …)</code></td><td>Recebe também o próprio array</td></tr>
+<tr><td><code>lista.forEach(funcao)</code></td><td>Entrega uma função que já tem nome (sem parênteses!)</td></tr>
+<tr><td><code>return;</code> dentro da função</td><td>Pula para o próximo item (não para o <code>forEach</code>)</td></tr>
+<tr><td>Valor devolvido</td><td>Sempre <code>undefined</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>SyntaxError: Illegal break statement</code></td><td><code>break</code> dentro da função do <code>forEach</code></td></tr>
+<tr><td><code>TypeError: undefined is not a function</code> (com <code>at Array.forEach</code>)</td><td>Escreveu <code>forEach(funcao())</code> em vez de <code>forEach(funcao)</code></td></tr>
+<tr><td><code>TypeError: palavra.forEach is not a function</code></td><td>Não é um array (string, número…) ou o nome está errado (<code>foreach</code>)</td></tr>
+<tr><td><code>SyntaxError: missing ) after argument list</code></td><td>Faltou o <code>)</code> depois da <code>}</code> da função</td></tr>
+<tr><td>A variável com o resultado vale <code>undefined</code></td><td>O <code>forEach</code> não devolve nada; use <code>map</code></td></tr>
+<tr><td>Saem números e o array junto com cada item</td><td><code>forEach(console.log)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code">cores.<input data-answer="forEach" aria-label="nome do método">((cor) =&gt; console.log(cor));</div>
+</div>
+
+<div class="exercise">
+<h3>2. O segundo parâmetro</h3>
+<p>Em <code>lista.forEach((a, b) =&gt; …)</code>, o que o <code>b</code> recebe? Responda com uma palavra: <code>item</code>, <code>posição</code> ou <code>array</code>.</p>
+<div class="ex-code"><input data-answer="posição|posicao" aria-label="o que b recebe"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O que sai?</h3>
+<pre class="file" data-file="ex3.js">const r = [1, 2, 3].forEach((n) =&gt; n * 2);
+console.log(r);
+</pre>
+<div class="ex-code">Mostra <input data-answer="undefined" aria-label="valor">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Dentro da função do <code>forEach</code>, o que um <code>return;</code> faz?</p>
+<label><input type="radio" name="q4"> Para o <code>forEach</code> inteiro</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> Termina só a chamada daquele item; o <code>forEach</code> segue com o próximo</label>
+<label><input type="radio" name="q4"> Faz o <code>forEach</code> devolver o valor</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual linha entrega corretamente a função <code>mostrar</code> ao <code>forEach</code>?</p>
+<label><input type="radio" name="q5"> <code>lista.forEach(mostrar);</code></label>
+<label><input type="radio" name="q5"> <code>lista.forEach(mostrar());</code></label>
+<label><input type="radio" name="q5"> <code>lista.forEach("mostrar");</code></label>
+<label><input type="radio" name="q5"> <code>forEach(lista, mostrar);</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Você precisa parar de percorrer a lista assim que achar um produto vencido. O que usa?</p>
+<label><input type="radio" name="q6"> <code>forEach</code> com <code>break</code></label>
+<label><input type="radio" name="q6"> <code>for … of</code> com <code>break</code></label>
+<label><input type="radio" name="q6"> <code>forEach</code> com <code>return</code></label>
+<label><input type="radio" name="q6"> <code>forEach</code> com <code>continue</code></label>
+</div>
+
+<h3>Missão final: as etiquetas da padaria</h3>
+
+<div class="tryjs" data-goal="out:#1 Pão francês ... R$ 0.9;;out:#3 Sonho ... R$ 6.5;;out:Etiquetas impressas: 4;;semerro;;src:\.forEach\(\s*imprimirEtiqueta\s*\)">
+<p class="try-task"><strong>Missão:</strong> a função <code>imprimirEtiqueta</code> já está pronta, mas ainda falta o número. (1) Faça a função receber também a posição (segundo parâmetro) e mostrar <code>#1 Pão francês ... R$ 0.9</code> (a posição + 1). (2) Entregue a função ao <code>forEach</code> <strong>pelo nome</strong>. (3) Mostre quantas etiquetas foram impressas usando o <code>length</code>.</p>
+<pre class="script" data-file="main.js">const produtos = ["Pão francês", "Pão de queijo", "Sonho", "Bolo de fubá"];
+const precos = [0.9, 4, 6.5, 12];
+
+function imprimirEtiqueta(produto) {
+  console.log(`${produto}`);
+}
+
+// (2) e (3) aqui
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = ["Pão francês", "Pão de queijo", "Sonho", "Bolo de fubá"];
+const precos = [0.9, 4, 6.5, 12];
+
+function imprimirEtiqueta(produto, i) {
+  console.log(`#${i + 1} ${produto} ... R$ ${precos[i]}`);
+}
+
+// (2) e (3) aqui
+produtos.forEach(imprimirEtiqueta);
+console.log(`Etiquetas impressas: ${produtos.length}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou as quatro etiquetas, de <code>#1 Pão francês ... R$ 0.9</code> até <code>#4 Bolo de fubá ... R$ 12</code>, e <code>Etiquetas impressas: 4</code>. Repare no truque: a posição <code>i</code> serve para pegar, no outro array, o preço do mesmo produto.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>lista.forEach(funcao)</code> chama a função uma vez para cada item, na ordem. A função entregue é um <strong>callback</strong>.</li>
+  <li>A função recebe <code>(item, posição, array)</code>; use só os que precisar, na ordem.</li>
+  <li>Dá para escrever uma arrow function ali ou entregar uma função pelo nome, <strong>sem parênteses</strong>.</li>
+  <li>O <code>forEach</code> devolve sempre <code>undefined</code>. Para um array novo, use <code>map</code>; para filtrar, <code>filter</code>.</li>
+  <li>Ele não para: <code>break</code> dá erro de sintaxe e <code>return</code> só pula o item. Para parar no meio, use <code>for … of</code>.</li>
+  <li>Strings não têm <code>forEach</code>; <code>forEach(console.log)</code> mostra item, posição e array.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
