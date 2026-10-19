@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript sort e toSorted — ordenando arrays | Guia JavaScript</title>
+<meta name="description" content="Como ordenar arrays no JavaScript para quem nunca programou: sort, a pegadinha dos números ordenados como texto, a função de comparação (a - b), toSorted sem mudar o original, acentos e maiúsculas com localeCompare, ordenar objetos, reverse e toReversed, e os erros reais do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">sort</span> e <span class="hl">toSorted</span></h1>
+
+<p class="intro">Pôr as coisas em ordem é uma das tarefas mais comuns de um programa: a lista de chamada em ordem alfabética, os produtos do mais barato ao mais caro, o ranking das notas da turma. Os arrays do JavaScript têm dois métodos para isso: o <code>sort</code> (em inglês, "<strong>ordenar</strong>"), que arruma o próprio array, e o <code>toSorted</code> ("<strong>para ordenado</strong>"), que devolve uma cópia arrumada e deixa o original como estava. Os dois escondem uma pegadinha famosa com números, que você vai ver logo no começo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ordenar textos com <code>sort()</code>, e por que ele <strong>muda</strong> o array original.</li>
+  <li>A pegadinha: por que <code>[10, 9, 100, 1, 25].sort()</code> dá <code>[ 1, 10, 100, 25, 9 ]</code>.</li>
+  <li>A <strong>função de comparação</strong>: <code>(a, b) =&gt; a - b</code> para crescente, <code>b - a</code> para decrescente.</li>
+  <li>O <code>toSorted</code> <span class="versao">ES2023</span>, que ordena sem estragar o original.</li>
+  <li>Acentos e maiúsculas: <code>localeCompare</code>.</li>
+  <li>Como ordenar objetos (por preço, por nome) e o que acontece com os empates.</li>
+  <li><code>reverse</code> e <code>toReversed</code>: inverter a ordem.</li>
+  <li>Os erros reais: a função que devolve <code>true</code>/<code>false</code>, o <code>a - b</code> em textos, o <code>localeCompare</code> em números.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: arrumar a fila comparando de dois em dois</h2>
+<p>A professora da Ana quer os alunos em fila, em ordem alfabética. Ela não precisa saber nenhum método mágico: basta olhar <strong>dois alunos de cada vez</strong> e decidir "quem fica na frente?". Repetindo essa pergunta várias vezes, a fila inteira fica em ordem.</p>
+<p>O <code>sort</code> trabalha assim. Ele escolhe pares de itens, pergunta "quem vem antes?" e vai trocando de lugar. O jeito exato de escolher os pares é assunto dele (você não precisa saber); a sua parte é só dizer <strong>como comparar dois itens</strong>. Se você não disser nada, ele usa uma regra própria, e é aí que mora a pegadinha.</p>
+
+<hr>
+
+<h2>1. Ordenando textos com <code>sort()</code></h2>
+
+<pre class="file" data-file="nomes.js">const chamada = ["Caio", "Ana", "Davi", "Bia"];
+chamada.sort();
+console.log(chamada);
+</pre>
+
+<pre class="term">$ node nomes.js
+[ 'Ana', 'Bia', 'Caio', 'Davi' ]
+</pre>
+
+<dl class="anatomy">
+  <dt>chamada.sort()</dt><dd>Ordena o array <code>chamada</code>. Sem nada entre os parênteses, a regra é a de "dicionário": compara os textos letra por letra.</dd>
+  <dt>console.log(chamada)</dt><dd>Repare que mostramos <code>chamada</code>, o <strong>mesmo</strong> array. O <code>sort</code> não criou uma lista nova: ele <strong>arrumou a lista que já existia</strong>, mudando os itens de lugar.</dd>
+</dl>
+
+<p>O <code>sort</code> também <strong>devolve</strong> o array, mas é o mesmo array, e não uma cópia:</p>
+
+<pre class="file" data-file="devolve.js">const chamada = ["Caio", "Ana", "Davi", "Bia"];
+const ordenada = chamada.sort();
+console.log("ordenada:", ordenada);
+console.log("chamada: ", chamada);
+console.log(ordenada === chamada);
+</pre>
+
+<pre class="term">$ node devolve.js
+ordenada: [ 'Ana', 'Bia', 'Caio', 'Davi' ]
+chamada:  [ 'Ana', 'Bia', 'Caio', 'Davi' ]
+true
+</pre>
+
+<p>O <code>true</code> no fim confirma: <code>ordenada</code> e <code>chamada</code> são <strong>o mesmo array</strong> com dois nomes (aula <a href="objetos-referencia.html">Objetos são Referências</a>). A ordem original, com o Caio na frente, se perdeu. Na seção 4 você vê como ordenar sem perder o original.</p>
+
+<div class="note">
+<strong>Mas o array não era <code>const</code>?</strong>
+<p>Era, e mesmo assim o <code>sort</code> funcionou. O <code>const</code> só proíbe pôr <strong>outro</strong> array na variável (<code>chamada = […]</code>); ele não impede de mudar os itens de dentro (aula <a href="const.html">Constantes</a>).</p>
+</div>
+
+<hr>
+
+<h2>2. A pegadinha dos números</h2>
+<p>A Ana anotou as idades das pessoas da família e pediu para ordenar:</p>
+
+<pre class="file" data-file="numeros.js">const idades = [10, 9, 100, 1, 25];
+idades.sort();
+console.log(idades);
+</pre>
+
+<pre class="term">$ node numeros.js
+[ 1, 10, 100, 25, 9 ]
+</pre>
+
+<p>O 9 ficou no fim, depois do 100! Não é um defeito do Node: é a regra. Sem uma função de comparação, o <code>sort</code> <strong>transforma cada item em texto</strong> e compara os textos como no dicionário, letra por letra (aqui, algarismo por algarismo):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Como texto</th><th>Primeiro caractere</th><th>Por que ficou nesse lugar</th></tr>
+<tr><td><code>"1"</code></td><td>1</td><td>Começa com 1 e é o mais curto</td></tr>
+<tr><td><code>"10"</code></td><td>1</td><td>Também começa com 1, mas é mais comprido que <code>"1"</code> (como "mar" vem antes de "mares")</td></tr>
+<tr><td><code>"100"</code></td><td>1</td><td>Começa com <code>"10"</code> e é mais comprido que ele</td></tr>
+<tr><td><code>"25"</code></td><td>2</td><td>2 vem depois de 1</td></tr>
+<tr><td><code>"9"</code></td><td>9</td><td>9 vem depois de 2: no dicionário, <code>"9"</code> é "maior" que <code>"25"</code></td></tr>
+</table>
+</div>
+
+<p>É a mesma coisa que pôr "zebra" depois de "abacaxi", mesmo sendo uma palavra mais curta. Para os números ficarem na ordem de <strong>valor</strong>, você precisa dizer ao <code>sort</code> como comparar.</p>
+
+<hr>
+
+<h2>3. A função de comparação</h2>
+
+<pre class="file" data-file="comparar.js">const idades = [10, 9, 100, 1, 25];
+idades.sort((a, b) =&gt; a - b);
+console.log("crescente:  ", idades);
+idades.sort((a, b) =&gt; b - a);
+console.log("decrescente:", idades);
+</pre>
+
+<pre class="term">$ node comparar.js
+crescente:   [ 1, 9, 10, 25, 100 ]
+decrescente: [ 100, 25, 10, 9, 1 ]
+</pre>
+
+<dl class="anatomy">
+  <dt>(a, b) =&gt; a - b</dt><dd>A <strong>função de comparação</strong> (em inglês, <em>compare function</em>). O <code>sort</code> a chama várias vezes, cada vez com <strong>dois itens</strong> do array, <code>a</code> e <code>b</code>, e pergunta: "quem vem antes?".</dd>
+  <dt>a - b</dt><dd>A resposta é um <strong>número</strong>, e só o sinal dele importa (veja a tabela abaixo). Se <code>a</code> for menor, <code>a - b</code> é negativo, e o <code>a</code> fica na frente: ordem <strong>crescente</strong>.</dd>
+  <dt>b - a</dt><dd>A conta ao contrário: o maior fica na frente, ordem <strong>decrescente</strong>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>A função devolve…</th><th>O <code>sort</code> entende</th><th>Exemplo com <code>a - b</code></th></tr>
+<tr><td>Um número <strong>negativo</strong></td><td><code>a</code> vem antes de <code>b</code></td><td><code>a = 9, b = 25</code> → <code>-16</code>: o 9 fica antes</td></tr>
+<tr><td>Um número <strong>positivo</strong></td><td><code>b</code> vem antes de <code>a</code></td><td><code>a = 100, b = 25</code> → <code>75</code>: o 25 fica antes</td></tr>
+<tr><td><strong>Zero</strong></td><td>Tanto faz: os dois são "iguais"; ficam na ordem em que estavam</td><td><code>a = 10, b = 10</code> → <code>0</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Para decorar</strong>
+<p><code>a - b</code>: do menor para o maior (como uma escada subindo). <code>b - a</code>: do maior para o menor. Funciona para números, para preços, para notas e para qualquer valor numérico de um objeto (seção 6).</p>
+</div>
+
+<div class="tryjs" data-goal="out:[ 1, 9, 10, 25, 100 ];;src:sort\(\s*\(">
+<p class="try-task"><strong>Missão:</strong> rode e veja a pegadinha: o 9 vai para o fim. Depois passe ao <code>sort</code> uma função de comparação para as idades saírem em ordem crescente: <code>[ 1, 9, 10, 25, 100 ]</code>. Para terminar, experimente a ordem decrescente.</p>
+<pre class="script" data-file="main.js">const idades = [10, 9, 100, 1, 25];
+idades.sort();
+console.log(idades);
+</pre>
+<pre class="solucao" data-file="main.js">const idades = [10, 9, 100, 1, 25];
+idades.sort((a, b) =&gt; a - b);
+console.log(idades);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>toSorted</code>: ordenar sem mudar o original <span class="versao">ES2023</span></h2>
+<p>Muitas vezes você quer as duas coisas: a lista na ordem em que foi digitada <strong>e</strong> uma versão ordenada. O <code>toSorted</code> aceita a mesma função de comparação do <code>sort</code>, mas devolve um <strong>array novo</strong> e não toca no original:</p>
+
+<pre class="file" data-file="tosorted.js">const notas = [7, 4.5, 9, 6, 8.5];
+const ordenadas = notas.toSorted((a, b) =&gt; a - b);
+console.log("ordenadas:", ordenadas);
+console.log("original: ", notas);
+</pre>
+
+<pre class="term">$ node tosorted.js
+ordenadas: [ 4.5, 6, 7, 8.5, 9 ]
+original:  [ 7, 4.5, 9, 6, 8.5 ]
+</pre>
+
+<p>O <code>toSorted</code> entrou no JavaScript em 2023 (ECMAScript 2023) e existe no Node.js desde a versão 20. Em código mais antigo, você vai encontrar o mesmo efeito escrito com uma cópia antes do <code>sort</code>:</p>
+
+<pre class="file" data-file="copias.js">const notas = [7, 4.5, 9];
+const a = notas.toSorted((x, y) =&gt; x - y);
+const b = [...notas].sort((x, y) =&gt; x - y);
+const c = notas.slice().sort((x, y) =&gt; x - y);
+console.log(a, b, c, notas);
+</pre>
+
+<pre class="term">$ node copias.js
+[ 4.5, 7, 9 ] [ 4.5, 7, 9 ] [ 4.5, 7, 9 ] [ 7, 4.5, 9 ]
+</pre>
+
+<p>As três formas dão o mesmo resultado e as três deixam <code>notas</code> intacto. O <code>[...notas]</code> e o <code>notas.slice()</code> fazem uma cópia (aula <a href="arrays-copiar.html">Copiando Arrays</a>), e o <code>sort</code> arruma a cópia. Em código novo, prefira o <code>toSorted</code>: diz o que faz numa palavra só.</p>
+
+<hr>
+
+<h2>5. Acentos e maiúsculas: <code>localeCompare</code></h2>
+<p>A regra de "dicionário" do <code>sort()</code> não é o dicionário do português: ela compara os <strong>códigos</strong> dos caracteres (o Unicode). Nesses códigos, todas as maiúsculas vêm antes de todas as minúsculas, e as letras com acento vêm depois do <code>z</code>:</p>
+
+<pre class="file" data-file="acentos.js">const frutas = ["banana", "Abacaxi", "maçã", "abacate", "Uva", "ameixa"];
+console.log(frutas.toSorted());
+console.log(frutas.toSorted((a, b) =&gt; a.localeCompare(b)));
+</pre>
+
+<pre class="term">$ node acentos.js
+[ 'Abacaxi', 'Uva', 'abacate', 'ameixa', 'banana', 'maçã' ]
+[ 'abacate', 'Abacaxi', 'ameixa', 'banana', 'maçã', 'Uva' ]
+</pre>
+
+<p>Na primeira linha, <code>'Uva'</code> ficou antes de <code>'abacate'</code> só porque começa com maiúscula. Na segunda, com o <code>localeCompare</code>, a ordem é a que uma pessoa esperaria. Com acentos, a diferença é ainda maior:</p>
+
+<pre class="file" data-file="acentos2.js">const palavras = ["ovo", "óculos", "água", "zebra", "abelha"];
+console.log(palavras.toSorted());
+console.log(palavras.toSorted((a, b) =&gt; a.localeCompare(b, "pt-BR")));
+console.log("a".localeCompare("b"), "b".localeCompare("a"), "a".localeCompare("a"));
+</pre>
+
+<pre class="term">$ node acentos2.js
+[ 'abelha', 'ovo', 'zebra', 'água', 'óculos' ]
+[ 'abelha', 'água', 'óculos', 'ovo', 'zebra' ]
+-1 1 0
+</pre>
+
+<dl class="anatomy">
+  <dt>a.localeCompare(b)</dt><dd>Um método dos textos: "compare de acordo com o idioma" (<em>locale</em> = "local", a região e a língua). Ele devolve <code>-1</code> se <code>a</code> vem antes, <code>1</code> se vem depois e <code>0</code> se são iguais, exatamente o que a função de comparação precisa devolver. Por isso dá para usá-lo direto.</dd>
+  <dt>"pt-BR"</dt><dd>Opcional: o idioma das regras. Sem ele, vale o idioma do sistema. Escrever <code>"pt-BR"</code> garante a ordem do português do Brasil em qualquer computador.</dd>
+</dl>
+
+<p><strong>Regra prática:</strong> para ordenar textos que uma pessoa vai ler (nomes, produtos, cidades), use <code>(a, b) =&gt; a.localeCompare(b)</code>. O <code>sort()</code> sem nada só serve para textos simples, sem acentos e todos com a mesma caixa (maiúsculas ou minúsculas).</p>
+
+<hr>
+
+<h2>6. Ordenando objetos</h2>
+<p>Com uma lista de produtos, a função de comparação escolhe <strong>qual informação</strong> comparar. Os objetos têm aula própria (<a href="objetos.html">Objetos</a>); aqui basta saber que <code>a.preco</code> é o preço do produto <code>a</code>:</p>
+
+<pre class="file" data-file="objetos.js">const produtos = [
+  { nome: "caderno", preco: 18 },
+  { nome: "mochila", preco: 129 },
+  { nome: "caneta", preco: 3 },
+  { nome: "estojo", preco: 25 },
+];
+const porPreco = produtos.toSorted((a, b) =&gt; a.preco - b.preco);
+console.log(porPreco);
+const porNome = produtos.toSorted((a, b) =&gt; a.nome.localeCompare(b.nome));
+console.log(porNome.map((p) =&gt; p.nome).join(", "));
+</pre>
+
+<pre class="term">$ node objetos.js
+[
+  { nome: 'caneta', preco: 3 },
+  { nome: 'caderno', preco: 18 },
+  { nome: 'estojo', preco: 25 },
+  { nome: 'mochila', preco: 129 }
+]
+caderno, caneta, estojo, mochila
+</pre>
+
+<p>Para preços (números), a mesma conta <code>a.preco - b.preco</code>. Para nomes (textos), o <code>localeCompare</code>. A última linha usa o <a href="map.html">map</a> para pegar só os nomes e o <code>join</code> para juntá-los.</p>
+
+<h3>E os empates?</h3>
+<p>No ranking da turma, a Bia e o Caio tiraram 8; a Ana e o Davi tiraram 9:</p>
+
+<pre class="file" data-file="estavel.js">const alunos = [
+  { nome: "Bia", nota: 8 },
+  { nome: "Ana", nota: 9 },
+  { nome: "Caio", nota: 8 },
+  { nome: "Davi", nota: 9 },
+];
+const ranking = alunos.toSorted((a, b) =&gt; b.nota - a.nota);
+for (const aluno of ranking) {
+  console.log(`${aluno.nota} - ${aluno.nome}`);
+}
+</pre>
+
+<pre class="term">$ node estavel.js
+9 - Ana
+9 - Davi
+8 - Bia
+8 - Caio
+</pre>
+
+<p>Quando a função devolve 0 (empate), os dois itens ficam <strong>na ordem em que já estavam</strong>: a Bia vinha antes do Caio na lista original, e continua antes. Os programadores chamam isso de ordenação <strong>estável</strong>, e o JavaScript garante esse comportamento desde 2019 (ECMAScript 2019).</p>
+
+<hr>
+
+<h2>7. Invertendo: <code>reverse</code> e <code>toReversed</code></h2>
+<p>Às vezes você não quer ordenar, só <strong>virar a lista de trás para a frente</strong>. A dupla é parecida com <code>sort</code>/<code>toSorted</code>: <code>reverse</code> ("inverter") muda o original; <code>toReversed</code> <span class="versao">ES2023</span> devolve uma cópia invertida.</p>
+
+<pre class="file" data-file="reverse.js">const fila = ["Ana", "Bia", "Caio"];
+console.log(fila.toReversed());
+console.log(fila);
+fila.reverse();
+console.log(fila);
+</pre>
+
+<pre class="term">$ node reverse.js
+[ 'Caio', 'Bia', 'Ana' ]
+[ 'Ana', 'Bia', 'Caio' ]
+[ 'Caio', 'Bia', 'Ana' ]
+</pre>
+
+<p>Depois do <code>toReversed()</code>, a <code>fila</code> continuou igual; depois do <code>reverse()</code>, ela mudou de verdade. Atenção: <code>reverse</code> <strong>não ordena</strong> nada. Para "do maior para o menor", use <code>b - a</code> na comparação.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Ordenar e não precisa mais da ordem original</td><td><code>lista.sort(comparacao)</code></td></tr>
+<tr><td>Ordenar e manter a original (o caso mais comum)</td><td><code>lista.toSorted(comparacao)</code></td></tr>
+<tr><td>Código que precisa rodar em Node antigo (anterior ao 20)</td><td><code>[...lista].sort(comparacao)</code> ou <code>lista.slice().sort(comparacao)</code></td></tr>
+<tr><td>Números, crescente / decrescente</td><td><code>(a, b) =&gt; a - b</code> / <code>(a, b) =&gt; b - a</code></td></tr>
+<tr><td>Textos para pessoas lerem</td><td><code>(a, b) =&gt; a.localeCompare(b)</code></td></tr>
+<tr><td>Objetos por um número / por um texto</td><td><code>(a, b) =&gt; a.preco - b.preco</code> / <code>(a, b) =&gt; a.nome.localeCompare(b.nome)</code></td></tr>
+<tr><td>Só virar de trás para a frente</td><td><code>toReversed()</code> (cópia) ou <code>reverse()</code> (muda)</td></tr>
+<tr><td>Só o maior ou o menor número, sem ordenar tudo</td><td><code>Math.max(...lista)</code> / <code>Math.min(...lista)</code> (aula <a href="math.html">Math</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Números sem função de comparação</strong>
+<p>O erro mais comum de todos, e o Node não avisa nada. Você já viu na seção 2: <code>[10, 9, 100, 1, 25].sort()</code> dá <code>[ 1, 10, 100, 25, 9 ]</code>. <strong>Como consertar:</strong> <code>sort((a, b) =&gt; a - b)</code>. Para números, <strong>nunca</strong> use o <code>sort()</code> vazio.</p>
+</div>
+
+<div class="cenario">
+<strong>A função devolve <code>true</code>/<code>false</code> em vez de um número</strong>
+<p>Parece lógico escrever "a é maior que b?":</p>
+<pre class="file" data-file="booleano.js">const numeros = [5, 1, 4, 2, 3, 9, 7, 8, 6, 0, 11, 10];
+numeros.sort((a, b) =&gt; a &gt; b);
+console.log(numeros);
+</pre>
+<pre class="term">$ node booleano.js
+[
+   5,  1, 4, 2, 3,
+   9,  7, 8, 6, 0,
+  11, 10
+]
+</pre>
+<p>Nada mudou de lugar. (O Node mostrou o array em colunas porque ele tem muitos números; é só a forma de exibir.) O <code>a &gt; b</code> devolve <code>true</code> ou <code>false</code>, que o <code>sort</code> entende como 1 ou 0: ele <strong>nunca</strong> recebe um número negativo, então nunca sabe quando um item deve ir para a frente. Com listas pequenas às vezes "parece" funcionar, o que torna o erro ainda mais traiçoeiro. <strong>Como consertar:</strong> devolva um número: <code>(a, b) =&gt; a - b</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>a - b</code> com textos</strong>
+<pre class="file" data-file="textomenos.js">const nomes = ["Caio", "Ana", "Bia"];
+nomes.sort((a, b) =&gt; a - b);
+console.log(nomes);
+</pre>
+<pre class="term">$ node textomenos.js
+[ 'Caio', 'Ana', 'Bia' ]
+</pre>
+<p>De novo, nada mudou. <code>"Caio" - "Ana"</code> dá <code>NaN</code> ("não é um número", aula <a href="numeros-especiais.html">NaN e Infinity</a>), e o <code>sort</code> trata o <code>NaN</code> como empate. <strong>Como consertar:</strong> para textos, <code>(a, b) =&gt; a.localeCompare(b)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>localeCompare</code> com números</strong>
+<pre class="file" data-file="locale-num.js">const precos = [18, 129, 3];
+precos.sort((a, b) =&gt; a.localeCompare(b));
+console.log(precos);
+</pre>
+<pre class="term">$ node locale-num.js
+/home/ana/locale-num.js:2
+precos.sort((a, b) =&gt; a.localeCompare(b));
+                        ^
+
+TypeError: a.localeCompare is not a function
+    at /home/ana/locale-num.js:2:25
+    at Array.sort (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/locale-num.js:2:8)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/locale-num.js:2 e o <code>^</code></dt><dd>O erro foi na linha 2; o <code>^</code> aponta para o <code>localeCompare</code>.</dd>
+  <dt>TypeError: a.localeCompare is not a function</dt><dd>"<code>a.localeCompare</code> não é uma função". O <code>localeCompare</code> é um método dos <strong>textos</strong>; o <code>a</code> aqui é um número, que não tem esse método.</dd>
+  <dt>at /home/ana/locale-num.js:2:25</dt><dd>Onde estava o programa: dentro da sua função de comparação, linha 2, coluna 25.</dd>
+  <dt>at Array.sort (&lt;anonymous&gt;)</dt><dd>Quem chamou a sua função: o <code>sort</code>.</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/locale-num.js:2:8)</dt><dd>Quem chamou o <code>sort</code>: o seu programa, linha 2, coluna 8. Leia a pilha de baixo para cima e você tem a história: o programa chamou o <code>sort</code>, que chamou a sua função, que quebrou.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node. O <code>console.log</code> da linha 3 nunca rodou.</dd>
+</dl>
+<p><strong>Como consertar:</strong> números se comparam com <code>a - b</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um texto em vez da função</strong>
+<p>Quem vem de outras linguagens às vezes tenta pedir a ordem por extenso:</p>
+<pre class="file" data-file="sortdesc.js">const notas = [7, 4.5, 9];
+notas.sort("desc");
+console.log(notas);
+</pre>
+<pre class="term">$ node sortdesc.js
+/home/ana/sortdesc.js:2
+notas.sort("desc");
+      ^
+
+TypeError: The comparison function must be either a function or undefined: desc
+    at Array.sort (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/sortdesc.js:2:7)   « mais 7 linhas "at … node:internal/…" cortadas
+
+Node.js v24.22.0
+</pre>
+<p>"A função de comparação tem de ser uma função ou <code>undefined</code> (nada): <code>desc</code>". O <code>sort</code> só aceita uma função ou parênteses vazios. <strong>Como consertar:</strong> <code>notas.sort((a, b) =&gt; b - a)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O original mudou sem querer</strong>
+<p>Sem erro nenhum na tela: você escreveu <code>const ordenada = lista.sort()</code> achando que tinha feito uma cópia, e mais adiante descobre que a <code>lista</code> também está ordenada (a seção 1 mostrou o <code>true</code> de <code>ordenada === chamada</code>). <strong>Como consertar:</strong> use <code>toSorted</code> quando a ordem original ainda for necessária.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>lista.sort()</code></td><td>Ordena o próprio array como <strong>texto</strong> (códigos Unicode). Devolve o mesmo array</td></tr>
+<tr><td><code>lista.sort((a, b) =&gt; …)</code></td><td>Ordena o próprio array com a sua regra: negativo = <code>a</code> antes; positivo = <code>b</code> antes; 0 = mantém</td></tr>
+<tr><td><code>lista.toSorted(…)</code> <span class="versao">ES2023</span></td><td>Igual, mas devolve um array novo; o original não muda</td></tr>
+<tr><td><code>lista.reverse()</code></td><td>Inverte o próprio array</td></tr>
+<tr><td><code>lista.toReversed()</code> <span class="versao">ES2023</span></td><td>Devolve uma cópia invertida</td></tr>
+<tr><td><code>(a, b) =&gt; a - b</code></td><td>Números do menor para o maior</td></tr>
+<tr><td><code>(a, b) =&gt; b - a</code></td><td>Números do maior para o menor</td></tr>
+<tr><td><code>(a, b) =&gt; a.localeCompare(b)</code></td><td>Textos na ordem do idioma (acentos e maiúsculas no lugar certo)</td></tr>
+<tr><td><code>(a, b) =&gt; a.preco - b.preco</code></td><td>Objetos por um campo numérico</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>[ 1, 10, 100, 25, 9 ]</code></td><td>Números ordenados sem função de comparação</td></tr>
+<tr><td>Nada mudou de lugar</td><td>A função devolve <code>true</code>/<code>false</code>, ou fez <code>a - b</code> com textos (<code>NaN</code>)</td></tr>
+<tr><td>Maiúsculas ou acentuadas no lugar errado</td><td>Textos sem <code>localeCompare</code></td></tr>
+<tr><td><code>TypeError: a.localeCompare is not a function</code></td><td><code>localeCompare</code> em números (ou em <code>undefined</code>)</td></tr>
+<tr><td><code>TypeError: The comparison function must be either a function or undefined</code></td><td>Passou algo que não é função ao <code>sort</code></td></tr>
+<tr><td>A lista original apareceu ordenada</td><td>Usou <code>sort</code> no lugar de <code>toSorted</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Do maior para o menor</h3>
+<p>Complete para ordenar as notas da maior para a menor, sem mudar o array original:</p>
+<div class="ex-code">const ranking = notas.<input data-answer="toSorted" aria-label="nome do método">((a, b) =&gt; <input data-answer="b - a|b-a" aria-label="conta">);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O que <code>[3, 20, 100].sort()</code> devolve? (Lembre: sem função, compara como texto.)</p>
+<label><input type="radio" name="q2"> <code>[ 3, 20, 100 ]</code></label>
+<label><input type="radio" name="q2"> <code>[ 100, 20, 3 ]</code></label>
+<label><input type="radio" name="q2"> <code>[ 20, 3, 100 ]</code></label>
+<label><input type="radio" name="q2"> Dá erro: o <code>sort</code> precisa de uma função</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A função de comparação devolveu um número <strong>negativo</strong> para <code>a</code> e <code>b</code>. O que o <code>sort</code> faz?</p>
+<label><input type="radio" name="q3"> Põe <code>b</code> antes de <code>a</code></label>
+<label><input type="radio" name="q3"> Põe <code>a</code> antes de <code>b</code></label>
+<label><input type="radio" name="q3"> Dá erro</label>
+<label><input type="radio" name="q3"> Apaga o <code>a</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual a diferença entre <code>sort</code> e <code>toSorted</code>?</p>
+<label><input type="radio" name="q4"> O <code>toSorted</code> só funciona com textos</label>
+<label><input type="radio" name="q4"> O <code>sort</code> só funciona com números</label>
+<label><input type="radio" name="q4"> Nenhuma: são dois nomes para a mesma coisa</label>
+<label><input type="radio" name="q4"> O <code>sort</code> muda o array original; o <code>toSorted</code> devolve uma cópia ordenada</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual função ordena <code>["Bruno", "ana", "Zeca"]</code> do jeito que uma pessoa espera (<code>ana, Bruno, Zeca</code>)?</p>
+<label><input type="radio" name="q5"> <code>(a, b) =&gt; a.localeCompare(b)</code></label>
+<label><input type="radio" name="q5"> <code>(a, b) =&gt; a - b</code></label>
+<label><input type="radio" name="q5"> <code>(a, b) =&gt; a &gt; b</code></label>
+<label><input type="radio" name="q5"> Nenhuma: basta <code>sort()</code></label>
+</div>
+
+<h3>Missão final: a vitrine da papelaria</h3>
+
+<div class="tryjs" data-goal="out:mochila, estojo, caderno, caneta;;src:(toSorted|sort)\(">
+<p class="try-task"><strong>Missão:</strong> a Ana quer a vitrine com os produtos <strong>mais caros primeiro</strong>. Ordene <code>produtos</code> pelo preço, do maior para o menor, guardando o resultado em <code>maisCarosPrimeiro</code>, para aparecer <code>mochila, estojo, caderno, caneta</code>.</p>
+<pre class="script" data-file="main.js">const produtos = [
+  { nome: "caderno", preco: 18 },
+  { nome: "mochila", preco: 129 },
+  { nome: "caneta", preco: 3 },
+  { nome: "estojo", preco: 25 },
+];
+const maisCarosPrimeiro = produtos;
+console.log(maisCarosPrimeiro.map((p) =&gt; p.nome).join(", "));
+</pre>
+<pre class="solucao" data-file="main.js">const produtos = [
+  { nome: "caderno", preco: 18 },
+  { nome: "mochila", preco: 129 },
+  { nome: "caneta", preco: 3 },
+  { nome: "estojo", preco: 25 },
+];
+const maisCarosPrimeiro = produtos.toSorted((a, b) =&gt; b.preco - a.preco);
+console.log(maisCarosPrimeiro.map((p) =&gt; p.nome).join(", "));
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>mochila, estojo, caderno, caneta</code>. Desafio extra: troque para ordenar pelo <strong>nome</strong>, com <code>localeCompare</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>sort()</code> ordena o <strong>próprio</strong> array (e devolve o mesmo array). <code>toSorted()</code> <span class="versao">ES2023</span> devolve uma cópia ordenada e deixa o original intacto.</li>
+  <li>Sem função de comparação, tudo é comparado como <strong>texto</strong>: <code>[10, 9, 100, 1, 25].sort()</code> dá <code>[ 1, 10, 100, 25, 9 ]</code>.</li>
+  <li>A função de comparação recebe dois itens e devolve um número: negativo = <code>a</code> antes; positivo = <code>b</code> antes; 0 = mantém a ordem. Números: <code>a - b</code> (crescente) e <code>b - a</code> (decrescente).</li>
+  <li>Textos para pessoas: <code>(a, b) =&gt; a.localeCompare(b)</code>, que acerta acentos e maiúsculas.</li>
+  <li>Objetos: compare o campo que interessa (<code>a.preco - b.preco</code>). Nos empates, a ordem original é mantida (ordenação estável).</li>
+  <li><code>reverse()</code> inverte o próprio array; <code>toReversed()</code> devolve uma cópia invertida. Nenhum dos dois ordena.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
