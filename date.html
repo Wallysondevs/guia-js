@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Date — criar, ler, mudar e comparar datas | Guia JavaScript</title>
+<meta name="description" content="Datas em JavaScript para quem nunca programou: new Date(), o mês que começa em 0, ano/mês/dia/hora com getFullYear, getMonth, getDate e getDay, somar dias com setDate, a diferença entre duas datas em dias, Date.now(), comparar datas, o fuso horário (o Z do UTC) e os erros reais do Node.js 24 (Invalid Date, Invalid time value).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Date</span></h1>
+
+<p class="intro">A data da prova, o vencimento do boleto, quantos dias faltam para as férias, a idade de alguém, a hora em que um pedido chegou: quase todo programa lida com datas. No JavaScript, uma data é um objeto do tipo <code>Date</code> ("data", em inglês). Ele guarda um <strong>instante</strong> no tempo (dia e hora, até o milésimo de segundo) e tem métodos para ler e mudar cada parte. Tem também algumas pegadinhas famosas, como o mês que começa em 0. Esta aula mostra as duas coisas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar a data de agora e uma data escolhida: <code>new Date()</code> e <code>new Date(2026, 2, 5)</code>.</li>
+  <li>Por que <strong>março é o mês 2</strong>, e como não errar por causa disso.</li>
+  <li>Como ler o ano, o mês, o dia, o dia da semana e a hora (<code>getFullYear</code>, <code>getMonth</code>, <code>getDate</code>, <code>getDay</code>…).</li>
+  <li>Como somar dias e meses (<code>setDate</code>, <code>setMonth</code>) e como a data "transborda" sozinha para o mês seguinte.</li>
+  <li>Como calcular quantos dias faltam entre duas datas, e o que é o número de milissegundos que fica por trás de toda data.</li>
+  <li>Como comparar datas, e por que o Node mostra as datas com um <code>Z</code> no fim e 3 horas de diferença.</li>
+  <li>Os erros reais: <code>Invalid Date</code>, <code>RangeError: Invalid time value</code>, a data em texto que "volta um dia" e o <code>Date()</code> sem <code>new</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), que está no <strong>horário de Brasília</strong>, com <code>node arquivo.js</code>. O <code>Date</code> é da linguagem: existe igual no navegador. Mas fique atento: <strong>a data de "agora" muda a cada execução</strong>, e o fuso horário do seu computador pode mudar a hora mostrada. Por isso, quase todos os exemplos usam datas fixas.</p>
+
+<hr>
+
+<h2>A ideia: um relógio que conta desde 1970</h2>
+<p>Imagine um contador gigante que começou a contar à meia-noite do dia 1º de janeiro de 1970, no horário de Londres, e soma 1 a cada milésimo de segundo (1 milissegundo). Cada instante da história tem o seu número nesse contador: o instante em que você lê esta frase, a meia-noite do Natal, o seu aniversário.</p>
+<p>Um <code>Date</code> é isso: <strong>um número de milissegundos desde 1970</strong>, com um monte de métodos em volta para traduzir esse número em coisas que as pessoas entendem (dia, mês, ano, hora) e de volta. Guardar a ideia do contador ajuda a entender por que dá para subtrair duas datas e por que o fuso horário importa.</p>
+
+<hr>
+
+<h2>1. A data de agora: <code>new Date()</code></h2>
+
+<pre class="file" data-file="agora.js">const agora = new Date();
+console.log(agora);
+console.log(String(agora));
+</pre>
+
+<pre class="term">$ node agora.js
+2026-10-19T14:19:19.432Z
+Mon Oct 19 2026 11:19:19 GMT-0300 (Horário Padrão de Brasília)
+</pre>
+
+<dl class="anatomy">
+  <dt>new Date()</dt><dd>O <code>new</code> fabrica um objeto novo a partir do molde <code>Date</code> (veja <a href="classes.html">Classes</a>). Sem nada entre os parênteses, a data criada é <strong>o instante de agora</strong>, lido do relógio do computador. A Ana rodou o programa em 19 de outubro de 2026, às 11h19; se você rodar, vai sair o seu agora.</dd>
+  <dt>2026-10-19T14:19:19.432Z</dt><dd>É assim que o <code>console.log</code> do Node mostra uma data: ano-mês-dia, a letra <code>T</code> (de <em>time</em>, "hora"), a hora, e um <strong><code>Z</code></strong> no fim. O <code>Z</code> quer dizer <strong>UTC</strong>, o horário de referência do mundo (o de Londres no inverno). Por isso aparece 14h19, e não 11h19: Brasília está 3 horas atrás do UTC.</dd>
+  <dt>String(agora)</dt><dd>Transformada em texto, a data aparece no <strong>horário local</strong>, o do computador: <code>11:19:19 GMT-0300</code> ("3 horas a menos que o horário de Greenwich", outro nome do UTC), com o nome do fuso entre parênteses.</dd>
+</dl>
+
+<p>As duas linhas são <strong>o mesmo instante</strong>, escrito em dois relógios diferentes. Guarde isso: quando o Node mostra uma data com <code>Z</code> e a hora parece errada, ela não está errada; está em UTC. Para mostrar datas do jeito brasileiro (<code>19/10/2026</code>), existe a aula <a href="date-formatar.html">Formatando Datas</a>.</p>
+
+<hr>
+
+<h2>2. Uma data escolhida: o mês começa em 0</h2>
+<p>O aniversário da Ana é 14 de julho. Julho é o mês 7, certo? No <code>Date</code>, <strong>não</strong>:</p>
+
+<pre class="file" data-file="criar.js">const aniversario = new Date(2026, 6, 14);
+console.log(aniversario);
+console.log(String(aniversario));
+</pre>
+
+<pre class="term">$ node criar.js
+2026-07-14T03:00:00.000Z
+Tue Jul 14 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)
+</pre>
+
+<dl class="anatomy">
+  <dt>new Date(2026, 6, 14)</dt><dd>Ano, <strong>mês</strong>, dia, nessa ordem, separados por vírgula.</dd>
+  <dt>O 6 é julho</dt><dd>O mês é contado <strong>a partir do 0</strong>, como as posições de um array: janeiro é 0, fevereiro é 1, março é 2… julho é 6, dezembro é 11. O ano e o dia são contados normalmente. É a pegadinha mais famosa do JavaScript (ela veio de uma linguagem antiga, o Java, e nunca mudou para não quebrar programas que já existiam).</dd>
+  <dt>00:00:00 GMT-0300</dt><dd>Sem hora, a data é criada à <strong>meia-noite do horário local</strong>. Em UTC, a meia-noite de Brasília é 3h da manhã, por isso a primeira linha mostra <code>T03:00:00.000Z</code>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mês</th><td>jan</td><td>fev</td><td>mar</td><td>abr</td><td>mai</td><td>jun</td><td>jul</td><td>ago</td><td>set</td><td>out</td><td>nov</td><td>dez</td></tr>
+<tr><th>Número no <code>Date</code></th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td></tr>
+</table>
+</div>
+
+<h3>Outros jeitos de criar uma data</h3>
+
+<pre class="file" data-file="jeitos.js">const a = new Date(2026, 2, 5);
+const b = new Date(2026, 2, 5, 9, 15);
+const c = new Date("2026-03-05T09:15:00");
+const d = new Date(0);
+
+console.log(String(a));
+console.log(String(b));
+console.log(String(c));
+console.log(d);
+</pre>
+
+<pre class="term">$ node jeitos.js
+Thu Mar 05 2026 00:00:00 GMT-0300 (Horário Padrão de Brasília)
+Thu Mar 05 2026 09:15:00 GMT-0300 (Horário Padrão de Brasília)
+Thu Mar 05 2026 09:15:00 GMT-0300 (Horário Padrão de Brasília)
+1970-01-01T00:00:00.000Z
+</pre>
+
+<dl class="anatomy">
+  <dt>new Date(2026, 2, 5, 9, 15)</dt><dd>Depois do dia vêm, se você quiser: hora, minutos, segundos e milissegundos. Aqui, 5 de março às 9h15.</dd>
+  <dt>new Date("2026-03-05T09:15:00")</dt><dd>Um <strong>texto</strong> no formato internacional, chamado ISO: <code>ano-mês-dia</code>, a letra <code>T</code> e a hora. Aqui o mês é escrito normalmente (<code>03</code> é março). Com a hora e sem <code>Z</code>, o horário é o local.</dd>
+  <dt>new Date(0)</dt><dd>Um <strong>número</strong>: os milissegundos desde 1970. O 0 é o começo do contador, 1º de janeiro de 1970, meia-noite em UTC.</dd>
+</dl>
+
+<div class="warning">
+<strong>Data em texto sem hora: o dia que "volta"</strong>
+<p>O texto <code>"2026-03-05"</code>, <strong>sem a hora</strong>, é lido como meia-noite em <strong>UTC</strong>, e não no horário local. No Brasil, isso é 21h do dia <strong>anterior</strong>. Veja em <a href="#errado">Quando dá errado</a>. Prefira <code>new Date(2026, 2, 5)</code> ou o texto com a hora (<code>"2026-03-05T00:00:00"</code>).</p>
+</div>
+
+<hr>
+
+<h2>3. Lendo as partes: os métodos <code>get</code></h2>
+<p>A Ana tem consulta no dentista no dia 5 de março de 2026, às 14h30. Cada parte da data se lê com um método que começa com <code>get</code> ("pegar"):</p>
+
+<pre class="file" data-file="partes.js">const consulta = new Date(2026, 2, 5, 14, 30);
+
+console.log(consulta.getFullYear());
+console.log(consulta.getMonth());
+console.log(consulta.getDate());
+console.log(consulta.getDay());
+console.log(consulta.getHours());
+console.log(consulta.getMinutes());
+</pre>
+
+<pre class="term">$ node partes.js
+2026
+2
+5
+4
+14
+30
+</pre>
+
+<dl class="anatomy">
+  <dt>getFullYear() → 2026</dt><dd>O ano, com os 4 dígitos ("ano completo").</dd>
+  <dt>getMonth() → 2</dt><dd>O mês, <strong>contado do 0</strong>: 2 é março. Para mostrar para uma pessoa, some 1.</dd>
+  <dt>getDate() → 5</dt><dd>O <strong>dia do mês</strong> (de 1 a 31). Cuidado com o nome: é <code>getDate</code>, e não <code>getDay</code>.</dd>
+  <dt>getDay() → 4</dt><dd>O <strong>dia da semana</strong>, de 0 a 6: 0 é domingo, 1 é segunda… 4 é quinta-feira. O 5 de março de 2026 cai numa quinta.</dd>
+  <dt>getHours() → 14 e getMinutes() → 30</dt><dd>A hora (0 a 23) e os minutos (0 a 59). Existem também <code>getSeconds()</code> e <code>getMilliseconds()</code>.</dd>
+</dl>
+
+<p>Todos esses métodos respondem no <strong>horário local</strong>. Juntando as peças, dá para montar uma frase:</p>
+
+<pre class="file" data-file="montar.js">const consulta = new Date(2026, 2, 5, 14, 30);
+const diasDaSemana = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+const dia = consulta.getDate();
+const mes = consulta.getMonth() + 1;
+const ano = consulta.getFullYear();
+const semana = diasDaSemana[consulta.getDay()];
+
+console.log(`Consulta: ${semana}, ${dia}/${mes}/${ano} às ${consulta.getHours()}h${consulta.getMinutes()}`);
+</pre>
+
+<pre class="term">$ node montar.js
+Consulta: quinta, 5/3/2026 às 14h30
+</pre>
+
+<p>O <code>getDay()</code> vira a posição no array <code>diasDaSemana</code>: como ele também começa em 0, com o domingo, as posições casam. (Para escrever <code>05/03/2026</code>, com zeros, ou o nome do mês por extenso, veja <a href="date-formatar.html">Formatando Datas</a>.)</p>
+
+<div class="tryjs" data-goal="out:Aniversário: 14/7/2026;;semerro">
+<p class="try-task"><strong>Missão:</strong> o aniversário da Ana é <strong>14 de julho</strong>, mas o programa mostra agosto. Conserte a criação da data (não mexa no <code>console.log</code>) para sair <code>Aniversário: 14/7/2026</code>.</p>
+<pre class="script" data-file="main.js">const aniversario = new Date(2026, 7, 14);
+
+const dia = aniversario.getDate();
+const mes = aniversario.getMonth() + 1;
+const ano = aniversario.getFullYear();
+console.log(`Aniversário: ${dia}/${mes}/${ano}`);
+</pre>
+<pre class="solucao" data-file="main.js">const aniversario = new Date(2026, 6, 14);
+
+const dia = aniversario.getDate();
+const mes = aniversario.getMonth() + 1;
+const ano = aniversario.getFullYear();
+console.log(`Aniversário: ${dia}/${mes}/${ano}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Mudando a data: os métodos <code>set</code> e o "transbordo"</h2>
+<p>A Ana comprou uma geladeira no dia 20 de janeiro, e o boleto vence 30 dias depois. Para somar dias, leia o dia com <code>getDate</code>, some, e grave com <code>setDate</code> ("definir o dia"):</p>
+
+<pre class="file" data-file="mudar.js">const compra = new Date(2026, 0, 20);
+compra.setDate(compra.getDate() + 30);
+
+console.log(`Vence em ${compra.getDate()}/${compra.getMonth() + 1}/${compra.getFullYear()}`);
+</pre>
+
+<pre class="term">$ node mudar.js
+Vence em 19/2/2026
+</pre>
+
+<p><code>20 + 30</code> dá 50, e janeiro não tem dia 50. O <code>Date</code> não reclama: ele <strong>transborda</strong> para o mês seguinte, contando os 31 dias de janeiro, e chega a 19 de fevereiro. Isso é uma ajuda enorme: você não precisa saber quantos dias tem cada mês. Mais exemplos:</p>
+
+<pre class="file" data-file="transbordar.js">const data = new Date(2026, 0, 31);
+data.setMonth(data.getMonth() + 1);
+console.log(`${data.getDate()}/${data.getMonth() + 1}/${data.getFullYear()}`);
+
+const virada = new Date(2026, 11, 31);
+virada.setDate(virada.getDate() + 1);
+console.log(`${virada.getDate()}/${virada.getMonth() + 1}/${virada.getFullYear()}`);
+
+console.log(new Date(2026, 1, 0).getDate());
+console.log(new Date(2028, 2, 0).getDate());
+</pre>
+
+<pre class="term">$ node transbordar.js
+3/3/2026
+1/1/2027
+31
+29
+</pre>
+
+<dl class="anatomy">
+  <dt>31 de janeiro + 1 mês → 3/3/2026</dt><dd>Cuidado: "31 de fevereiro" não existe; fevereiro de 2026 tem 28 dias, então o <code>Date</code> transborda 3 dias para março. Somar meses a dias 29, 30 e 31 pode pular um mês.</dd>
+  <dt>31 de dezembro + 1 dia → 1/1/2027</dt><dd>O transbordo também vira o ano.</dd>
+  <dt>new Date(2026, 1, 0).getDate() → 31</dt><dd>O dia <strong>0</strong> de um mês é o último dia do mês anterior: o dia 0 de fevereiro é 31 de janeiro. Um truque conhecido para saber quantos dias um mês tem.</dd>
+  <dt>new Date(2028, 2, 0).getDate() → 29</dt><dd>O dia 0 de março de 2028 é o último de fevereiro: 29, porque 2028 é ano bissexto.</dd>
+</dl>
+
+<p>Existe um <code>set</code> para cada <code>get</code>: <code>setFullYear</code>, <code>setMonth</code>, <code>setDate</code>, <code>setHours</code>, <code>setMinutes</code>… Todos <strong>mudam a própria data</strong> (o objeto), mesmo que ela esteja numa <code>const</code>: o <code>const</code> só impede trocar a variável por outra data (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>5. Quantos dias faltam? Subtraindo datas</h2>
+<p>Lembra do contador de milissegundos? Uma data, usada numa conta, vira esse número. Então <strong>subtrair duas datas dá a distância entre elas, em milissegundos</strong>:</p>
+
+<pre class="file" data-file="diferenca.js">const hoje = new Date(2026, 2, 5);
+const natal = new Date(2026, 11, 25);
+
+const milissegundos = natal - hoje;
+const umDia = 1000 * 60 * 60 * 24;
+const dias = Math.round(milissegundos / umDia);
+
+console.log(milissegundos);
+console.log(`Faltam ${dias} dias para o Natal`);
+</pre>
+
+<pre class="term">$ node diferenca.js
+25488000000
+Faltam 295 dias para o Natal
+</pre>
+
+<dl class="anatomy">
+  <dt>natal - hoje</dt><dd>25 488 000 000 milissegundos entre as duas meias-noites.</dd>
+  <dt>const umDia = 1000 * 60 * 60 * 24;</dt><dd>Quantos milissegundos tem um dia: 1000 em um segundo, 60 segundos, 60 minutos, 24 horas. Escrever a conta, em vez do resultado (86 400 000), deixa claro de onde o número veio.</dd>
+  <dt>Math.round(…)</dt><dd>Arredonda (veja <a href="math.html">Math</a>). Em países com horário de verão, um dia pode ter 23 ou 25 horas, e a divisão daria um número quebrado; o <code>Math.round</code> resolve.</dd>
+</dl>
+
+<p>Para ver o número direto, use <code>getTime()</code> ("pegar o tempo") ou <code>Number(data)</code>. E o caminho de volta, do número para a data, é o <code>new Date(numero)</code>:</p>
+
+<pre class="file" data-file="gettime.js">const data = new Date(2026, 2, 5);
+
+console.log(data.getTime());
+console.log(Number(data));
+console.log(new Date(1772679600000).getDate());
+</pre>
+
+<pre class="term">$ node gettime.js
+1772679600000
+1772679600000
+5
+</pre>
+
+<p>Esse número é o jeito mais seguro de <strong>guardar</strong> uma data (num arquivo, num banco de dados): ele não depende de fuso nem de formato.</p>
+
+<h3>O instante de agora em número: <code>Date.now()</code></h3>
+<p><code>Date.now()</code> devolve o número de milissegundos de <strong>agora</strong>, sem criar um objeto. É o jeito clássico de medir quanto tempo um trecho do programa demora:</p>
+
+<pre class="file" data-file="cronometro.js">const inicio = Date.now();
+
+let soma = 0;
+for (let i = 0; i &lt; 50_000_000; i++) {
+  soma += i;
+}
+
+const fim = Date.now();
+console.log(`A conta levou ${fim - inicio} ms`);
+</pre>
+
+<pre class="term">$ node cronometro.js
+A conta levou 75 ms
+</pre>
+
+<p>(O <code>50_000_000</code> é o número 50 milhões; o <code>_</code> só ajuda a ler. O tempo muda a cada execução e de um computador para outro.)</p>
+
+<h3>Idade: diferença de anos com cuidado</h3>
+<p>Subtrair os anos não basta: quem nasceu em julho ainda não fez aniversário em março. A função compara também o mês e o dia:</p>
+
+<pre class="file" data-file="idade.js">function calcularIdade(nascimento, hoje) {
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFez =
+    hoje.getMonth() &lt; nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() &amp;&amp; hoje.getDate() &lt; nascimento.getDate());
+  if (aindaNaoFez) {
+    idade--;
+  }
+  return idade;
+}
+
+const nascimento = new Date(1998, 6, 14);
+console.log(calcularIdade(nascimento, new Date(2026, 2, 5)));
+console.log(calcularIdade(nascimento, new Date(2026, 6, 14)));
+</pre>
+
+<pre class="term">$ node idade.js
+27
+28
+</pre>
+
+<p>A função recebe o "hoje" como parâmetro, em vez de usar <code>new Date()</code> lá dentro. Assim ela dá sempre o mesmo resultado para as mesmas datas, e fica fácil de testar.</p>
+
+<hr>
+
+<h2>6. Comparando datas</h2>
+
+<pre class="file" data-file="comparar.js">const prova = new Date(2026, 2, 5);
+const entrega = new Date(2026, 2, 10);
+const outraProva = new Date(2026, 2, 5);
+
+console.log(prova &lt; entrega);
+console.log(prova === outraProva);
+console.log(prova.getTime() === outraProva.getTime());
+</pre>
+
+<pre class="term">$ node comparar.js
+true
+false
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>prova &lt; entrega → true</dt><dd><code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code> e <code>&gt;=</code> funcionam: as datas viram números e são comparadas. A prova vem antes da entrega.</dd>
+  <dt>prova === outraProva → false</dt><dd>As duas são 5 de março, mas são <strong>dois objetos diferentes</strong>, e o <code>===</code> entre objetos pergunta "é o mesmo objeto?" (veja <a href="objetos-referencia.html">Objetos são Referências</a>).</dd>
+  <dt>getTime() === getTime() → true</dt><dd>Para saber se duas datas são o mesmo instante, compare os números.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para…</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td>Criar uma data fixa</td><td><code>new Date(2026, 2, 5)</code> · <code>new Date("2026-03-05T00:00:00")</code> · <code>new Date("2026-03-05")</code></td><td>Os números (mês do 0!) ou o texto <strong>com hora</strong>. O texto só com a data é lido em UTC</td></tr>
+<tr><td>O instante de agora</td><td><code>new Date()</code> · <code>Date.now()</code></td><td><code>new Date()</code> para ler as partes; <code>Date.now()</code> para medir tempo ou guardar o número</td></tr>
+<tr><td>Somar dias</td><td><code>d.setDate(d.getDate() + n)</code> · <code>new Date(d.getTime() + n * umDia)</code></td><td><code>setDate</code>: transborda certo e respeita o horário de verão</td></tr>
+<tr><td>Comparar</td><td><code>a &lt; b</code> · <code>a.getTime() === b.getTime()</code></td><td><code>&lt;</code>/<code>&gt;</code> direto; para igualdade, <code>getTime()</code></td></tr>
+<tr><td>Copiar uma data</td><td><code>new Date(d)</code> · <code>new Date(d.getTime())</code></td><td>Qualquer um; nunca <code>const copia = d</code></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E o <code>Temporal</code>?</strong>
+<p>O <code>Date</code> é antigo e cheio de pegadinhas, e por isso a linguagem ganhou um substituto, o <code>Temporal</code>, que já começou a chegar a alguns navegadores. No Node 24 ele <strong>ainda não existe</strong>: no lab, <code>typeof Temporal</code> respondeu <code>undefined</code>. Por enquanto, o <code>Date</code> é o que funciona em todo lugar (veja <a href="novidades.html">Novidades Recentes</a>).</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o número do mês "normal"</strong>
+<pre class="file" data-file="mes-errado.js">const natal = new Date(2026, 12, 25);
+console.log(`${natal.getDate()}/${natal.getMonth() + 1}/${natal.getFullYear()}`);
+</pre>
+<pre class="term">$ node mes-errado.js
+25/1/2027
+</pre>
+<p>A Ana queria 25 de dezembro de 2026 e escreveu 12. Mas o mês 12 não existe (dezembro é 11), e o <code>Date</code>, em vez de dar erro, <strong>transbordou</strong> para janeiro do ano seguinte. Nenhuma mensagem, só uma data errada. <strong>Como consertar:</strong> subtraia 1 do mês "humano" (<code>new Date(2026, 11, 25)</code>) e some 1 ao mostrar (<code>getMonth() + 1</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>A data em texto "voltou um dia"</strong>
+<pre class="file" data-file="texto-utc.js">const prova = new Date("2026-03-05");
+
+console.log(prova);
+console.log(prova.getDate());
+console.log(String(prova));
+</pre>
+<pre class="term">$ node texto-utc.js
+2026-03-05T00:00:00.000Z
+4
+Wed Mar 04 2026 21:00:00 GMT-0300 (Horário Padrão de Brasília)
+</pre>
+<p>A primeira linha parece certa, mas o <code>getDate()</code> diz <strong>4</strong>. A regra do JavaScript: um texto só com a data (<code>"2026-03-05"</code>) é meia-noite em <strong>UTC</strong>. Em Brasília, 3 horas atrás, ainda eram 21h do dia 4. Num computador em Portugal ou no Japão o resultado seria outro. <strong>Como consertar:</strong> <code>new Date(2026, 2, 5)</code>, ou o texto com hora: <code>new Date("2026-03-05T00:00:00")</code>, que é lido no horário local.</p>
+</div>
+
+<div class="cenario">
+<strong>Um formato que o JavaScript não entende: <code>Invalid Date</code></strong>
+<pre class="file" data-file="invalida.js">const data = new Date("31/12/2026");
+
+console.log(data);
+console.log(data.getDate());
+console.log(Number.isNaN(data.getTime()));
+</pre>
+<pre class="term">$ node invalida.js
+Invalid Date
+NaN
+true
+</pre>
+<p>O formato brasileiro <code>dia/mês/ano</code> não é um dos que o <code>new Date(texto)</code> entende. Ele não dá erro: cria uma <strong>data inválida</strong>, que aparece como <code>Invalid Date</code> ("data inválida") e cujas partes são todas <code>NaN</code>. Para conferir se uma data é válida, teste <code>Number.isNaN(data.getTime())</code>. Alguns métodos, porém, quebram de verdade com uma data inválida:</p>
+<pre class="term">$ node invalida2.js
+/home/ana/invalida2.js:2
+console.log(data.toISOString());
+                 ^
+
+RangeError: Invalid time value
+    at Date.toISOString (&lt;anonymous&gt;)
+    at Object.&lt;anonymous&gt; (/home/ana/invalida2.js:2:18)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/invalida2.js:2</dt><dd>O arquivo e a linha: a 2, a do <code>toISOString</code> (o método que escreve a data no formato ISO, com o <code>Z</code>).</dd>
+  <dt>console.log(data.toISOString()); e o ^</dt><dd>O <code>^</code> aponta para o <code>toISOString</code>.</dd>
+  <dt>RangeError: Invalid time value</dt><dd>"Erro de intervalo: valor de tempo inválido". Não dá para escrever uma data que não existe.</dd>
+  <dt>at Date.toISOString (&lt;anonymous&gt;)</dt><dd>O erro nasceu dentro do <code>toISOString</code>, que é do próprio JavaScript (por isso <code>&lt;anonymous&gt;</code>, sem arquivo).</dd>
+  <dt>at Object.&lt;anonymous&gt; (/home/ana/invalida2.js:2:18)</dt><dd>Quem chamou: o seu programa, linha 2, coluna 18. As linhas com <code>node:internal</code> são o Node carregando o arquivo.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node.</dd>
+</dl>
+<p><strong>Como consertar:</strong> separe o texto e monte a data com números: <code>const [dia, mes, ano] = "31/12/2026".split("/").map(Number);</code> e <code>new Date(ano, mes - 1, dia)</code> (veja <a href="strings-split.html">split</a> e <a href="map.html">map</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou a "cópia" e a original mudou junto</strong>
+<pre class="file" data-file="const-muda.js">const prova = new Date(2026, 2, 5);
+const lembrete = prova;
+lembrete.setDate(lembrete.getDate() - 1);
+
+console.log(`Prova: dia ${prova.getDate()}`);
+console.log(`Lembrete: dia ${lembrete.getDate()}`);
+</pre>
+<pre class="term">$ node const-muda.js
+Prova: dia 4
+Lembrete: dia 4
+</pre>
+<p>A Ana queria um lembrete na véspera da prova, e a prova "mudou" para o dia 4. <code>const lembrete = prova</code> não copia a data: as duas variáveis apontam para <strong>o mesmo objeto</strong>, e o <code>setDate</code> muda esse objeto. <strong>Como consertar:</strong> crie uma data nova a partir da antiga:</p>
+<pre class="file" data-file="copia.js">const prova = new Date(2026, 2, 5);
+const lembrete = new Date(prova);
+lembrete.setDate(lembrete.getDate() - 1);
+
+console.log(`Prova: dia ${prova.getDate()}`);
+console.log(`Lembrete: dia ${lembrete.getDate()}`);
+</pre>
+<pre class="term">$ node copia.js
+Prova: dia 5
+Lembrete: dia 4
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>new</code></strong>
+<pre class="file" data-file="sem-new.js">const data = Date(2026, 2, 5);
+console.log(data);
+console.log(data.getDate());
+</pre>
+<pre class="term">$ node sem-new.js
+Mon Oct 19 2026 11:19:20 GMT-0300 (Horário Padrão de Brasília)
+/home/ana/sem-new.js:3
+console.log(data.getDate());
+                 ^
+
+TypeError: data.getDate is not a function
+    at Object.&lt;anonymous&gt; (/home/ana/sem-new.js:3:18)
+                                    « (mais 7 linhas at … do node:internal cortadas)
+
+Node.js v24.22.0
+</pre>
+<p>Duas surpresas. Sem o <code>new</code>, o <code>Date(…)</code> <strong>ignora</strong> os números e devolve um <strong>texto</strong> com a data de agora (a primeira linha, do dia em que a Ana rodou). E texto não tem <code>getDate</code>: "<code>data.getDate</code> não é uma função". <strong>Como consertar:</strong> <code>new Date(2026, 2, 5)</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:Lembrete: dia 4;;out:Prova: dia 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> o lembrete deveria ser na véspera da prova, mas a prova também mudou. Conserte a criação do <code>lembrete</code> para a prova continuar no dia 5.</p>
+<pre class="script" data-file="main.js">const prova = new Date(2026, 2, 5);
+const lembrete = prova;
+lembrete.setDate(lembrete.getDate() - 1);
+
+console.log(`Prova: dia ${prova.getDate()}`);
+console.log(`Lembrete: dia ${lembrete.getDate()}`);
+</pre>
+<pre class="solucao" data-file="main.js">const prova = new Date(2026, 2, 5);
+const lembrete = new Date(prova);
+lembrete.setDate(lembrete.getDate() - 1);
+
+console.log(`Prova: dia ${prova.getDate()}`);
+console.log(`Lembrete: dia ${lembrete.getDate()}`);
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>new Date()</code></td><td>O instante de agora</td></tr>
+<tr><td><code>new Date(ano, mes, dia, hora, min)</code></td><td>Uma data no horário local; <strong>mês de 0 a 11</strong>; o que faltar vale 0 (o dia, 1)</td></tr>
+<tr><td><code>new Date("2026-03-05T09:15:00")</code></td><td>A partir de texto ISO, no horário local (sem a hora: UTC!)</td></tr>
+<tr><td><code>new Date(ms)</code> / <code>new Date(outraData)</code></td><td>A partir dos milissegundos desde 1970 / uma cópia</td></tr>
+<tr><td><code>getFullYear()</code>, <code>getMonth()</code>, <code>getDate()</code></td><td>Ano, mês (0 a 11), dia do mês (1 a 31)</td></tr>
+<tr><td><code>getDay()</code></td><td>Dia da semana: 0 = domingo … 6 = sábado</td></tr>
+<tr><td><code>getHours()</code>, <code>getMinutes()</code>, <code>getSeconds()</code></td><td>Hora, minutos, segundos</td></tr>
+<tr><td><code>setDate(n)</code>, <code>setMonth(n)</code>, <code>setFullYear(n)</code>…</td><td>Mudam a data (transbordando para o mês ou ano seguinte)</td></tr>
+<tr><td><code>getTime()</code> / <code>Number(d)</code> / <code>Date.now()</code></td><td>Milissegundos desde 1970 (de uma data / de agora)</td></tr>
+<tr><td><code>b - a</code></td><td>A distância entre duas datas, em milissegundos</td></tr>
+<tr><td><code>Number.isNaN(d.getTime())</code></td><td><code>true</code> se a data for inválida</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para criar a data de 25 de dezembro de 2026:</p>
+<div class="ex-code">const natal = <input data-answer="new" aria-label="palavra que cria o objeto"> Date(2026, <input data-answer="11" aria-label="número do mês">, 25);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o resultado?</h3>
+<p>O 5 de março de 2026 é uma quinta-feira. O que mostra <code>console.log(new Date(2026, 2, 7).getDay())</code>?</p>
+<div class="ex-code">Mostra <input data-answer="6" aria-label="dia da semana"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual método devolve o <strong>dia do mês</strong> (de 1 a 31)?</p>
+<label><input type="radio" name="q3"> <code>getDay()</code></label>
+<label><input type="radio" name="q3"> <code>getDate()</code></label>
+<label><input type="radio" name="q3"> <code>getMonth()</code></label>
+<label><input type="radio" name="q3"> <code>getDia()</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>const d = new Date(2026, 0, 30); d.setDate(d.getDate() + 5);</code> Em que dia e mês fica <code>d</code>?</p>
+<label><input type="radio" name="q4"> 35 de janeiro</label>
+<label><input type="radio" name="q4"> Dá erro: janeiro não tem dia 35</label>
+<label><input type="radio" name="q4"> 5 de janeiro</label>
+<label><input type="radio" name="q4"> 4 de fevereiro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O Node mostrou <code>2026-07-14T03:00:00.000Z</code> para <code>new Date(2026, 6, 14)</code>. Por que 3 horas?</p>
+<label><input type="radio" name="q5"> Porque o relógio do computador está errado</label>
+<label><input type="radio" name="q5"> Porque o mês começa em 0</label>
+<label><input type="radio" name="q5"> Porque o <code>Z</code> indica UTC, e a meia-noite de Brasília é 3h em UTC</label>
+<label><input type="radio" name="q5"> Porque faltou passar a hora</label>
+</div>
+
+<h3>Missão final: contagem para as férias</h3>
+
+<div class="tryjs" data-goal="out:Faltam 30 dias para as férias;;semerro;;src:Math\.round">
+<p class="try-task"><strong>Missão:</strong> hoje é 1º de junho de 2026 e as férias começam em 1º de julho. Crie as duas datas (lembre do mês!), calcule a diferença em milissegundos, transforme em dias com <code>Math.round</code> e mostre <code>Faltam 30 dias para as férias</code>.</p>
+<pre class="script" data-file="main.js">const umDia = 1000 * 60 * 60 * 24;
+
+const hoje = 0; // crie a data de 1º de junho de 2026
+const ferias = 0; // crie a data de 1º de julho de 2026
+const dias = 0; // calcule
+
+console.log(`Faltam ${dias} dias para as férias`);
+</pre>
+<pre class="solucao" data-file="main.js">const umDia = 1000 * 60 * 60 * 24;
+
+const hoje = new Date(2026, 5, 1);
+const ferias = new Date(2026, 6, 1);
+const dias = Math.round((ferias - hoje) / umDia);
+
+console.log(`Faltam ${dias} dias para as férias`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Faltam 30 dias para as férias</code> (junho tem 30 dias). Se você escrever os meses 6 e 7, vai dar 31: a distância de julho a agosto.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Date</code> é um instante: por dentro, os milissegundos desde 1º de janeiro de 1970 (UTC). <code>new Date()</code> é agora; <code>new Date(2026, 2, 5)</code> é 5 de março de 2026 à meia-noite local.</li>
+  <li><strong>O mês vai de 0 a 11</strong>: janeiro é 0, dezembro é 11. Some 1 ao mostrar, subtraia 1 ao criar.</li>
+  <li>Leia com <code>getFullYear</code>, <code>getMonth</code>, <code>getDate</code> (dia do mês), <code>getDay</code> (dia da semana, 0 = domingo), <code>getHours</code>…; mude com os <code>set</code>, que transbordam para o mês e o ano seguintes.</li>
+  <li><code>b - a</code> dá a distância em milissegundos; divida por <code>1000 * 60 * 60 * 24</code> e arredonde para ter dias.</li>
+  <li>O <code>console.log</code> do Node mostra as datas em UTC (o <code>Z</code>); <code>String(data)</code> e os <code>get</code> usam o horário local.</li>
+  <li>Cuidados: o texto <code>"2026-03-05"</code> é lido em UTC; <code>"31/12/2026"</code> vira <code>Invalid Date</code>; <code>===</code> não compara datas (use <code>getTime()</code>); para copiar, <code>new Date(d)</code>; e nunca esqueça o <code>new</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
