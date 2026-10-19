@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript Recursão — a função que chama a si mesma | Guia JavaScript</title>
+<meta name="description" content="Recursão em JavaScript para quem nunca programou: a função que chama a si mesma, o caso base e o passo recursivo, contagem regressiva, fatorial, a pilha de chamadas, somar uma lista, percorrer pastas dentro de pastas, recursão × laço e o erro real RangeError: Maximum call stack size exceeded do Node.js 24.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>JavaScript <span class="hl">Recursão</span></h1>
+
+<p class="intro">Uma função pode chamar outras funções: você já fez isso muitas vezes, chamando o <code>console.log</code> de dentro das suas. Ela também pode chamar <strong>a si mesma</strong>. Isso se chama <strong>recursão</strong> (do latim <em>recurrere</em>, "voltar a correr"), e a função que faz isso é uma <strong>função recursiva</strong>. Parece truque de mágica, mas é só um jeito de resolver um problema grande resolvendo um pedaço dele e deixando o resto para "uma cópia de si mesma". É o jeito natural de lidar com coisas que têm coisas iguais dentro: pastas dentro de pastas, comentários com respostas dentro de respostas, categorias com subcategorias.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma função recursiva e as duas peças que ela sempre tem: o <strong>caso base</strong> e o <strong>passo recursivo</strong>.</li>
+  <li>Como fazer uma contagem regressiva e um fatorial com recursão.</li>
+  <li>O que é a <strong>pilha de chamadas</strong> e como o JavaScript "volta" de cada chamada.</li>
+  <li>Como somar uma lista e percorrer pastas dentro de pastas, onde a recursão brilha.</li>
+  <li>Quando usar recursão e quando um laço (<code>for</code>) é melhor.</li>
+  <li>Os erros reais: <code>RangeError: Maximum call stack size exceeded</code> (sem caso base, ou fundo demais) e o <code>return</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Node.js 24</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>node arquivo.js</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia. Antes desta aula, é bom conhecer <a href="funcoes.html">Funções</a>, <a href="parametros.html">Parâmetros</a> e <a href="return.html">return</a>.</p>
+
+<hr>
+
+<h2>A ideia: "quantas pessoas tem na sua frente?"</h2>
+<p>A Ana está numa fila enorme da padaria e quer saber em que posição está. Ela não enxerga o começo da fila. Então ela cutuca a pessoa da frente e pergunta: <em>"Em que posição você está?"</em>. Essa pessoa também não sabe, então faz <strong>a mesma pergunta</strong> para quem está na frente dela. E assim por diante:</p>
+<ol class="passo">
+  <li>A pergunta vai passando para a frente, cada pessoa fazendo <strong>a mesma pergunta</strong> à próxima.</li>
+  <li>Até chegar na primeira pessoa da fila. Ela não precisa perguntar a ninguém: ela <strong>sabe</strong> que é a 1ª. Esse é o <strong>caso base</strong>: a resposta que sai direto, sem perguntar de novo.</li>
+  <li>A resposta volta para trás: "sou a 1ª", então a de trás diz "sou a 2ª", a outra "sou a 3ª"… cada uma soma 1 à resposta que recebeu.</li>
+  <li>Até a resposta chegar de volta na Ana.</li>
+</ol>
+<p>Toda recursão funciona assim, e tem sempre duas peças:</p>
+<ul>
+  <li>o <strong>caso base</strong>: a situação tão simples que a resposta sai direto, <strong>sem</strong> chamar a função de novo (a primeira pessoa da fila). Sem ele, a pergunta passaria para a frente para sempre;</li>
+  <li>o <strong>passo recursivo</strong>: a função chama a si mesma com um problema <strong>um pouco menor</strong> (uma pessoa mais perto do começo), e usa a resposta para montar a sua.</li>
+</ul>
+
+<hr>
+
+<h2>1. A primeira função recursiva: contagem regressiva</h2>
+
+<pre class="file" data-file="contagem.js">function contagem(n) {
+  if (n === 0) {
+    console.log("Já!");
+    return;
+  }
+  console.log(n);
+  contagem(n - 1);
+}
+
+contagem(3);
+</pre>
+
+<dl class="anatomy">
+  <dt>function contagem(n)</dt><dd>Uma função comum, com um parâmetro <code>n</code>: o número de onde a contagem começa.</dd>
+  <dt>if (n === 0) { … return; }</dt><dd>O <strong>caso base</strong>. Quando <code>n</code> chega a 0, a função mostra <code>Já!</code> e <strong>para</strong> com o <code>return</code> (veja <a href="return.html">return</a>), sem chamar ninguém.</dd>
+  <dt>console.log(n);</dt><dd>O trabalho desta chamada: mostrar o número atual.</dd>
+  <dt>contagem(n - 1);</dt><dd>O <strong>passo recursivo</strong>: a função chama <strong>a si mesma</strong>, com um número 1 menor. É esse <code>- 1</code> que faz a contagem andar em direção ao caso base.</dd>
+  <dt>contagem(3);</dt><dd>A primeira chamada, feita de fora, que dá a partida em tudo.</dd>
+</dl>
+
+<pre class="term">$ node contagem.js
+3
+2
+1
+Já!
+</pre>
+
+<h3>Passo a passo: o que o JavaScript fez</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th><code>n</code></th><th><code>n === 0</code>?</th><th>O que acontece</th></tr>
+<tr><td><code>contagem(3)</code></td><td>3</td><td><code>false</code></td><td>Mostra <code>3</code> e chama <code>contagem(2)</code></td></tr>
+<tr><td><code>contagem(2)</code></td><td>2</td><td><code>false</code></td><td>Mostra <code>2</code> e chama <code>contagem(1)</code></td></tr>
+<tr><td><code>contagem(1)</code></td><td>1</td><td><code>false</code></td><td>Mostra <code>1</code> e chama <code>contagem(0)</code></td></tr>
+<tr><td><code>contagem(0)</code></td><td>0</td><td><strong><code>true</code></strong></td><td>Caso base: mostra <code>Já!</code> e para</td></tr>
+</table>
+</div>
+
+<p>Cada linha da tabela é uma <strong>chamada separada</strong> da mesma função, cada uma com o seu próprio <code>n</code>. A chamada <code>contagem(2)</code> não mexe no <code>n</code> da <code>contagem(3)</code>: são duas "cópias" da função trabalhando ao mesmo tempo, cada uma com as suas variáveis (como cada pessoa da fila com a sua própria posição).</p>
+
+<div class="tryjs" data-goal="outre:5\n4\n3\n2\n1\nFogo!">
+<p class="try-task"><strong>Missão:</strong> faça a contagem começar do <strong>5</strong> e terminar com <code>Fogo!</code> em vez de <code>Já!</code>.</p>
+<pre class="script" data-file="main.js">function contagem(n) {
+  if (n === 0) {
+    console.log("Já!");
+    return;
+  }
+  console.log(n);
+  contagem(n - 1);
+}
+
+contagem(3);
+</pre>
+<pre class="solucao" data-file="main.js">function contagem(n) {
+  if (n === 0) {
+    console.log("Fogo!");
+    return;
+  }
+  console.log(n);
+  contagem(n - 1);
+}
+
+contagem(5);
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Recursão que devolve um valor: o fatorial</h2>
+<p>O <strong>fatorial</strong> de um número (escrito <code>5!</code> na matemática) é a multiplicação dele por todos os inteiros menores até 1: <code>5! = 5 × 4 × 3 × 2 × 1 = 120</code>. É o número de jeitos de enfileirar 5 pessoas. Repare numa coisa: <code>5! = 5 × 4!</code>. O fatorial de 5 é 5 vezes o fatorial de 4; o de 4 é 4 vezes o de 3… e o de 1 é 1. Isso é uma recursão pronta:</p>
+
+<pre class="file" data-file="fatorial.js">function fatorial(n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  return n * fatorial(n - 1);
+}
+
+console.log(fatorial(5));
+console.log(fatorial(1));
+console.log(fatorial(10));
+</pre>
+
+<dl class="anatomy">
+  <dt>if (n &lt;= 1) { return 1; }</dt><dd>O caso base: o fatorial de 1 é 1 (e o de 0 também, pela regra da matemática). Aqui a função devolve a resposta direto.</dd>
+  <dt>return n * fatorial(n - 1);</dt><dd>O passo recursivo: "o fatorial de <code>n</code> é <code>n</code> vezes o fatorial de <code>n - 1</code>". Para calcular a multiplicação, o JavaScript precisa primeiro do valor de <code>fatorial(n - 1)</code>, então ele <strong>espera</strong> essa chamada terminar.</dd>
+</dl>
+
+<pre class="term">$ node fatorial.js
+120
+1
+3628800
+</pre>
+
+<p>A conta de <code>fatorial(5)</code> se desdobra assim, descendo até o caso base e depois voltando com os resultados:</p>
+<pre class="file" data-file="desdobrando">fatorial(5) = 5 * fatorial(4)
+            = 5 * (4 * fatorial(3))
+            = 5 * (4 * (3 * fatorial(2)))
+            = 5 * (4 * (3 * (2 * fatorial(1))))
+            = 5 * (4 * (3 * (2 * 1)))       // caso base: fatorial(1) devolve 1
+            = 5 * (4 * (3 * 2))
+            = 5 * (4 * 6)
+            = 5 * 24
+            = 120
+</pre>
+
+<hr>
+
+<h2>3. A pilha de chamadas: descer e voltar</h2>
+<p>Quando uma função chama outra, o JavaScript anota "onde eu estava" e vai cuidar da nova chamada. Quando ela termina, ele volta para a anotação e continua de onde parou. Essas anotações ficam empilhadas, uma em cima da outra, como uma <strong>pilha de pratos</strong>: a última que entrou é a primeira que sai. Essa pilha se chama <strong>pilha de chamadas</strong> (em inglês, <em>call stack</em>).</p>
+<p>Para ver a pilha funcionando, a Ana colocou mensagens no fatorial, com um recuo (<code>recuo</code>) que aumenta 2 espaços a cada chamada mais funda:</p>
+
+<pre class="file" data-file="pilha.js">function fatorial(n, recuo = "") {
+  console.log(`${recuo}entrou em fatorial(${n})`);
+  if (n &lt;= 1) {
+    console.log(`${recuo}caso base: devolve 1`);
+    return 1;
+  }
+  const resultado = n * fatorial(n - 1, recuo + "  ");
+  console.log(`${recuo}fatorial(${n}) devolve ${resultado}`);
+  return resultado;
+}
+
+fatorial(4);
+</pre>
+
+<pre class="term">$ node pilha.js
+entrou em fatorial(4)
+  entrou em fatorial(3)
+    entrou em fatorial(2)
+      entrou em fatorial(1)
+      caso base: devolve 1
+    fatorial(2) devolve 2
+  fatorial(3) devolve 6
+fatorial(4) devolve 24
+</pre>
+
+<p>Leia a saída como uma escada:</p>
+<ul>
+  <li><strong>Descendo</strong> (as linhas "entrou em"): cada chamada para no meio da conta <code>n * fatorial(n - 1)</code> e espera. Nenhuma multiplicação foi feita ainda. A pilha tem 4 chamadas esperando.</li>
+  <li><strong>O fundo</strong>: <code>fatorial(1)</code> é o caso base e devolve 1 sem chamar ninguém.</li>
+  <li><strong>Subindo</strong> (as linhas "devolve"): cada chamada recebe a resposta da de baixo, termina a sua multiplicação e devolve para a de cima. A última a entrar foi a primeira a sair.</li>
+</ul>
+<p>O parâmetro <code>recuo = ""</code> tem um valor padrão (veja <a href="parametros-padrao.html">Parâmetros Padrão</a>): quem chama de fora não precisa passar nada, e cada chamada recursiva passa o recuo com mais 2 espaços.</p>
+
+<div class="note">
+<strong>A pilha tem tamanho limitado</strong>
+<p>Cada chamada que espera ocupa um pouco de memória na pilha. Se a recursão descer fundo demais (ou nunca parar), a pilha enche e o programa quebra com <code>RangeError: Maximum call stack size exceeded</code> ("tamanho máximo da pilha de chamadas excedido"). Você vai ver esse erro em <a href="#errado">Quando dá errado</a>.</p>
+</div>
+
+<hr>
+
+<h2>4. Recursão numa lista: somar as compras</h2>
+<p>Uma lista também pode ser pensada de forma recursiva: "a soma da lista é <strong>o primeiro item</strong> mais <strong>a soma do resto</strong>". E a soma de uma lista vazia é 0 (o caso base):</p>
+
+<pre class="file" data-file="soma-lista.js">function somar(precos) {
+  if (precos.length === 0) {
+    return 0;
+  }
+  const [primeiro, ...resto] = precos;
+  return primeiro + somar(resto);
+}
+
+console.log(somar([4.5, 12, 3.5]));
+console.log(somar([]));
+</pre>
+
+<dl class="anatomy">
+  <dt>if (precos.length === 0) { return 0; }</dt><dd>O caso base: lista vazia, soma zero.</dd>
+  <dt>const [primeiro, ...resto] = precos;</dt><dd>Separa a lista em duas partes: o primeiro item e um array novo com o resto (veja <a href="desestruturacao.html">Desestruturação</a> e <a href="spread-rest.html">Spread e Rest</a>). Para <code>[4.5, 12, 3.5]</code>, <code>primeiro</code> é <code>4.5</code> e <code>resto</code> é <code>[12, 3.5]</code>.</dd>
+  <dt>return primeiro + somar(resto);</dt><dd>O passo recursivo: o resto é uma lista <strong>um item menor</strong>, então cada chamada se aproxima da lista vazia.</dd>
+</dl>
+
+<pre class="term">$ node soma-lista.js
+20
+0
+</pre>
+
+<p>Funciona, mas sejamos honestos: para somar uma lista simples, um <code>for … of</code> ou o <a href="reduce.html">reduce</a> são mais curtos e mais rápidos. Este exemplo serve para treinar o jeito recursivo de pensar. O próximo mostra onde a recursão é <strong>a</strong> ferramenta certa.</p>
+
+<hr>
+
+<h2>5. Onde a recursão brilha: pastas dentro de pastas</h2>
+<p>A pasta <code>Documentos</code> da Ana tem arquivos e outras pastas; essas pastas também têm arquivos e outras pastas, e assim por diante, sem um limite fixo. Num programa, isso vira um <a href="objetos.html">objeto</a> com uma lista de subpastas, e cada subpasta tem o <strong>mesmo formato</strong> da pasta de cima:</p>
+
+<pre class="file" data-file="pastas.js">const documentos = {
+  nome: "Documentos",
+  arquivos: ["curriculo.pdf", "rg.jpg"],
+  pastas: [
+    {
+      nome: "Escola",
+      arquivos: ["notas.txt"],
+      pastas: [
+        { nome: "2025", arquivos: ["boletim.pdf", "foto.png"], pastas: [] },
+        { nome: "2026", arquivos: ["matricula.pdf"], pastas: [] }
+      ]
+    },
+    { nome: "Receitas", arquivos: ["bolo.txt", "pao.txt"], pastas: [] }
+  ]
+};
+
+function contarArquivos(pasta) {
+  let total = pasta.arquivos.length;
+  for (const subpasta of pasta.pastas) {
+    total = total + contarArquivos(subpasta);
+  }
+  return total;
+}
+
+console.log(`Arquivos em ${documentos.nome}: ${contarArquivos(documentos)}`);
+</pre>
+
+<pre class="term">$ node pastas.js
+Arquivos em Documentos: 8
+</pre>
+
+<dl class="anatomy">
+  <dt>let total = pasta.arquivos.length;</dt><dd>Começa contando os arquivos que estão <strong>direto</strong> nesta pasta.</dd>
+  <dt>for (const subpasta of pasta.pastas)</dt><dd>Passa por cada subpasta (veja <a href="for-of.html">for … of</a>).</dd>
+  <dt>total = total + contarArquivos(subpasta);</dt><dd>O passo recursivo: "quantos arquivos tem lá dentro?" é <strong>a mesma pergunta</strong>, feita para uma pasta menor. A função não precisa saber quantos níveis existem.</dd>
+  <dt>Onde está o caso base?</dt><dd>Ele está escondido: uma pasta com <code>pastas: []</code> (sem subpastas) não entra no <code>for</code>, então não chama ninguém e devolve só os seus arquivos. É ali que a recursão para.</dd>
+</dl>
+
+<p>Com um laço comum, você teria de escrever um <code>for</code> dentro de um <code>for</code> dentro de um <code>for</code>… e um nível a mais na pasta quebraria o programa. A recursão desce quantos níveis houver. O mesmo jeito serve para <strong>mostrar</strong> a árvore de pastas, com um recuo a cada nível:</p>
+
+<pre class="file" data-file="arvore.js">function mostrar(pasta, recuo = "") {
+  console.log(`${recuo}${pasta.nome}/`);
+  for (const arquivo of pasta.arquivos) {
+    console.log(`${recuo}  ${arquivo}`);
+  }
+  for (const subpasta of pasta.pastas) {
+    mostrar(subpasta, recuo + "  ");
+  }
+}
+
+mostrar(documentos);
+</pre>
+
+<pre class="term">$ node arvore.js
+Documentos/
+  curriculo.pdf
+  rg.jpg
+  Escola/
+    notas.txt
+    2025/
+      boletim.pdf
+      foto.png
+    2026/
+      matricula.pdf
+  Receitas/
+    bolo.txt
+    pao.txt
+</pre>
+
+<div class="tryjs">
+<p class="try-task"><strong>Experimente:</strong> acrescente uma pasta <code>Fotos</code> dentro de <code>Receitas</code> (com um arquivo <code>bolo.jpg</code>) e rode de novo. A função não muda nada e acha a pasta nova sozinha. Depois, tente uma pasta dentro da pasta nova.</p>
+<pre class="script" data-file="main.js">const documentos = {
+  nome: "Documentos",
+  arquivos: ["curriculo.pdf", "rg.jpg"],
+  pastas: [
+    {
+      nome: "Escola",
+      arquivos: ["notas.txt"],
+      pastas: [
+        { nome: "2025", arquivos: ["boletim.pdf", "foto.png"], pastas: [] },
+        { nome: "2026", arquivos: ["matricula.pdf"], pastas: [] }
+      ]
+    },
+    { nome: "Receitas", arquivos: ["bolo.txt", "pao.txt"], pastas: [] }
+  ]
+};
+
+function mostrar(pasta, recuo = "") {
+  console.log(`${recuo}${pasta.nome}/`);
+  for (const arquivo of pasta.arquivos) {
+    console.log(`${recuo}  ${arquivo}`);
+  }
+  for (const subpasta of pasta.pastas) {
+    mostrar(subpasta, recuo + "  ");
+  }
+}
+
+mostrar(documentos);
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Quase tudo que a recursão faz, um laço também faz. O fatorial com <code>for</code> (veja <a href="for.html">for</a>):</p>
+
+<pre class="file" data-file="fatorial-for.js">function fatorial(n) {
+  let resultado = 1;
+  for (let i = 2; i &lt;= n; i++) {
+    resultado = resultado * i;
+  }
+  return resultado;
+}
+
+console.log(fatorial(5));
+</pre>
+
+<pre class="term">$ node fatorial-for.js
+120
+</pre>
+
+<p>E a recursão também pode ser escrita como <a href="arrow-functions.html">arrow function</a> guardada numa <code>const</code>, com o caso base no <a href="ternario.html">ternário</a>. A função consegue chamar a si mesma pelo nome da constante porque, quando ela <strong>roda</strong>, a constante já existe:</p>
+
+<pre class="file" data-file="fatorial-arrow.js">const fatorial = (n) =&gt; (n &lt;= 1 ? 1 : n * fatorial(n - 1));
+
+console.log(fatorial(5));
+console.log(fatorial(20));
+console.log(fatorial(25));
+</pre>
+
+<pre class="term">$ node fatorial-arrow.js
+120
+2432902008176640000
+1.5511210043330986e+25
+</pre>
+
+<p>(O fatorial cresce muito rápido: o de 25 já passou do que um número comum guarda com exatidão, e o JavaScript mostra em notação científica, com o <code>e+25</code>. Para inteiros gigantes exatos existe o <a href="bigint.html">BigInt</a>.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Repetir um número conhecido de vezes, somar uma lista, contar</td><td>Um laço (<a href="for.html">for</a>, <a href="for-of.html">for … of</a>) ou métodos de array (<a href="reduce.html">reduce</a>): mais simples e sem limite de pilha</td></tr>
+<tr><td>Estruturas que têm coisas iguais dentro (pastas, menus com submenus, comentários com respostas, árvore genealógica)</td><td><strong>Recursão</strong>: a função não precisa saber quantos níveis existem</td></tr>
+<tr><td>O problema se define por ele mesmo ("o fatorial de n é n vezes o fatorial de n − 1")</td><td>Recursão fica parecida com a definição; um laço costuma ser mais rápido</td></tr>
+<tr><td>Milhares de níveis (por exemplo, somar de 1 até 100 000)</td><td>Laço: a recursão estoura a pilha (veja abaixo)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o caso base: a recursão nunca para</strong>
+<pre class="file" data-file="sembase.js">function fatorial(n) {
+  return n * fatorial(n - 1);
+}
+
+console.log(fatorial(5));
+</pre>
+<pre class="term">$ node sembase.js
+/home/ana/sembase.js:2
+  return n * fatorial(n - 1);
+  ^
+
+RangeError: Maximum call stack size exceeded
+    at fatorial (/home/ana/sembase.js:2:3)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+    at fatorial (/home/ana/sembase.js:2:14)
+
+Node.js v24.22.0
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>/home/ana/sembase.js:2</dt><dd>O arquivo e a linha onde o programa quebrou: a linha 2, a do <code>return</code>.</dd>
+  <dt>return n * fatorial(n - 1); e o ^</dt><dd>A linha do código, com o <code>^</code> apontando onde o Node estava quando a pilha encheu.</dd>
+  <dt>RangeError: Maximum call stack size exceeded</dt><dd>O tipo do erro (<code>RangeError</code>, "erro de intervalo": algo passou do limite) e a mensagem: "tamanho máximo da pilha de chamadas excedido". Sem caso base, o <code>fatorial</code> chamou <code>fatorial(4)</code>, <code>fatorial(3)</code>, … <code>fatorial(0)</code>, <code>fatorial(-1)</code>, <code>fatorial(-2)</code>… e nunca parou, até a pilha encher.</dd>
+  <dt>at fatorial (/home/ana/sembase.js:2:14)</dt><dd>As chamadas que estavam na pilha, da mais funda para a mais rasa: todas são a mesma função, na mesma linha. O <code>:14</code> é a coluna (o 14º caractere, onde começa o <code>fatorial(n - 1)</code>). O Node mostra só as 10 primeiras; na pilha havia milhares.</dd>
+  <dt>Node.js v24.22.0</dt><dd>A versão do Node que rodou o programa. O código de saída foi <code>1</code> (erro).</dd>
+</dl>
+<p><strong>Como consertar:</strong> toda função recursiva precisa de um caso base que <strong>pare</strong> a recursão: <code>if (n &lt;= 1) { return 1; }</code> antes da chamada.</p>
+</div>
+
+<div class="cenario">
+<strong>O caso base existe, mas nunca é alcançado</strong>
+<pre class="file" data-file="negativo.js">function contagem(n) {
+  if (n === 0) {
+    console.log("Já!");
+    return;
+  }
+  contagem(n - 1);
+}
+
+contagem(2.5);
+</pre>
+<pre class="term">$ node negativo.js
+/home/ana/negativo.js:2
+  if (n === 0) {
+  ^
+
+RangeError: Maximum call stack size exceeded
+    at contagem (/home/ana/negativo.js:2:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+    at contagem (/home/ana/negativo.js:6:3)
+
+Node.js v24.22.0
+</pre>
+<p>De 2,5 a contagem vai para 1,5, 0,5, −0,5, −1,5… e <strong>pula</strong> o zero. A condição <code>n === 0</code> nunca fica verdadeira. O mesmo acontece com <code>contagem(-1)</code>. <strong>Como consertar:</strong> use um caso base que "pega" tudo que já passou do ponto: <code>if (n &lt;= 0)</code> em vez de <code>if (n === 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code> no passo recursivo</strong>
+<pre class="file" data-file="semreturn.js">function fatorial(n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  n * fatorial(n - 1);
+}
+
+console.log(fatorial(5));
+</pre>
+<pre class="term">$ node semreturn.js
+undefined
+</pre>
+<p>Nenhuma mensagem de erro, só um <code>undefined</code>. A linha 5 até calcula <code>n * fatorial(n - 1)</code>, mas joga o resultado fora: sem <code>return</code>, a função termina sem devolver nada, e "nada" no JavaScript é <code>undefined</code> (veja <a href="null-undefined.html">null e undefined</a>). <strong>Como consertar:</strong> <code>return n * fatorial(n - 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Fundo demais: a recursão certa que estoura a pilha</strong>
+<pre class="file" data-file="fundo.js">function somarAte(n) {
+  if (n === 0) {
+    return 0;
+  }
+  return n + somarAte(n - 1);
+}
+
+console.log(somarAte(100));
+console.log(somarAte(1000));
+console.log(somarAte(100000));
+</pre>
+<pre class="term">$ node fundo.js
+5050
+500500
+/home/ana/fundo.js:1
+function somarAte(n) {
+                 ^
+
+RangeError: Maximum call stack size exceeded
+    at somarAte (/home/ana/fundo.js:1:18)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+    at somarAte (/home/ana/fundo.js:5:14)
+
+Node.js v24.22.0
+</pre>
+<p>A função está certa: com 100 e com 1000 deu a soma correta. Com 100 000, ela precisaria de 100 000 chamadas esperando na pilha ao mesmo tempo, e a pilha não aguenta. No notebook da Ana, um teste com <code>try … catch</code> (veja <a href="try-catch.html">try … catch</a>) mostrou que cabem um pouco mais de 12 mil chamadas de uma função simples (<code>Chegou a 12546 chamadas.</code>). Esse número muda de um computador para outro, com o tamanho da função e entre o Node e o navegador. <strong>Como consertar:</strong> para tantas repetições, use um laço: <code>for (let i = 1; i &lt;= n; i++) { total += i; }</code>.</p>
+</div>
+
+<div class="tryjs" data-goal="out:120;;semerro;;src:return\s+n\s*\*\s*fatorial">
+<p class="try-task"><strong>Missão:</strong> este fatorial mostra <code>undefined</code>. Conserte para mostrar <code>120</code>.</p>
+<pre class="script" data-file="main.js">function fatorial(n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  n * fatorial(n - 1);
+}
+
+console.log(fatorial(5));
+</pre>
+<pre class="solucao" data-file="main.js">function fatorial(n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  return n * fatorial(n - 1);
+}
+
+console.log(fatorial(5));
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>O que é</th><th>Exemplo</th></tr>
+<tr><td>Função recursiva</td><td>Uma função que chama a si mesma</td><td><code>function f(n) { … f(n - 1) … }</code></td></tr>
+<tr><td>Caso base</td><td>A situação em que a resposta sai direto, sem nova chamada</td><td><code>if (n &lt;= 1) { return 1; }</code></td></tr>
+<tr><td>Passo recursivo</td><td>A chamada a si mesma, com um problema menor</td><td><code>return n * fatorial(n - 1);</code></td></tr>
+<tr><td>Pilha de chamadas</td><td>As chamadas que estão esperando a de baixo terminar</td><td>A escada da seção 3</td></tr>
+<tr><td>Recursão em lista</td><td>Primeiro item + recursão no resto</td><td><code>const [primeiro, ...resto] = lista;</code></td></tr>
+<tr><td>Recursão em árvore</td><td>Cada parte tem o mesmo formato do todo</td><td><code>for (const sub of pasta.pastas) contar(sub);</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>RangeError: Maximum call stack size exceeded</code> com a mesma função repetida no <code>at …</code></td><td>Faltou o caso base, o caso base nunca é alcançado (<code>=== 0</code> com número quebrado ou negativo), ou a recursão é funda demais</td></tr>
+<tr><td>O resultado sai <code>undefined</code></td><td>Faltou o <code>return</code> antes da chamada recursiva (ou no caso base)</td></tr>
+<tr><td>O resultado sai <code>NaN</code></td><td>Alguma chamada devolveu <code>undefined</code> e ele entrou numa conta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o caso base</h3>
+<p>Complete para a função devolver a soma de 1 até <code>n</code> (para <code>n = 0</code>, a soma é 0):</p>
+<div class="ex-code">function somarAte(n) {<br>&nbsp;&nbsp;if (n === <input data-answer="0" aria-label="valor do caso base">) {<br>&nbsp;&nbsp;&nbsp;&nbsp;return 0;<br>&nbsp;&nbsp;}<br>&nbsp;&nbsp;<input data-answer="return" aria-label="palavra que devolve o valor"> n + somarAte(n - <input data-answer="1" aria-label="quanto diminui">);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto dá?</h3>
+<p>O que este programa mostra?</p>
+<pre class="file" data-file="ex2.js">function f(n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  return n * f(n - 1);
+}
+
+console.log(f(4));
+</pre>
+<div class="ex-code">Mostra <input data-answer="24" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que é o <strong>caso base</strong> de uma função recursiva?</p>
+<label><input type="radio" name="q3"> A primeira chamada, feita de fora da função</label>
+<label><input type="radio" name="q3"> A situação em que a função devolve a resposta sem chamar a si mesma</label>
+<label><input type="radio" name="q3"> A linha em que a função chama a si mesma</label>
+<label><input type="radio" name="q3"> O maior valor que o parâmetro pode ter</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Um programa termina com <code>RangeError: Maximum call stack size exceeded</code> e a mesma função se repete em todas as linhas <code>at …</code>. Qual é a causa mais provável?</p>
+<label><input type="radio" name="q4"> Um número grande demais para o JavaScript</label>
+<label><input type="radio" name="q4"> Faltou um <code>return</code> no fim da função</label>
+<label><input type="radio" name="q4"> A recursão nunca chega ao caso base (ou ele não existe)</label>
+<label><input type="radio" name="q4"> A função foi chamada antes de ser criada</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Em qual destas tarefas a recursão é a escolha mais natural?</p>
+<label><input type="radio" name="q5"> Listar todos os arquivos de uma pasta, incluindo as pastas dentro dela, em qualquer profundidade</label>
+<label><input type="radio" name="q5"> Mostrar os números de 1 a 10</label>
+<label><input type="radio" name="q5"> Somar de 1 até 1 milhão</label>
+<label><input type="radio" name="q5"> Ler uma linha do teclado</label>
+</div>
+
+<h3>Missão final: a potência</h3>
+
+<div class="tryjs" data-goal="out:2 elevado a 10 = 1024;;semerro;;src:return[^\n]*potencia\(">
+<p class="try-task"><strong>Missão:</strong> <code>2</code> elevado a <code>10</code> é <code>2</code> multiplicado por ele mesmo 10 vezes. Pense recursivamente: "<code>base</code> elevado a <code>expoente</code> é <code>base</code> vezes <code>base</code> elevado a <code>expoente - 1</code>", e qualquer número elevado a 0 é 1. Escreva a função <code>potencia</code> com um caso base (<code>expoente === 0</code>) e um passo recursivo.</p>
+<pre class="script" data-file="main.js">function potencia(base, expoente) {
+  // caso base: se o expoente for 0, devolva 1
+  // passo recursivo: devolva base vezes potencia(base, expoente - 1)
+}
+
+console.log(`2 elevado a 10 = ${potencia(2, 10)}`);
+</pre>
+<pre class="solucao" data-file="main.js">function potencia(base, expoente) {
+  if (expoente === 0) {
+    return 1;
+  }
+  return base * potencia(base, expoente - 1);
+}
+
+console.log(`2 elevado a 10 = ${potencia(2, 10)}`);
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>2 elevado a 10 = 1024</code>. (No dia a dia, a potência já vem pronta: <code>2 ** 10</code> ou <code>Math.pow(2, 10)</code>, veja <a href="math.html">Math</a>.)</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>função recursiva</strong> chama a si mesma. Ela sempre tem um <strong>caso base</strong> (a resposta sai direto) e um <strong>passo recursivo</strong> (chama a si mesma com um problema menor).</li>
+  <li>Cada chamada tem as suas próprias variáveis. As chamadas que esperam ficam na <strong>pilha de chamadas</strong>: a recursão desce até o caso base e depois volta, da última chamada para a primeira.</li>
+  <li>No passo recursivo que calcula algo, não esqueça o <code>return</code>: sem ele, sai <code>undefined</code>.</li>
+  <li>Sem caso base (ou com um caso base que nunca é alcançado), a pilha enche: <code>RangeError: Maximum call stack size exceeded</code>. O mesmo erro aparece quando a recursão é funda demais (dezenas de milhares de níveis).</li>
+  <li>A recursão brilha em estruturas com coisas iguais dentro (pastas, menus, comentários). Para repetir muitas vezes ou somar listas, prefira um laço ou os métodos de array.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
