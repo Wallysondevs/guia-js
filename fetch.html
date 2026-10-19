@@ -268,6 +268,8 @@ Error: getaddrinfo EAI_AGAIN viacep.com.br
   <dt>EAI_AGAIN</dt><dd>"Tente de novo mais tarde": o código do sistema para "não consegui consultar o DNS agora". Com internet, mas com um nome de site que não existe, o código é outro: no lab, <code>fetch("https://padaria-da-ana-nao-existe.com.br/")</code> deu <code>fetch failed</code> com a causa <code>ENOTFOUND</code> ("não encontrado").</dd>
 </dl>
 
+<p>No editor do guia, que usa o <code>fetch</code> do navegador, a mensagem também é <code>fetch failed</code>, mas a causa sai <code>TypeError: Failed to fetch</code>: o navegador não conta ao programa o motivo (sem internet, nome errado, CORS).</p>
+
 <p>Repare na diferença com a seção 3: um <strong>400</strong> ou um <strong>404</strong> não rejeita a Promise (o servidor respondeu); <strong>sem resposta nenhuma</strong>, ela é rejeitada. Um programa que busca dados na internet precisa tratar os dois casos.</p>
 
 <div class="note">
