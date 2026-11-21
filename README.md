@@ -1,3 +1,5 @@
+<p align="center"><img src="capa.png" alt="Capa do guia-js" width="100%"></p>
+
 # Guia JavaScript
 
 Site: https://wallysondevs.github.io/guia-js/
