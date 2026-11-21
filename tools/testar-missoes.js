@@ -148,7 +148,21 @@ function analisarHtml(html) {
   }
   // qualquer pasta pessoal que não seja a da Ana, nomes de máquina da nuvem, o lab e rascunhos; o resto (nomes, IPs) vem do ~/.guia-proibido
   const PROIBIDO = /\/home\/(?!ana\b)[a-z][a-z0-9_-]*|ip-172-\d|guia-[a-z]+-lab|\/tmp\/claude/i;
-  const PROIBIDO_EXTRA = (() => { try { return fs.readFileSync(path.join(require("os").homedir(), ".guia-proibido"), "utf8").split("\n").map((x) => x.trim()).filter(Boolean); } catch (e) { return []; } })();
+  const PROIBIDO_EXTRA = (() => {
+    const itens = [], visto = new Set();
+    const arquivos = [];
+    if (process.env.PROIBIDO) arquivos.push(process.env.PROIBIDO);
+    arquivos.push(path.join(require("os").homedir(), ".guia-proibido"));
+    for (const arq of arquivos) {
+      try {
+        for (const linha of fs.readFileSync(arq, "utf8").split("\n")) {
+          const x = linha.trim();
+          if (x && !x.startsWith("#") && !visto.has(x)) { visto.add(x); itens.push(x); }
+        }
+      } catch (e) { /* lista opcional: PROIBIDO=arquivo ou ~/.guia-proibido */ }
+    }
+    return itens;
+  })();
   const linhasSrc = html.split("\n");
   for (let k = 0; k < linhasSrc.length; k++) {
     const p = PROIBIDO.exec(linhasSrc[k]) || PROIBIDO_EXTRA.map((x) => [x]).find((x) => linhasSrc[k].includes(x[0]));
