@@ -50,6 +50,7 @@ node tools/testar-missoes.js --nativo pagina.html   # compara também com o Node
 node tools/conferir-casos.js                 # bateria de fidelidade (precisa do laboratório)
 node tools/testar-navegador.js --todas       # abre todas as páginas como o leitor
 node tools/sim.js main.js                    # roda um programa como o editor
+bash tools/checar-privacidade.sh             # páginas e histórico; lista extra: PROIBIDO=lista.txt
 ```
 
 ## Publicar no GitHub Pages
